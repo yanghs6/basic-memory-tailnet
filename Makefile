@@ -16,7 +16,7 @@ GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir)
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR)" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -38,3 +38,16 @@ coverage: tools-image ## Run tests under kcov; fail below COVERAGE_MIN% line cov
 	$(DOCKER_RUN) $(TOOLS_IMAGE) tools/coverage.sh $(COVERAGE_MIN)
 
 check: lint coverage ## Lint + all tests + coverage gate (run before every commit)
+
+COMPOSE := docker compose -f compose.yaml
+LOCAL_DATA_DIRS := .local-data/knowledge .local-data/config
+
+local-up: ## Start Basic Memory locally on 127.0.0.1:BM_PORT and wait until healthy
+	mkdir -p $(LOCAL_DATA_DIRS)
+	$(COMPOSE) up -d --wait
+
+local-down: ## Stop the local container (data in .local-data/ is kept)
+	$(COMPOSE) down
+
+local-logs: ## Show recent local container logs
+	$(COMPOSE) logs --tail=200

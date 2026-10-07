@@ -55,3 +55,45 @@ require_shell_files() {
     assert_output --partial "  $target "
   done
 }
+
+@test "compose pins the Basic Memory image by digest" {
+  run grep -E '^ +image: ghcr\.io/basicmachines-co/basic-memory:[0-9.]+@sha256:[0-9a-f]{64}$' "$REPO_DIR/compose.yaml"
+  assert_success
+}
+
+@test "compose publishes ports on 127.0.0.1 only" {
+  local ports
+  ports="$(awk '/^ +ports:/ { p = 1; next } p && /^ +- / { print; next } p { p = 0 }' "$REPO_DIR/compose.yaml")"
+  [[ -n "$ports" ]] || fail "compose.yaml has no ports entries"
+  if grep -vqE '^ +- "127\.0\.0\.1:' <<<"$ports"; then
+    fail "every published port must start with \"127.0.0.1: (Basic Memory has no auth): $ports"
+  fi
+}
+
+@test "compose overrides the image's default SSE command with streamable-http on /mcp" {
+  run grep -F '"--transport", "streamable-http"' "$REPO_DIR/compose.yaml"
+  assert_success
+  run grep -F '"--path", "/mcp"' "$REPO_DIR/compose.yaml"
+  assert_success
+}
+
+@test "compose restarts the container after reboots" {
+  run grep -E '^ +restart: unless-stopped$' "$REPO_DIR/compose.yaml"
+  assert_success
+}
+
+@test ".env is never tracked by git" {
+  local files
+  files="$(git -C "$REPO_DIR" ls-files)" || fail "git ls-files failed"
+  [[ -n "$files" ]] || fail "git ls-files returned nothing"
+  if grep -qE '(^|/)\.env$' <<<"$files"; then
+    fail ".env must never be tracked by git"
+  fi
+}
+
+@test ".env.example has only comments and unquoted KEY=value lines" {
+  [[ -f "$REPO_DIR/.env.example" ]] || fail "create .env.example"
+  local bad
+  bad="$(grep -vE '^(#.*|[A-Z][A-Z0-9_]*=[^"'"'"' ]*|)$' "$REPO_DIR/.env.example" || true)"
+  [[ -z "$bad" ]] || fail "make reads quotes and spaces literally; fix these .env.example lines: $bad"
+}
