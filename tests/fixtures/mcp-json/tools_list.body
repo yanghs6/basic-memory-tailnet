@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"write_note"},{"name":"read_note"},{"name":"search_notes"},{"name":"delete_note"}]}}
