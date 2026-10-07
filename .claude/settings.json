@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "attribution": {
+    "commit": ""
+  },
+  "permissions": {
+    "allow": [
+      "Bash(make help)",
+      "Bash(make lint)",
+      "Bash(make fmt)",
+      "Bash(make test)",
+      "Bash(make coverage)",
+      "Bash(make check)",
+      "Bash(make local-verify)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./backups/**)",
+      "Read(./.local-data/**)"
+    ]
+  }
+}
