@@ -102,6 +102,16 @@ EOF
   assert_output 1
 }
 
+@test "deletes the note during cleanup when write_note fails after the server may have written it" {
+  echo 500 >"$FIXTURES/call_write_note.status"
+  run "$VERIFY" "$URL"
+  assert_failure
+  assert_output --partial "write_note: HTTP 500"
+  assert_output --partial "cleanup: deleting leftover note 'bm-verify-test1'"
+  run grep -c '"name":"delete_note"' "$STUB_LOG.requests"
+  assert_output 1
+}
+
 @test "explains how to start the server when curl cannot connect" {
   export CURL_STUB_EXIT=7
   run "$VERIFY" "$URL"
