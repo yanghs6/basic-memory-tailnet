@@ -4,7 +4,7 @@ SHELL := bash
 .DEFAULT_GOAL := help
 
 -include .env
-BM_PORT ?= 8737
+BM_PORT := $(or $(BM_PORT),8737)
 export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT
 
 SHELLCHECK_IMAGE := koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d
@@ -13,7 +13,7 @@ TOOLS_IMAGE := bm-tools:local
 COVERAGE_MIN := 80
 # A worktree .git file points at the main repo .git dir by absolute path; mount it so git works in containers.
 GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir)
-DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR)" -w /repo
+DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*')
 
 .PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify
