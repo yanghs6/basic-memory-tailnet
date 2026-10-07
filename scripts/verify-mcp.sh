@@ -28,7 +28,7 @@ parse_args() {
   while (($#)); do
     case "$1" in
       --host-header)
-        [[ -n "${2:-}" ]] || usage
+        [[ -n "${2:-}" && "$2" != -* ]] || usage
         HOST_HEADER="$2"
         shift 2
         ;;
