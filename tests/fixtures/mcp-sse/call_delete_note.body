@@ -1,0 +1,3 @@
+event: message
+data: {"jsonrpc":"2.0","id":5,"result":{"_meta":{"fastmcp":{"wrap_result":true}},"content":[{"text":"{}","type":"text"}],"isError":false,"structuredContent":{"result":{"deleted":true,"title":"bm-verify-test1","permalink":"main/verify/bm-verify-test1","file_path":"verify/bm-verify-test1.md"}}}}
+

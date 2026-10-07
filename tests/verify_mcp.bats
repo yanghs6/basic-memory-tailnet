@@ -1,0 +1,130 @@
+#!/usr/bin/env bats
+load helpers
+
+setup() {
+  setup_stubs curl
+  export VERIFY_ID=test1
+  FIXTURES="$BATS_TEST_TMPDIR/fixtures"
+  cp -R "$REPO_DIR/tests/fixtures/mcp-sse" "$FIXTURES"
+  export CURL_FIXTURES="$FIXTURES"
+  VERIFY="$REPO_DIR/scripts/verify-mcp.sh"
+  URL=http://127.0.0.1:8737/mcp
+}
+
+@test "passes a full round trip against SSE responses" {
+  run "$VERIFY" "$URL"
+  assert_success
+  assert_output --partial "OK: MCP round trip passed"
+}
+
+@test "passes a full round trip against plain JSON responses" {
+  export CURL_FIXTURES="$REPO_DIR/tests/fixtures/mcp-json"
+  run "$VERIFY" "$URL"
+  assert_success
+}
+
+@test "sends the session id from initialize on every later request" {
+  run "$VERIFY" "$URL"
+  assert_success
+  run grep -c 'Mcp-Session-Id: test-session-0123456789' "$STUB_LOG"
+  assert_output 5
+}
+
+@test "never prints the full session id" {
+  run "$VERIFY" "$URL"
+  refute_output --partial "test-session-0123456789"
+  assert_output --partial "session test****"
+}
+
+@test "sends the Host header on every request when --host-header is given" {
+  run "$VERIFY" --host-header bm-node.example.ts.net "$URL"
+  assert_success
+  run grep -c 'Host: bm-node.example.ts.net' "$STUB_LOG"
+  assert_output 6
+}
+
+@test "writes, reads and deletes the same uniquely named note" {
+  run "$VERIFY" "$URL"
+  assert_success
+  run jq -r 'select(.method == "tools/call") | "\(.params.name) \(.params.arguments.title // .params.arguments.identifier)"' "$STUB_LOG.requests"
+  assert_output $'write_note bm-verify-test1\nread_note bm-verify-test1\ndelete_note bm-verify-test1'
+}
+
+@test "fails with the server message when a tool reports an error" {
+  cat >"$FIXTURES/call_write_note.body" <<'EOF'
+event: message
+data: {"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"Note already exists"}],"isError":true}}
+EOF
+  run "$VERIFY" "$URL"
+  assert_failure
+  assert_output --partial "write_note: tool error: Note already exists"
+}
+
+@test "fails when a required tool is missing" {
+  cat >"$FIXTURES/tools_list.body" <<'EOF'
+data: {"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"write_note"},{"name":"read_note"},{"name":"search_notes"}]}}
+EOF
+  run "$VERIFY" "$URL"
+  assert_failure
+  assert_output --partial "tools/list: missing tool 'delete_note'"
+}
+
+@test "fails on a non-200 HTTP status" {
+  echo 503 >"$FIXTURES/initialize.status"
+  run "$VERIFY" "$URL"
+  assert_failure
+  assert_output --partial "initialize: HTTP 503"
+}
+
+@test "fails on a JSON-RPC error response" {
+  echo 'data: {"jsonrpc":"2.0","id":1,"error":{"code":-32600,"message":"Invalid request"}}' >"$FIXTURES/initialize.body"
+  run "$VERIFY" "$URL"
+  assert_failure
+  assert_output --partial 'initialize: JSON-RPC error {"code":-32600,"message":"Invalid request"}'
+}
+
+@test "fails when the body is not JSON-RPC" {
+  echo '<html>Bad gateway</html>' >"$FIXTURES/initialize.body"
+  run "$VERIFY" "$URL"
+  assert_failure
+  assert_output --partial "initialize: response is not JSON-RPC"
+}
+
+@test "deletes the note during cleanup when read-back fails" {
+  cat >"$FIXTURES/call_read_note.body" <<'EOF'
+data: {"jsonrpc":"2.0","id":4,"result":{"content":[],"isError":false,"structuredContent":{"result":{"title":"bm-verify-test1","content":"something else"}}}}
+EOF
+  run "$VERIFY" "$URL"
+  assert_failure
+  assert_output --partial "read_note: content of 'bm-verify-test1' does not contain 'bm-verify marker test1'"
+  assert_output --partial "cleanup: deleting leftover note 'bm-verify-test1'"
+  run grep -c '"name":"delete_note"' "$STUB_LOG.requests"
+  assert_output 1
+}
+
+@test "explains how to start the server when curl cannot connect" {
+  export CURL_STUB_EXIT=7
+  run "$VERIFY" "$URL"
+  assert_failure
+  assert_output --partial "initialize: request to $URL failed"
+}
+
+@test "read-only mode stops after tools/list and writes nothing" {
+  run "$VERIFY" --read-only "$URL"
+  assert_success
+  assert_output --partial "OK: MCP read-only probe passed (no notes written)"
+  run grep -F '"method":"tools/call"' "$STUB_LOG.requests"
+  assert_failure
+}
+
+@test "rejects a missing URL" {
+  run "$VERIFY"
+  assert_failure
+  assert_output --partial "usage: verify-mcp.sh [--host-header HOST] [--read-only] URL"
+}
+
+@test "rejects unknown options" {
+  run "$VERIFY" --bogus "$URL"
+  assert_failure
+  assert_output --partial "usage:"
+}
