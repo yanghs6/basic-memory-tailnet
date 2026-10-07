@@ -73,17 +73,20 @@ extract_message() {
 
 # rpc ID METHOD PARAMS_JSON -> prints the JSON-RPC result object.
 rpc() {
-  local id="$1" method="$2" params="$3" payload status message
+  local id="$1" method="$2" params="$3" payload status message label="$2"
+  if [[ "$method" == tools/call ]]; then
+    label="$(jq -r '.name' <<<"$params")"
+  fi
   payload="$(jq -cn --argjson id "$id" --arg method "$method" --argjson params "$params" \
     '{jsonrpc: "2.0", id: $id, method: $method, params: $params}')"
   status="$(post "$payload")" \
-    || die "$method: request to $URL failed (is the server running? try 'make local-up' or 'make status')"
-  [[ "$status" == 200 ]] || die "$method: HTTP $status from $URL: $(head -c 300 "$WORK_DIR/body")"
+    || die "$label: request to $URL failed (is the server running? try 'make local-up' or 'make status')"
+  [[ "$status" == 200 ]] || die "$label: HTTP $status from $URL: $(head -c 300 "$WORK_DIR/body")"
   message="$(extract_message "$id" 2>/dev/null)" \
-    || die "$method: response is not JSON-RPC: $(head -c 300 "$WORK_DIR/body")"
-  [[ -n "$message" ]] || die "$method: no response with id $id: $(head -c 300 "$WORK_DIR/body")"
+    || die "$label: response is not JSON-RPC: $(head -c 300 "$WORK_DIR/body")"
+  [[ -n "$message" ]] || die "$label: no response with id $id: $(head -c 300 "$WORK_DIR/body")"
   if jq -e 'has("error")' <<<"$message" >/dev/null; then
-    die "$method: JSON-RPC error $(jq -c '.error' <<<"$message")"
+    die "$label: JSON-RPC error $(jq -c '.error' <<<"$message")"
   fi
   jq -c '.result' <<<"$message"
 }
@@ -131,9 +134,10 @@ check_write() {
   local title="$1" content="$2" arguments payload
   arguments="$(jq -cn --arg title "$title" --arg content "$content" --arg directory "$VERIFY_DIRECTORY" \
     '{title: $title, content: $content, directory: $directory, output_format: "json"}')"
+  # Titles are unique per run, so a cleanup delete of a note that was never created only logs a WARNING.
+  NOTE_WRITTEN="$title"
   payload="$(call_tool 3 write_note "$arguments")" || exit 1
   [[ "$(jq -r '.action' <<<"$payload")" == created ]] || die "write_note: expected action=created, got $payload"
-  NOTE_WRITTEN="$title"
   log "write_note ok ($VERIFY_DIRECTORY/$title)"
 }
 
