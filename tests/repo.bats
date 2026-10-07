@@ -108,3 +108,12 @@ require_shell_files() {
   run cat "$REPO_DIR/CLAUDE.md"
   assert_output "@AGENTS.md"
 }
+
+@test ".env variants are git-ignored but .env.example is not" {
+  run git -C "$REPO_DIR" check-ignore -q .env.local
+  assert_success
+  run git -C "$REPO_DIR" check-ignore -q .env.production
+  assert_success
+  run git -C "$REPO_DIR" check-ignore -q .env.example
+  assert_failure 1
+}

@@ -1,5 +1,5 @@
 # Local secrets and per-user settings (never commit)
-.env
+.env*
 !.env.example
 CLAUDE.local.md
 .claude/settings.local.json
