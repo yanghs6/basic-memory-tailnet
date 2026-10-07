@@ -15,8 +15,10 @@
 **완료 조건**
 
 1. `make verify`가 tailnet 안에서 `https://bm-node.<tailnet>.ts.net/mcp`로 MCP 왕복(initialize → tools/list → 노트 쓰기/읽기/삭제)을 통과한다.
-2. VM의 공인 IP로 22번과 8737번 포트에 연결할 수 없다. OCI 공개 인바운드 규칙은 0개다.
-3. `make backup`으로 받은 백업을 `make restore`로 복원할 수 있다.
+2. 공개 노출이 없다. 두 가지를 모두 충족해야 한다.
+   - 자동 검증: `make verify`로 VM의 공인 IP에서 22·80·443·8737번 포트가 닫혀 있고, Serve가 tailnet 전용(Funnel off)임을 확인한다.
+   - 수동 점검: OCI 공개 인바운드 규칙이 0개이고 tailnet 정책에 `funnel` 속성이 없음을 확인해 기록한다(운영 런북의 Exposure audit). 이 둘은 VM에서 읽을 수 없어 자동 검증 범위 밖이다.
+3. `make backup`으로 받은 백업을 `make restore`로 복원하면 백업 시점의 데이터 파일이 manifest와 일치하게 돌아오고, 백업 이후의 변경은 사라진다.
 4. `make check`(lint + test + coverage ≥ 80%)가 통과한다.
 
 **범위 밖 (다음 목표)**
@@ -49,7 +51,8 @@
 - **Verified:** OCI Always Free A1 한도는 월 1,500 OCPU-시간 / 9,000 GB-시간(= 2 OCPU / 12GB)이고, 블록 볼륨은 부트 볼륨 포함 200GB다. 홈 리전은 변경할 수 없다.
 - **Verified:** OCI 유휴 회수 기준: 7일 동안 CPU 95번째 백분위, 네트워크, 메모리(A1만 해당)가 **모두** 20% 미만이면 회수할 수 있다.
 - **Verified:** `tailscale serve --bg http://127.0.0.1:<port>`는 tailnet 안에서 HTTPS 443으로 노출한다. HTTPS 인증서와 MagicDNS를 켜야 한다. 인증서가 발급된 기기 이름은 공개 CT 로그에 기록된다.
-- **Verified:** Tailscale Funnel은 기본으로 켜져 있다. 서버용으로는 사전 승인된 태그 인증 키를 권장한다. `tailscale set --ssh`를 켜면 공인 22번 포트를 닫을 수 있다.
+- **Verified (tailscale.com/docs/features/tailscale-funnel):** Tailscale Funnel은 기본 비활성이다. `tailscale funnel`을 실행해 승인하면 정책 `nodeAttrs`에 `funnel` 속성이 추가되어 사용 권한이 생긴다. 실제 공개 여부는 각 기기의 Serve/Funnel 설정이 정한다. (정정: 초기 조사의 "기본으로 켜짐"은 틀렸다.)
+- **Verified:** 서버용으로는 사전 승인된 태그 인증 키를 권장한다. `tailscale set --ssh`를 켜면 공인 22번 포트를 닫을 수 있다.
 - **Verified:** Tailscale Personal 요금제는 비상업 용도로 한정된다.
 - **Open question:** 회사 Mac을 개인 tailnet에 참여시키는 것이 회사 보안 정책과 Tailscale Personal 약관에 맞는지는 사용자가 확인해야 한다.
 - **Verified (2026-10-07, 로컬 0.23.2 컨테이너):** `Host: bm-node.example.ts.net` 헤더로 보낸 initialize가 200으로 응답했고, write/read/delete 왕복도 성공했다. 실제 Tailscale Serve 경유 동작은 VM 배포 단계에서 다시 확인한다.
@@ -118,9 +121,9 @@ docs/decisions/                  ADR (예: 0001-basic-memory-on-oci.md, 0002-vm-
 
 | 스킬 | 사용 시점 | 절차 |
 |---|---|---|
-| `bm-upgrade` | Basic Memory 버전을 올릴 때 | 릴리스 노트 확인 → 새 digest 조회 → `compose.yaml` 수정 → `make check local-up local-verify` → 사용자 확인 → `make backup deploy verify` → 실패 시 이전 digest로 되돌린 뒤 `make deploy verify` |
+| `bm-upgrade` | Basic Memory 버전을 올릴 때 | 릴리스 노트에서 DB·설정 마이그레이션 확인 → 새 digest 조회 → `compose.yaml` 수정 → `make check local-up local-verify` → 사용자 확인 → `make backup`(롤백 지점) → `make deploy verify` → 롤백은 이전 `image:` 줄 + `make restore BACKUP=<롤백 지점>`(이미지와 데이터를 함께 되돌림. 이후 쓴 노트는 사라진다는 점을 먼저 알림) |
 | `bm-recover` | VM이 회수·손상됐을 때 | `docs/runbooks/oci-vm.md`대로 VM 재생성(사용자 작업) → `make vm-bootstrap` → 사용자 확인 → `make deploy restore BACKUP=<파일>` (restore가 끝에 verify를 실행) |
-| `bm-diagnose` | 연결·MCP 문제가 있을 때 | 읽기 전용: `make status` → `make logs` → Serve 상태 → Host 헤더 → 메모리 사용률 순으로 원인을 좁힘 |
+| `bm-diagnose` | 연결·MCP 문제가 있을 때 | 읽기 전용: `tailscale status`, `make status`, `make logs`, `make probe`만 실행해 원인을 좁힘. 노트를 쓰거나 무언가를 시작하는 명령(`make verify`, `make local-up` 등)은 사용자에게 제안만 함 |
 
 ## 6. Make 타깃
 
@@ -137,11 +140,12 @@ docs/decisions/                  ADR (예: 0001-basic-memory-on-oci.md, 0002-vm-
 | 로컬 | `local-verify` | `verify-mcp.sh http://127.0.0.1:8737/mcp`에 ts.net Host 헤더 시나리오 포함 |
 | VM | `vm-bootstrap HOST=<공인IP>` | 공인 IP로 SSH 접속해 첫 설정 |
 | VM | `deploy` | compose와 VM env를 전송하고 pull/up, healthy 대기 |
-| VM | `verify` | tailnet URL로 MCP 왕복 + 원격 포트 바인딩 확인 |
+| VM | `verify` | tailnet URL로 MCP 왕복(테스트 노트를 쓰고 지움) + 원격 포트 바인딩 + Serve tailnet 전용 + 공인 IP의 22·80·443·8737 차단. `BM_VM_PUBLIC_IP` 필수 |
+| VM | `probe` | `verify`와 같은 검사를 노트 쓰기 없이 수행(initialize·tools/list만). 진단용 |
 | VM | `status` | 컨테이너 상태, 메모리 사용률(20% 미만 경고), Serve 상태 |
 | VM | `logs` | 원격 컨테이너 로그 |
-| VM | `backup` | 백업을 `backups/bm-<시각>.tgz`와 `.sha256`으로 저장 |
-| VM | `restore BACKUP=<파일>` | 확인 입력 후 복원 → verify |
+| VM | `backup` | 백업을 `backups/bm-<시각>.tgz`, `.sha256`, `.manifest`로 저장 |
+| VM | `restore BACKUP=<파일>` | 확인 입력 후 저장소 compose.yaml과 함께 복원(실패 시 자동 롤백) → verify |
 
 수명주기 작업은 Make 타깃으로만 한다. raw `docker compose`나 `ssh`는 Make 타깃 실패를 진단할 때만 쓰고, 그 이유를 기록한다.
 
@@ -190,7 +194,7 @@ docs/decisions/                  ADR (예: 0001-basic-memory-on-oci.md, 0002-vm-
 
 tailnet을 거쳐 `compose.yaml`과 생성한 `.env`를 `/opt/basic-memory`로 전송하고, `docker compose pull` → `up -d`를 실행한 뒤 healthy가 될 때까지 기다린다.
 
-### 7.6 `verify-mcp.sh URL [--host-header H]`
+### 7.6 `verify-mcp.sh [--host-header H] [--read-only] URL`
 
 curl과 jq로 MCP streamable HTTP를 직접 검증한다.
 
@@ -200,8 +204,13 @@ curl과 jq로 MCP streamable HTTP를 직접 검증한다.
 
 - 응답은 JSON과 SSE(`data:` 줄) 두 형식을 모두 파싱한다.
 - 실패하면 단계 이름과 응답 요약을 출력하고 0이 아닌 코드로 종료한다.
+- `--read-only`는 1~2단계만 하고 노트를 쓰지 않는다(`make probe`, `bm-diagnose`용).
 - `local-verify`는 이 스크립트를 두 번 실행한다. 기본 실행 한 번, `--host-header bm-node.example.ts.net`으로 한 번이다.
-- VM용 `verify`는 tailnet HTTPS URL로 실행하고, 원격 `ss -lnt`로 8737이 `127.0.0.1`에만 열려 있는지 확인한다.
+- VM용 `verify`와 `probe`(`verify-vm.sh [--read-only]`)는 tailnet HTTPS URL로 실행하고, 이어서 다음을 확인한다.
+  - 원격 `ss -lnt`로 8737이 `127.0.0.1`에만 열려 있다.
+  - `tailscale serve status`가 `tailnet only`이고 `Funnel on`이 아니다. **Assumption:** 출력 문구는 계획 04에서 실제 VM으로 확인한다.
+  - `BM_VM_PUBLIC_IP`(필수)의 22·80·443·8737이 Mac에서 연결되지 않는다.
+- OCI 인바운드 규칙과 tailnet 정책은 VM에서 읽을 수 없으므로 운영 런북의 Exposure audit으로 수동 점검한다.
 
 ### 7.7 `status.sh`
 
@@ -209,39 +218,44 @@ curl과 jq로 MCP streamable HTTP를 직접 검증한다.
 
 ### 7.8 `backup.sh`
 
-1. 원격 컨테이너를 정지한다. 실패해도 `trap`으로 반드시 다시 시작한다.
-2. `/srv/basic-memory`를 tar.gz로 스트리밍해 받는다.
-3. 컨테이너를 다시 시작한다.
-4. `backups/bm-<UTC 시각>.tgz`와 `.sha256`을 저장한다.
+1. 재시작 `trap`을 먼저 등록한 뒤 원격 컨테이너를 정지한다. 정지 응답이 끊겨도 재시작은 반드시 시도한다.
+2. 정지 상태에서 데이터 파일별 sha256 목록(manifest)을 만든다.
+3. `/srv/basic-memory`를 tar.gz로 스트리밍해 받는다.
+4. 컨테이너를 다시 시작한다.
+5. `backups/bm-<UTC 시각>.tgz`, `.sha256`, `.manifest`를 저장한다. 실패하면 반쪽 파일을 남기지 않는다.
 
 SQLite 파일이 쓰는 도중에 복사되지 않도록 잠시 정지한다. 개인용이므로 수 초 중단은 허용한다.
 
 ### 7.9 `restore.sh BACKUP`
 
-1. 로컬에서 sha256을 검증한다.
+1. 로컬에서 `.sha256`을 검증하고, `.manifest`가 있는지 확인한다.
 2. 사용자가 `yes`를 직접 입력해야 진행한다.
-3. 원격 컨테이너를 정지하고, 현재 데이터를 `/srv/basic-memory.prev-<시각>`으로 옮긴다(삭제하지 않음).
-4. 압축을 풀고 소유권을 1000:1000으로 맞춘 뒤 컨테이너를 시작한다.
-5. `verify`를 실행한다.
+3. 롤백 `trap`을 등록하고 원격 컨테이너를 정지한다.
+4. 임시 경로 `/srv/basic-memory.restore-<시각>`에 압축을 풀고, 파일 목록·체크섬을 manifest와 대조한 뒤 소유권을 1000:1000으로 맞춘다. 여기까지는 현재 데이터를 건드리지 않는다.
+5. 저장소의 `compose.yaml`을 VM에 적용한다. 이전 파일은 성공할 때까지 보관한다. 이미지와 데이터를 함께 되돌려, 업그레이드 롤백 때 이전 이미지가 새 버전이 마이그레이션한 데이터 위에서 돌지 않게 한다.
+6. 현재 데이터를 `/srv/basic-memory.prev-<시각>`으로 옮기고(삭제하지 않음), 복원본으로 교체한 뒤 컨테이너를 시작한다.
+7. 정지 이후 어느 단계에서 실패해도 롤백한다. 이전 데이터와 compose를 되돌리고(실패한 복원본은 `.failed-<시각>`에 보관) 컨테이너를 다시 시작한다.
+8. Make 레시피가 `verify`를 실행한다.
 
 ## 8. 운영 흐름 (런북)
 
 1. **`accounts.md` (사용자):**
    - OCI 가입. 홈 리전은 변경할 수 없다. 서울(`ap-seoul-1`)과 춘천(`ap-chuncheon-1`)이 후보이며, A1 용량 부족 가능성을 안내한다.
-   - Tailscale 가입 → MagicDNS와 HTTPS 인증서 켜기 → 정책에서 Funnel 끄기 → `tag:bm-server` 정의 → 사전 승인된 1회용 태그 인증 키 발급
+   - Tailscale 가입 → MagicDNS와 HTTPS 인증서 켜기 → 정책에 `funnel` 속성이 있으면 제거(기본은 없음) → `tag:bm-server`와 Tailscale SSH 규칙 정의 → 사전 승인된 1회용 태그 인증 키 발급
 2. **`oci-vm.md` (사용자, 콘솔):**
    - `VM.Standard.A1.Flex`, 표준 Canonical Ubuntu 24.04(Minimal 아님), 1 OCPU / 4GB, 부트 볼륨 50GB, SSH 공개키 등록
    - 4GB는 잠정값이고 ADR 0002로 확정한다. 로컬 실측(컨테이너 449 MiB)으로 보면 6GB에서는 메모리 사용률이 20% 미만이 될 가능성이 커서 4GB로 낮췄다.
    - Security List에는 본인 IP의 22번 포트만 임시로 연다.
 3. **`bootstrap.md`:**
    - `make vm-bootstrap HOST=<공인IP>` → `ssh ubuntu@bm-node true` 확인 → 콘솔에서 22번 규칙 삭제 → `make deploy verify status`
-   - 공인 IP로 22번과 8737번에 연결할 수 없음을 확인한다.
+   - `make verify`로 공인 IP의 22·80·443·8737 차단과 Serve tailnet 전용을 확인하고, Exposure audit(OCI 인바운드 규칙 0개, 정책에 `funnel` 없음)을 수동으로 마친다.
    - 비상 경로는 OCI 시리얼 콘솔이다.
 4. **`operations.md`:**
    - 배포: `make deploy verify`
    - 점검: `make status`
    - 백업: `make backup` (중요 작업 전 + 주 1회 권장)
    - 업그레이드, 복구, 진단은 각각 `bm-upgrade`, `bm-recover`, `bm-diagnose` 스킬을 쓴다.
+   - Exposure audit: 배포 직후와 정책·네트워크를 바꾼 뒤 OCI 인바운드 규칙 0개와 정책의 `funnel` 속성 부재를 수동 점검하고 기록한다.
    - 유휴 회수 대응: 메모리 사용률 경고 시 조치, 백업을 최신으로 유지
 
 ## 9. 테스트와 검증
@@ -257,7 +271,10 @@ SQLite 파일이 쓰는 도중에 복사되지 않도록 잠시 정지한다. �
 - **보안 불변 규칙 테스트:**
   - 인증 키가 명령 인자나 출력에 나타나지 않는다.
   - 포트는 `127.0.0.1`에만 바인딩된다.
-  - backup이 실패해도 컨테이너가 다시 시작된다.
+  - backup이 실패해도(정지 응답 유실 포함) 컨테이너가 다시 시작된다.
+  - restore는 압축 해제·manifest 대조·교체·기동 중 어디서 실패해도 이전 데이터와 compose로 롤백한다.
+  - `BM_VM_PUBLIC_IP`가 없으면 `verify`가 실패하고, Funnel이 켜져 있으면 실패한다.
+  - `--read-only`/`probe`는 `tools/call`을 보내지 않는다.
 - **`verify-mcp.sh` 파싱 테스트:** `tests/fixtures/`의 녹화된 MCP 응답(JSON, SSE)으로 검증한다.
 - **구조 (`tests/repo.bats`):**
   - 모든 스크립트에 `set -euo pipefail`이 있다.
@@ -278,6 +295,7 @@ SQLite 파일이 쓰는 도중에 복사되지 않도록 잠시 정지한다. �
 | A1 용량 부족으로 생성 실패 | 런북에 시간대를 바꾼 재시도 안내(서울·춘천 리전은 AD가 각각 1개뿐). 홈 리전 선택 시 주의사항 명시 |
 | Tailscale SSH 전환 실패로 접속 상실 | Tailscale SSH 확인 후에만 22번 삭제를 안내. 비상 경로는 시리얼 콘솔 |
 | Host 헤더 거부로 MCP 연결 실패 | 로컬 Host 헤더 시나리오로 사전 확인. 실패 시 대안을 설계에 추가하고 사용자에게 보고 |
-| 인증 없는 엔드포인트 노출 | `127.0.0.1` 바인딩, Funnel 끄기, 공개 인바운드 0개, 구조·단위 테스트로 강제 |
+| 인증 없는 엔드포인트 노출 | `127.0.0.1` 바인딩, Serve tailnet 전용(Funnel off), 공개 인바운드 0개. 설정은 구조 테스트, 기기 상태는 `make verify`, OCI 규칙과 정책은 Exposure audit(수동)으로 확인 |
+| 복원·업그레이드 롤백 중 데이터 손상 | 임시 경로에 풀고 manifest 대조 후 교체, 실패 시 자동 롤백, 이미지(compose)와 데이터를 함께 복원 |
 | 기기 이름의 CT 로그 공개 | 일반적인 이름 `bm-node` 사용 |
 | 회사 기기의 개인 tailnet 참여 | Open question으로 남기고, 사용자가 회사 정책과 약관을 확인 |
