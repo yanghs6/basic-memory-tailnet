@@ -1,0 +1,707 @@
+# hydaxf15 Docs and Skills Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** 저장소 전용 스킬 3개, README, 아키텍처 문서, 런북 4개, ADR 2개를 만들고, 로컬에서 저장소 전체를 검증한다. 이 계획이 끝나면 사용자가 런북만 보고 VM 배포([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md))를 진행할 수 있다.
+
+**Architecture:**
+- 스킬 정본은 `.agents/skills/`(Codex·Antigravity)에 두고, Claude Code용으로 `.claude/skills/<name>` 심볼릭 링크를 둔다. frontmatter는 Agent Skills 표준 필드만 쓴다.
+- 사람용 문서는 한국어로 쓰고, 상대 링크는 `tests/repo.bats`가 검사한다.
+
+**Tech Stack:** Bash(macOS 3.2 호환), GNU Make, Docker Compose, Basic Memory 0.23.2, Tailscale(Serve, SSH), bats-core 1.14.0 + bats-support/assert, kcov, shellcheck 0.11.0, shfmt 3.12.0, jq, curl
+
+**Spec:** `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`
+
+**Sequence:** 계획 3/4. 전제: [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md) 완료(`make check` PASS, 테스트 78개). 다음 계획: `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md`
+
+## Global Constraints
+
+- Basic Memory image: `ghcr.io/basicmachines-co/basic-memory:0.23.2@sha256:939f1173d96626c280763e14622f2381d49fbbb7db17cae2e832f4f639405643`. Command `basic-memory mcp --transport streamable-http --host 0.0.0.0 --port 8000 --path /mcp`.
+- Host port: `127.0.0.1:${BM_PORT:-8737}`. 컨테이너 포트는 8000이다. `127.0.0.1` 외의 주소에는 절대 바인딩하지 않는다.
+- VM 경로:
+  - 앱: `/opt/basic-memory` (`BM_REMOTE_APP_DIR`)
+  - 데이터: `/srv/basic-memory/{knowledge,config}` (`BM_REMOTE_DATA_ROOT`)
+  - 컨테이너 UID/GID: `1000`
+- Tailscale:
+  - 기기 이름은 `bm-node`, 태그는 `tag:bm-server`다.
+  - Funnel은 쓰지 않는다. 노출은 `tailscale serve --bg http://127.0.0.1:8737`로만 한다.
+  - 인증 키는 `TS_AUTHKEY` 환경변수나 숨김 프롬프트로만 받는다. 로컬과 원격 어디에서도 명령 인자나 디스크에 남기지 않는다. 원격에서는 `/run` tmpfs의 0600 임시 파일로 `--auth-key=file:`에 넘기고 즉시 삭제한다.
+- 도구 이미지(digest 고정):
+  - `koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d`
+  - `mvdan/shfmt:v3.12.0@sha256:307d265ffd25ce832899ae17c93ed5062fc3375c514bba8f52cbf52792735c4d`
+  - `bats/bats:1.14.0@sha256:5322b877351fda0cc435de8c6116de7d0a2ec79d7c680132a0ef329a633bc66f`
+  - `kcov/kcov:latest@sha256:481289ae32e55e5b733019515acd10948a4f76dfed381765577db909664fc603`
+- 스크립트 작성 규칙:
+  - `#!/usr/bin/env bash` 다음 줄에 `set -euo pipefail`을 둔다. `scripts/lib/common.sh`는 source만 하므로 예외다.
+  - **macOS bash 3.2 호환**: `mapfile`, `readarray`, `declare -A`, `${x,,}`, `inherit_errexit`, 빈 배열 확장을 쓰지 않는다.
+  - die할 수 있는 함수를 `x="$(fn)"`로 호출하면 뒤에 `|| exit 1`을 붙인다. bash 3.2는 명령 치환 안에서 errexit를 상속하지 않기 때문이다.
+- shfmt 스타일은 `.editorconfig`를 따른다(2칸 들여쓰기, case 들여쓰기, 이항 연산자는 줄 앞). 리디렉션은 공백 없이 `>file`로 쓴다. lint가 포맷 차이를 보고하면 `make fmt`로 고친다.
+- shellcheck 예외는 이유와 함께 그 줄 바로 위에만 둔다. trap으로만 호출되는 함수(`cleanup`, `restart_container`)에 SC2317이 나오면 `# shellcheck disable=SC2317  # invoked via trap`을 붙인다. 다른 경고는 코드를 고친다.
+- 커버리지: `scripts/` 라인 커버리지 80% 이상. `scripts/` 아래 모든 실행 스크립트는 최소 한 테스트에서 실행돼야 한다.
+- 언어:
+  - 코드, 주석, 스크립트 메시지, `AGENTS.md`, `SKILL.md`는 영어로 쓴다.
+  - README, runbooks, ARCHITECTURE, ADR은 한국어로 쓴다.
+  - 저장소 노트에는 `Verified` / `Command` / `Assumption` / `Open question` 표기를 쓴다.
+- 커밋:
+  - 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore).
+  - attribution 줄은 넣지 않는다(사용자 전역 설정).
+  - 매 커밋 전에 `make check`를 실행한다.
+- 수명주기 작업은 Make 타깃으로만 한다. raw `docker compose`나 `ssh`는 실패 진단에만 쓰고, 그 이유를 기록한다.
+
+## Review Focus
+
+1. **깨진 상대 링크:** 문서가 늘면서 링크가 깨지면, 런북을 따라가던 사용자가 중간에 막힌다. → Task 2에서 Markdown 링크 검사 테스트를 추가한다.
+2. **비표준 스킬 frontmatter:** Claude 전용 키(`disable-model-invocation` 등)를 넣으면 Codex·Antigravity가 스킬을 거부할 수 있다. → Task 1에서 표준 키만 허용하는 테스트를 추가한다.
+3. **Claude Code에서 스킬이 안 보임:** Claude Code는 `.agents/skills/`를 읽지 않으므로 링크가 빠지면 스킬이 사라진다. → Task 1에서 링크 존재와 대상 경로를 검사하는 테스트를 추가한다.
+
+## File Structure
+
+```
+.agents/skills/{bm-upgrade,bm-recover,bm-diagnose}/SKILL.md .claude/skills/* (symlinks)   Task 1
+AGENTS.md                                                                     Task 1에서 수정
+README.md docs/ARCHITECTURE.md docs/runbooks/*.md docs/decisions/*.md         Task 2
+tests/repo.bats                                                               Task 1, 2에서 테스트 추가
+```
+
+---
+
+### Task 1: 저장소 전용 스킬
+
+**Files:**
+- Create: `.agents/skills/bm-upgrade/SKILL.md`, `.agents/skills/bm-recover/SKILL.md`, `.agents/skills/bm-diagnose/SKILL.md`
+- Create (symlink): `.claude/skills/bm-upgrade`, `.claude/skills/bm-recover`, `.claude/skills/bm-diagnose`
+- Modify: `AGENTS.md`(`Read first`, `Map`, `Skills`)
+- Test: `tests/repo.bats`(스킬 테스트 추가)
+
+**Interfaces:**
+- Consumes: [local-foundation](plan-2026-10-07-sqzn0teq-local-foundation.md)·[vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md) 계획의 모든 Make 타깃 이름
+- Produces: 스킬 이름 `bm-upgrade`, `bm-recover`, `bm-diagnose`. Task 2의 `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`에는 "Idle reclamation"과 "Incident log" 섹션이 있어야 한다(`bm-recover`, `bm-diagnose`가 참조).
+
+- [ ] **Step 1: 실패하는 테스트 추가 (`tests/repo.bats` 끝에 append)**
+
+```bash
+skill_dirs() {
+  find "$REPO_DIR/.agents/skills" -mindepth 1 -maxdepth 1 -type d | sort
+}
+
+frontmatter() {
+  awk 'NR == 1 && $0 == "---" { inside = 1; next } inside && $0 == "---" { exit } inside { print }' "$1"
+}
+
+@test "at least one repository skill exists" {
+  run skill_dirs
+  assert_success
+  refute_output ""
+}
+
+@test "skills use only Agent Skills standard frontmatter keys" {
+  local dir key bad=""
+  for dir in $(skill_dirs); do
+    for key in $(frontmatter "$dir/SKILL.md" | grep -oE '^[a-z-]+:' | tr -d ':'); do
+      case "$key" in
+        name | description | license | compatibility | metadata | allowed-tools) ;;
+        *) bad="$bad $(basename "$dir"):$key" ;;
+      esac
+    done
+  done
+  [[ -z "$bad" ]] || fail "non-standard frontmatter keys (Codex/Antigravity may reject them):$bad"
+}
+
+@test "skill names match their directories and have descriptions" {
+  local dir name
+  for dir in $(skill_dirs); do
+    name="$(frontmatter "$dir/SKILL.md" | sed -n 's/^name: *//p')"
+    [[ "$name" == "$(basename "$dir")" ]] || fail "$dir/SKILL.md: name '$name' must equal the directory name"
+    frontmatter "$dir/SKILL.md" | grep -qE '^description: .+' || fail "$dir/SKILL.md: add a description"
+  done
+}
+
+@test "every skill is linked for Claude Code under .claude/skills" {
+  local dir name link
+  for dir in $(skill_dirs); do
+    name="$(basename "$dir")"
+    link="$REPO_DIR/.claude/skills/$name"
+    [[ -L "$link" ]] || fail "missing link; run: ln -s ../../.agents/skills/$name .claude/skills/$name"
+    [[ "$(readlink "$link")" == "../../.agents/skills/$name" ]] || fail "$link must point to ../../.agents/skills/$name"
+  done
+}
+
+@test "every SKILL.md is at most 500 lines" {
+  local dir lines
+  for dir in $(skill_dirs); do
+    lines="$(wc -l <"$dir/SKILL.md")"
+    ((lines <= 500)) || fail "$dir/SKILL.md has $lines lines; move reference material into separate files"
+  done
+}
+```
+
+- [ ] **Step 2: 실패 확인**
+
+Run: `make test`
+Expected: FAIL. `.agents/skills`가 없어서 스킬 테스트가 실패한다.
+
+- [ ] **Step 3: 스킬 작성**
+
+`.agents/skills/bm-upgrade/SKILL.md`:
+```markdown
+---
+name: bm-upgrade
+description: Upgrade the pinned Basic Memory container image (version and digest) and roll it out to the VM safely. Use when asked to update, bump or patch Basic Memory.
+---
+
+# Upgrade Basic Memory
+
+This changes what runs against real notes. Follow the steps in order and ask the user before step 6.
+
+1. Current pin: `grep 'image:' compose.yaml`. Keep this line for rollback.
+2. Pick the target release on https://github.com/basicmachines-co/basic-memory/releases. Read the notes between the current and target versions for changes to: the `mcp` CLI flags (`--transport streamable-http --path /mcp`), `BASIC_MEMORY_*` env vars, data paths (`/app/data`, `/home/appuser/.basic-memory`), and the tools `write_note`, `read_note`, `search_notes`, `delete_note`. Summarize them for the user.
+3. Resolve the multi-arch digest (image tags have no `v` prefix) and confirm arm64 is included:
+   `docker buildx imagetools inspect ghcr.io/basicmachines-co/basic-memory:<version>`
+   Use the `Digest:` line of the index and check the list contains `linux/arm64`.
+4. Change only the `image:` line in `compose.yaml` to `ghcr.io/basicmachines-co/basic-memory:<version>@<digest>`.
+5. Verify locally: `make check local-up local-verify`, then `make local-down`. If anything fails, stop and report; do not deploy.
+6. Ask the user to approve the rollout, then run `make backup deploy verify status`.
+7. If `deploy` or `verify` fails: put the old `image:` line back and run `make deploy verify`. If notes look damaged, restore the backup from step 6 with `make restore BACKUP=<file>` (user types yes).
+8. Commit `compose.yaml` as `chore: upgrade basic-memory to <version>` and record the outcome (Verified/Command) in the active plan or a new ADR.
+```
+
+`.agents/skills/bm-recover/SKILL.md`:
+```markdown
+---
+name: bm-recover
+description: Rebuild the Basic Memory VM after OCI reclaims it or it becomes unusable, then restore the latest backup. Use when the VM is terminated, permanently unreachable, or its data is corrupted.
+---
+
+# Recover the Basic Memory VM
+
+Each step changes cloud resources or data. Confirm with the user before steps 3, 5 and 6.
+
+1. Confirm the VM is really gone: `make status` fails and the user sees the instance stopped or terminated in the OCI console. For anything transient, use `bm-diagnose` instead.
+2. Choose the newest backup with a checksum: `ls -t backups/bm-*.tgz | head -n 1` and check `<file>.sha256` exists. If there is none, tell the user the notes cannot be restored and continue with an empty VM only if they agree.
+3. The user creates a new VM following `docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md` (temporary port 22 rule) and removes the old `bm-node` machine in the Tailscale admin console so the new VM can take the name. Ask for the new public IP and update `BM_VM_PUBLIC_IP` in `.env`.
+4. The user creates a new one-off auth key (`docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`). Run `make vm-bootstrap HOST=<new-public-ip>`; the user pastes the key at the prompt.
+5. Check `ssh ubuntu@bm-node true`, then ask the user to delete the port 22 ingress rule.
+6. Run `make deploy`, then `make restore BACKUP=<file from step 2>`; the user types yes and the target runs verify.
+7. Run `make status` and add a row to "Incident log" in `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md` (date, cause, backup used, data loss window).
+```
+
+`.agents/skills/bm-diagnose/SKILL.md`:
+```markdown
+---
+name: bm-diagnose
+description: Read-only troubleshooting for the Basic Memory MCP endpoint, Tailscale Serve, Tailscale SSH and the VM container. Use when an agent cannot reach Basic Memory, make verify fails, or the VM seems unhealthy.
+---
+
+# Diagnose Basic Memory
+
+Read-only: do not deploy, restart, restore or change any setting while diagnosing. Propose the fix to the user.
+
+Work top-down and stop at the first layer that fails:
+
+1. Tailnet: `tailscale status | grep bm-node` on this machine. Missing or offline: the VM is down or logged out; check the OCI console (terminated means `bm-recover`).
+2. SSH: `ssh ubuntu@bm-node true`. Failing while the tailnet is fine: check the Tailscale policy `ssh` rule for `tag:bm-server` (docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md).
+3. Container: `make status`. Not `(healthy)`: run `make logs` and quote the first error.
+4. Memory warning from `make status`: idle-reclaim risk; see "Idle reclamation" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md.
+5. Serve: `make status` must show `proxy http://127.0.0.1:8737`. Missing: bootstrap step `configure_serve` did not run.
+6. MCP: `make verify` and read the failing step:
+   - `initialize: request ... failed`: DNS or HTTPS; check MagicDNS and HTTPS certificates in the Tailscale admin console.
+   - `initialize: HTTP 4xx`: Host header or path; compare with `make local-up local-verify`.
+   - `tools/list: missing tool`: the image changed; see `bm-upgrade`.
+   - `write_note` or `read_note` errors: data permissions (`ssh ubuntu@bm-node ls -ln /srv/basic-memory`, owner must be 1000) or a full disk (`ssh ubuntu@bm-node df -h /srv`).
+7. Report the failing layer, the evidence (command and output excerpt) and the proposed fix.
+```
+
+- [ ] **Step 4: Claude Code용 스킬 링크 생성**
+
+Run:
+```bash
+mkdir -p .claude/skills
+ln -s ../../.agents/skills/bm-upgrade .claude/skills/bm-upgrade
+ln -s ../../.agents/skills/bm-recover .claude/skills/bm-recover
+ln -s ../../.agents/skills/bm-diagnose .claude/skills/bm-diagnose
+```
+
+- [ ] **Step 5: `AGENTS.md` 갱신**
+
+`Read first:` 줄을 다음으로 바꾼다.
+```markdown
+Read first: `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`, then `docs/ARCHITECTURE.md`.
+```
+
+`## Map`의 마지막 줄 뒤에 다음 두 줄을 추가한다.
+```markdown
+- `docs/runbooks/` accounts, VM creation, bootstrap, operations (incident log); `docs/decisions/` ADRs.
+- `.agents/skills/` skills for Codex and Antigravity; `.claude/skills/<name>` symlinks for Claude Code.
+```
+
+파일 끝에 다음 섹션을 추가한다.
+```markdown
+## Skills
+- `bm-upgrade`: bump the pinned Basic Memory image and roll it out safely.
+- `bm-recover`: rebuild after the VM is reclaimed or broken, then restore the latest backup.
+- `bm-diagnose`: read-only troubleshooting of MCP, Tailscale and container problems.
+```
+
+`Invariants`의 이미지 고정 줄을 다음으로 바꾼다.
+```markdown
+- Pin container images by digest. Upgrade Basic Memory only through the `bm-upgrade` skill.
+```
+
+- [ ] **Step 6: 테스트 통과 확인**
+
+Run: `make test`
+Expected: PASS(총 83 tests). `docs/ARCHITECTURE.md`는 Task 2에서 만든다(백틱 참조라 링크 검사 대상이 아니다).
+
+- [ ] **Step 7: Commit**
+
+Run: `make check` (PASS)
+```bash
+git add .agents .claude/skills AGENTS.md tests/repo.bats
+git commit -m "docs: add repo skills for upgrade, recovery and diagnosis"
+```
+
+---
+
+### Task 2: 사람용 문서 (README, 아키텍처, 런북, ADR)
+
+**Files:**
+- Create: `README.md`, `docs/ARCHITECTURE.md`
+- Create: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`, `docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md`, `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`
+- Create: `docs/decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`
+- Test: `tests/repo.bats`(Markdown 링크 검사 추가)
+
+**Interfaces:**
+- Consumes: Make 타깃 이름, 스킬 이름, 스펙의 사실 목록
+- Produces: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`의 "Idle reclamation"과 "Incident log" 섹션(`status.sh`, `bm-recover`, `bm-diagnose`가 참조)
+
+- [ ] **Step 1: 실패하는 테스트 추가 (`tests/repo.bats` 끝에 append)**
+
+```bash
+markdown_files() {
+  git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- '*.md'
+}
+
+@test "relative links in markdown files resolve" {
+  local file link target broken=""
+  while IFS= read -r file; do
+    while IFS= read -r link; do
+      link="${link%%#*}"
+      if [[ -z "$link" ]]; then
+        continue
+      fi
+      target="$(cd "$REPO_DIR/$(dirname "$file")" && realpath -m "$link")"
+      [[ -e "$target" ]] || broken="$broken $file->$link"
+    done < <(awk '/^```/ { fence = !fence; next } !fence' "$REPO_DIR/$file" \
+      | grep -oE '\]\([^)]+\)' | sed -E 's/^\]\((.*)\)$/\1/' | grep -vE '^(https?:|mailto:)' || true)
+  done < <(markdown_files)
+  [[ -z "$broken" ]] || fail "broken relative links:$broken"
+}
+
+@test "runbooks contain the sections scripts and skills point to" {
+  run grep -E '^## (Idle reclamation|Incident log)' "$REPO_DIR/docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md"
+  assert_line --partial "Idle reclamation"
+  assert_line --partial "Incident log"
+}
+```
+
+Run: `make test`
+Expected: FAIL. `runbooks contain…`가 파일 없음으로 실패한다. 링크 테스트는 아직 링크가 없으므로 통과한다.
+
+- [ ] **Step 2: `README.md` 작성**
+
+````markdown
+# agent-share-poc: Basic Memory on OCI + Tailscale
+
+여러 기기의 코딩 에이전트(Codex, Claude Code, Antigravity)가 같은 기억을 쓰도록, Basic Memory MCP 서버를 OCI Always Free VM에 올리고 Tailscale tailnet 안에서만 접근하게 만드는 저장소입니다.
+
+- 설계: [docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md](docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md)
+- 구조: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- 에이전트 지침: [AGENTS.md](AGENTS.md)
+
+## 사전 요구사항 (Prerequisites)
+
+- macOS + Docker Desktop (실행 중이어야 함), `make`
+- `ssh`, `curl`, `jq`, `nc` (`brew install jq`; 나머지는 macOS 기본 포함)
+- VM 작업용: 이 Mac에 Tailscale 앱 설치·로그인 ([accounts 런북](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md))
+
+## 빠르게 시작하기
+
+```bash
+make help                          # 전체 타깃
+make check                         # lint + 테스트 + 커버리지
+make local-up local-verify         # 로컬 컨테이너로 MCP 왕복 확인
+make local-down
+```
+
+## VM 구축 순서
+
+1. [계정 준비](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md): OCI, Tailscale, 정책, 인증 키
+2. [VM 만들기](docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md): A1.Flex, Ubuntu 24.04, 임시 22번 규칙
+3. [부트스트랩](docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md): `make vm-bootstrap` → 22번 규칙 삭제 → `make deploy verify status`
+4. [운영](docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md): 백업, 복원, 업그레이드, 유휴 회수 대응
+
+## 범위 밖 (다음 목표)
+
+에이전트별 MCP 연결 설정, 자동 백업, `personal-context` GitHub 정본 연동, 회사용 별도 인스턴스
+````
+
+- [ ] **Step 3: `docs/ARCHITECTURE.md` 작성**
+
+````markdown
+# 아키텍처
+
+## 토폴로지
+
+```
+[개인/회사 Mac] ── tailnet ──▶ https://bm-node.<tailnet>.ts.net/mcp
+  에이전트, make deploy/verify/backup       │ Tailscale Serve (HTTPS, tailnet 전용)
+  (Tailscale SSH)                           ▼
+                                  OCI A1 VM (Ubuntu 24.04 ARM64, 공개 인바운드 0개)
+                                    └ Docker: basic-memory:0.23.2@sha256
+                                        127.0.0.1:8737 → :8000 /mcp
+                                        /srv/basic-memory/knowledge → /app/data
+                                        /srv/basic-memory/config    → /home/appuser/.basic-memory
+```
+
+## 구성 요소
+
+| 구성 요소 | 위치 | 역할 |
+|---|---|---|
+| `Makefile` + `scripts/` | Mac | 유일한 제어 지점. SSH로 VM을 다룸 |
+| `scripts/remote/bootstrap.sh` | VM (root) | Docker·Tailscale 설치, 데이터 디렉터리, Serve 설정 |
+| `compose.yaml` | Mac(로컬 검증)·VM | Basic Memory 컨테이너 정의 (같은 파일) |
+| Tailscale Serve | VM | tailnet HTTPS → `http://127.0.0.1:8737` |
+| Tailscale SSH | VM | 부트스트랩 이후의 유일한 관리 경로 |
+| `backups/` | Mac | `make backup` 결과물 (git ignore) |
+
+## 데이터 경로
+
+| 데이터 | 로컬 | VM |
+|---|---|---|
+| Markdown 노트 | `.local-data/knowledge/basic-memory/` | `/srv/basic-memory/knowledge/basic-memory/` |
+| SQLite 인덱스·설정·임베딩 모델 캐시 | `.local-data/config/` | `/srv/basic-memory/config/` |
+| compose와 `.env` | 저장소 루트 | `/opt/basic-memory/` |
+
+기본 프로젝트 `main`은 `/app/data/basic-memory`에 생성됩니다(**Verified**, 0.23.2).
+
+## 신뢰 경계
+
+- Basic Memory에는 인증이 없습니다(**Verified**). 접근 제어는 전적으로 Tailscale의 기기 인증과 정책에 맡깁니다.
+- 컨테이너 포트는 `127.0.0.1`에만 바인딩합니다. Funnel은 끄고, OCI 공개 인바운드 규칙은 0개입니다. `tests/repo.bats`와 `make verify`가 이를 확인합니다.
+- 비밀값은 Tailscale 인증 키 하나뿐이며, 저장소와 디스크에 남지 않습니다.
+
+## 주요 흐름
+
+- **배포:** `make deploy` → compose와 VM용 `.env` 전송 → `docker compose pull` → `up -d --wait`
+- **검증:** `make verify` → tailnet URL로 MCP 왕복(initialize, tools/list, 쓰기·읽기·삭제) → VM의 포트 바인딩 확인 → (`BM_VM_PUBLIC_IP` 설정 시) 공인 포트가 닫혔는지 확인
+- **백업:** `make backup` → 컨테이너 정지 → `/srv/basic-memory`를 tar로 받아옴 → 컨테이너 재시작 → sha256 저장
+
+관련 결정: [basic-memory-on-oci-tailscale ADR](decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md), [vm-sizing ADR](decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)
+````
+
+- [ ] **Step 4: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md` 작성**
+
+````markdown
+# 계정 준비: OCI와 Tailscale
+
+## 1. OCI 가입
+
+1. https://signup.cloud.oracle.com 에서 가입합니다. **Assumption:** 본인 확인용 카드 등록이 필요합니다(Always Free 자원만 쓰면 과금되지 않음).
+2. **홈 리전은 나중에 바꿀 수 없습니다**(**Verified**). 한국 리전은 `ap-seoul-1`(서울)과 `ap-chuncheon-1`(춘천)이며, 둘 다 가용 도메인(AD)이 1개입니다. A1 용량이 부족하면 VM 생성이 실패할 수 있습니다.
+3. Pay As You Go로 업그레이드하지 않습니다. 업그레이드 계정에 유휴 회수 정책이 적용되는지는 **Open question**입니다.
+
+## 2. Tailscale 가입
+
+1. https://login.tailscale.com/start 에서 **개인 계정**으로 가입합니다. 회사 도메인 이메일로 가입하면 tailnet이 회사 소유가 됩니다(**Verified**).
+2. **Open question:** 회사 Mac을 개인 tailnet에 참여시키는 것이 회사 보안 정책과 Tailscale Personal 약관(비상업 용도)에 맞는지 직접 확인하세요.
+3. 이 Mac에 Tailscale 앱을 설치하고 로그인합니다(`brew install --cask tailscale` 또는 App Store).
+
+## 3. DNS와 HTTPS
+
+Admin console → **DNS**에서 다음을 켭니다.
+- **MagicDNS**
+- **HTTPS Certificates**: 인증서가 발급된 기기 이름은 공개 Certificate Transparency 로그에 기록됩니다(**Verified**). 그래서 기기 이름을 일반적인 `bm-node`로 씁니다.
+
+tailnet DNS 이름(예: `tail1234.ts.net`)을 `.env`의 `BM_TAILNET_DOMAIN`에 적습니다.
+
+## 4. 접근 정책 (Access controls)
+
+Admin console → **Access controls**에서 정책 파일을 편집합니다.
+
+1. `tagOwners`에 서버 태그를 추가합니다.
+2. `ssh`에 태그 서버로의 접속 규칙을 추가합니다. 기본 규칙의 `autogroup:self`는 태그가 붙은 기기를 포함하지 않으므로 별도 규칙이 필요합니다.
+3. **Funnel을 끕니다**: 기본 정책의 `nodeAttrs`에서 `"funnel"` 속성을 지웁니다(**Verified:** Funnel은 기본으로 켜져 있음).
+
+```json
+{
+  "tagOwners": {
+    "tag:bm-server": ["autogroup:admin"]
+  },
+  "ssh": [
+    {
+      "action": "accept",
+      "src": ["autogroup:member"],
+      "dst": ["tag:bm-server"],
+      "users": ["ubuntu"]
+    }
+  ]
+}
+```
+
+**Assumption:** 이 조각은 기존 정책 파일의 해당 섹션에 합쳐 넣는 것입니다. 저장할 때 편집기가 문법을 검증하니, 오류가 나면 메시지대로 고치세요.
+
+## 5. 인증 키 (부트스트랩 직전에 발급)
+
+Settings → **Keys** → **Generate auth key**:
+- Reusable: **끔** (1회용)
+- Ephemeral: **끔** (서버는 계속 유지)
+- Pre-approved: **켬**
+- Tags: `tag:bm-server`
+- Expiration: 1일
+
+키는 어디에도 저장하지 말고, `make vm-bootstrap` 프롬프트에 붙여 넣습니다.
+````
+
+- [ ] **Step 5: `docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md` 작성**
+
+````markdown
+# VM 만들기 (OCI 콘솔)
+
+## 1. SSH 키
+
+키가 없으면 만듭니다: `ssh-keygen -t ed25519`. 공개키는 `~/.ssh/id_ed25519.pub`입니다.
+
+## 2. 인스턴스 생성
+
+Compute → Instances → **Create instance**:
+
+| 항목 | 값 |
+|---|---|
+| Name | `bm-node` |
+| Image | Canonical Ubuntu 24.04 (**Minimal 아님**, aarch64) |
+| Shape | `VM.Standard.A1.Flex`, 1 OCPU / 4 GB ([the vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)) |
+| Networking | 새 VCN + public subnet, public IPv4 할당 |
+| SSH keys | 1단계의 공개키 업로드 |
+| Boot volume | 기본 50 GB |
+
+A1 무료 한도는 합계 2 OCPU / 12 GB, 블록 볼륨 합계 200 GB입니다(**Verified**). 한도를 넘기지 마세요.
+
+"Out of capacity" 오류가 나면 시간대를 바꿔 다시 시도합니다(서울·춘천 리전은 AD가 1개뿐).
+
+## 3. 임시 SSH 규칙
+
+Networking → VCN → Security Lists → Default security list → Ingress rules:
+- 22번 규칙의 Source를 **본인 IP/32**로 바꿉니다(`curl -s https://ifconfig.me`로 확인). **Assumption:** 기본 보안 목록에는 `0.0.0.0/0`의 22번 허용 규칙이 있습니다.
+- 22번 외의 인바운드 규칙은 추가하지 않습니다. 8737과 443은 열지 않습니다.
+
+## 4. 기록
+
+인스턴스의 Public IPv4를 `.env`의 `BM_VM_PUBLIC_IP`에 적고, [부트스트랩](rbk-2026-10-12-ha5w72pm-bootstrap.md)으로 넘어갑니다.
+````
+
+- [ ] **Step 6: `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md` 작성**
+
+````markdown
+# 부트스트랩: VM을 tailnet에 올리고 배포하기
+
+## 준비
+
+```bash
+cp .env.example .env    # BM_TAILNET_DOMAIN, BM_VM_PUBLIC_IP 채우기
+```
+
+[accounts 런북 5단계](rbk-2026-10-12-hqxjjqy8-accounts.md)대로 1회용 인증 키를 발급해 둡니다.
+
+## 순서
+
+1. `make vm-bootstrap HOST=<공인 IP>` → 프롬프트에 인증 키를 붙여 넣습니다(화면에 표시되지 않음).
+   - Docker·Tailscale 설치, tailnet 참여(`bm-node`, Tailscale SSH), 데이터 디렉터리 생성, Serve 설정까지 합니다.
+   - 여러 번 실행해도 안전합니다.
+2. `ssh ubuntu@bm-node true` → Tailscale SSH로 접속되는지 확인합니다.
+3. **2단계가 성공한 뒤에만** OCI 콘솔에서 22번 인바운드 규칙을 삭제합니다. 이제 공개 인바운드가 0개입니다.
+4. `make deploy verify status`
+
+## 완료 조건
+
+- [ ] `make verify`가 `OK: MCP round trip passed`, `listens on 127.0.0.1 only`, `refuses ports 22 and 8737`을 모두 출력한다.
+- [ ] `make status`에 `(healthy)`, `proxy http://127.0.0.1:8737`이 보인다.
+- [ ] `make backup`이 `backups/bm-*.tgz`와 `.sha256`을 만든다.
+
+## 문제 해결
+
+| 증상 | 확인 |
+|---|---|
+| `upload failed` | 공인 IP, SSH 키, 22번 규칙의 Source IP |
+| `tailscale up failed` | 키 만료·재사용 여부, Pre-approved, `tag:bm-server`의 `tagOwners` |
+| `ssh ubuntu@bm-node` 실패 | 정책의 `ssh` 규칙([accounts 4단계](rbk-2026-10-12-hqxjjqy8-accounts.md)) |
+| 22번을 지운 뒤 접속 불가 | OCI 콘솔 → 인스턴스 → **Console connection**(시리얼 콘솔)으로 들어가 `sudo tailscale status` 확인 |
+````
+
+- [ ] **Step 7: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md` 작성**
+
+````markdown
+# 운영
+
+## 일상 명령
+
+| 목적 | 명령 |
+|---|---|
+| 상태 점검 (주 1회) | `make status` |
+| 종단 검증 | `make verify` |
+| 로그 | `make logs` |
+| 배포 (compose 변경 후) | `make deploy verify` |
+| 백업 (주 1회 + 업그레이드 전) | `make backup` |
+| 복원 | `make restore BACKUP=backups/bm-<시각>.tgz` (`yes` 입력 필요, 끝나면 verify 실행) |
+
+## 백업
+
+- 결과물은 이 Mac의 `backups/`에만 있습니다(git ignore). Time Machine 등으로 Mac 밖에도 사본을 두세요.
+- 백업 중에는 컨테이너가 몇 초 멈춥니다. SQLite 파일이 쓰는 도중에 복사되지 않게 하기 위해서입니다.
+- 복원하면 기존 데이터는 `/srv/basic-memory.prev-<시각>`으로 옮겨집니다. 복원 결과를 확인한 뒤에만 직접 지우세요: `ssh ubuntu@bm-node sudo rm -r /srv/basic-memory.prev-<시각>`
+
+## 업그레이드·복구·진단
+
+에이전트에게 스킬을 쓰라고 요청합니다.
+- 업그레이드: `bm-upgrade`
+- VM 회수·손상 후 복구: `bm-recover`
+- 연결·MCP 문제: `bm-diagnose`
+
+## Idle reclamation
+
+OCI는 7일 동안 CPU(95번째 백분위), 네트워크, 메모리(A1만 해당)가 **모두** 20% 미만인 Always Free VM을 회수할 수 있습니다(**Verified**).
+
+- `make status`가 메모리 사용률 20% 미만 경고를 내면, 최신 백업이 있는지 먼저 확인하세요.
+- VM 크기는 평소 메모리 사용률이 20%를 넘도록 정했습니다([vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)). 경고가 계속되면 vm-sizing ADR의 재평가 기준을 따르세요.
+- 회수 알림 메일을 받거나 VM이 사라지면 `bm-recover` 스킬을 씁니다.
+
+## Incident log
+
+| 날짜 | 원인 | 사용한 백업 | 데이터 손실 구간 | 비고 |
+|---|---|---|---|---|
+````
+
+- [ ] **Step 8: ADR 작성**
+
+`docs/decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`:
+```markdown
+# ADR b229z2y6: Basic Memory를 OCI Always Free + Tailscale에 자체 호스팅
+
+- 상태: Accepted (2026-10-07)
+- 출처: [설계 스펙](../specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md)
+
+## 맥락
+
+여러 기기의 에이전트가 같은 Basic Memory를 써야 합니다. 비용은 0원이어야 하고, Basic Memory HTTP 엔드포인트에는 인증이 없습니다(**Verified**).
+
+## 결정
+
+- OCI Always Free A1 VM에서 Docker로 Basic Memory를 실행하고, Tailscale Serve로 tailnet 안에만 노출합니다.
+- VM은 콘솔에서 수동으로 만들고, 나머지는 이 저장소의 스크립트와 Make 타깃으로 처리합니다.
+- 공인 SSH는 부트스트랩에만 쓰고 이후 Tailscale SSH로 전환하며, 공개 인바운드 규칙을 0개로 둡니다.
+
+## 대안
+
+- **GCP e2-micro:** RAM이 1 GB이고 무료 리전이 미국뿐이라 지연이 큽니다.
+- **AWS:** 신규 계정 무료 기간이 최대 6개월입니다.
+- **Koyeb Free:** 영구 볼륨을 쓸 수 없습니다.
+- **Basic Memory Cloud:** MCP 엔드포인트에 유료 구독이 필요합니다.
+
+## 결과
+
+- 유휴 회수 위험이 있습니다 → 메모리 사용률 기준으로 크기를 정하고([vm-sizing ADR](adr-2026-10-12-mdq5exsf-vm-sizing.md)), 백업·복원 경로를 둡니다.
+- Tailscale 계정이 단일 장애점이 됩니다. 대신 인증 없는 엔드포인트가 인터넷에 노출되지 않습니다.
+```
+
+`docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`:
+```markdown
+# ADR mdq5exsf: VM 크기 (A1.Flex 1 OCPU / 4 GB)
+
+- 상태: Proposed (2026-10-07). vm-rollout 계획에서 VM 실측 후 Accepted로 바꿉니다.
+
+## 맥락
+
+OCI는 CPU(p95), 네트워크, 메모리가 **모두** 20% 미만이면 Always Free VM을 회수할 수 있습니다. 개인용 MCP 서버는 CPU와 네트워크가 거의 항상 20% 미만이므로, 회수를 피하려면 메모리 사용률을 20% 이상으로 유지해야 합니다.
+
+## 근거
+
+- **Verified (2026-10-07, Command: `docker stats --no-stream`):** 0.23.2 컨테이너 메모리 사용량은 기동 직후 212 MiB, `search_notes` 실행으로 임베딩 모델이 올라간 뒤 449 MiB입니다(Mac Docker Desktop 기준).
+- **Assumption:** Ubuntu 24.04 + Docker + tailscaled 기본 사용량은 약 400~500 MB입니다. VM 실측(`make status`)으로 확인합니다.
+- 추정 사용률: 4 GB에서 약 22~25%, 6 GB에서 약 15%(20% 미만이라 회수 위험)
+
+## 결정
+
+1 OCPU / 4 GB로 시작합니다. 무료 한도(2 OCPU / 12 GB) 안입니다.
+
+## 재평가 기준
+
+- 배포 24시간 뒤 `make status`의 메모리 사용률이 **25% 미만**이면, 콘솔에서 3 GB로 줄입니다(재시작 필요). 그 후 다시 측정합니다.
+- 메모리 사용률이 **80% 이상**이면 6 GB로 늘리고, 회수 위험은 백업 주기로 보완합니다.
+- 측정 결과를 이 ADR에 Verified로 추가하고 상태를 Accepted로 바꿉니다.
+```
+
+- [ ] **Step 9: 테스트 통과 확인**
+
+Run: `make test`
+Expected: PASS(총 85 tests). 링크 테스트가 README, ARCHITECTURE, 런북, ADR의 상대 링크를 모두 확인한다.
+
+- [ ] **Step 10: Commit**
+
+Run: `make check` (PASS)
+```bash
+git add README.md docs/ARCHITECTURE.md docs/runbooks docs/decisions tests/repo.bats
+git commit -m "docs: add README, architecture, runbooks and ADRs"
+```
+
+
+---
+
+### Task 3: 로컬 전체 검증
+
+**Files:**
+- Modify: 이 계획 파일의 Progress log
+
+**Interfaces:**
+- Consumes: [local-foundation](plan-2026-10-07-sqzn0teq-local-foundation.md)·[vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md)·docs-skills 계획의 모든 타깃
+- Produces: 로컬 증거 기록(Verified/Command)
+
+- [ ] **Step 1: 깨끗한 상태에서 전체 검사**
+
+Run: `git status --short && make check`
+Expected:
+- `git status`는 아무것도 출력하지 않는다.
+- `make check`가 PASS하고, 커버리지 출력에 `scripts/` 아래 실행 스크립트 9개(`bootstrap-vm`, `remote/bootstrap`, `verify-mcp`, `verify-vm`, `deploy`, `status`, `logs`, `backup`, `restore`)와 `lib/common.sh`가 모두 나오며, 전체가 80% 이상이다.
+
+- [ ] **Step 2: 로컬 종단 검증과 재시작 내구성**
+
+Run: `make local-up local-verify && docker restart basic-memory-server && sleep 20 && make local-verify && make local-down`
+Expected: `OK: MCP round trip passed`가 네 번 출력된다(재시작 전 2번, 후 2번).
+
+- [ ] **Step 3: Progress log에 기록하고 커밋**
+
+이 파일 맨 아래 Progress log에 날짜, 명령, 결과(테스트 수, 커버리지 %, 메모리)를 `Verified`로 추가한다.
+```bash
+git add docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md
+git commit -m "docs: record local verification evidence"
+```
+
+
+---
+
+### 마무리: 다음 계획으로 넘기기
+
+- [ ] `make check`가 PASS하는지 확인한다.
+- [ ] 이 계획의 Progress log에 결과(테스트 수, 커버리지 %, 특이사항)를 `Verified`로 기록한다.
+- [ ] 계획을 옮기고 커밋한다.
+
+```bash
+git mv docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md docs/plans/completed/
+git mv docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md docs/plans/active/
+git commit -m "docs: complete the docs-skills plan and activate the vm-rollout plan"
+```
+
+---
+
+## Progress log
+
+| 날짜 | 표기 | 내용 |
+|---|---|---|

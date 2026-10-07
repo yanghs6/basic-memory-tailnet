@@ -1,6 +1,10 @@
 # Basic Memory on OCI Always Free + Tailscale — 설계
 
-- 상태: 승인됨 (2026-10-07). 구현 계획: `docs/plans/plan-2026-10-07-c9byb5z1-basic-memory-oci-tailscale.md`
+- 상태: 승인됨 (2026-10-07). 구현 계획은 순서대로 4개다. 진행 중인 계획은 `docs/plans/active/`, 대기 중인 계획은 `docs/plans/backlog/`에 있다.
+  1. `plan-2026-10-07-sqzn0teq-local-foundation.md`: 도구 체인, compose, 로컬 MCP 검증, AGENTS.md 기본판
+  2. `plan-2026-10-07-dry1xr43-vm-scripts.md`: 부트스트랩, 배포·검증·상태·로그, 백업·복원
+  3. `plan-2026-10-07-hydaxf15-docs-skills.md`: 스킬, README, 아키텍처, 런북, ADR, 로컬 전체 검증
+  4. `plan-2026-10-07-qtvzskgx-vm-rollout.md`: 실제 VM 배포(사용자와 함께)
 - 범위: 첫 목표 `OCI Always Free + Tailscale + Basic Memory`
 - 출처: ChatGPT 대화 "에이전트 기억 공유 제안"의 마지막 단계와, 2026-10-07에 공식 문서로 다시 검증한 사실
 
