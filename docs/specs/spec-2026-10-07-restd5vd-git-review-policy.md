@@ -1,6 +1,6 @@
 # 에이전트 기반 Git·리뷰 정책 — 설계
 
-- 상태: 승인 대기 (브레인스토밍에서 섹션별 승인 완료, 2026-10-07)
+- 상태: 승인됨 (2026-10-07). 구현: [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)(`AGENTS.md`의 Git 섹션, `.claude/settings.json`의 attribution, `.gitignore`의 `.review-out/`), [git-review-tooling 계획](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md)(`docs/plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md`), 모든 계획의 Global Constraints와 시작·마무리 절차
 - 관련 스펙: [Basic Memory on OCI + Tailscale](spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md)
 - 적용 시점: [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)을 시작할 때부터. 그 전에 `main`에 직접 커밋한 설계 문서들(정책 이전)은 예외다.
 
@@ -184,8 +184,7 @@ Reviewed-Head: <sha>
   - `branch-review` (리뷰어용): 체크리스트, 심각도, 기록 형식, 읽기 전용 규칙
 - `AGENTS.md`: `## Code Review Rules`와 스킬 목록 추가
 - `docs/reviews/README.md`: 리뷰 기록 템플릿
-- `.claude/settings.json`: `"attribution": {"commit": ""}`
-- `.gitignore`: `.review-out/`
+- `.claude/settings.json`: `make check-git` 허용 (`attribution.commit = ""`와 `.gitignore`의 `.review-out/`은 [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)에서 먼저 넣는다)
 
 **함께 조정할 문서**
 - Basic Memory 스펙 머리말의 계획 목록을 다섯 개로 갱신한다.

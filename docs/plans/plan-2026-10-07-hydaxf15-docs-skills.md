@@ -12,7 +12,7 @@
 
 **Spec:** `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`
 
-**Sequence:** 계획 3/4. 전제: [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md) 완료(`make check` PASS, 테스트 85개). 다음 계획: `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md`
+**Sequence:** 계획 4/5. 전제: [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md) 완료·병합(`make check` PASS, 테스트 112개). 다음 계획: `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md`
 
 ## Global Constraints
 
@@ -42,17 +42,18 @@
   - 코드, 주석, 스크립트 메시지, `AGENTS.md`, `SKILL.md`는 영어로 쓴다.
   - README, runbooks, ARCHITECTURE, ADR은 한국어로 쓴다.
   - 저장소 노트에는 `Verified` / `Command` / `Assumption` / `Open question` 표기를 쓴다.
-- 커밋:
-  - 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore).
-  - attribution 줄은 넣지 않는다(사용자 전역 설정).
+- Git (`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`):
+  - 이 계획은 `plan/hydaxf15-docs-skills` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
+  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: hydaxf15`, `Task: N`을 단다. 커밋 명령은 시작 단계에서 정한 `AGENT_ID` 환경변수를 쓴다.
+  - `Co-authored-by`와 `Signed-off-by`는 넣지 않는다(사용자 전역 설정과 저장소 정책).
   - 매 커밋 전에 `make check`를 실행한다.
 - 수명주기 작업은 Make 타깃으로만 한다. raw `docker compose`나 `ssh`는 실패 진단에만 쓰고, 그 이유를 기록한다.
 
 ## Review Focus
 
 1. **깨진 상대 링크:** 문서가 늘면서 링크가 깨지면, 런북을 따라가던 사용자가 중간에 막힌다. → Task 2에서 Markdown 링크 검사 테스트를 추가한다.
-2. **비표준 스킬 frontmatter:** Claude 전용 키(`disable-model-invocation` 등)를 넣으면 Codex·Antigravity가 스킬을 거부할 수 있다. → Task 1에서 표준 키만 허용하는 테스트를 추가한다.
-3. **Claude Code에서 스킬이 안 보임:** Claude Code는 `.agents/skills/`를 읽지 않으므로 링크가 빠지면 스킬이 사라진다. → Task 1에서 링크 존재와 대상 경로를 검사하는 테스트를 추가한다.
+2. **비표준 스킬 frontmatter:** Claude 전용 키(`disable-model-invocation` 등)를 넣으면 Codex·Antigravity가 스킬을 거부할 수 있다. → [git-review-tooling 계획](plan-2026-10-07-qq4h1djv-git-review-tooling.md)의 스킬 구조 테스트가 새 `bm-*` 스킬도 검사한다.
+3. **Claude Code에서 스킬이 안 보임:** Claude Code는 `.agents/skills/`를 읽지 않으므로 링크가 빠지면 스킬이 사라진다. → [git-review-tooling 계획](plan-2026-10-07-qq4h1djv-git-review-tooling.md)의 링크 검사 테스트가 새 스킬에도 적용된다. Task 1은 세 스킬이 있는지 검사하는 테스트를 추가한다.
 4. **진단이 데이터를 바꿈:** `bm-diagnose`가 `make verify`(노트 쓰기·삭제)나 `make local-up`을 실행하면 읽기 전용 약속이 깨진다. → 스킬은 `make probe`, `status`, `logs`만 실행하고 나머지는 제안만 한다. 자동 테스트가 없으므로 리뷰에서 확인한다.
 5. **업그레이드 롤백이 데이터를 무시함:** 새 버전이 SQLite·설정을 마이그레이션했다면 이전 이미지만 되돌려서는 안 된다. → `bm-upgrade`는 업그레이드 직전 백업을 롤백 지점으로 삼고, `make restore`가 이미지(compose)와 데이터를 함께 되돌린다.
 
@@ -67,72 +68,40 @@ tests/repo.bats                                                               Ta
 
 ---
 
+### 시작: 브랜치와 worktree
+
+- [ ] 이 계획을 진행할 에이전트를 기록한다: `export AGENT_ID="<도구> <모델 ID>"` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다.
+- [ ] 전용 worktree와 브랜치를 만든다. 한 계획 브랜치는 한 번에 한 worktree에서만 진행한다.
+  - Claude Code: `claude --worktree plan-04-docs-skills`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/hydaxf15-docs-skills`
+  - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-04-docs-skills -b plan/hydaxf15-docs-skills main` 후 그 디렉터리에서 작업
+- [ ] 첫 커밋으로 이 계획 파일을 `backlog/`에서 `active/`로 옮긴다.
+
+```bash
+git mv docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md docs/plans/active/
+git commit -m "docs: activate the docs-skills plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: none"
+```
+
+---
+
 ### Task 1: 저장소 전용 스킬
 
 **Files:**
 - Create: `.agents/skills/bm-upgrade/SKILL.md`, `.agents/skills/bm-recover/SKILL.md`, `.agents/skills/bm-diagnose/SKILL.md`
 - Create (symlink): `.claude/skills/bm-upgrade`, `.claude/skills/bm-recover`, `.claude/skills/bm-diagnose`
 - Modify: `AGENTS.md`(`Read first`, `Map`, `Skills`)
-- Test: `tests/repo.bats`(스킬 테스트 추가)
+- Test: `tests/repo.bats`(운영 스킬 존재 테스트 추가. 스킬 구조 테스트는 [git-review-tooling 계획](plan-2026-10-07-qq4h1djv-git-review-tooling.md)에 있다)
 
 **Interfaces:**
-- Consumes: [local-foundation](plan-2026-10-07-sqzn0teq-local-foundation.md)·[vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md) 계획의 모든 Make 타깃 이름
+- Consumes: [local-foundation](plan-2026-10-07-sqzn0teq-local-foundation.md)·[git-review-tooling](plan-2026-10-07-qq4h1djv-git-review-tooling.md)·[vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md) 계획의 모든 Make 타깃 이름, git-review-tooling 계획의 스킬 구조 테스트와 `## Skills` 섹션
 - Produces: 스킬 이름 `bm-upgrade`, `bm-recover`, `bm-diagnose`. Task 2의 `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`에는 "Idle reclamation"과 "Incident log" 섹션이 있어야 한다(`bm-recover`, `bm-diagnose`가 참조).
 
 - [ ] **Step 1: 실패하는 테스트 추가 (`tests/repo.bats` 끝에 append)**
 
 ```bash
-skill_dirs() {
-  find "$REPO_DIR/.agents/skills" -mindepth 1 -maxdepth 1 -type d | sort
-}
-
-frontmatter() {
-  awk 'NR == 1 && $0 == "---" { inside = 1; next } inside && $0 == "---" { exit } inside { print }' "$1"
-}
-
-@test "at least one repository skill exists" {
-  run skill_dirs
-  assert_success
-  refute_output ""
-}
-
-@test "skills use only Agent Skills standard frontmatter keys" {
-  local dir key bad=""
-  for dir in $(skill_dirs); do
-    for key in $(frontmatter "$dir/SKILL.md" | grep -oE '^[a-z-]+:' | tr -d ':'); do
-      case "$key" in
-        name | description | license | compatibility | metadata | allowed-tools) ;;
-        *) bad="$bad $(basename "$dir"):$key" ;;
-      esac
-    done
-  done
-  [[ -z "$bad" ]] || fail "non-standard frontmatter keys (Codex/Antigravity may reject them):$bad"
-}
-
-@test "skill names match their directories and have descriptions" {
-  local dir name
-  for dir in $(skill_dirs); do
-    name="$(frontmatter "$dir/SKILL.md" | sed -n 's/^name: *//p')"
-    [[ "$name" == "$(basename "$dir")" ]] || fail "$dir/SKILL.md: name '$name' must equal the directory name"
-    frontmatter "$dir/SKILL.md" | grep -qE '^description: .+' || fail "$dir/SKILL.md: add a description"
-  done
-}
-
-@test "every skill is linked for Claude Code under .claude/skills" {
-  local dir name link
-  for dir in $(skill_dirs); do
-    name="$(basename "$dir")"
-    link="$REPO_DIR/.claude/skills/$name"
-    [[ -L "$link" ]] || fail "missing link; run: ln -s ../../.agents/skills/$name .claude/skills/$name"
-    [[ "$(readlink "$link")" == "../../.agents/skills/$name" ]] || fail "$link must point to ../../.agents/skills/$name"
-  done
-}
-
-@test "every SKILL.md is at most 500 lines" {
-  local dir lines
-  for dir in $(skill_dirs); do
-    lines="$(wc -l <"$dir/SKILL.md")"
-    ((lines <= 500)) || fail "$dir/SKILL.md has $lines lines; move reference material into separate files"
+@test "operational skills bm-upgrade, bm-recover and bm-diagnose exist" {
+  local name
+  for name in bm-upgrade bm-recover bm-diagnose; do
+    [[ -f "$REPO_DIR/.agents/skills/$name/SKILL.md" ]] || fail "missing .agents/skills/$name/SKILL.md"
   done
 }
 ```
@@ -140,7 +109,7 @@ frontmatter() {
 - [ ] **Step 2: 실패 확인**
 
 Run: `make test`
-Expected: FAIL. `.agents/skills`가 없어서 스킬 테스트가 실패한다.
+Expected: FAIL. `bm-*` 스킬이 없어서 새 테스트가 실패한다.
 
 - [ ] **Step 3: 스킬 작성**
 
@@ -231,15 +200,13 @@ ln -s ../../.agents/skills/bm-diagnose .claude/skills/bm-diagnose
 Read first: `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`, then `docs/ARCHITECTURE.md`.
 ```
 
-`## Map`의 마지막 줄 뒤에 다음 두 줄을 추가한다.
+`## Map`의 마지막 줄 뒤에 다음 줄을 추가한다.
 ```markdown
 - `docs/runbooks/` accounts, VM creation, bootstrap, operations (incident log); `docs/decisions/` ADRs.
-- `.agents/skills/` skills for Codex and Antigravity; `.claude/skills/<name>` symlinks for Claude Code.
 ```
 
-파일 끝에 다음 섹션을 추가한다.
+`## Skills` 섹션([git-review-tooling 계획](plan-2026-10-07-qq4h1djv-git-review-tooling.md)에서 생김)의 끝에 다음 세 줄을 추가한다.
 ```markdown
-## Skills
 - `bm-upgrade`: bump the pinned Basic Memory image and roll it out safely.
 - `bm-recover`: rebuild after the VM is reclaimed or broken, then restore the latest backup.
 - `bm-diagnose`: read-only troubleshooting of MCP, Tailscale and container problems.
@@ -253,14 +220,14 @@ Read first: `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`,
 - [ ] **Step 6: 테스트 통과 확인**
 
 Run: `make test`
-Expected: PASS(총 90 tests). `docs/ARCHITECTURE.md`는 Task 2에서 만든다(백틱 참조라 링크 검사 대상이 아니다).
+Expected: PASS(총 113 tests). `docs/ARCHITECTURE.md`는 Task 2에서 만든다(백틱 참조라 링크 검사 대상이 아니다).
 
 - [ ] **Step 7: Commit**
 
 Run: `make check` (PASS)
 ```bash
 git add .agents .claude/skills AGENTS.md tests/repo.bats
-git commit -m "docs: add repo skills for upgrade, recovery and diagnosis"
+git commit -m "docs: add repo skills for upgrade, recovery and diagnosis" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: 1"
 ```
 
 ---
@@ -666,14 +633,14 @@ OCI는 CPU(p95), 네트워크, 메모리가 **모두** 20% 미만이면 Always F
 - [ ] **Step 9: 테스트 통과 확인**
 
 Run: `make test`
-Expected: PASS(총 92 tests). 링크 테스트가 README, ARCHITECTURE, 런북, ADR의 상대 링크를 모두 확인한다.
+Expected: PASS(총 115 tests). 링크 테스트가 README, ARCHITECTURE, 런북, ADR의 상대 링크를 모두 확인한다.
 
 - [ ] **Step 10: Commit**
 
 Run: `make check` (PASS)
 ```bash
 git add README.md docs/ARCHITECTURE.md docs/runbooks docs/decisions tests/repo.bats
-git commit -m "docs: add README, architecture, runbooks and ADRs"
+git commit -m "docs: add README, architecture, runbooks and ADRs" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: 2"
 ```
 
 
@@ -685,7 +652,7 @@ git commit -m "docs: add README, architecture, runbooks and ADRs"
 - Modify: 이 계획 파일의 Progress log
 
 **Interfaces:**
-- Consumes: [local-foundation](plan-2026-10-07-sqzn0teq-local-foundation.md)·[vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md)·docs-skills 계획의 모든 타깃
+- Consumes: [local-foundation](plan-2026-10-07-sqzn0teq-local-foundation.md)·[git-review-tooling](plan-2026-10-07-qq4h1djv-git-review-tooling.md)·[vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md)·docs-skills 계획의 모든 타깃
 - Produces: 로컬 증거 기록(Verified/Command)
 
 - [ ] **Step 1: 깨끗한 상태에서 전체 검사**
@@ -705,23 +672,36 @@ Expected: `OK: MCP round trip passed`가 네 번 출력된다(재시작 전 2번
 이 파일 맨 아래 Progress log에 날짜, 명령, 결과(테스트 수, 커버리지 %, 메모리)를 `Verified`로 추가한다.
 ```bash
 git add docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md
-git commit -m "docs: record local verification evidence"
+git commit -m "docs: record local verification evidence" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: 3"
 ```
 
 
 ---
 
-### 마무리: 다음 계획으로 넘기기
+### 마무리: 리뷰, 기록, 병합
 
-- [ ] `make check`가 PASS하는지 확인한다.
-- [ ] 이 계획의 Progress log에 결과(테스트 수, 커버리지 %, 특이사항)를 `Verified`로 기록한다.
-- [ ] 계획을 옮기고 커밋한다.
+- [ ] `make check`와 `make check-git`이 PASS하는지 확인한다.
+- [ ] Progress log에 결과(테스트 수, 커버리지 %, 특이사항)를 `Verified`로 기록하고, 이 계획 파일을 `completed/`로 옮긴다.
 
 ```bash
 git mv docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md docs/plans/completed/
-git mv docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md docs/plans/active/
-git commit -m "docs: complete the docs-skills plan and activate the vm-rollout plan"
+git add docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md
+git commit -m "docs: complete the docs-skills plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: none"
 ```
+
+- [ ] 1차 리뷰(작성자와 다른 벤더, 읽기 전용): 작성 도구가 Claude Code면 `make review BRANCH=plan/hydaxf15-docs-skills REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
+- [ ] 원문(`.review-out/`)을 `docs/reviews/rev-2026-10-12-aqhzgwq1-docs-skills.md`로 옮겨 적는다(`docs/reviews/README.md` 형식).
+
+```bash
+git add docs/reviews/rev-2026-10-12-aqhzgwq1-docs-skills.md
+git commit -m "docs: record review of the docs-skills plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: review"
+```
+
+- [ ] 지적마다 재현하거나 근거를 인용해 검증하고, 받아들인 지적은 하나당 커밋 하나로 고친다(`--trailer "Review-Finding: R1-F<n>"`). 거절은 근거와 함께 기록한다.
+- [ ] 고친 것이 있으면 2차 리뷰: `make review BRANCH=plan/hydaxf15-docs-skills REVIEWER=<같은 리뷰어> ROUND=2 REVIEW_BASE=<리뷰한 head>`. 2회차 뒤 남은 이견은 사람이 결정한다.
+- [ ] `git-workflow` 스킬의 "Prepare the merge"대로 `.review-out/merge-plan-04-docs-skills.txt`를 쓴다.
+- [ ] 사람에게 병합을 요청한다. 에이전트는 병합하지 않는다. 사람은 `main` 체크아웃에서 `git merge --no-ff plan/hydaxf15-docs-skills -F <그 파일의 절대 경로>`를 실행한다.
+- [ ] 병합 뒤 worktree와 브랜치를 정리한다: `git worktree remove <경로>` → `git branch -d plan/hydaxf15-docs-skills`
 
 ---
 

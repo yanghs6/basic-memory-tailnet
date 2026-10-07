@@ -13,7 +13,7 @@
 
 **Spec:** `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`
 
-**Sequence:** 계획 2/4. 전제: [local-foundation 계획](plan-2026-10-07-sqzn0teq-local-foundation.md) 완료(`make check` PASS, 테스트 40개). 다음 계획: `docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md`
+**Sequence:** 계획 3/5. 전제: [git-review-tooling 계획](plan-2026-10-07-qq4h1djv-git-review-tooling.md) 완료·병합(`make check` PASS, 테스트 67개). 다음 계획: `docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md`
 
 ## Global Constraints
 
@@ -43,9 +43,10 @@
   - 코드, 주석, 스크립트 메시지, `AGENTS.md`, `SKILL.md`는 영어로 쓴다.
   - README, runbooks, ARCHITECTURE, ADR은 한국어로 쓴다.
   - 저장소 노트에는 `Verified` / `Command` / `Assumption` / `Open question` 표기를 쓴다.
-- 커밋:
-  - 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore).
-  - attribution 줄은 넣지 않는다(사용자 전역 설정).
+- Git (`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`):
+  - 이 계획은 `plan/dry1xr43-vm-scripts` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
+  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: dry1xr43`, `Task: N`을 단다. 커밋 명령은 시작 단계에서 정한 `AGENT_ID` 환경변수를 쓴다.
+  - `Co-authored-by`와 `Signed-off-by`는 넣지 않는다(사용자 전역 설정과 저장소 정책).
   - 매 커밋 전에 `make check`를 실행한다.
 - 수명주기 작업은 Make 타깃으로만 한다. raw `docker compose`나 `ssh`는 실패 진단에만 쓰고, 그 이유를 기록한다.
 
@@ -67,6 +68,21 @@ scripts/{deploy,verify-vm,status,logs}.sh                               Task 2
 tests/stubs/{ss,free,nc} tests/vm_ops.bats                              Task 2
 scripts/{backup,restore}.sh tests/backup_restore.bats                   Task 3
 Makefile AGENTS.md                                                      Task 1~3에서 수정
+```
+
+---
+
+### 시작: 브랜치와 worktree
+
+- [ ] 이 계획을 진행할 에이전트를 기록한다: `export AGENT_ID="<도구> <모델 ID>"` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다.
+- [ ] 전용 worktree와 브랜치를 만든다. 한 계획 브랜치는 한 번에 한 worktree에서만 진행한다.
+  - Claude Code: `claude --worktree plan-03-vm-scripts`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/dry1xr43-vm-scripts`
+  - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-03-vm-scripts -b plan/dry1xr43-vm-scripts main` 후 그 디렉터리에서 작업
+- [ ] 첫 커밋으로 이 계획 파일을 `backlog/`에서 `active/`로 옮긴다.
+
+```bash
+git mv docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md docs/plans/active/
+git commit -m "docs: activate the vm-scripts plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: dry1xr43" --trailer "Task: none"
 ```
 
 ---
@@ -520,7 +536,7 @@ main "$@"
 - [ ] **Step 6: 테스트 통과 확인**
 
 Run: `make test`
-Expected: PASS(총 53 tests).
+Expected: PASS(총 80 tests).
 
 - [ ] **Step 7: Makefile에 `vm-bootstrap` 추가**
 
@@ -535,7 +551,7 @@ vm-bootstrap: ## First-time VM setup over public SSH (HOST=<public-ip>; asks for
 Run: `make check` (PASS)
 ```bash
 git add scripts/remote/bootstrap.sh scripts/bootstrap-vm.sh tests/stubs tests/fixtures/os-release tests/bootstrap.bats Makefile
-git commit -m "feat: add idempotent VM bootstrap over SSH with Tailscale join and serve"
+git commit -m "feat: add idempotent VM bootstrap over SSH with Tailscale join and serve" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: dry1xr43" --trailer "Task: 1"
 ```
 
 
@@ -962,7 +978,7 @@ main "$@"
 - [ ] **Step 8: 테스트 통과 확인**
 
 Run: `make test`
-Expected: PASS(총 73 tests).
+Expected: PASS(총 100 tests).
 
 - [ ] **Step 9: Makefile에 VM 운영 타깃 추가**
 
@@ -989,7 +1005,7 @@ logs: ## Show the last 200 lines of the VM container logs
 Run: `make check` (PASS)
 ```bash
 git add scripts/deploy.sh scripts/verify-vm.sh scripts/status.sh scripts/logs.sh tests/stubs tests/vm_ops.bats Makefile
-git commit -m "feat: add VM deploy, verify, status and logs targets"
+git commit -m "feat: add VM deploy, verify, status and logs targets" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: dry1xr43" --trailer "Task: 2"
 ```
 
 
@@ -1369,7 +1385,7 @@ main "$@"
 - [ ] **Step 5: 테스트 통과 확인**
 
 Run: `make test`
-Expected: PASS(총 85 tests).
+Expected: PASS(총 112 tests).
 
 - [ ] **Step 6: Makefile에 백업과 복원 타깃 추가**
 
@@ -1395,23 +1411,36 @@ restore: ## Restore BACKUP=backups/bm-<stamp>.tgz to the VM (asks for yes), then
 Run: `make check` (PASS)
 ```bash
 git add scripts/backup.sh scripts/restore.sh tests/backup_restore.bats Makefile AGENTS.md
-git commit -m "feat: add VM backup and restore with checksum and confirmation"
+git commit -m "feat: add VM backup and restore with checksum and confirmation" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: dry1xr43" --trailer "Task: 3"
 ```
 
 
 ---
 
-### 마무리: 다음 계획으로 넘기기
+### 마무리: 리뷰, 기록, 병합
 
-- [ ] `make check`가 PASS하는지 확인한다.
-- [ ] 이 계획의 Progress log에 결과(테스트 수, 커버리지 %, 특이사항)를 `Verified`로 기록한다.
-- [ ] 계획을 옮기고 커밋한다.
+- [ ] `make check`와 `make check-git`이 PASS하는지 확인한다.
+- [ ] Progress log에 결과(테스트 수, 커버리지 %, 특이사항)를 `Verified`로 기록하고, 이 계획 파일을 `completed/`로 옮긴다.
 
 ```bash
 git mv docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md docs/plans/completed/
-git mv docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md docs/plans/active/
-git commit -m "docs: complete the vm-scripts plan and activate the docs-skills plan"
+git add docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md
+git commit -m "docs: complete the vm-scripts plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: dry1xr43" --trailer "Task: none"
 ```
+
+- [ ] 1차 리뷰(작성자와 다른 벤더, 읽기 전용): 작성 도구가 Claude Code면 `make review BRANCH=plan/dry1xr43-vm-scripts REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
+- [ ] 원문(`.review-out/`)을 `docs/reviews/rev-2026-10-08-ejeb10qw-vm-scripts.md`로 옮겨 적는다(`docs/reviews/README.md` 형식).
+
+```bash
+git add docs/reviews/rev-2026-10-08-ejeb10qw-vm-scripts.md
+git commit -m "docs: record review of the vm-scripts plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: dry1xr43" --trailer "Task: review"
+```
+
+- [ ] 지적마다 재현하거나 근거를 인용해 검증하고, 받아들인 지적은 하나당 커밋 하나로 고친다(`--trailer "Review-Finding: R1-F<n>"`). 거절은 근거와 함께 기록한다.
+- [ ] 고친 것이 있으면 2차 리뷰: `make review BRANCH=plan/dry1xr43-vm-scripts REVIEWER=<같은 리뷰어> ROUND=2 REVIEW_BASE=<리뷰한 head>`. 2회차 뒤 남은 이견은 사람이 결정한다.
+- [ ] `git-workflow` 스킬의 "Prepare the merge"대로 `.review-out/merge-plan-03-vm-scripts.txt`를 쓴다.
+- [ ] 사람에게 병합을 요청한다. 에이전트는 병합하지 않는다. 사람은 `main` 체크아웃에서 `git merge --no-ff plan/dry1xr43-vm-scripts -F <그 파일의 절대 경로>`를 실행한다.
+- [ ] 병합 뒤 worktree와 브랜치를 정리한다: `git worktree remove <경로>` → `git branch -d plan/dry1xr43-vm-scripts`
 
 ---
 
