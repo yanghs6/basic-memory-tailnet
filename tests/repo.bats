@@ -5,25 +5,33 @@ shell_files() {
   git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*'
 }
 
+# require_shell_files: set $files to the tracked shell files; fail loudly if git is unusable (no vacuous passes).
+require_shell_files() {
+  files="$(shell_files)" || fail "git ls-files failed inside the test container (see Makefile GIT_COMMON_DIR mount)"
+  [[ "$files" == *tests/stubs/ssh* ]] || fail "git returned no files (expected at least tests/stubs/ssh)"
+}
+
 @test "every executable shell file enables strict mode" {
-  local file missing=""
+  local file files missing=""
+  require_shell_files
   while IFS= read -r file; do
     case "$file" in
       *.bash | scripts/lib/*) continue ;;
     esac
     grep -qx 'set -euo pipefail' "$REPO_DIR/$file" || missing="$missing $file"
-  done < <(shell_files)
+  done <<<"$files"
   [[ -z "$missing" ]] || fail "add 'set -euo pipefail' right after the shebang in:$missing"
 }
 
 @test "every script and stub is executable" {
-  local file missing=""
+  local file files missing=""
+  require_shell_files
   while IFS= read -r file; do
     case "$file" in
       *.bash | scripts/lib/*) continue ;;
     esac
     [[ -x "$REPO_DIR/$file" ]] || missing="$missing $file"
-  done < <(shell_files)
+  done <<<"$files"
   [[ -z "$missing" ]] || fail "run: chmod +x$missing"
 }
 
