@@ -5,6 +5,7 @@ Cross-vendor review per `docs/specs/2026-10-07-git-review-policy-design.md`, sec
 | Round | Reviewer | Base | Reviewed head | Verdict |
 |---|---|---|---|---|
 | R1 | codex gpt-6.1-sol | 750c7c3 (main) | e034250 | change review: no actionable defects; plan review: changes requested (1 P2) |
+| R2 | codex gpt-6.1-sol (sandbox read-only) | e034250 (R1 head) | 6ee7823 | no actionable defects; R1-F1 confirmed closed (Codex ran `git check-ignore` itself) |
 
 ## Findings
 
