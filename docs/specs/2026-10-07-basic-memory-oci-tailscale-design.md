@@ -1,6 +1,6 @@
 # Basic Memory on OCI Always Free + Tailscale — 설계
 
-- 상태: 승인 대기 (브레인스토밍에서 섹션별 승인 완료, 2026-10-07)
+- 상태: 승인됨 (2026-10-07). 구현 계획: `docs/plans/active/2026-10-07-basic-memory-oci-tailscale.md`
 - 범위: 첫 목표 `OCI Always Free + Tailscale + Basic Memory`
 - 출처: ChatGPT 대화 "에이전트 기억 공유 제안"의 마지막 단계와, 2026-10-07에 공식 문서로 다시 검증한 사실
 
@@ -48,7 +48,7 @@
 - **Verified:** Tailscale Funnel은 기본으로 켜져 있다. 서버용으로는 사전 승인된 태그 인증 키를 권장한다. `tailscale set --ssh`를 켜면 공인 22번 포트를 닫을 수 있다.
 - **Verified:** Tailscale Personal 요금제는 비상업 용도로 한정된다.
 - **Open question:** 회사 Mac을 개인 tailnet에 참여시키는 것이 회사 보안 정책과 Tailscale Personal 약관에 맞는지는 사용자가 확인해야 한다.
-- **Open question:** Basic Memory의 MCP 라이브러리(FastMCP)가 Tailscale Serve가 넘겨주는 `*.ts.net` Host 헤더를 거부하지 않는지. 로컬 검증에서 확인한다.
+- **Verified (2026-10-07, 로컬 0.23.2 컨테이너):** `Host: bm-node.example.ts.net` 헤더로 보낸 initialize가 200으로 응답했고, write/read/delete 왕복도 성공했다. 실제 Tailscale Serve 경유 동작은 VM 배포 단계에서 다시 확인한다.
 - **Open question:** Pay As You Go로 전환한 계정에도 유휴 회수 정책이 적용되는지는 공식 문서에 명시돼 있지 않다.
 
 ## 4. 아키텍처
@@ -82,10 +82,14 @@ compose.yaml         Basic Memory 서비스
 .agents/skills/bm-upgrade/SKILL.md
 .agents/skills/bm-recover/SKILL.md
 .agents/skills/bm-diagnose/SKILL.md
-scripts/lib/common.sh            log/die/require_cmd/require_env/remote/mask
-scripts/bootstrap-vm.sh  deploy.sh  verify-mcp.sh  status.sh  backup.sh  restore.sh
-tests/helpers.bash               PATH 스텁(ssh, docker, curl, tailscale) 공통 설정
-tests/fixtures/                  녹화한 MCP 응답(JSON, SSE)
+scripts/lib/common.sh            log/step/die/require_cmd/require_env/mask/remote/remote_compose/sha256_of
+scripts/bootstrap-vm.sh          공인 IP SSH로 remote/bootstrap.sh를 올려 실행
+scripts/remote/bootstrap.sh      VM에서 root로 실행 (로컬에서 stub으로 단위 테스트)
+scripts/deploy.sh  verify-mcp.sh  verify-vm.sh  status.sh  logs.sh  backup.sh  restore.sh
+tools/Dockerfile  tools/coverage.sh   테스트 이미지(kcov + bats + jq)와 커버리지 게이트
+tests/helpers.bash               setup_stubs, use_vm_env
+tests/stubs/                     ssh, docker, curl, tailscale, sudo, apt-get 등 가짜 명령
+tests/fixtures/                  녹화한 MCP 응답(SSE, JSON), os-release
 tests/scripts.bats               스크립트 단위 테스트
 tests/repo.bats                  구조 테스트
 docs/ARCHITECTURE.md             토폴로지, 데이터 경로, 신뢰 경계
@@ -123,6 +127,8 @@ docs/decisions/                  ADR (예: 0001-basic-memory-on-oci.md, 0002-vm-
 | 개발 | `test` | bats 단위·구조 테스트 (Docker 이미지) |
 | 개발 | `coverage` | kcov로 `scripts/` 라인 커버리지 측정, 80% 미만이면 실패 |
 | 개발 | `check` | `lint` + `test` + `coverage` |
+| 개발 | `fmt` | `shfmt -w`로 포맷 수정 |
+| 개발 | `tools-image` | 테스트 이미지 빌드 (`test`, `coverage`가 자동 호출) |
 | 로컬 | `local-up`, `local-down`, `local-logs` | Mac Docker에서 compose 실행·정지·로그 |
 | 로컬 | `local-verify` | `verify-mcp.sh http://127.0.0.1:8737/mcp`에 ts.net Host 헤더 시나리오 포함 |
 | VM | `vm-bootstrap HOST=<공인IP>` | 공인 IP로 SSH 접속해 첫 설정 |
@@ -167,7 +173,11 @@ docs/decisions/                  ADR (예: 0001-basic-memory-on-oci.md, 0002-vm-
 공인 IP로 SSH 접속해 원격 스크립트를 실행한다. 단계마다 이미 된 일은 건너뛰므로, 다시 실행해도 결과가 같다.
 
 1. 공식 apt 저장소로 Docker Engine과 compose 플러그인을 설치하고, `ubuntu` 사용자를 docker 그룹에 추가한다.
-2. Tailscale을 설치하고, 로그인되어 있지 않으면 `tailscale up --hostname=bm-node --ssh`를 실행한다. 인증 키는 숨김 입력(`read -s`)이나 `TS_AUTHKEY`로 받아 **stdin으로만** 원격에 넘긴다. 파일이나 명령 인자에는 남기지 않는다.
+2. Tailscale을 설치하고, 로그인되어 있지 않으면 `tailscale up --hostname=bm-node --ssh`를 실행한다. 인증 키 처리는 다음과 같다.
+   - 숨김 입력(`read -s`)이나 `TS_AUTHKEY`로 받아 **stdin으로만** 원격에 넘긴다.
+   - 원격 스크립트는 키를 `/run`(tmpfs)의 0600 임시 파일에 써서 `--auth-key=file:<경로>`로 넘기고 즉시 삭제한다(**Verified:** tailscale.com/kb/1241).
+   - 로컬과 원격 어디에서도 명령 인자나 디스크에 남기지 않는다.
+   - 이미 tailnet에 있으면 키 없이 `tailscale set --hostname=bm-node --ssh`만 실행한다.
 3. `/srv/basic-memory/{knowledge,config}`를 만들어 1000:1000으로 소유권을 주고, `/opt/basic-memory`는 `ubuntu` 소유로 만든다.
 4. `tailscale serve --bg http://127.0.0.1:8737`
 5. 다음 단계를 안내한다: `ssh ubuntu@bm-node true`로 Tailscale SSH 확인 → 성공한 뒤에만 OCI 22번 규칙 삭제.
@@ -216,7 +226,8 @@ SQLite 파일이 쓰는 도중에 복사되지 않도록 잠시 정지한다. �
    - OCI 가입. 홈 리전은 변경할 수 없다. 서울(`ap-seoul-1`)과 춘천(`ap-chuncheon-1`)이 후보이며, A1 용량 부족 가능성을 안내한다.
    - Tailscale 가입 → MagicDNS와 HTTPS 인증서 켜기 → 정책에서 Funnel 끄기 → `tag:bm-server` 정의 → 사전 승인된 1회용 태그 인증 키 발급
 2. **`oci-vm.md` (사용자, 콘솔):**
-   - `VM.Standard.A1.Flex`, 표준 Canonical Ubuntu 24.04(Minimal 아님), 1 OCPU / 6GB(잠정값, ADR 0002로 확정), 부트 볼륨 50GB, SSH 공개키 등록
+   - `VM.Standard.A1.Flex`, 표준 Canonical Ubuntu 24.04(Minimal 아님), 1 OCPU / 4GB, 부트 볼륨 50GB, SSH 공개키 등록
+   - 4GB는 잠정값이고 ADR 0002로 확정한다. 로컬 실측(컨테이너 449 MiB)으로 보면 6GB에서는 메모리 사용률이 20% 미만이 될 가능성이 커서 4GB로 낮췄다.
    - Security List에는 본인 IP의 22번 포트만 임시로 연다.
 3. **`bootstrap.md`:**
    - `make vm-bootstrap HOST=<공인IP>` → `ssh ubuntu@bm-node true` 확인 → 콘솔에서 22번 규칙 삭제 → `make deploy verify status`
@@ -251,7 +262,7 @@ SQLite 파일이 쓰는 도중에 복사되지 않도록 잠시 정지한다. �
   - 이미지가 digest로 고정돼 있고, `.env`가 git에 추적되지 않는다.
   - 모든 스킬에 Claude용 링크가 있고, frontmatter는 표준 필드만 쓰며, `SKILL.md`는 500줄 이하다.
   - 실패 메시지에는 고치는 방법을 포함한다.
-- **커버리지:** kcov로 `scripts/` 라인 커버리지 80% 이상이어야 한다. **Assumption:** kcov가 컨테이너에서 bats 실행의 커버리지를 수집할 수 있다. 구현 첫 단계에서 확인하고, 안 되면 대안을 보고한다.
+- **커버리지:** kcov로 `scripts/` 라인 커버리지 80% 이상이어야 하고, `scripts/` 아래 모든 실행 스크립트가 최소 한 테스트에서 실행돼야 한다. **Verified (2026-10-07 spike):** kcov 컨테이너는 bats가 실행하거나 source한 스크립트의 라인 커버리지를 수집한다.
 - **통합 (로컬, 실제 컨테이너):** `make local-up local-verify`. Host 헤더 시나리오를 포함한다. 이 단계에서 컨테이너 메모리 사용량을 측정해 VM 메모리 크기를 ADR 0002로 확정한다. 기준은 평소 사용률이 20% 이상이 되는 크기다.
 - **E2E (VM, 수동):** `make deploy verify status`와 외부 노출 점검을 실행하고, 결과를 `docs/plans/` 진행 로그에 `Verified` / `Command` 표기로 기록한다. 계정이 필요하므로 CI로 자동화하지 않는다.
 
