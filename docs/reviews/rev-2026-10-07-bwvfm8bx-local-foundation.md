@@ -10,7 +10,7 @@ Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.m
 
 | ID | Sev | Location | Summary | Status |
 |---|---|---|---|---|
-| R1-F1 | P2 | .gitignore:2 | Only `.env` is ignored; `.env.local`, `.env.production` could be committed. Spec section 5 requires `.env*` except `.env.example`. Verified with `git check-ignore`. | open |
+| R1-F1 | P2 | .gitignore:2 | Only `.env` is ignored; `.env.local`, `.env.production` could be committed. Spec section 5 requires `.env*` except `.env.example`. Verified with `git check-ignore`. | fixed dbda608 |
 
 ## Notes
 
