@@ -6,7 +6,7 @@ if [[ -n "${DOCKER_STUB_FAIL_MATCH:-}" && "$*" == *"$DOCKER_STUB_FAIL_MATCH"* ]]
   echo "docker stub: simulated failure for: $*" >&2
   exit 1
 fi
-if [[ "$*" == *" ps"* ]]; then
+if [[ " $* " == *" ps "* ]]; then
   echo "NAME                  STATUS"
   echo "basic-memory-server   Up 5 minutes (healthy)"
 fi
