@@ -76,7 +76,9 @@ Task: 3
 | `Assisted-by` | `<도구> <모델 ID>` | 도구: `claude-code`, `codex`, `antigravity`, `gemini-cli` |
 | `Plan` | `01`~`05` 또는 `none` | 계획 밖 작업은 `none` |
 | `Task` | Task 번호, `review` 또는 `none` | 리뷰 기록 커밋은 `review` |
-| `Review-Finding` | `R<회차>-F<번호>` | 리뷰 지적을 고친 커밋에만 |
+| `Review-Finding` | `R<회차>-F<번호>` (교차 벤더 리뷰 기록, `docs/reviews/`) 또는 `SDD-T<태스크>-F<번호>` (계획 내 SDD 태스크 리뷰 수정) | 리뷰 지적을 고친 커밋에만 |
+
+`plan/sqzn0teq-local-foundation`의 커밋 3efcdab와 a21ff33은 이 규칙 이전에 작성되어 SDD 지적(Task 1 I1, Task 3 I1)을 담고 있다.
 
 - 에이전트는 `Co-authored-by`와 `Signed-off-by`를 넣지 않는다.
 - 조회: `git log --format='%h %s | %(trailers:key=Assisted-by,key=Plan,key=Task,valueonly,separator=%x2C )' main..<브랜치>`

@@ -7,7 +7,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 ## Commands
 - `make help` lists every target. Do lifecycle work through Make targets only; use raw `docker compose` or `ssh` only to diagnose a failing target, and record why.
 - `make check` (lint + all tests + coverage >= 80%) must pass before every commit. `make fmt` fixes shfmt findings.
-- Local: `make local-up local-verify local-down`.
+- Local: `make local-up local-verify local-down`. `local-up` uses a fixed container name and port, so run it in one worktree at a time (`make check` is safe to run concurrently).
 
 ## Invariants (enforced by tests/repo.bats; never weaken a test to make it pass)
 - Basic Memory has no auth: publish its port on `127.0.0.1` only, never enable Tailscale Funnel, keep zero public ingress on the VM.
@@ -26,7 +26,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 ## Git (policy: docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md)
 - Work only in your own git worktree on `plan/<NN>-<slug>` or `work/<slug>`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) before review.
 - Never commit to `main`, force-push, rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree.
-- End every commit message with the trailers `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>`, `Plan: <NN|none>` and `Task: <N|review|none>`; add `Review-Finding: R<n>-F<m>` to review fixes. Never add `Co-authored-by` or `Signed-off-by`.
+- End every commit message with the trailers `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>`, `Plan: <NN|none>` and `Task: <N|review|none>`; add `Review-Finding: R<n>-F<m>` (cross-vendor review) or `SDD-T<task>-F<n>` (in-plan task review) to review fixes. Never add `Co-authored-by` or `Signed-off-by`.
 - A reviewer from another vendor reviews each branch read-only; findings go to `docs/reviews/`; only the human merges, with `git merge --no-ff`.
 
 ## Notes and language
