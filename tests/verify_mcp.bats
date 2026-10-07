@@ -133,6 +133,12 @@ EOF
   assert_output --partial "usage: verify-mcp.sh [--host-header HOST] [--read-only] URL"
 }
 
+@test "rejects --host-header followed by another option" {
+  run "$VERIFY" --host-header --read-only "$URL"
+  assert_failure
+  assert_output --partial "usage: verify-mcp.sh"
+}
+
 @test "rejects unknown options" {
   run "$VERIFY" --bogus "$URL"
   assert_failure
