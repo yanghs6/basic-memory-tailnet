@@ -7,13 +7,15 @@
 **Architecture:**
 - `Makefile`이 유일한 수명주기 인터페이스다.
 - 테스트는 Docker 안의 bats와 kcov로 실행하고, lint는 고정 digest의 shellcheck·shfmt 이미지로 실행한다.
-- `compose.yaml` 하나를 로컬과 VM이 함께 쓴다. VM 쪽은 계획 02에서 다룬다.
+- `compose.yaml` 하나를 로컬과 VM이 함께 쓴다. VM 쪽은 계획 03에서 다룬다.
 
 **Tech Stack:** Bash(macOS 3.2 호환), GNU Make, Docker Compose, Basic Memory 0.23.2, Tailscale(Serve, SSH), bats-core 1.14.0 + bats-support/assert, kcov, shellcheck 0.11.0, shfmt 3.12.0, jq, curl
 
 **Spec:** `docs/specs/2026-10-07-basic-memory-oci-tailscale-design.md`
 
-**Sequence:** 계획 1/4. 다음 계획: `docs/plans/backlog/2026-10-07-02-vm-scripts.md`
+**Sequence:** 계획 1/5. 다음 계획: `docs/plans/backlog/2026-10-07-02-git-review-tooling.md`
+
+**Git:** 이 계획부터 `docs/specs/2026-10-07-git-review-policy-design.md`를 따른다. `make check-git`과 `make review`는 계획 02에서 생기므로, 이 계획은 규칙을 손으로 지키고 리뷰도 수동 명령으로 한다.
 
 ## Global Constraints
 
@@ -43,9 +45,10 @@
   - 코드, 주석, 스크립트 메시지, `AGENTS.md`, `SKILL.md`는 영어로 쓴다.
   - README, runbooks, ARCHITECTURE, ADR은 한국어로 쓴다.
   - 저장소 노트에는 `Verified` / `Command` / `Assumption` / `Open question` 표기를 쓴다.
-- 커밋:
-  - 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore).
-  - attribution 줄은 넣지 않는다(사용자 전역 설정).
+- Git (`docs/specs/2026-10-07-git-review-policy-design.md`):
+  - 이 계획은 `plan/01-local-foundation` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
+  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: 01`, `Task: N`을 단다. 커밋 명령은 시작 단계에서 정한 `AGENT_ID` 환경변수를 쓴다.
+  - `Co-authored-by`와 `Signed-off-by`는 넣지 않는다(사용자 전역 설정과 저장소 정책).
   - 매 커밋 전에 `make check`를 실행한다. Task 1의 Step 10부터 적용한다.
 - 수명주기 작업은 Make 타깃으로만 한다. raw `docker compose`나 `ssh`는 실패 진단에만 쓰고, 그 이유를 기록한다.
 
@@ -53,7 +56,7 @@
 
 1. **macOS bash 3.2:** 사용자는 Mac 기본 bash로 `make`를 실행한다. bash 4+ 문법이 하나라도 섞이면 이후 VM 작업이 모두 깨진다. → Task 1에서 `tests/repo.bats`에 금지 문법 검사 테스트를 추가한다.
 2. **따옴표가 들어간 `.env` 값:** Make의 `include`는 `BM_VM_HOST="bm-node"`의 따옴표를 값의 일부로 읽어 호스트 이름이 깨진다. → Task 2에서 `.env.example`에 따옴표가 없는지 검사하는 테스트를 추가하고, 예시 파일에 경고 주석을 넣는다.
-3. **재부팅 후 자동 복구:** 컨테이너는 `restart: unless-stopped`로 재부팅 뒤 자동으로 돌아와야 한다. → Task 2에서 restart 정책 테스트를 추가한다. 실제 VM 재부팅은 계획 04에서 확인한다.
+3. **재부팅 후 자동 복구:** 컨테이너는 `restart: unless-stopped`로 재부팅 뒤 자동으로 돌아와야 한다. → Task 2에서 restart 정책 테스트를 추가한다. 실제 VM 재부팅은 계획 05에서 확인한다.
 
 ## File Structure
 
@@ -70,6 +73,16 @@ scripts/verify-mcp.sh                          Task 3
 tests/stubs/curl tests/fixtures/mcp-{sse,json}/ tests/verify_mcp.bats   Task 3
 AGENTS.md CLAUDE.md .claude/settings.json      Task 4
 ```
+
+---
+
+### 시작: 브랜치와 worktree
+
+- [ ] 이 계획을 진행할 에이전트를 기록한다: `export AGENT_ID="<도구> <모델 ID>"` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다.
+- [ ] 전용 worktree와 브랜치를 만든다. 한 계획 브랜치는 한 번에 한 worktree에서만 진행한다.
+  - Claude Code: `claude --worktree plan-01-local-foundation`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/01-local-foundation`
+  - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-01-local-foundation -b plan/01-local-foundation main` 후 그 디렉터리에서 작업
+- [ ] 이 계획 파일은 정책 이전에 `main`의 `docs/plans/active/`에 이미 있으므로 옮기지 않는다.
 
 ---
 
@@ -106,6 +119,7 @@ CLAUDE.local.md
 .local-data/
 backups/
 .coverage/
+.review-out/
 ```
 
 `.editorconfig`:
@@ -536,7 +550,7 @@ Expected:
 
 ```bash
 git add .gitignore .editorconfig .shellcheckrc tools Makefile scripts/lib/common.sh tests
-git commit -m "chore: add test toolchain, Makefile and shared shell library"
+git commit -m "chore: add test toolchain, Makefile and shared shell library" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 01" --trailer "Task: 1"
 ```
 
 
@@ -695,7 +709,7 @@ Expected: `Container basic-memory-server Removed`
 Run: `make check` (PASS)
 ```bash
 git add compose.yaml .env.example Makefile tests/repo.bats
-git commit -m "feat: add Basic Memory compose service and local lifecycle targets"
+git commit -m "feat: add Basic Memory compose service and local lifecycle targets" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 01" --trailer "Task: 2"
 ```
 
 
@@ -714,7 +728,7 @@ git commit -m "feat: add Basic Memory compose service and local lifecycle target
 - Consumes: `common.sh`의 `log`, `step`, `die`, `require_cmd`, `mask`
 - Produces:
   - CLI: `scripts/verify-mcp.sh [--host-header HOST] [--read-only] URL`. 성공하면 0과 `OK: MCP round trip passed`, 실패하면 1과 `ERROR: <step>: <원인>`.
-  - `--read-only`: initialize와 tools/list만 하고 노트를 쓰지 않는다. 성공 시 `OK: MCP read-only probe passed (no notes written)`. 계획 02의 `make probe`와 계획 03의 `bm-diagnose`가 쓴다.
+  - `--read-only`: initialize와 tools/list만 하고 노트를 쓰지 않는다. 성공 시 `OK: MCP read-only probe passed (no notes written)`. 계획 03의 `make probe`와 계획 04의 `bm-diagnose`가 쓴다.
   - 환경변수 `VERIFY_ID`(테스트용 고정 ID. 기본값은 `<UTC 시각>-$RANDOM`)
   - curl stub 규약:
     - MCP 모드(`CURL_FIXTURES` 설정 시): 요청 method로 픽스처를 고른다. 이름은 `initialize`, `notifications_initialized`, `tools_list`, `call_<tool>`이고 `.body`와 선택적 `.status` 파일을 쓴다. 요청 본문은 `$STUB_LOG.requests`에 기록하고, `CURL_STUB_EXIT`를 설정하면 그 코드로 실패한다.
@@ -1229,7 +1243,7 @@ Expected:
 Run: `make check` (PASS, 커버리지 80% 이상)
 ```bash
 git add scripts/verify-mcp.sh tests/stubs/curl tests/fixtures tests/verify_mcp.bats Makefile
-git commit -m "feat: add end-to-end MCP verification script and local-verify target"
+git commit -m "feat: add end-to-end MCP verification script and local-verify target" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 01" --trailer "Task: 3"
 ```
 
 
@@ -1243,7 +1257,7 @@ git commit -m "feat: add end-to-end MCP verification script and local-verify tar
 
 **Interfaces:**
 - Consumes: Task 1~3의 Make 타깃 이름
-- Produces: `AGENTS.md`의 섹션 구조(`Commands`, `Invariants`, `Safety`, `Notes and language`, `Map`). 계획 02는 `Commands`에 VM 타깃 줄을 추가하고, 계획 03은 `Skills` 섹션과 `Map` 항목을 추가한다.
+- Produces: `AGENTS.md`의 섹션 구조(`Commands`, `Invariants`, `Safety`, `Git`, `Notes and language`, `Map`). 계획 02는 `Code Review Rules`와 `Skills` 섹션을, 계획 03은 `Commands`에 VM 타깃 줄을, 계획 04는 `bm-*` 스킬 줄과 `Map` 항목을 추가한다. `.claude/settings.json`의 `attribution.commit = ""`는 Claude Code가 자동 `Co-authored-by` 트레일러를 넣지 않게 한다.
 
 이후 계획을 구현하는 에이전트가 처음부터 저장소 규칙을 읽도록, 지금 존재하는 것만 담은 기본판을 둔다.
 
@@ -1295,6 +1309,12 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - Ask the user before anything that changes the VM or cloud resources: `vm-bootstrap`, `deploy`, `restore`, resizing, OCI security rules, Tailscale policy.
 - Never delete `backups/` or `/srv/basic-memory.prev-*` directories.
 
+## Git (policy: docs/specs/2026-10-07-git-review-policy-design.md)
+- Work only in your own git worktree on `plan/<NN>-<slug>` or `work/<slug>`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) before review.
+- Never commit to `main`, force-push, rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree.
+- End every commit message with the trailers `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>`, `Plan: <NN|none>` and `Task: <N|review|none>`; add `Review-Finding: R<n>-F<m>` to review fixes. Never add `Co-authored-by` or `Signed-off-by`.
+- A reviewer from another vendor reviews each branch read-only; findings go to `docs/reviews/`; only the human merges, with `git merge --no-ff`.
+
 ## Notes and language
 - Label repository notes `Verified`, `Command`, `Assumption`, or `Open question`.
 - Code, comments, script messages, this file and skills are English. README, runbooks, ARCHITECTURE and ADRs are Korean.
@@ -1317,6 +1337,9 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 ```json
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "attribution": {
+    "commit": ""
+  },
   "permissions": {
     "allow": [
       "Bash(make help)",
@@ -1346,22 +1369,55 @@ Expected: PASS(총 40 tests).
 Run: `make check` (PASS)
 ```bash
 git add AGENTS.md CLAUDE.md .claude/settings.json tests/repo.bats
-git commit -m "docs: add baseline agent instructions"
+git commit -m "docs: add baseline agent instructions" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 01" --trailer "Task: 4"
 ```
 
 ---
 
-### 마무리: 다음 계획으로 넘기기
+### 마무리: 리뷰, 기록, 병합
 
 - [ ] `make check`가 PASS하는지 확인한다.
-- [ ] 이 계획의 Progress log에 결과(테스트 수, 커버리지 %, 특이사항)를 `Verified`로 기록한다.
-- [ ] 계획을 옮기고 커밋한다.
+- [ ] Progress log에 결과(테스트 수, 커버리지 %, 특이사항)를 `Verified`로 기록하고, 이 계획 파일을 `completed/`로 옮긴다.
 
 ```bash
 git mv docs/plans/active/2026-10-07-01-local-foundation.md docs/plans/completed/
-git mv docs/plans/backlog/2026-10-07-02-vm-scripts.md docs/plans/active/
-git commit -m "docs: complete plan 01 and activate plan 02"
+git add docs/plans/completed/2026-10-07-01-local-foundation.md
+git commit -m "docs: complete plan 01" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 01" --trailer "Task: none"
 ```
+
+- [ ] 1차 리뷰(작성자와 다른 벤더, 읽기 전용). `make review`는 계획 02에서 생기므로 이번만 손으로 실행한다. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
+  - 작성 도구가 Claude Code면 Codex로:
+
+```bash
+OUT="$(pwd)/.review-out"; WT=../027_agent_share_poc-wt/review-plan-01-local-foundation-r1
+mkdir -p "$OUT" && git worktree add --detach "$WT" plan/01-local-foundation
+(cd "$WT" && codex exec review --base main) >"$OUT/plan-01-local-foundation-r1-codex-diff.md"
+(cd "$WT" && codex exec --sandbox read-only -o "$OUT/plan-01-local-foundation-r1-codex-plan.md" "Review branch plan/01-local-foundation (changes since main) against docs/plans/completed/2026-10-07-01-local-foundation.md, using the checklist in docs/specs/2026-10-07-git-review-policy-design.md section 5. Read-only: do not modify files or commit. Answer with one verdict line, then one finding per line: [P0|P1|P2|P3] path:line - failure scenario - suggested fix.")
+git worktree remove --force "$WT"
+```
+
+  - 작성 도구가 Codex·Antigravity·Gemini면 Claude로: 위와 같되 두 명령을 `claude -p --permission-mode plan --no-session-persistence "/code-review main...HEAD"`와 `claude -p --permission-mode plan --no-session-persistence "<위 프롬프트>"`로 바꾸고, 출력 파일 이름의 `codex`를 `claude`로 바꾼다.
+- [ ] 원문을 `docs/reviews/plan-01-local-foundation.md`로 옮겨 적는다. 형식은 git 정책 스펙 5절의 "리뷰 기록"(라운드 표: 리뷰어·base·리뷰한 head·판정, 지적 표: ID·등급·위치·요약·상태)을 따른다.
+
+```bash
+git add docs/reviews/plan-01-local-foundation.md
+git commit -m "docs: record review of plan 01" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 01" --trailer "Task: review"
+```
+
+- [ ] 지적마다 재현하거나 근거를 인용해 검증하고, 받아들인 지적은 하나당 커밋 하나로 고친다(`--trailer "Review-Finding: R1-F<n>"`). 거절은 근거와 함께 기록한다.
+- [ ] 고친 것이 있으면 2차 리뷰: `git branch review-base/plan-01-local-foundation-r2 <리뷰한 head>`를 만든 뒤 위 명령의 `--base main`을 `--base review-base/plan-01-local-foundation-r2`로, `-r1`을 `-r2`로 바꿔 실행하고, 끝나면 `git branch -D review-base/plan-01-local-foundation-r2`. 2회차 뒤 남은 이견은 사람이 결정한다.
+- [ ] 병합 메시지를 `.review-out/merge-plan-01-local-foundation.txt`에 쓴다(형식: git 정책 스펙 6절):
+
+```
+Merge plan/01-local-foundation
+
+Reviewed-by: yanghs6
+Review-Agent: <리뷰 도구> <모델 ID>
+Review-Record: docs/reviews/plan-01-local-foundation.md
+Reviewed-Head: <리뷰한 head sha>
+```
+- [ ] 사람에게 병합을 요청한다. 에이전트는 병합하지 않는다. 사람은 `main` 체크아웃에서 `git merge --no-ff plan/01-local-foundation -F <그 파일의 절대 경로>`를 실행한다.
+- [ ] 병합 뒤 worktree와 브랜치를 정리한다: `git worktree remove <경로>` → `git branch -d plan/01-local-foundation`
 
 ---
 

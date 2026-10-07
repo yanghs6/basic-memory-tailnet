@@ -1,10 +1,11 @@
 # Basic Memory on OCI Always Free + Tailscale — 설계
 
-- 상태: 승인됨 (2026-10-07). 구현 계획은 순서대로 4개다. 진행 중인 계획은 `docs/plans/active/`, 대기 중인 계획은 `docs/plans/backlog/`에 있다.
-  1. `2026-10-07-01-local-foundation.md`: 도구 체인, compose, 로컬 MCP 검증, AGENTS.md 기본판
-  2. `2026-10-07-02-vm-scripts.md`: 부트스트랩, 배포·검증·상태·로그, 백업·복원
-  3. `2026-10-07-03-docs-skills.md`: 스킬, README, 아키텍처, 런북, ADR, 로컬 전체 검증
-  4. `2026-10-07-04-vm-rollout.md`: 실제 VM 배포(사용자와 함께)
+- 상태: 승인됨 (2026-10-07). 구현 계획은 순서대로 5개다. 진행 중인 계획은 `docs/plans/active/`, 대기 중인 계획은 `docs/plans/backlog/`에 있다. 모든 계획은 [git·리뷰 정책](2026-10-07-git-review-policy-design.md)을 따른다.
+  1. `2026-10-07-01-local-foundation.md`: 도구 체인, compose, 로컬 MCP 검증, AGENTS.md 기본판(Git 섹션 포함)
+  2. `2026-10-07-02-git-review-tooling.md`: `make check-git`, `make review`, 리뷰어 에이전트, git·리뷰 스킬
+  3. `2026-10-07-03-vm-scripts.md`: 부트스트랩, 배포·검증·상태·로그, 백업·복원
+  4. `2026-10-07-04-docs-skills.md`: 운영 스킬, README, 아키텍처, 런북, ADR, 로컬 전체 검증
+  5. `2026-10-07-05-vm-rollout.md`: 실제 VM 배포(사용자와 함께)
 - 범위: 첫 목표 `OCI Always Free + Tailscale + Basic Memory`
 - 출처: ChatGPT 대화 "에이전트 기억 공유 제안"의 마지막 단계와, 2026-10-07에 공식 문서로 다시 검증한 사실
 
@@ -208,7 +209,7 @@ curl과 jq로 MCP streamable HTTP를 직접 검증한다.
 - `local-verify`는 이 스크립트를 두 번 실행한다. 기본 실행 한 번, `--host-header bm-node.example.ts.net`으로 한 번이다.
 - VM용 `verify`와 `probe`(`verify-vm.sh [--read-only]`)는 tailnet HTTPS URL로 실행하고, 이어서 다음을 확인한다.
   - 원격 `ss -lnt`로 8737이 `127.0.0.1`에만 열려 있다.
-  - `tailscale serve status`가 `tailnet only`이고 `Funnel on`이 아니다. **Assumption:** 출력 문구는 계획 04에서 실제 VM으로 확인한다.
+  - `tailscale serve status`가 `tailnet only`이고 `Funnel on`이 아니다. **Assumption:** 출력 문구는 계획 05에서 실제 VM으로 확인한다.
   - `BM_VM_PUBLIC_IP`(필수)의 22·80·443·8737이 Mac에서 연결되지 않는다.
 - OCI 인바운드 규칙과 tailnet 정책은 VM에서 읽을 수 없으므로 운영 런북의 Exposure audit으로 수동 점검한다.
 
