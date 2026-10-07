@@ -1429,3 +1429,8 @@ Reviewed-Head: <리뷰한 head sha>
 | 2026-10-07 | Verified | basic-memory 0.23.2 로컬 컨테이너: `Host: bm-node.example.ts.net`으로 initialize 200, write/read/delete 왕복 성공, 응답 형식은 픽스처와 같음 |
 | 2026-10-07 | Verified | 컨테이너 메모리: 기동 직후 212 MiB, 시맨틱 검색 후 449 MiB (`docker stats --no-stream`) |
 | 2026-10-07 | Verified | macOS `/bin/bash` 3.2.57에서 계획의 문법(`"$@"`, `local -a`, `${v:0:4}`, `${!n:-}`, `x="$(f)" \|\| …`)과 BSD sed `\{0,1\}`가 동작함 |
+| 2026-10-07 | Verified | 계획 01 완료 (Command: `make check`): bats 42개 통과, `scripts/` 라인 커버리지 95.31%, shellcheck·shfmt 경고 없음 (HEAD `bade74d`) |
+| 2026-10-07 | Verified | Task 2 통합 (Command: `make local-up`, `lsof -nP -iTCP:8737 -sTCP:LISTEN`): 컨테이너 Healthy, `127.0.0.1:8737`만 LISTEN, `make local-down` 후 남은 컨테이너 없음 |
+| 2026-10-07 | Verified | Task 3 통합 (Command: `make local-up local-verify`, macOS bash 3.2): MCP 왕복 2회 OK(기본, `Host: bm-node.example.ts.net`), 유휴 메모리 275.1 MiB (`docker stats --no-stream`) |
+| 2026-10-07 | Verified | git worktree에서 테스트 컨테이너가 git을 쓰려면 메인 `.git`을 같은 절대 경로로 읽기 전용 마운트해야 함 (Makefile `GIT_COMMON_DIR`, 이미지 `safe.directory '*'`). repo.bats 구조 테스트가 git 실패 시 크게 실패하도록 바꿔 증명함 |
+| 2026-10-07 | Verified | SDD 진행: Task 1·3은 리뷰 수정 1회씩, 최종 전체 리뷰(opus) 수정 1회(F1~F8). 계획과 달라진 판단은 R1(worktree git 마운트), R4·R5(빈 목록에도 통과하는 테스트 금지), R7(검증 노트 정리 시점), R8(도구 이름 오류 라벨), R9(SDD 리뷰 지적 ID `SDD-T<task>-F<n>`), R10(최종 수정 범위) |
