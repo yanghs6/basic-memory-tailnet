@@ -10,7 +10,7 @@
 
 **Spec:** `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`
 
-**Sequence:** 계획 4/4. 전제: [docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md) 완료(테스트 85개, 런북과 스킬 준비됨).
+**Sequence:** 계획 4/4. 전제: [docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md) 완료(테스트 92개, 런북과 스킬 준비됨).
 
 ## Global Constraints
 
@@ -23,6 +23,8 @@
 1. **22번 포트를 먼저 지워 접속 불가:** Tailscale SSH 확인 전에 22번 규칙을 지우면 시리얼 콘솔 말고는 들어갈 방법이 없다. 또 정책에 `tag:bm-server`용 `ssh` 규칙이 없으면 Tailscale SSH가 거부된다. → Step 4의 순서를 지키고, Step 1에서 정책을 함께 검토한다.
 2. **재부팅 후 자동 복구:** 컨테이너(`restart: unless-stopped`)와 Serve 설정(`--bg`)이 재부팅 뒤 자동으로 돌아와야 한다. → Step 7에서 확인한다.
 3. **유휴 회수:** 메모리 사용률이 20% 미만이면 7일 뒤 회수될 수 있다. → Step 8에서 24시간 뒤 측정하고 [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)을 확정한다.
+4. **자동 검증이 못 보는 노출:** OCI 인바운드 규칙과 tailnet 정책의 funnel 속성은 `make verify`가 읽을 수 없다. → Step 5b의 수동 점검을 거쳐야 완료 조건 2를 만족한다.
+5. **복원이 기존 데이터를 되살리는지:** 새 노트 왕복만으로는 증명되지 않는다. → Step 6에서 기준 파일과 백업 이후 변경으로 직접 확인한다.
 
 ---
 
@@ -46,9 +48,18 @@
   **Assumption 확인:** `tailscale set --hostname --ssh`가 동작하는지 같은 명령을 한 번 더 실행해 본다(멱등성 확인). 두 번째 실행은 키 없이 `already on the tailnet`으로 끝나야 한다.
 - [ ] **Step 4:** `ssh ubuntu@bm-node true` 성공을 확인한다. → (사용자) OCI 22번 인바운드 규칙을 삭제한다.
 - [ ] **Step 5 (사용자 확인 후):** `make deploy verify status`
-  Expected: 완료 조건 1과 2 충족(`OK: MCP round trip passed`, `listens on 127.0.0.1 only`, `refuses ports 22 and 8737`).
-- [ ] **Step 6:** `make backup` → `make restore BACKUP=<방금 파일>`(사용자가 `yes` 입력)
-  Expected: 완료 조건 3 충족(restore 뒤 verify 통과).
+  Expected: `OK: MCP round trip passed`, `listens on 127.0.0.1 only`, `tailscale serve is tailnet only`, `refuses ports 22 80 443 8737`.
+  **Assumption 확인:** 실제 `tailscale serve status` 출력에 `tailnet only` 문구가 있는지 본다. 문구가 다르면 `verify-vm.sh`의 검사와 tailscale stub을 실제 출력에 맞추는 수정 계획을 따로 만든다.
+- [ ] **Step 5b (사용자, 수동 점검):** `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`의 Exposure audit을 수행한다. OCI Security List(와 NSG)의 인바운드 규칙이 0개인지, tailnet 정책 `nodeAttrs`에 `funnel`이 없는지 확인하고 "점검 기록" 표에 남긴다.
+  Expected: Step 5와 Step 5b를 함께 통과해야 완료 조건 2를 충족한다.
+- [ ] **Step 6: 백업·복원이 기존 데이터를 되살리는지 확인 (사용자 확인 후)**
+  1. 기준 파일 만들기: `ssh ubuntu@bm-node 'D=/srv/basic-memory/knowledge/basic-memory/restore-check; sudo -n -u "#1000" mkdir -p $D && date -u "+baseline %s" | sudo -n -u "#1000" tee $D/baseline.md'` → 출력 내용을 기록한다.
+  2. `make backup` → 아카이브 이름을 기록하고, manifest에 기준 파일이 있는지 본다: `grep restore-check/baseline.md backups/<파일>.manifest`
+  3. 백업 이후 변경 만들기: `ssh ubuntu@bm-node 'D=/srv/basic-memory/knowledge/basic-memory/restore-check; echo changed | sudo -n -u "#1000" tee -a $D/baseline.md; echo new | sudo -n -u "#1000" tee $D/after-backup.md'`
+  4. `make restore BACKUP=backups/<파일>` (사용자가 `yes` 입력). restore가 manifest 대조와 verify까지 실행한다.
+  5. 확인: `ssh ubuntu@bm-node 'D=/srv/basic-memory/knowledge/basic-memory/restore-check; cat $D/baseline.md; ls $D'`
+  Expected: `baseline.md`의 내용이 1단계와 같고(`changed` 줄 없음), `after-backup.md`는 없다. 완료 조건 3 충족.
+  6. `restore-check/` 폴더와 `/srv/basic-memory.prev-*`를 지울지 사용자에게 묻는다.
 - [ ] **Step 7 (사용자 확인 후):** `ssh ubuntu@bm-node sudo reboot` → 2분 대기 → `make verify status`
   Expected: 재부팅 뒤에도 통과한다(Review Focus 2).
 - [ ] **Step 8:** 24시간 뒤 `make status`의 메모리 사용률을 측정한다. [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)의 재평가 기준대로 크기를 유지하거나 조정하고, Verified로 기록한 뒤 상태를 Accepted로 바꾼다.

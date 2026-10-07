@@ -713,7 +713,8 @@ git commit -m "feat: add Basic Memory compose service and local lifecycle target
 **Interfaces:**
 - Consumes: `common.sh`의 `log`, `step`, `die`, `require_cmd`, `mask`
 - Produces:
-  - CLI: `scripts/verify-mcp.sh [--host-header HOST] URL`. 성공하면 0과 `OK: MCP round trip passed`, 실패하면 1과 `ERROR: <step>: <원인>`.
+  - CLI: `scripts/verify-mcp.sh [--host-header HOST] [--read-only] URL`. 성공하면 0과 `OK: MCP round trip passed`, 실패하면 1과 `ERROR: <step>: <원인>`.
+  - `--read-only`: initialize와 tools/list만 하고 노트를 쓰지 않는다. 성공 시 `OK: MCP read-only probe passed (no notes written)`. [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md)의 `make probe`와 [docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md)의 `bm-diagnose`가 쓴다.
   - 환경변수 `VERIFY_ID`(테스트용 고정 ID. 기본값은 `<UTC 시각>-$RANDOM`)
   - curl stub 규약:
     - MCP 모드(`CURL_FIXTURES` 설정 시): 요청 method로 픽스처를 고른다. 이름은 `initialize`, `notifications_initialized`, `tools_list`, `call_<tool>`이고 `.body`와 선택적 `.status` 파일을 쓴다. 요청 본문은 `$STUB_LOG.requests`에 기록하고, `CURL_STUB_EXIT`를 설정하면 그 코드로 실패한다.
@@ -985,10 +986,18 @@ EOF
   assert_output --partial "initialize: request to $URL failed"
 }
 
+@test "read-only mode stops after tools/list and writes nothing" {
+  run "$VERIFY" --read-only "$URL"
+  assert_success
+  assert_output --partial "OK: MCP read-only probe passed (no notes written)"
+  run grep -F '"method":"tools/call"' "$STUB_LOG.requests"
+  assert_failure
+}
+
 @test "rejects a missing URL" {
   run "$VERIFY"
   assert_failure
-  assert_output --partial "usage: verify-mcp.sh [--host-header HOST] URL"
+  assert_output --partial "usage: verify-mcp.sh [--host-header HOST] [--read-only] URL"
 }
 
 @test "rejects unknown options" {
@@ -1001,7 +1010,7 @@ EOF
 - [ ] **Step 4: 실패 확인**
 
 Run: `make test`
-Expected: FAIL. `verify_mcp.bats`의 테스트들이 `scripts/verify-mcp.sh: No such file or directory`로 실패한다.
+Expected: FAIL. `verify_mcp.bats`의 테스트 16개가 `scripts/verify-mcp.sh: No such file or directory`로 실패한다.
 
 - [ ] **Step 5: `scripts/verify-mcp.sh` 구현 (실행 권한 부여)**
 
@@ -1009,7 +1018,8 @@ Expected: FAIL. `verify_mcp.bats`의 테스트들이 `scripts/verify-mcp.sh: No 
 #!/usr/bin/env bash
 # End-to-end check of a Basic Memory MCP endpoint over streamable HTTP:
 # initialize -> tools/list -> write_note -> read_note -> delete_note.
-# Usage: verify-mcp.sh [--host-header HOST] URL
+# --read-only stops after tools/list and writes nothing (make probe, bm-diagnose).
+# Usage: verify-mcp.sh [--host-header HOST] [--read-only] URL
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -1027,8 +1037,9 @@ HOST_HEADER=""
 SESSION_ID=""
 WORK_DIR=""
 NOTE_WRITTEN=""
+READ_ONLY=""
 
-usage() { die "usage: verify-mcp.sh [--host-header HOST] URL"; }
+usage() { die "usage: verify-mcp.sh [--host-header HOST] [--read-only] URL"; }
 
 parse_args() {
   while (($#)); do
@@ -1037,6 +1048,10 @@ parse_args() {
         [[ -n "${2:-}" ]] || usage
         HOST_HEADER="$2"
         shift 2
+        ;;
+      --read-only)
+        READ_ONLY=1
+        shift
         ;;
       -*) usage ;;
       *)
@@ -1175,6 +1190,10 @@ main() {
   step "MCP round trip against $URL${HOST_HEADER:+ (Host: $HOST_HEADER)}"
   initialize
   check_tools
+  if [[ -n "$READ_ONLY" ]]; then
+    log "OK: MCP read-only probe passed (no notes written)"
+    return 0
+  fi
   check_write "$title" "$marker"
   check_read "$title" "$marker"
   check_delete "$title"
@@ -1187,7 +1206,7 @@ main "$@"
 - [ ] **Step 6: 테스트 통과 확인**
 
 Run: `make test`
-Expected: PASS(`verify_mcp.bats` 15개 포함, 총 37 tests).
+Expected: PASS(`verify_mcp.bats` 16개 포함, 총 38 tests).
 
 - [ ] **Step 7: Makefile에 `local-verify` 추가**
 
@@ -1320,7 +1339,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - [ ] **Step 5: 테스트 통과 확인**
 
 Run: `make test`
-Expected: PASS(총 39 tests).
+Expected: PASS(총 40 tests).
 
 - [ ] **Step 6: Commit**
 
