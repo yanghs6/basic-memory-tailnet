@@ -36,8 +36,8 @@ require_shell_files() {
 }
 
 @test "scripts avoid bash 4+ features (macOS ships bash 3.2)" {
-  run grep -rnE 'mapfile|readarray|declare -A|local -A|inherit_errexit|\$\{[A-Za-z_][A-Za-z0-9_]*(,,|\^\^)' "$REPO_DIR/scripts"
-  assert_failure
+  run grep -rnE 'mapfile|readarray|declare -[Ann]|local -[Ann]|inherit_errexit|coproc|wait -n|\|&|&>>|\$\{[A-Za-z_][A-Za-z0-9_]*(\^|,)|\$\{[A-Za-z_][A-Za-z0-9_]*\[-[0-9]+\]' "$REPO_DIR/scripts"
+  assert_failure 1
 }
 
 @test "every Make target has a ## description" {
