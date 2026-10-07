@@ -97,3 +97,14 @@ require_shell_files() {
   bad="$(grep -vE '^(#.*|[A-Z][A-Z0-9_]*=[^"'"'"' ]*|)$' "$REPO_DIR/.env.example" || true)"
   [[ -z "$bad" ]] || fail "make reads quotes and spaces literally; fix these .env.example lines: $bad"
 }
+
+@test "AGENTS.md stays a short map (at most 100 lines)" {
+  local lines
+  lines="$(wc -l <"$REPO_DIR/AGENTS.md")"
+  ((lines <= 100)) || fail "AGENTS.md has $lines lines; move detail into docs/ and point to it"
+}
+
+@test "CLAUDE.md only imports AGENTS.md" {
+  run cat "$REPO_DIR/CLAUDE.md"
+  assert_output "@AGENTS.md"
+}
