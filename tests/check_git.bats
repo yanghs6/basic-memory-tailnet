@@ -111,3 +111,37 @@ agent_commit() {
   assert_failure
   assert_output --partial "base branch 'nope' not found"
 }
+
+@test "checks an explicit branch from a detached HEAD" {
+  git switch -q -c plan/02-git-review-tooling
+  agent_commit "feat: add check"
+  git checkout -q --detach main
+  run "$CHECK" main plan/02-git-review-tooling
+  assert_success
+  assert_output --partial "OK: git policy (1 commits since main)"
+}
+
+@test "reports the explicit branch's commits, not HEAD's, from a detached HEAD" {
+  git switch -q -c work/no-trailers
+  git commit -q --allow-empty -m "feat: no trailers"
+  git checkout -q --detach main
+  run "$CHECK" main work/no-trailers
+  assert_failure
+  assert_output --partial '"feat: no trailers": missing trailer'
+  refute_output --partial "detached HEAD"
+}
+
+@test "applies the branch-name rule to an explicit branch" {
+  git switch -q -c feature/x
+  agent_commit "feat: on a badly named branch"
+  git checkout -q --detach main
+  run "$CHECK" main feature/x
+  assert_failure
+  assert_output --partial "branch 'feature/x' must look like plan/NN-slug or work/slug"
+}
+
+@test "fails clearly when the explicit branch does not exist" {
+  run "$CHECK" main plan/09-nope
+  assert_failure
+  assert_output --partial "branch 'plan/09-nope' not found"
+}

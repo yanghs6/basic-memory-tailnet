@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Check the git policy for the current branch (docs/specs/2026-10-07-git-review-policy-design.md):
-# branch name, trailers on every non-merge commit in BASE..HEAD, forbidden trailers, worktree config.
-# Usage: check-git.sh [BASE]   (default: main)
+# Check the git policy for a branch (docs/specs/2026-10-07-git-review-policy-design.md):
+# branch name, trailers on every non-merge commit in BASE..BRANCH, forbidden trailers, worktree config.
+# Usage: check-git.sh [BASE] [BRANCH]   (defaults: main, the current branch)
+# Pass BRANCH to check a branch from anywhere, e.g. from a reviewer's detached worktree.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -33,9 +34,9 @@ check_worktree_config() {
   fi
 }
 
+# check_branch BASE BRANCH: BRANCH is empty on a detached HEAD.
 check_branch() {
-  local base="$1" branch
-  branch="$(git symbolic-ref --quiet --short HEAD || true)"
+  local base="$1" branch="$2"
   if [[ -z "$branch" ]]; then
     add_problem "detached HEAD: create a branch first (git switch -c plan/NN-slug or work/slug)"
   elif [[ "$branch" == "$base" ]]; then
@@ -70,12 +71,18 @@ check_commit() {
 }
 
 main() {
-  local base="${1:-main}" sha count=0
+  local base="${1:-main}" branch="${2:-}" head=HEAD sha count=0
   require_cmd git
   git rev-parse --verify --quiet "$base^{commit}" >/dev/null || die "base branch '$base' not found"
+  if [[ -n "$branch" ]]; then
+    git show-ref --verify --quiet "refs/heads/$branch" || die "branch '$branch' not found"
+    head="refs/heads/$branch"
+  else
+    branch="$(git symbolic-ref --quiet --short HEAD || true)"
+  fi
   check_worktree_config
-  check_branch "$base"
-  for sha in $(git rev-list --reverse --no-merges "$base..HEAD"); do
+  check_branch "$base" "$branch"
+  for sha in $(git rev-list --reverse --no-merges "$base..$head"); do
     check_commit "$sha"
     count=$((count + 1))
   done
