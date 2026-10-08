@@ -276,6 +276,32 @@ restore_with_answer() {
   assert_success
 }
 
+@test "restore on a VM without previous data says the restored data stays when the start fails" {
+  make_archive "restored"
+  rm -r "$BM_REMOTE_DATA_ROOT"
+  export DOCKER_STUB_FAIL_MATCH="up -d"
+  restore_with_answer yes
+  assert_failure
+  refute_output --partial "the previous data is live again"
+  assert_output --partial "had no data before this restore"
+  assert_output --partial "the restored data is now at $BM_REMOTE_DATA_ROOT"
+  assert_output --partial "rerun 'make restore BACKUP=<archive>'"
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
+  assert_output "restored"
+}
+
+@test "restore on a VM without previous data says nothing is live when it fails before the swap" {
+  make_archive "x"
+  rm -r "$BM_REMOTE_DATA_ROOT"
+  export SSH_STUB_FAIL_MATCH="-xzf"
+  restore_with_answer yes
+  assert_failure
+  refute_output --partial "the previous data is live again"
+  assert_output --partial "had no data before this restore"
+  assert_output --partial "$BM_REMOTE_DATA_ROOT does not exist"
+  [[ ! -e "$BM_REMOTE_DATA_ROOT" ]]
+}
+
 @test "restore writes the VM .env and succeeds on a recreated VM with no data, compose or .env" {
   make_archive "fresh"
   rm -r "$BM_REMOTE_DATA_ROOT"

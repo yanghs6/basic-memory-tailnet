@@ -22,6 +22,8 @@ COMPOSE_PREV="$COMPOSE_FILE.prev-$STAMP"
 ENV_FILE="$BM_REMOTE_APP_DIR/.env"
 ENV_PREV="$ENV_FILE.prev-$STAMP"
 STOP_ATTEMPTED=""
+# Set when the VM had data before this restore; without it (a recreated VM) there is nothing to roll back to.
+HAD_PREVIOUS_DATA=""
 
 verify_checksum() {
   local archive="$1" expected actual
@@ -62,6 +64,10 @@ rollback() {
   log "restore failed; rolling back"
   remote "if [ -e $PREV ]; then if [ -e $ROOT ]; then sudo -n mv $ROOT $ROOT.failed-$STAMP; fi; sudo -n mv $PREV $ROOT; fi; if [ -e $COMPOSE_PREV ]; then mv $COMPOSE_PREV $COMPOSE_FILE; fi; if [ -e $ENV_PREV ]; then mv $ENV_PREV $ENV_FILE; fi; sudo -n rm -rf $STAGE" \
     || log "WARNING: rollback could not restore the directories; check $ROOT, $PREV, $COMPOSE_FILE and $ENV_FILE on the VM by hand"
+  if [[ -z "$HAD_PREVIOUS_DATA" ]]; then
+    report_no_previous_data
+    exit "$exit_code"
+  fi
   # --force-recreate: with an unchanged compose.yaml and .env, plain `up -d` keeps the running container, whose
   # bind mount still points at the restored data now renamed to .failed-*.
   if remote "if [ -e $COMPOSE_FILE ]; then cd $BM_REMOTE_APP_DIR && docker compose up -d --force-recreate --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS; fi"; then
@@ -72,13 +78,27 @@ rollback() {
   exit "$exit_code"
 }
 
+# report_no_previous_data: on a recreated VM there is no previous data to bring back, so say what the failed
+# restore left behind and what to do next instead of claiming a rollback. The container is not restarted.
+# shellcheck disable=SC2317  # invoked from the rollback trap
+report_no_previous_data() {
+  local state where
+  state="$(remote "if [ -e $ROOT ]; then echo present; fi")" || state=unknown
+  case "$state" in
+    present) where="the restored data is now at $ROOT" ;;
+    "") where="$ROOT does not exist (the restored copy was removed)" ;;
+    *) where="the state of $ROOT is unknown (the VM did not answer)" ;;
+  esac
+  log "nothing rolled back: $BM_VM_HOST had no data before this restore; $where. Next: run 'make status' and 'make logs', fix the cause, then rerun 'make restore BACKUP=<archive>'"
+}
+
 # upload_vm_file TARGET PREV: keep a copy of TARGET at PREV, then read the new content from stdin.
 upload_vm_file() {
   remote "mkdir -p $BM_REMOTE_APP_DIR && if [ -e $1 ]; then cp $1 $2; fi && cat > $1"
 }
 
 main() {
-  local archive="${1:-}" actual expected
+  local archive="${1:-}" actual expected present
   [[ -n "$archive" ]] || die "usage: make restore BACKUP=backups/bm-<stamp>.tgz"
   [[ -f "$archive" ]] || die "backup not found: $archive"
   [[ -f "$archive.sha256" ]] || die "checksum file missing: $archive.sha256 (restore only archives made by 'make backup')"
@@ -88,6 +108,12 @@ main() {
   verify_checksum "$archive"
   check_archive_entries "$archive"
   confirm "Replace $ROOT, $COMPOSE_FILE and $ENV_FILE on $BM_VM_HOST with $(basename "$archive") and this repo's compose.yaml? Current data moves to $PREV. Type 'yes': "
+
+  present="$(remote "if [ -e $ROOT ]; then echo present; fi")" \
+    || die "could not reach $BM_VM_HOST: is it reachable over Tailscale SSH? (ssh $BM_VM_USER@$BM_VM_HOST true)"
+  if [[ "$present" == present ]]; then
+    HAD_PREVIOUS_DATA=1
+  fi
 
   trap rollback EXIT
   STOP_ATTEMPTED=1
