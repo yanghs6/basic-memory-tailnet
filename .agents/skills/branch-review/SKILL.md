@@ -17,7 +17,7 @@ You review; you never fix. Do not edit, create or delete files, commit, or switc
 
 1. Every task of the plan is implemented and its verification passed with evidence (command and result).
 2. No changes outside the plan's scope.
-3. The plan's Progress log records a passing `make check`; `scripts/check-git.sh <base> <branch>` passes. If you cannot run scripts, check the trailers with `git log --format='%h %(trailers)' <base>..<branch>`.
+3. The plan's Progress log records a passing `make check`; `scripts/check-git.sh <base> <branch>` passes. If you cannot run scripts, read the trailers at the end of each message in `git log <base>..<branch>`.
 4. Security: secrets, `.env`, public exposure, unauthenticated endpoints.
 5. Docs required by AGENTS.md are updated.
 6. Every commit carries `Assisted-by`, `Plan` and `Task` trailers.

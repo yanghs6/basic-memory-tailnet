@@ -19,12 +19,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 . "$SCRIPT_DIR/lib/common.sh"
 
-readonly ALLOWED_PATTERN='^git (diff|log|show)( |$)'
-readonly NEWLINE=$'\n'
-readonly CARRIAGE_RETURN=$'\r'
+# Byte-wise character classes: no locale may widen [A-Za-z] beyond ASCII.
+export LC_ALL=C
+# The shell sees the whole command, so only plain tokens are allowed: anything the shell would interpret
+# (quotes, backslashes, $, globs, operators, any whitespace other than single spaces) cannot match.
+readonly ALLOWED_PATTERN='^git (diff|log|show)( [A-Za-z0-9._/:@^~=+,-]+)*$'
+# --output writes a file; git also accepts unambiguous abbreviations of long options (--outp=, --ou=).
+readonly WRITE_OPTION_PATTERN='(^| )--ou'
 
 block() {
-  die "blocked by the review Bash guard: $*. A reviewer may run only git diff, git log or git show with plain arguments (no ; & | \` \$ < > or line breaks, no --output)."
+  die "blocked by the review Bash guard: $*. A reviewer may run only git diff, git log or git show followed by single-space-separated plain tokens (letters, digits and . _ / : @ ^ ~ = + , -), never --output."
 }
 
 main() {
@@ -34,13 +38,10 @@ main() {
   [[ -n "$input" ]] || block "empty hook input"
   command="$(jq -er '.tool_input.command | strings' <<<"$input" 2>/dev/null)" \
     || block "hook input is not JSON with a string .tool_input.command"
-  case "$command" in
-    *';'* | *'&'* | *'|'* | *'`'* | *'$'* | *'<'* | *'>'* | *"$NEWLINE"* | *"$CARRIAGE_RETURN"*)
-      block "shell operators are not allowed"
-      ;;
-    *--output*) block "--output writes a file" ;;
-  esac
-  [[ "$command" =~ $ALLOWED_PATTERN ]] || block "'${command%% *}' is not git diff, git log or git show"
+  [[ "$command" =~ $ALLOWED_PATTERN ]] || block "not a plain git diff, git log or git show command"
+  if [[ "$command" =~ $WRITE_OPTION_PATTERN ]]; then
+    block "--output (or an abbreviation of it) writes a file"
+  fi
 }
 
 main "$@"
