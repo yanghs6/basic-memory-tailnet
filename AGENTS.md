@@ -24,7 +24,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - Never delete `backups/` or `/srv/basic-memory.prev-*` directories.
 
 ## Git (policy: docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md)
-- Work only in your own git worktree on `plan/<NN>-<slug>` or `work/<slug>`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) before review.
+- Work only in your own git worktree on `plan/<NN>-<slug>` or `work/<slug>`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) with `git branch -m` before review; on a detached HEAD (Codex app) run `git switch -c <branch>` first. Per-tool start steps: the `git-workflow` skill.
 - Never commit to `main`, force-push, rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree.
 - End every commit message with the trailers `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>`, `Plan: <NN|none>` and `Task: <N|review|none>`; add `Review-Finding: R<n>-F<m>` (cross-vendor review) or `SDD-T<task>-F<n>` (in-plan task review) to review fixes. Never add `Co-authored-by` or `Signed-off-by`.
 - A reviewer from another vendor reviews each branch read-only; findings go to `docs/reviews/`; only the human merges, with `git merge --no-ff`.
