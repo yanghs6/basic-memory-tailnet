@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Test stub for tailscale. TS_STUB_STATUS_EXIT sets the `status` exit code (0 = on the tailnet).
+# `up --auth-key=file:PATH` copies the key file to $STUB_LOG.authkey so tests can check it.
+# TS_STUB_FUNNEL=on makes `serve status` report that Funnel is on.
+set -euo pipefail
+printf 'tailscale %s\n' "$*" >>"$STUB_LOG"
+case "${1:-}" in
+  status) exit "${TS_STUB_STATUS_EXIT:-0}" ;;
+  up)
+    for arg in "$@"; do
+      if [[ "$arg" == --auth-key=file:* ]]; then
+        cp "${arg#--auth-key=file:}" "$STUB_LOG.authkey"
+      fi
+    done
+    ;;
+  serve)
+    if [[ "${2:-}" == status ]]; then
+      if [[ "${TS_STUB_FUNNEL:-off}" == on ]]; then
+        echo "https://bm-node.example.ts.net (Funnel on)"
+      else
+        echo "https://bm-node.example.ts.net (tailnet only)"
+      fi
+      echo "|-- / proxy http://127.0.0.1:8737"
+    fi
+    ;;
+esac

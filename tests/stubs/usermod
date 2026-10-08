@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Test stub for usermod: logs only.
+set -euo pipefail
+printf 'usermod %s\n' "$*" >>"$STUB_LOG"

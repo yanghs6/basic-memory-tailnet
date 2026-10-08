@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Test stub for sudo: drops leading options (-n) and runs the rest with env (handles VAR=value cmd).
+set -euo pipefail
+printf 'sudo %s\n' "$*" >>"$STUB_LOG"
+while [[ "${1:-}" == -* ]]; do
+  shift
+done
+exec env "$@"

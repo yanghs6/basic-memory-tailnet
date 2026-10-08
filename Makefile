@@ -17,7 +17,7 @@ GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir)
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review vm-bootstrap
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -62,3 +62,6 @@ check-git: ## Check the git policy for the current branch (name, commit trailers
 
 review: ## Read-only review by another vendor: BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<sha>]
 	scripts/review.sh "$(BRANCH)" "$(REVIEWER)" "$(or $(ROUND),1)"
+
+vm-bootstrap: ## First-time VM setup over public SSH (HOST=<public-ip>; asks for a Tailscale auth key)
+	scripts/bootstrap-vm.sh "$(HOST)"
