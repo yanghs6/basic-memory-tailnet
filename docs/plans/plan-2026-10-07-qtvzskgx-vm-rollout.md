@@ -18,7 +18,7 @@
 - Tailscale 인증 키는 사용자가 프롬프트에 직접 붙여 넣는다. 키를 대화, 파일, 명령 인자에 남기지 않는다.
 - Git (`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`):
   - 이 계획은 `plan/qtvzskgx-vm-rollout` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
-  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: qtvzskgx`, `Task: N`을 단다. 커밋 명령은 시작 단계에서 정한 `AGENT_ID` 환경변수를 쓴다.
+  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: qtvzskgx`, `Task: N`을 단다. 커밋 명령의 `Assisted-by` 값은 시작 단계에서 정한 신원을 그대로 적는다(셸 변수는 명령 사이에 남지 않을 수 있다).
   - `Co-authored-by`와 `Signed-off-by`는 넣지 않는다(사용자 전역 설정과 저장소 정책).
 - 결과는 이 계획의 Progress log와 [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)에 `Verified` / `Command` 표기로 기록한다. 공인 IP와 tailnet 이름은 기록하지 않는다(`<공인 IP>`, `<tailnet>`으로 가린다).
 
@@ -34,7 +34,7 @@
 
 ### 시작: 브랜치와 worktree
 
-- [ ] 이 계획을 진행할 에이전트를 기록한다: `export AGENT_ID="<도구> <모델 ID>"` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다.
+- [ ] 이 계획을 진행할 에이전트 신원을 기록한다: `<도구> <모델 ID>` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다. 커밋마다 이 값을 `Assisted-by:` 트레일러에 그대로 적는다.
 - [ ] 전용 worktree와 브랜치를 만든다. 한 계획 브랜치는 한 번에 한 worktree에서만 진행한다.
   - Claude Code: `claude --worktree plan-05-vm-rollout`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/qtvzskgx-vm-rollout`
   - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-05-vm-rollout -b plan/qtvzskgx-vm-rollout main` 후 그 디렉터리에서 작업
@@ -42,7 +42,7 @@
 
 ```bash
 git mv docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md docs/plans/active/
-git commit -m "docs: activate the vm-rollout plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: qtvzskgx" --trailer "Task: none"
+git commit -m "docs: activate the vm-rollout plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: qtvzskgx" --trailer "Task: none"
 ```
 
 ---
@@ -86,7 +86,7 @@ git commit -m "docs: activate the vm-rollout plan" --trailer "Assisted-by: $AGEN
 - [ ] **Step 10: Commit**
 ```bash
 git add docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md
-git commit -m "docs: record VM rollout evidence" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: qtvzskgx" --trailer "Task: 1"
+git commit -m "docs: record VM rollout evidence" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: qtvzskgx" --trailer "Task: 1"
 ```
 
 
@@ -101,7 +101,7 @@ git commit -m "docs: record VM rollout evidence" --trailer "Assisted-by: $AGENT_
 ```bash
 git mv docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md docs/plans/completed/
 git add docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md
-git commit -m "docs: complete the vm-rollout plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: qtvzskgx" --trailer "Task: none"
+git commit -m "docs: complete the vm-rollout plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: qtvzskgx" --trailer "Task: none"
 ```
 
 - [ ] 1차 리뷰(작성자와 다른 벤더, 읽기 전용): 작성 도구가 Claude Code면 `make review BRANCH=plan/qtvzskgx-vm-rollout REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
@@ -109,7 +109,7 @@ git commit -m "docs: complete the vm-rollout plan" --trailer "Assisted-by: $AGEN
 
 ```bash
 git add docs/reviews/plan-05-vm-rollout.md
-git commit -m "docs: record review of the vm-rollout plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: qtvzskgx" --trailer "Task: review"
+git commit -m "docs: record review of the vm-rollout plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: qtvzskgx" --trailer "Task: review"
 ```
 
 - [ ] 지적마다 재현하거나 근거를 인용해 검증하고, 받아들인 지적은 하나당 커밋 하나로 고친다(`--trailer "Review-Finding: R1-F<n>"`). 거절은 근거와 함께 기록한다.

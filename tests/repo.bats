@@ -117,3 +117,110 @@ require_shell_files() {
   run git -C "$REPO_DIR" check-ignore -q .env.example
   assert_failure 1
 }
+
+skill_dirs() {
+  find "$REPO_DIR/.agents/skills" -mindepth 1 -maxdepth 1 -type d | sort
+}
+
+frontmatter() {
+  awk 'NR == 1 && $0 == "---" { inside = 1; next } inside && $0 == "---" { exit } inside { print }' "$1"
+}
+
+@test "at least one repository skill exists" {
+  [[ -d "$REPO_DIR/.agents/skills" ]] || fail "missing directory .agents/skills"
+  local skills
+  skills="$(find "$REPO_DIR/.agents/skills" -mindepth 2 -maxdepth 2 -name SKILL.md)"
+  [[ -n "$skills" ]] || fail "no .agents/skills/*/SKILL.md found"
+}
+
+@test "skills use only Agent Skills standard frontmatter keys" {
+  local dir key bad=""
+  for dir in $(skill_dirs); do
+    for key in $(frontmatter "$dir/SKILL.md" | grep -oE '^[a-z-]+:' | tr -d ':'); do
+      case "$key" in
+        name | description | license | compatibility | metadata | allowed-tools) ;;
+        *) bad="$bad $(basename "$dir"):$key" ;;
+      esac
+    done
+  done
+  [[ -z "$bad" ]] || fail "non-standard frontmatter keys (Codex/Antigravity may reject them):$bad"
+}
+
+@test "skill names match their directories and have descriptions" {
+  local dir name
+  for dir in $(skill_dirs); do
+    name="$(frontmatter "$dir/SKILL.md" | sed -n 's/^name: *//p')"
+    [[ "$name" == "$(basename "$dir")" ]] || fail "$dir/SKILL.md: name '$name' must equal the directory name"
+    frontmatter "$dir/SKILL.md" | grep -qE '^description: .+' || fail "$dir/SKILL.md: add a description"
+  done
+}
+
+@test "every skill is linked for Claude Code under .claude/skills" {
+  local dir name link
+  for dir in $(skill_dirs); do
+    name="$(basename "$dir")"
+    link="$REPO_DIR/.claude/skills/$name"
+    [[ -L "$link" ]] || fail "missing link; run: ln -s ../../.agents/skills/$name .claude/skills/$name"
+    [[ "$(readlink "$link")" == "../../.agents/skills/$name" ]] || fail "$link must point to ../../.agents/skills/$name"
+  done
+}
+
+@test "every SKILL.md is at most 500 lines" {
+  local dir lines
+  for dir in $(skill_dirs); do
+    lines="$(wc -l <"$dir/SKILL.md")"
+    ((lines <= 500)) || fail "$dir/SKILL.md has $lines lines; move reference material into separate files"
+  done
+}
+
+@test "skills never rely on an exported AGENT_ID surviving between commands" {
+  # Agent shells often start fresh per command; an unset $AGENT_ID writes an empty Assisted-by trailer.
+  run grep -rnE 'export AGENT_ID|\$AGENT_ID|\$\{AGENT_ID\}' "$REPO_DIR/.agents/skills"
+  assert_failure 1
+}
+
+@test "AGENTS.md defines the Code Review Rules that Codex reads" {
+  run grep -x '## Code Review Rules' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -E 'P0.*P1.*block the merge' "$REPO_DIR/AGENTS.md"
+  assert_success
+}
+
+@test "the Claude reviewer agent cannot edit files" {
+  local agent="$REPO_DIR/.claude/agents/branch-reviewer.md"
+  run frontmatter "$agent"
+  assert_line "permissionMode: plan"
+  assert_line --regexp '^disallowedTools: .*Write.*Edit'
+  refute_line --regexp '^tools: .*(Write|Edit)'
+}
+
+@test "the Claude reviewer agent runs every Bash call through the read-only guard hook" {
+  local agent="$REPO_DIR/.claude/agents/branch-reviewer.md"
+  run frontmatter "$agent"
+  assert_line "hooks:"
+  assert_line "  PreToolUse:"
+  assert_line '    - matcher: "Bash"'
+  assert_line "      hooks:"
+  assert_line "        - type: command"
+  assert_line "          command: '\"\$CLAUDE_PROJECT_DIR\"/scripts/review-bash-guard.sh || exit 2'"
+  [[ -x "$REPO_DIR/scripts/review-bash-guard.sh" ]] || fail "scripts/review-bash-guard.sh must exist and be executable"
+  run grep -F "git status" "$agent"
+  assert_failure 1
+}
+
+# reviewer_hook_command: the hook command line from the branch-reviewer agent frontmatter.
+reviewer_hook_command() {
+  frontmatter "$REPO_DIR/.claude/agents/branch-reviewer.md" | sed -n "s/^ *command: '\(.*\)'\$/\1/p"
+}
+
+@test "the reviewer hook command blocks (exit 2) even when the guard script is missing" {
+  # Only exit 2 blocks a tool call; a missing script exits 127, which would let the call through.
+  local hook input='{"tool_input": {"command": "git diff"}}'
+  hook="$(reviewer_hook_command)"
+  [[ -n "$hook" ]] || fail "no hook command found in .claude/agents/branch-reviewer.md"
+  mkdir -p "$BATS_TEST_TMPDIR/no-guard"
+  CLAUDE_PROJECT_DIR="$BATS_TEST_TMPDIR/no-guard" run sh -c "$hook" <<<"$input"
+  assert_failure 2
+  CLAUDE_PROJECT_DIR="$REPO_DIR" run sh -c "$hook" <<<"$input"
+  assert_success
+}
