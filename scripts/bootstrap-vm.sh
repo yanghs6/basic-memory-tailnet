@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 . "$SCRIPT_DIR/lib/common.sh"
 
-readonly REMOTE_SCRIPT=/tmp/bm-bootstrap.sh
+readonly REMOTE_SCRIPT_TEMPLATE=/tmp/bm-bootstrap.XXXXXX
 readonly TS_HOSTNAME=bm-node
 
 ssh_public() {
@@ -23,8 +23,13 @@ read_auth_key() {
   printf '%s' "$key"
 }
 
+# remove_remote_script USER@HOST PATH -> best-effort cleanup; never fails the caller.
+remove_remote_script() {
+  ssh_public "$1" "rm -f $2" || log "WARNING: could not remove $2 on the VM"
+}
+
 main() {
-  local host="${1:-}" user="${BM_VM_USER:-ubuntu}" key remote_env
+  local remote_script host="${1:-}" user="${BM_VM_USER:-ubuntu}" key remote_env
   [[ -n "$host" ]] || die "usage: make vm-bootstrap HOST=<public-ip>"
   require_cmd ssh
   key="$(read_auth_key)" || exit 1
@@ -33,15 +38,27 @@ main() {
   fi
 
   step "upload bootstrap script to $user@$host"
-  ssh_public "$user@$host" "cat > $REMOTE_SCRIPT" <"$SCRIPT_DIR/remote/bootstrap.sh" \
+  # mktemp gives an unpredictable path and mode 0600, so no other VM user can swap the file root runs.
+  remote_script="$(ssh_public "$user@$host" "mktemp $REMOTE_SCRIPT_TEMPLATE")" \
     || die "upload failed: check the public IP, your SSH key, and the OCI ingress rule for port 22"
+  # The path is spliced into later remote commands, so accept only what mktemp should print.
+  [[ "$remote_script" =~ ^/tmp/bm-bootstrap\.[A-Za-z0-9]{6}$ ]] \
+    || die "unexpected temp path from mktemp on the VM: '$remote_script'"
+  ssh_public "$user@$host" "cat > $remote_script" <"$SCRIPT_DIR/remote/bootstrap.sh" \
+    || {
+      remove_remote_script "$user@$host" "$remote_script"
+      die "upload failed: check the public IP, your SSH key, and the OCI ingress rule for port 22"
+    }
 
   step "run bootstrap on the VM (docker, tailscale, data dirs, serve)"
   remote_env="BM_PORT=${BM_PORT:-8737} BM_REMOTE_DATA_ROOT=$BM_REMOTE_DATA_ROOT BM_REMOTE_APP_DIR=$BM_REMOTE_APP_DIR"
   remote_env="$remote_env ADMIN_USER=$user TS_HOSTNAME=$TS_HOSTNAME"
-  printf '%s\n' "$key" | ssh_public "$user@$host" "sudo $remote_env bash $REMOTE_SCRIPT" \
-    || die "bootstrap failed on the VM: rerun 'make vm-bootstrap HOST=$host' (it is safe to repeat)"
-  ssh_public "$user@$host" "rm -f $REMOTE_SCRIPT" || log "WARNING: could not remove $REMOTE_SCRIPT on the VM"
+  printf '%s\n' "$key" | ssh_public "$user@$host" "sudo $remote_env bash $remote_script" \
+    || {
+      remove_remote_script "$user@$host" "$remote_script"
+      die "bootstrap failed on the VM: rerun 'make vm-bootstrap HOST=$host' (it is safe to repeat)"
+    }
+  remove_remote_script "$user@$host" "$remote_script"
 
   log "Next steps:"
   log "  1. ssh $user@$TS_HOSTNAME true    # must succeed over Tailscale SSH"
