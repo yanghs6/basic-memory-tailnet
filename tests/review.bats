@@ -45,12 +45,30 @@ worktree_count() {
   author_commit codex
   run "$REVIEW" plan/02-git-review-tooling claude
   assert_success
-  run grep -F "claude -p --permission-mode plan --no-session-persistence /code-review main...HEAD" "$STUB_LOG"
-  assert_success
-  run grep -F -- "-p --agent branch-reviewer --permission-mode plan --no-session-persistence" "$STUB_LOG"
-  assert_success
   run cat "$OUT-r1-claude-plan.md"
   assert_output "claude review"
+}
+
+@test "both claude reviews run as the guarded branch-reviewer agent in plan mode" {
+  author_commit codex
+  run "$REVIEW" plan/02-git-review-tooling claude
+  assert_success
+  run grep -c "^claude " "$STUB_LOG"
+  assert_output 2
+  run grep -c "^claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence " "$STUB_LOG"
+  assert_output 2
+}
+
+@test "the claude change review asks for git diff against the base instead of a slash command" {
+  author_commit codex
+  run "$REVIEW" plan/02-git-review-tooling claude
+  assert_success
+  run grep -F "claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence Review the changes in git diff main...HEAD" "$STUB_LOG"
+  assert_success
+  run grep -F "branch-review skill" "$STUB_LOG"
+  assert_success
+  run grep -F "/code-review" "$STUB_LOG"
+  assert_failure 1
 }
 
 @test "refuses a reviewer from the same vendor as the author" {
@@ -89,7 +107,7 @@ worktree_count() {
   author_commit codex
   REVIEW_BASE="$reviewed" run "$REVIEW" plan/02-git-review-tooling claude 2
   assert_success
-  run grep -F "/code-review review-base/plan-02-git-review-tooling-r2...HEAD" "$STUB_LOG"
+  run grep -F "Review the changes in git diff review-base/plan-02-git-review-tooling-r2...HEAD" "$STUB_LOG"
   assert_success
   run test -f "$OUT-r2-claude-diff.md"
   assert_success

@@ -1,6 +1,6 @@
 ---
 name: branch-reviewer
-description: Independent read-only reviewer for plan/ and work/ branches in this repo. Use for plan-conformance reviews of branches written by Codex, Antigravity or Gemini, never for branches you wrote.
+description: Independent read-only reviewer for plan/ and work/ branches in this repo. Use for change and plan-conformance reviews of branches written by Codex, Antigravity or Gemini, never for branches you wrote.
 tools: Read, Grep, Glob, Bash
 disallowedTools: Write, Edit, NotebookEdit
 permissionMode: plan
