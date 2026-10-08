@@ -12,13 +12,32 @@ REPO_DIR="$(dirname "$SCRIPT_DIR")"
 readonly BACKUP_DIR="${BACKUP_DIR:-$REPO_DIR/backups}"
 readonly PARTIAL_SUFFIX=".partial"
 ARCHIVE=""
+IS_RESERVED=0
 IS_FINALIZED=0
+# How many of this run's files (in finalize order) were renamed into place; cleanup removes only those.
+RENAMED_COUNT=0
 
-# discard_unfinished_run -> remove only this run's partial and final files, never anything else in backups/.
-discard_unfinished_run() {
+# reserve_archive -> claim $ARCHIVE for this run before anything can clean up; dies if the name is taken.
+reserve_archive() {
   local file
   for file in "$ARCHIVE" "$ARCHIVE.manifest" "$ARCHIVE.sha256"; do
-    rm -f "$file" "$file$PARTIAL_SUFFIX" || log "WARNING: could not remove $file; delete it by hand"
+    [[ ! -e "$file" ]] || die "a backup named $(basename "$ARCHIVE") already exists; wait a second and run 'make backup' again"
+  done
+  # noclobber makes the create exclusive, so two runs in the same second cannot both own this name.
+  (set -C && : >"$ARCHIVE$PARTIAL_SUFFIX") 2>/dev/null \
+    || die "another backup is writing $(basename "$ARCHIVE") right now; wait for it, then run 'make backup' again"
+  IS_RESERVED=1
+}
+
+# discard_unfinished_run -> remove only this run's partial files and the final files it renamed.
+discard_unfinished_run() {
+  local file index=0
+  for file in "$ARCHIVE" "$ARCHIVE.manifest" "$ARCHIVE.sha256"; do
+    rm -f "$file$PARTIAL_SUFFIX" || log "WARNING: could not remove $file$PARTIAL_SUFFIX; delete it by hand"
+    if ((index < RENAMED_COUNT)); then
+      rm -f "$file" || log "WARNING: could not remove $file; delete it by hand"
+    fi
+    index=$((index + 1))
   done
 }
 
@@ -27,6 +46,7 @@ finalize_run() {
   local file
   for file in "$ARCHIVE" "$ARCHIVE.manifest" "$ARCHIVE.sha256"; do
     mv "$file$PARTIAL_SUFFIX" "$file" || die "could not finalize $file; no backup was kept"
+    RENAMED_COUNT=$((RENAMED_COUNT + 1))
   done
   IS_FINALIZED=1
 }
@@ -34,7 +54,7 @@ finalize_run() {
 # shellcheck disable=SC2317  # invoked via trap
 restart_container() {
   local exit_code=$?
-  if [[ -n "$ARCHIVE" && "$IS_FINALIZED" -eq 0 ]]; then
+  if [[ "$IS_RESERVED" -eq 1 && "$IS_FINALIZED" -eq 0 ]]; then
     discard_unfinished_run
   fi
   step "restart container"
@@ -53,6 +73,8 @@ main() {
   ARCHIVE="$BACKUP_DIR/bm-$(date -u +%Y%m%dT%H%M%SZ).tgz"
   parent="$(dirname "$BM_REMOTE_DATA_ROOT")"
   name="$(basename "$BM_REMOTE_DATA_ROOT")"
+  # Reserve the name before the trap and the stop: a taken name stops here with the container untouched.
+  reserve_archive
 
   trap restart_container EXIT
   step "stop container (a brief stop keeps SQLite consistent)"
