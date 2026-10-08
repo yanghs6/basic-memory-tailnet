@@ -77,6 +77,14 @@ require_shell_files() {
   assert_success
 }
 
+@test "compose healthcheck probes port 8000 and does not rely on --version" {
+  local healthcheck
+  healthcheck="$(grep -E '^ +test: \[' "$REPO_DIR/compose.yaml")"
+  [[ -n "$healthcheck" ]] || fail "compose.yaml has no healthcheck test"
+  [[ "$healthcheck" != *"--version"* ]] || fail "healthcheck must not use --version (passes while the server is down)"
+  [[ "$healthcheck" == *"8000"* ]] || fail "healthcheck must probe port 8000"
+}
+
 @test "compose restarts the container after reboots" {
   run grep -E '^ +restart: unless-stopped$' "$REPO_DIR/compose.yaml"
   assert_success

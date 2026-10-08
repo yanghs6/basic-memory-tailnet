@@ -70,6 +70,18 @@ setup() {
   assert_success
 }
 
+@test "remote propagates a failing command's non-zero exit" {
+  export SSH_STUB_FAIL_MATCH="boom"
+  run remote "boom"
+  assert_failure 255
+}
+
+@test "remote_compose propagates a failing compose command's non-zero exit" {
+  export DOCKER_STUB_FAIL_MATCH="up -d"
+  run remote_compose "up -d"
+  assert_failure 1
+}
+
 @test "sha256_of prints only the hex digest" {
   printf 'abc' >"$BATS_TEST_TMPDIR/f"
   run sha256_of "$BATS_TEST_TMPDIR/f"

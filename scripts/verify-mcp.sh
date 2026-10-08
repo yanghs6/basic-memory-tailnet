@@ -22,7 +22,9 @@ WORK_DIR=""
 NOTE_WRITTEN=""
 READ_ONLY=""
 
-usage() { die "usage: verify-mcp.sh [--host-header HOST] [--read-only] URL"; }
+usage_text() { printf 'usage: verify-mcp.sh [--host-header HOST] [--read-only] URL'; }
+
+usage() { die "$(usage_text)"; }
 
 parse_args() {
   while (($#)); do
@@ -38,6 +40,7 @@ parse_args() {
         ;;
       -*) usage ;;
       *)
+        [[ -z "$URL" ]] || die "only one URL is allowed (got '$URL' and '$1'): $(usage_text)"
         URL="$1"
         shift
         ;;
@@ -106,7 +109,8 @@ call_tool() {
   if jq -e '.isError == true' <<<"$result" >/dev/null; then
     die "$name: tool error: $(jq -r '.content[0].text // ""' <<<"$result" | head -c 300)"
   fi
-  jq -c '.structuredContent.result // (.content[0].text | fromjson)' <<<"$result"
+  jq -c '.structuredContent.result // (.content[0].text | fromjson)' <<<"$result" \
+    || die "$name: unexpected result: $(head -c 300 <<<"$result")"
 }
 
 initialize() {
@@ -122,7 +126,8 @@ initialize() {
 check_tools() {
   local result names tool
   result="$(rpc 2 tools/list '{}')" || exit 1
-  names="$(jq -r '.tools[].name' <<<"$result")"
+  names="$(jq -r '.tools[].name' <<<"$result")" \
+    || die "tools/list: unexpected result: $(head -c 300 <<<"$result")"
   for tool in $REQUIRED_TOOLS; do
     grep -qx "$tool" <<<"$names" \
       || die "tools/list: missing tool '$tool' (did the Basic Memory image change? see compose.yaml)"
