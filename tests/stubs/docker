@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Test stub for docker: logs the call. DOCKER_STUB_FAIL_MATCH=<substring> makes matching calls fail.
+set -euo pipefail
+printf 'docker %s\n' "$*" >>"$STUB_LOG"
+if [[ -n "${DOCKER_STUB_FAIL_MATCH:-}" && "$*" == *"$DOCKER_STUB_FAIL_MATCH"* ]]; then
+  echo "docker stub: simulated failure for: $*" >&2
+  exit 1
+fi
+if [[ " $* " == *" ps "* ]]; then
+  echo "NAME                  STATUS"
+  echo "basic-memory-server   Up 5 minutes (healthy)"
+fi
