@@ -76,6 +76,16 @@ run_bootstrap_with_key() {
   assert_output ""
 }
 
+@test "removes the key file even when tailscale up fails" {
+  setup_stubs docker
+  export TS_STUB_STATUS_EXIT=1 TS_STUB_UP_EXIT=1
+  run_bootstrap_with_key tskey-auth-rejected1
+  assert_failure
+  assert_output --partial "tailscale up failed"
+  run ls -A "$RUN_DIR"
+  assert_output ""
+}
+
 @test "fails with guidance when not on the tailnet and no key is given" {
   setup_stubs docker
   export TS_STUB_STATUS_EXIT=1
