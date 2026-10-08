@@ -57,6 +57,9 @@ restore_with_answer() {
   assert_output "$(sha256sum "$archive" | awk '{ print $1 }')  $(basename "$archive")"
   run cat "$archive.manifest"
   assert_output "$(sha256sum "$BM_REMOTE_DATA_ROOT/knowledge/a.md" | awk '{ print $1 }')  ./knowledge/a.md"
+  run ls "$BACKUP_DIR"
+  refute_output --partial ".partial"
+  assert_equal "${#lines[@]}" 3
   run grep -E '^docker compose (stop|start)' "$STUB_LOG"
   assert_line --index 0 "docker compose stop"
   assert_line --index 1 "docker compose start"
@@ -70,6 +73,27 @@ restore_with_answer() {
   run ls -A "$BACKUP_DIR"
   assert_output ""
   run grep -F 'compose start' "$STUB_LOG"
+  assert_success
+}
+
+@test "backup publishes no file of its run when the checksum cannot be written, and spares earlier backups" {
+  mkdir -p "$BACKUP_DIR" "$BATS_TEST_TMPDIR/datebin"
+  printf '#!/usr/bin/env bash\necho 20261008T000000Z\n' >"$BATS_TEST_TMPDIR/datebin/date"
+  chmod +x "$BATS_TEST_TMPDIR/datebin/date"
+  export PATH="$BATS_TEST_TMPDIR/datebin:$PATH"
+  echo old >"$BACKUP_DIR/bm-20261007T000000Z.tgz"
+  echo old >"$BACKUP_DIR/bm-20261007T000000Z.tgz.sha256"
+  echo old >"$BACKUP_DIR/bm-20261007T000000Z.tgz.manifest"
+  mkdir "$BACKUP_DIR/bm-20261008T000000Z.tgz.sha256.partial"
+  run "$BACKUP"
+  assert_failure
+  assert_output --partial "could not write the checksum"
+  rmdir "$BACKUP_DIR/bm-20261008T000000Z.tgz.sha256.partial"
+  run ls -A "$BACKUP_DIR"
+  assert_output "$(printf '%s\n' bm-20261007T000000Z.tgz bm-20261007T000000Z.tgz.manifest bm-20261007T000000Z.tgz.sha256)"
+  run cat "$BACKUP_DIR/bm-20261007T000000Z.tgz"
+  assert_output "old"
+  run grep -F 'docker compose start' "$STUB_LOG"
   assert_success
 }
 
