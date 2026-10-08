@@ -90,7 +90,28 @@ agent_commit() {
   git config extensions.worktreeConfig true
   run "$CHECK"
   assert_failure
-  assert_output --partial "git config --unset extensions.worktreeConfig"
+  assert_output --partial "git config --unset-all extensions.worktreeConfig"
+}
+
+@test "flags extensions.worktreeConfig whatever its value, including false" {
+  git switch -q -c work/config
+  local value
+  for value in 1 yes false; do
+    git config extensions.worktreeConfig "$value"
+    run "$CHECK"
+    [[ "$status" -eq 1 ]] || fail "expected value '$value' to be flagged; got $status: $output"
+    assert_output --partial "extensions.worktreeConfig is set (value '$value')"
+    assert_output --partial "git config --unset-all extensions.worktreeConfig"
+  done
+}
+
+@test "flags extensions.worktreeConfig set twice and shows every value" {
+  git switch -q -c work/config
+  git config extensions.worktreeConfig false
+  git config --add extensions.worktreeConfig on
+  run "$CHECK"
+  assert_failure
+  assert_output --partial "extensions.worktreeConfig is set (value 'false on')"
 }
 
 @test "ignores merge commits brought into the branch" {
