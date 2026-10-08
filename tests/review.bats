@@ -59,6 +59,14 @@ worktree_count() {
   assert_output 2
 }
 
+@test "claude reviews run without user or system git config, so no external diff or textconv helper loads" {
+  author_commit codex
+  run "$REVIEW" plan/02-git-review-tooling claude
+  assert_success
+  run grep -c " git_config_global=/dev/null git_config_nosystem=1$" "$STUB_LOG"
+  assert_output 2
+}
+
 @test "the claude change review asks for git diff against the base instead of a slash command" {
   author_commit codex
   run "$REVIEW" plan/02-git-review-tooling claude

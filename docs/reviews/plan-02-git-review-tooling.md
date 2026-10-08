@@ -18,4 +18,5 @@ Cross-vendor review per `docs/specs/2026-10-07-git-review-policy-design.md`, sec
 
 - Verified (plan 02 Assumptions): the codex change review ran with `sandbox: read-only`; both raw reports held real review content; afterwards `git status` was clean and neither the review worktree nor a `review-base/*` branch remained.
 - Codex could not run `make check` (no Docker in its sandbox). Test evidence comes from the plan's Progress log: 92 bats tests passing, 96.88% line coverage.
+- Assumption (R1-F2 residual risk): the Claude reviewer's git ignores user and system config (`GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_NOSYSTEM=1`), but a `diff.external` or textconv helper defined in the repository's own `.git/config` would still run; that config belongs to the human.
 - In-plan SDD fixes on this branch use `Review-Finding: SDD-T<task>-F<n>`; they are unrelated to the `R1-F<n>` IDs above.
