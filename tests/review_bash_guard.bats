@@ -29,7 +29,9 @@ assert_blocked() {
     "git diff --stat main...HEAD -- scripts/review.sh" \
     "git log" \
     "git log --oneline main..HEAD" \
-    "git log --format='%h %s %(trailers)' main..HEAD" \
+    "git log --format=fuller review-base/plan-02-x-r2..HEAD" \
+    "git log --author=agent@example.com -n 3" \
+    "git diff -U5 HEAD^ HEAD -- a,b+c" \
     "git show HEAD:AGENTS.md" \
     "git show --stat HEAD~1"; do
     run guard "$cmd"
@@ -58,9 +60,34 @@ assert_blocked() {
   done
 }
 
-@test "blocks git options that write files" {
+@test "blocks git options that write files, including abbreviations" {
   assert_blocked "git diff --output=x.patch main...HEAD"
   assert_blocked "git log -p --output x.patch"
+  assert_blocked "git diff --outp=/tmp/x"
+  assert_blocked "git show --ou=/tmp/x"
+}
+
+@test "blocks quoting and escapes that the shell would strip into --output" {
+  assert_blocked 'git diff --o""utput=/tmp/x'
+  assert_blocked "git diff --ou''tput=/tmp/x"
+  assert_blocked 'git diff --outp\ut=/tmp/x'
+}
+
+@test "blocks anything but single-space-separated plain tokens" {
+  local cmd
+  for cmd in \
+    "git diff"$'\t'"main" \
+    "git diff  main" \
+    "git diff main " \
+    "git show *.md" \
+    "git show HEAD:scripts/?.sh" \
+    "git log [a]" \
+    "git show 'HEAD:AGENTS.md'" \
+    'git show "HEAD:AGENTS.md"' \
+    "git log --format=%h" \
+    "git log {a,b}"; do
+    assert_blocked "$cmd"
+  done
 }
 
 @test "blocks every other git subcommand" {

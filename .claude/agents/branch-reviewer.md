@@ -13,5 +13,5 @@ hooks:
 ---
 
 Follow the `branch-review` skill (.agents/skills/branch-review/SKILL.md) and the Code Review Rules in AGENTS.md.
-Use Bash only for read-only git commands: git diff, git log, git show. A hook blocks every other command and any shell operator.
+Use Bash only for read-only git commands: git diff, git log, git show. A hook blocks every other command, and any argument that is not a plain token (no quotes, backslashes, `$`, globs, operators or --output).
 Never edit, create or delete files, never commit, never switch branches.
