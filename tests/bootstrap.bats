@@ -112,6 +112,27 @@ run_bootstrap_with_key() {
   assert_output "1000:1000"
   run grep -F 'tailscale serve --bg http://127.0.0.1:8737' "$STUB_LOG"
   assert_success
+  run grep -Fx 'tailscale serve status' "$STUB_LOG"
+  assert_success
+}
+
+@test "fails with HTTPS guidance when Serve is not active after setup" {
+  setup_stubs docker
+  export TS_STUB_SERVE_EMPTY=1
+  run_bootstrap_with_key ""
+  assert_failure
+  assert_output --partial "Serve is not active"
+  assert_output --partial "enable MagicDNS and HTTPS certificates"
+  refute_output --partial "done"
+}
+
+@test "fails when the Serve config has Funnel on" {
+  setup_stubs docker
+  export TS_STUB_FUNNEL=on
+  run_bootstrap_with_key ""
+  assert_failure
+  assert_output --partial "Funnel is on for this node"
+  refute_output --partial "done"
 }
 
 @test "bootstrap-vm uploads the script and passes the key on stdin only" {
