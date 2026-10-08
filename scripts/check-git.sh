@@ -14,6 +14,7 @@ readonly ASSISTED_BY_PATTERN='^(claude-code|codex|antigravity|gemini-cli) [^ ]+$
 readonly PLAN_PATTERN='^([0-9]{2}|none)$'
 readonly TASK_PATTERN='^([0-9]+|review|none)$'
 readonly FORBIDDEN_TRAILERS="Co-authored-by Signed-off-by"
+readonly GIT_CONFIG_KEY_MISSING=1
 readonly POLICY_HINT="see AGENTS.md, Git; ask the human before rewriting history"
 
 PROBLEMS=""
@@ -28,10 +29,13 @@ trailer() {
   git log -1 --format="%(trailers:key=$2,valueonly,separator=%x2C)" "$1"
 }
 
+# Spec section 2: Antigravity breaks when the key is present, so any value (1, yes, even false) is flagged.
 check_worktree_config() {
-  if [[ "$(git config --get extensions.worktreeConfig || true)" == true ]]; then
-    add_problem "extensions.worktreeConfig is enabled and breaks Antigravity: git config --unset extensions.worktreeConfig"
-  fi
+  local values status=0
+  values="$(git config --get-all extensions.worktreeConfig)" || status=$?
+  ((status != GIT_CONFIG_KEY_MISSING)) || return 0
+  ((status == 0)) || die "could not read extensions.worktreeConfig (git config exit $status); fix the git config file"
+  add_problem "extensions.worktreeConfig is set (value '$(tr '\n' ' ' <<<"$values" | sed 's/ $//')') and breaks Antigravity whatever its value: git config --unset-all extensions.worktreeConfig"
 }
 
 # check_branch BASE BRANCH: BRANCH is empty on a detached HEAD.
