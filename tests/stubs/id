@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Test stub for id: prints the groups in ID_STUB_GROUPS.
+set -euo pipefail
+printf 'id %s\n' "$*" >>"$STUB_LOG"
+echo "${ID_STUB_GROUPS:-ubuntu adm sudo}"

@@ -213,6 +213,11 @@ reviewer_hook_command() {
   frontmatter "$REPO_DIR/.claude/agents/branch-reviewer.md" | sed -n "s/^ *command: '\(.*\)'\$/\1/p"
 }
 
+@test "no script enables Tailscale Funnel" {
+  run grep -rniE 'tailscale[[:space:]]+funnel' "$REPO_DIR/scripts"
+  assert_failure 1
+}
+
 @test "the reviewer hook command blocks (exit 2) even when the guard script is missing" {
   # Only exit 2 blocks a tool call; a missing script exits 127, which would let the call through.
   local hook input='{"tool_input": {"command": "git diff"}}'
