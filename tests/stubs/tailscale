@@ -12,6 +12,8 @@ case "${1:-}" in
         cp "${arg#--auth-key=file:}" "$STUB_LOG.authkey"
       fi
     done
+    # TS_STUB_UP_EXIT=<n> simulates a rejected key: the key was read, then `up` fails.
+    exit "${TS_STUB_UP_EXIT:-0}"
     ;;
   serve)
     if [[ "${2:-}" == status ]]; then
