@@ -62,7 +62,9 @@ rollback() {
   log "restore failed; rolling back"
   remote "if [ -e $PREV ]; then if [ -e $ROOT ]; then sudo -n mv $ROOT $ROOT.failed-$STAMP; fi; sudo -n mv $PREV $ROOT; fi; if [ -e $COMPOSE_PREV ]; then mv $COMPOSE_PREV $COMPOSE_FILE; fi; if [ -e $ENV_PREV ]; then mv $ENV_PREV $ENV_FILE; fi; sudo -n rm -rf $STAGE" \
     || log "WARNING: rollback could not restore the directories; check $ROOT, $PREV, $COMPOSE_FILE and $ENV_FILE on the VM by hand"
-  if remote "if [ -e $COMPOSE_FILE ]; then cd $BM_REMOTE_APP_DIR && docker compose up -d --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS; fi"; then
+  # --force-recreate: with an unchanged compose.yaml and .env, plain `up -d` keeps the running container, whose
+  # bind mount still points at the restored data now renamed to .failed-*.
+  if remote "if [ -e $COMPOSE_FILE ]; then cd $BM_REMOTE_APP_DIR && docker compose up -d --force-recreate --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS; fi"; then
     log "rolled back: the previous data is live again"
   else
     log "WARNING: the container did not come back after rollback; run 'make status' and 'make logs'"
