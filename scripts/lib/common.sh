@@ -54,6 +54,13 @@ remote_compose() {
   remote "cd $BM_REMOTE_APP_DIR && docker compose $*"
 }
 
+# vm_env -> the .env content for the VM: loopback port plus absolute data paths (shared by deploy and restore).
+vm_env() {
+  printf 'BM_PORT=%s\n' "${BM_PORT:-8737}"
+  printf 'BM_KNOWLEDGE_DIR=%s/knowledge\n' "$BM_REMOTE_DATA_ROOT"
+  printf 'BM_CONFIG_DIR=%s/config\n' "$BM_REMOTE_DATA_ROOT"
+}
+
 # sha256_of FILE -> hex digest (sha256sum on Linux, shasum on macOS).
 sha256_of() {
   if command -v sha256sum >/dev/null 2>&1; then

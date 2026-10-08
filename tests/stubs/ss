@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Test stub for ss: prints SS_STUB_OUTPUT (default: one loopback listener on 8737; may be set to "").
+set -euo pipefail
+printf 'ss %s\n' "$*" >>"$STUB_LOG"
+output="${SS_STUB_OUTPUT-LISTEN 0 4096 127.0.0.1:8737 0.0.0.0:*}"
+if [[ -n "$output" ]]; then
+  printf '%s\n' "$output"
+fi

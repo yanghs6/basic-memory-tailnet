@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Test stub for nc: exits NC_STUB_EXIT (default 1 = connection refused).
+set -euo pipefail
+printf 'nc %s\n' "$*" >>"$STUB_LOG"
+exit "${NC_STUB_EXIT:-1}"
