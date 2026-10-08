@@ -173,6 +173,12 @@ frontmatter() {
   done
 }
 
+@test "skills never rely on an exported AGENT_ID surviving between commands" {
+  # Agent shells often start fresh per command; an unset $AGENT_ID writes an empty Assisted-by trailer.
+  run grep -rnE 'export AGENT_ID|\$AGENT_ID|\$\{AGENT_ID\}' "$REPO_DIR/.agents/skills"
+  assert_failure 1
+}
+
 @test "AGENTS.md defines the Code Review Rules that Codex reads" {
   run grep -x '## Code Review Rules' "$REPO_DIR/AGENTS.md"
   assert_success
