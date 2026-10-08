@@ -5,7 +5,7 @@ description: Review another agent's plan/ or work/ branch in this repo as an ind
 
 # Review a branch (read-only)
 
-You review; you never fix. Do not edit, create or delete files, commit, or switch branches. If your vendor also authored commits on the branch (see their `Assisted-by` trailers), stop and say so.
+You review; you never fix. Do not edit, create or delete files, commit, or switch branches. If your vendor also authored commits on the branch (see their `Assisted-by` trailers), stop and say so, unless your prompt says the human set `REVIEW_ALLOW_SAME_VENDOR=1`. Then review anyway and write `Same-vendor review allowed by the human` on the line after the verdict, so the review record notes it.
 
 ## Scope
 

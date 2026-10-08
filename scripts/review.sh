@@ -23,6 +23,7 @@ REVIEWER=""
 BASE_BRANCH=""
 TEMP_BASE=""
 WT=""
+SAME_VENDOR_ALLOWED=""
 
 usage() {
   die "usage: make review BRANCH=<plan/NN-slug|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]"
@@ -62,6 +63,7 @@ check_independence() {
   [[ -n "$same" ]] || return 0
   if [[ "${REVIEW_ALLOW_SAME_VENDOR:-}" == 1 ]]; then
     log "WARNING: $tool also authored commits on $BRANCH; same-vendor review allowed by REVIEW_ALLOW_SAME_VENDOR=1"
+    SAME_VENDOR_ALLOWED=1
     return 0
   fi
   die "reviewer $REVIEWER ($tool) also authored commits on $BRANCH (authors: $authors); use the other reviewer, or set REVIEW_ALLOW_SAME_VENDOR=1 if no other vendor is available"
@@ -93,6 +95,10 @@ Answer with one line "Verdict: mergeable" or "Verdict: blocked (<n> P0/P1)", the
 [P0|P1|P2|P3] path:line - failure scenario - suggested fix
 Report only problems introduced by these changes.
 EOF
+  # The reviewer cannot see this script's WARNING, so tell it why it should not stop.
+  if [[ -n "$SAME_VENDOR_ALLOWED" ]]; then
+    echo "The human set REVIEW_ALLOW_SAME_VENDOR=1: review although your vendor authored commits here, and say so on the line after the verdict."
+  fi
 }
 
 run_codex() {
