@@ -104,9 +104,18 @@ join_tailnet() {
   log "joined the tailnet as $TS_HOSTNAME with Tailscale SSH enabled"
 }
 
+# Verified (tailscale cli/serve_legacy.go, read in the final review): when HTTPS is not enabled on the tailnet,
+# `serve --bg` may print an enable URL and exit 0 without applying any config, so read the result back.
 configure_serve() {
-  tailscale serve --bg "http://127.0.0.1:${BM_PORT}"
-  log "tailscale serve -> http://127.0.0.1:${BM_PORT} (tailnet only)"
+  local target="http://127.0.0.1:${BM_PORT}" serve_status
+  tailscale serve --bg "$target" || die "tailscale serve failed: rerun 'make vm-bootstrap' (it is safe to repeat)"
+  serve_status="$(tailscale serve status)" || die "could not read tailscale serve status: rerun 'make vm-bootstrap'"
+  if grep -qi 'funnel on' <<<"$serve_status"; then
+    die "Funnel is on for this node, which makes the unauthenticated endpoint public: turn it off (docs/runbooks/operations.md, Exposure audit), then rerun 'make vm-bootstrap'"
+  fi
+  grep -qE "proxy http://127\.0\.0\.1:${BM_PORT}/?\$" <<<"$serve_status" \
+    || die "Serve is not active (expected a proxy to $target, got: $serve_status): enable MagicDNS and HTTPS certificates in the Tailscale admin console (docs/runbooks/accounts.md), then rerun 'make vm-bootstrap'"
+  log "tailscale serve -> $target (tailnet only)"
 }
 
 main() {
