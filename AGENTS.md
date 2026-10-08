@@ -45,7 +45,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 Reviewers check only the changes since the base (Codex reads this section; Claude uses the `branch-review` skill):
 1. Every task of the plan is implemented and its verification passed with evidence.
 2. No changes outside the plan's scope.
-3. `make check` and `make check-git` pass.
+3. The plan's Progress log records a passing `make check`; `scripts/check-git.sh <base> <branch>` passes.
 4. Security: secrets, `.env`, public exposure, unauthenticated endpoints.
 5. Docs required by this file are updated.
 6. Every commit carries the Git trailers.
