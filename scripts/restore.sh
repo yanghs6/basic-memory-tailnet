@@ -82,7 +82,7 @@ main() {
     || die "extract failed; current data was not touched"
 
   step "check extracted files against $(basename "$archive").manifest"
-  actual="$(remote "cd $STAGE/$NAME && sudo -n find . -type f -exec sha256sum {} + | LC_ALL=C sort -k2")" \
+  actual="$(remote "$(manifest_cmd "$STAGE/$NAME")")" \
     || die "could not list the extracted files; current data was not touched"
   expected="$(cat "$archive.manifest")" || exit 1
   [[ "$actual" == "$expected" ]] || die "extracted files do not match the backup manifest; current data was not touched"

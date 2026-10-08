@@ -40,8 +40,8 @@ main() {
   remote_compose "stop" || die "could not confirm the container stopped; restarting it and writing no backup"
 
   step "record a checksum manifest of every data file"
-  remote "cd $BM_REMOTE_DATA_ROOT && sudo -n find . -type f -exec sha256sum {} + | LC_ALL=C sort -k2" \
-    >"$ARCHIVE.manifest.partial" || die "could not build the data manifest; no backup was written"
+  remote "$(manifest_cmd "$BM_REMOTE_DATA_ROOT")" >"$ARCHIVE.manifest.partial" \
+    || die "could not build the data manifest; no backup was written"
 
   step "stream $BM_REMOTE_DATA_ROOT from $BM_VM_HOST"
   remote "sudo -n tar -C $parent -czf - $name" >"$ARCHIVE.partial" \

@@ -61,6 +61,13 @@ vm_env() {
   printf 'BM_CONFIG_DIR=%s/config\n' "$BM_REMOTE_DATA_ROOT"
 }
 
+# manifest_cmd DIR -> a shell command (run it with `remote`) that prints "<sha256>  ./<path>" for every file
+# under DIR, sorted by path. The one definition backup.sh, restore.sh and the tests share, so their
+# manifests cannot drift apart. pipefail makes a failing find fail the command instead of printing a short list.
+manifest_cmd() {
+  printf 'set -o pipefail; cd %s && sudo -n find . -type f -exec sha256sum {} + | LC_ALL=C sort -k2' "$1"
+}
+
 # sha256_of FILE -> hex digest (sha256sum on Linux, shasum on macOS).
 sha256_of() {
   if command -v sha256sum >/dev/null 2>&1; then
