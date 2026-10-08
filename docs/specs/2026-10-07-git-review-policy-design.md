@@ -97,8 +97,8 @@ Task: 3
 **읽기 전용 실행**
 - 리뷰는 detached worktree(`../027_agent_share_poc-wt/review-<slug>`)에서 한다. 리뷰어는 파일을 고치거나 커밋하지 않는다. 결과 원문은 스크립트가 `.review-out/`(git ignore)에 저장한다.
 - **변경 리뷰(버그):**
-  - Codex: `codex exec review --base main`
-  - Claude: `/code-review main...HEAD`
+  - Codex: `codex exec review -c 'sandbox_mode="read-only"' --base main` (기본 샌드박스는 workspace-write라서 읽기 전용을 강제한다. 계획 01 리뷰에서 확인)
+  - Claude: `claude -p --agent branch-reviewer --permission-mode plan "<git diff main...HEAD 변경 리뷰 프롬프트>"` (2026-10-08 계획 02 R1-F1로 `/code-review`에서 바꿈. 에이전트 없이 실행하면 Bash 가드 훅이 적용되지 않는다)
 - **계획 대조 리뷰(스펙·범위·증거):** Codex는 `--base`와 사용자 프롬프트를 함께 쓸 수 없으므로 따로 실행한다.
   - Codex: `codex exec -o <파일> "<체크리스트 프롬프트>"`
   - Claude: `claude -p --agent branch-reviewer`
