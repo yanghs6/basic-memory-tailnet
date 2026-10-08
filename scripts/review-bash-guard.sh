@@ -26,9 +26,12 @@ export LC_ALL=C
 readonly ALLOWED_PATTERN='^git (diff|log|show)( [A-Za-z0-9._/:@^~=+,-]+)*$'
 # --output writes a file; git also accepts unambiguous abbreviations of long options (--outp=, --ou=).
 readonly WRITE_OPTION_PATTERN='(^| )--ou'
+# --ext-diff and --textconv run helper programs from git config; block every abbreviation (--ext, --textc)
+# while --text (treat files as text) stays allowed. review.sh also hides user and system git config.
+readonly HELPER_OPTION_PATTERN='(^| )--(ext|textc)'
 
 block() {
-  die "blocked by the review Bash guard: $*. A reviewer may run only git diff, git log or git show followed by single-space-separated plain tokens (letters, digits and . _ / : @ ^ ~ = + , -), never --output."
+  die "blocked by the review Bash guard: $*. A reviewer may run only git diff, git log or git show followed by single-space-separated plain tokens (letters, digits and . _ / : @ ^ ~ = + , -), never --output, --ext-diff or --textconv."
 }
 
 main() {
@@ -41,6 +44,9 @@ main() {
   [[ "$command" =~ $ALLOWED_PATTERN ]] || block "not a plain git diff, git log or git show command"
   if [[ "$command" =~ $WRITE_OPTION_PATTERN ]]; then
     block "--output (or an abbreviation of it) writes a file"
+  fi
+  if [[ "$command" =~ $HELPER_OPTION_PATTERN ]]; then
+    block "--ext-diff and --textconv (or abbreviations of them) run external helper programs"
   fi
 }
 

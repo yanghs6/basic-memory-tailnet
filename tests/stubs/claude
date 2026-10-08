@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Test stub for claude: logs "claude <args> :: cwd=<dir>" and prints a review.
+# Test stub for claude: logs "claude <args> :: cwd=<dir> git_config_global=<v> git_config_nosystem=<v>"
+# (v is "unset" when the variable is not set) and prints a review.
 # CLAUDE_STUB_EXIT=<n> makes every call fail.
 set -euo pipefail
-printf 'claude %s :: cwd=%s\n' "$*" "$PWD" >>"$STUB_LOG"
+printf 'claude %s :: cwd=%s git_config_global=%s git_config_nosystem=%s\n' \
+  "$*" "$PWD" "${GIT_CONFIG_GLOBAL-unset}" "${GIT_CONFIG_NOSYSTEM-unset}" >>"$STUB_LOG"
 if [[ -n "${CLAUDE_STUB_EXIT:-}" ]]; then
   echo "claude stub: simulated failure" >&2
   exit "$CLAUDE_STUB_EXIT"

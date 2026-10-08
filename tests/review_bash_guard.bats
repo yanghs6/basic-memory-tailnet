@@ -33,7 +33,8 @@ assert_blocked() {
     "git log --author=agent@example.com -n 3" \
     "git diff -U5 HEAD^ HEAD -- a,b+c" \
     "git show HEAD:AGENTS.md" \
-    "git show --stat HEAD~1"; do
+    "git show --stat HEAD~1" \
+    "git diff --text main...HEAD"; do
     run guard "$cmd"
     [[ "$status" -eq 0 ]] || fail "expected '$cmd' to be allowed; got $status: $output"
     assert_output ""
@@ -65,6 +66,13 @@ assert_blocked() {
   assert_blocked "git log -p --output x.patch"
   assert_blocked "git diff --outp=/tmp/x"
   assert_blocked "git show --ou=/tmp/x"
+}
+
+@test "blocks git options that run external diff or textconv helpers, including abbreviations" {
+  assert_blocked "git diff --ext-diff main...HEAD"
+  assert_blocked "git diff --ext main...HEAD"
+  assert_blocked "git show --textconv HEAD"
+  assert_blocked "git log -p --textc"
 }
 
 @test "blocks quoting and escapes that the shell would strip into --output" {

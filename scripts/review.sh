@@ -132,8 +132,11 @@ run_codex() {
 
 # claude_review PROMPT: one claude review as the branch-reviewer agent, whose Bash guard hook and
 # disallowedTools apply only under --agent; plan mode stays as defence in depth.
+# git diff runs diff.external and textconv drivers from config by default, so the reviewer's git sees no
+# user or system config. A helper in the repository's own .git/config still runs; that config is the human's.
 claude_review() {
-  (cd "$WT" && claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence "$1")
+  (cd "$WT" && GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 \
+    claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence "$1")
 }
 
 run_claude() {
