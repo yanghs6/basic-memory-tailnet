@@ -10,13 +10,32 @@ REPO_DIR="$(dirname "$SCRIPT_DIR")"
 . "$SCRIPT_DIR/lib/common.sh"
 
 readonly BACKUP_DIR="${BACKUP_DIR:-$REPO_DIR/backups}"
+readonly PARTIAL_SUFFIX=".partial"
 ARCHIVE=""
+IS_FINALIZED=0
+
+# discard_unfinished_run -> remove only this run's partial and final files, never anything else in backups/.
+discard_unfinished_run() {
+  local file
+  for file in "$ARCHIVE" "$ARCHIVE.manifest" "$ARCHIVE.sha256"; do
+    rm -f "$file" "$file$PARTIAL_SUFFIX" || log "WARNING: could not remove $file; delete it by hand"
+  done
+}
+
+# finalize_run -> rename the three complete partial files to their final names, then mark the run complete.
+finalize_run() {
+  local file
+  for file in "$ARCHIVE" "$ARCHIVE.manifest" "$ARCHIVE.sha256"; do
+    mv "$file$PARTIAL_SUFFIX" "$file" || die "could not finalize $file; no backup was kept"
+  done
+  IS_FINALIZED=1
+}
 
 # shellcheck disable=SC2317  # invoked via trap
 restart_container() {
   local exit_code=$?
-  if [[ -n "$ARCHIVE" ]]; then
-    rm -f "$ARCHIVE.partial" "$ARCHIVE.manifest.partial"
+  if [[ -n "$ARCHIVE" && "$IS_FINALIZED" -eq 0 ]]; then
+    discard_unfinished_run
   fi
   step "restart container"
   if ! remote_compose "start"; then
@@ -47,9 +66,9 @@ main() {
   remote "sudo -n tar -C $parent -czf - $name" >"$ARCHIVE.partial" \
     || die "backup stream failed; no archive was written"
   digest="$(sha256_of "$ARCHIVE.partial")" || exit 1
-  mv "$ARCHIVE.manifest.partial" "$ARCHIVE.manifest"
-  mv "$ARCHIVE.partial" "$ARCHIVE"
-  printf '%s  %s\n' "$digest" "$(basename "$ARCHIVE")" >"$ARCHIVE.sha256"
+  printf '%s  %s\n' "$digest" "$(basename "$ARCHIVE")" >"$ARCHIVE.sha256.partial" \
+    || die "could not write the checksum; no backup was kept"
+  finalize_run
   log "backup saved: $ARCHIVE (+ .sha256, .manifest)"
 }
 
