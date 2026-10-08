@@ -86,11 +86,10 @@ prepare_base() {
   BASE_BRANCH="$TEMP_BASE"
 }
 
-plan_prompt() {
+# prompt_footer: the read-only rule and the report format shared by every review prompt.
+prompt_footer() {
   cat <<EOF
-Review branch $BRANCH: the changes since $BASE_BRANCH (git diff $BASE_BRANCH...HEAD, git log $BASE_BRANCH..HEAD).
-Find the plan in docs/plans/ named by the commits' Plan trailer and check the changes against the
-"Code Review Rules" in AGENTS.md. Read-only: do not modify, create or delete files and do not commit.
+Read-only: do not modify, create or delete files and do not commit.
 Answer with one line "Verdict: mergeable" or "Verdict: blocked (<n> P0/P1)", then one finding per line:
 [P0|P1|P2|P3] path:line - failure scenario - suggested fix
 Report only problems introduced by these changes.
@@ -99,6 +98,27 @@ EOF
   if [[ -n "$SAME_VENDOR_ALLOWED" ]]; then
     echo "The human set REVIEW_ALLOW_SAME_VENDOR=1: review although your vendor authored commits here, and say so on the line after the verdict."
   fi
+}
+
+# change_prompt: the claude change review (bugs introduced since the base). Every git command it names is
+# made of plain tokens, so the branch-reviewer Bash guard allows it.
+change_prompt() {
+  cat <<EOF
+Review the changes in git diff $BASE_BRANCH...HEAD on branch $BRANCH (commits: git log $BASE_BRANCH..HEAD).
+Follow the branch-review skill (.agents/skills/branch-review/SKILL.md) and its checklist, and look for bugs,
+security problems and unmet requirements that these changes introduce. Run git diff, git log and git show
+with plain arguments only (for example git diff $BASE_BRANCH...HEAD -- scripts/review.sh).
+EOF
+  prompt_footer
+}
+
+plan_prompt() {
+  cat <<EOF
+Review branch $BRANCH: the changes since $BASE_BRANCH (git diff $BASE_BRANCH...HEAD, git log $BASE_BRANCH..HEAD).
+Find the plan in docs/plans/ named by the commits' Plan trailer and check the changes against the
+"Code Review Rules" in AGENTS.md.
+EOF
+  prompt_footer
 }
 
 run_codex() {
@@ -110,12 +130,16 @@ run_codex() {
     || die "codex plan review failed"
 }
 
+# claude_review PROMPT: one claude review as the branch-reviewer agent, whose Bash guard hook and
+# disallowedTools apply only under --agent; plan mode stays as defence in depth.
+claude_review() {
+  (cd "$WT" && claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence "$1")
+}
+
 run_claude() {
   local diff_out="$1" plan_out="$2"
-  (cd "$WT" && claude -p --permission-mode plan --no-session-persistence "/code-review $BASE_BRANCH...HEAD") \
-    >"$diff_out" || die "claude change review failed; see $diff_out"
-  (cd "$WT" && claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence "$(plan_prompt)") \
-    >"$plan_out" || die "claude plan review failed; see $plan_out"
+  claude_review "$(change_prompt)" >"$diff_out" || die "claude change review failed; see $diff_out"
+  claude_review "$(plan_prompt)" >"$plan_out" || die "claude plan review failed; see $plan_out"
 }
 
 main() {
