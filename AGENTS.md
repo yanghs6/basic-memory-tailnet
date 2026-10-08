@@ -7,7 +7,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 ## Commands
 - `make help` lists every target. Do lifecycle work through Make targets only; use raw `docker compose` or `ssh` only to diagnose a failing target, and record why.
 - `make check` (lint + all tests + coverage >= 80%) must pass before every commit. `make fmt` fixes shfmt findings.
-- Local: `make local-up local-verify local-down`. `local-up` uses a fixed container name and port, so run it in one worktree at a time (`make check` is safe to run concurrently).
+- Local: `make local-up local-verify local-down`. `local-up` uses a fixed container name and port, so run it in one worktree at a time (`make check` is safe to run concurrently). VM read-only: `make probe status logs`. VM changing (ask the user first): `make vm-bootstrap deploy verify backup restore` (`verify` writes and deletes a test note; `backup` stops the container briefly).
 
 ## Invariants (enforced by tests/repo.bats; never weaken a test to make it pass)
 - Basic Memory has no auth: publish its port on `127.0.0.1` only, never enable Tailscale Funnel, keep zero public ingress on the VM.
