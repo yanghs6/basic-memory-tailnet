@@ -108,6 +108,44 @@ restore_with_answer() {
   assert_output ""
 }
 
+# fix_backup_stamp STAMP -> make backup.sh name its archive bm-STAMP.tgz.
+fix_backup_stamp() {
+  mkdir -p "$BATS_TEST_TMPDIR/datebin" "$BACKUP_DIR"
+  printf '#!/usr/bin/env bash\necho %s\n' "$1" >"$BATS_TEST_TMPDIR/datebin/date"
+  chmod +x "$BATS_TEST_TMPDIR/datebin/date"
+  export PATH="$BATS_TEST_TMPDIR/datebin:$PATH"
+}
+
+@test "backup refuses a name that already holds a backup and never touches it or the container" {
+  fix_backup_stamp 20261008T000000Z
+  local file
+  for file in bm-20261008T000000Z.tgz bm-20261008T000000Z.tgz.sha256 bm-20261008T000000Z.tgz.manifest; do
+    echo old >"$BACKUP_DIR/$file"
+  done
+  export SSH_STUB_FAIL_MATCH="compose stop"
+  run "$BACKUP"
+  assert_failure
+  assert_output --partial "already exists"
+  for file in bm-20261008T000000Z.tgz bm-20261008T000000Z.tgz.sha256 bm-20261008T000000Z.tgz.manifest; do
+    run cat "$BACKUP_DIR/$file"
+    assert_output "old"
+  done
+  run grep -F 'compose stop' "$STUB_LOG"
+  assert_failure
+}
+
+@test "backup refuses while another run holds the same name and leaves its files alone" {
+  fix_backup_stamp 20261008T000000Z
+  echo other >"$BACKUP_DIR/bm-20261008T000000Z.tgz.partial"
+  run "$BACKUP"
+  assert_failure
+  assert_output --partial "another backup"
+  run cat "$BACKUP_DIR/bm-20261008T000000Z.tgz.partial"
+  assert_output "other"
+  run grep -F 'compose stop' "$STUB_LOG"
+  assert_failure
+}
+
 @test "backup fails and writes nothing when listing the data files fails" {
   fail_command find
   run "$BACKUP"
