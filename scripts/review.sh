@@ -16,6 +16,7 @@ MAIN_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)"
 readonly OUT_DIR="${REVIEW_OUT_DIR:-$MAIN_ROOT/.review-out}"
 readonly WORKTREE_PARENT="${REVIEW_WORKTREE_PARENT:-$(dirname "$MAIN_ROOT")/$(basename "$MAIN_ROOT")-wt}"
 readonly BASE_REF="${REVIEW_BASE:-main}"
+readonly PARTIAL_SUFFIX=".partial"
 
 BRANCH=""
 REVIEWER=""
@@ -73,8 +74,13 @@ prepare_base() {
     return 0
   fi
   git rev-parse --verify --quiet "$BASE_REF^{commit}" >/dev/null || die "REVIEW_BASE '$BASE_REF' is not a branch or commit"
-  TEMP_BASE="review-base/$1-r$2"
-  git branch "$TEMP_BASE" "$BASE_REF"
+  local temp="review-base/$1-r$2"
+  # Never take over (and later delete) a branch this run did not create: another review may own it.
+  if git show-ref --verify --quiet "refs/heads/$temp"; then
+    die "the temporary branch $temp already exists: another review of round $2 may be running; if none is, delete it yourself: git branch -D $temp"
+  fi
+  git branch "$temp" "$BASE_REF" || die "could not create the temporary branch $temp"
+  TEMP_BASE="$temp"
   BASE_BRANCH="$TEMP_BASE"
 }
 
@@ -109,6 +115,8 @@ run_claude() {
 main() {
   local round slug wt_path diff_out plan_out
   [[ $# -ge 2 ]] || usage
+  # Codex writes its plan report after cd into the review worktree, so a relative path would land there and be deleted.
+  [[ "$OUT_DIR" == /* ]] || die "REVIEW_OUT_DIR must be an absolute path (got '$OUT_DIR'); unset it to use $MAIN_ROOT/.review-out"
   BRANCH="$1"
   REVIEWER="$2"
   round="${3:-1}"
@@ -132,12 +140,16 @@ main() {
 
   diff_out="$OUT_DIR/$slug-r$round-$REVIEWER-diff.md"
   plan_out="$OUT_DIR/$slug-r$round-$REVIEWER-plan.md"
+  # A failed run must not leave an earlier run's report next to a new one: drop both, publish both on success.
+  rm -f "$diff_out" "$plan_out" "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
   step "$REVIEWER review of $BRANCH against $BASE_BRANCH (round $round)"
   if [[ "$REVIEWER" == codex ]]; then
-    run_codex "$diff_out" "$plan_out"
+    run_codex "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
   else
-    run_claude "$diff_out" "$plan_out"
+    run_claude "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
   fi
+  mv "$diff_out$PARTIAL_SUFFIX" "$diff_out"
+  mv "$plan_out$PARTIAL_SUFFIX" "$plan_out"
   log "reviews written: $diff_out and $plan_out"
   log "Next: verify each finding, then record them in docs/reviews/$slug.md (format: docs/reviews/README.md)"
 }

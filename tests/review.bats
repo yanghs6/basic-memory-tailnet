@@ -103,6 +103,65 @@ worktree_count() {
   assert_success
 }
 
+@test "refuses a leftover review-base branch and never deletes it" {
+  author_commit codex
+  local reviewed
+  reviewed="$(git rev-parse HEAD)"
+  author_commit codex
+  git branch review-base/plan-02-git-review-tooling-r2 "$reviewed"
+  REVIEW_BASE="$reviewed" run "$REVIEW" plan/02-git-review-tooling claude 2
+  assert_failure
+  assert_output --partial "review-base/plan-02-git-review-tooling-r2 already exists"
+  run git rev-parse --verify --quiet refs/heads/review-base/plan-02-git-review-tooling-r2
+  assert_success
+  run worktree_count
+  assert_output 1
+}
+
+@test "a failed review removes this round's earlier reports" {
+  author_commit claude-code
+  mkdir -p "$REVIEW_OUT_DIR"
+  echo stale >"$OUT-r1-codex-diff.md"
+  echo stale >"$OUT-r1-codex-plan.md"
+  CODEX_STUB_EXIT=1 run "$REVIEW" plan/02-git-review-tooling codex
+  assert_failure
+  run test -e "$OUT-r1-codex-diff.md"
+  assert_failure
+  run test -e "$OUT-r1-codex-plan.md"
+  assert_failure
+}
+
+@test "a failed plan review leaves no half pair of reports" {
+  author_commit claude-code
+  mkdir -p "$REVIEW_OUT_DIR"
+  echo stale >"$OUT-r1-codex-plan.md"
+  CODEX_STUB_PLAN_EXIT=1 run "$REVIEW" plan/02-git-review-tooling codex
+  assert_failure
+  assert_output --partial "codex plan review failed"
+  run test -e "$OUT-r1-codex-diff.md"
+  assert_failure
+  run test -e "$OUT-r1-codex-plan.md"
+  assert_failure
+}
+
+@test "a successful review leaves only the final pair of reports" {
+  author_commit claude-code
+  run "$REVIEW" plan/02-git-review-tooling codex
+  assert_success
+  run ls "$REVIEW_OUT_DIR"
+  assert_output "plan-02-git-review-tooling-r1-codex-diff.md
+plan-02-git-review-tooling-r1-codex-plan.md"
+}
+
+@test "rejects a relative REVIEW_OUT_DIR" {
+  author_commit claude-code
+  REVIEW_OUT_DIR=out run "$REVIEW" plan/02-git-review-tooling codex
+  assert_failure
+  assert_output --partial "REVIEW_OUT_DIR must be an absolute path"
+  run test -e out
+  assert_failure
+}
+
 @test "rejects an unknown reviewer" {
   run "$REVIEW" plan/02-git-review-tooling gemini
   assert_failure
