@@ -302,6 +302,27 @@ restore_with_answer() {
   [[ ! -e "$BM_REMOTE_DATA_ROOT" ]]
 }
 
+@test "restore never rolls back to a partial copy of compose.yaml" {
+  make_archive "x"
+  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
+  # A cp that dies midway (disk full): it leaves a partial destination file and fails.
+  mkdir -p "$BATS_TEST_TMPDIR/failbin"
+  printf '#!/usr/bin/env bash\nprintf partial >"${@: -1}"\nexit 1\n' >"$BATS_TEST_TMPDIR/failbin/cp"
+  chmod +x "$BATS_TEST_TMPDIR/failbin/cp"
+  export PATH="$BATS_TEST_TMPDIR/failbin:$PATH"
+  restore_with_answer yes
+  assert_failure
+  assert_output --partial "could not upload compose.yaml"
+  run cat "$BM_REMOTE_APP_DIR/compose.yaml"
+  assert_output "previous compose"
+  run cat "$BM_REMOTE_APP_DIR/.env"
+  assert_output "PREVIOUS=env"
+  run ls -A "$BM_REMOTE_APP_DIR"
+  assert_output ".env
+compose.yaml"
+}
+
 @test "restore writes the VM .env and succeeds on a recreated VM with no data, compose or .env" {
   make_archive "fresh"
   rm -r "$BM_REMOTE_DATA_ROOT"
