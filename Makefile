@@ -17,7 +17,7 @@ GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir)
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review vm-bootstrap
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review vm-bootstrap deploy verify probe status logs
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -65,21 +65,6 @@ review: ## Read-only review by another vendor: BRANCH=<branch> REVIEWER=codex|cl
 
 vm-bootstrap: ## First-time VM setup over public SSH (HOST=<public-ip>; asks for a Tailscale auth key)
 	scripts/bootstrap-vm.sh "$(HOST)"
-
-deploy: ## Copy compose.yaml to the VM and start Basic Memory (waits until healthy)
-	scripts/deploy.sh
-
-verify: ## Full VM check: MCP write/read/delete, loopback binding, tailnet-only serve, closed public ports
-	scripts/verify-vm.sh
-
-probe: ## Read-only VM check: same as verify but writes no notes (safe while diagnosing)
-	scripts/verify-vm.sh --read-only
-
-status: ## Show VM containers, memory use (idle-reclaim risk) and tailscale serve
-	scripts/status.sh
-
-logs: ## Show the last 200 lines of the VM container logs
-	scripts/logs.sh
 
 deploy: ## Copy compose.yaml to the VM and start Basic Memory (waits until healthy)
 	scripts/deploy.sh
