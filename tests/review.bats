@@ -69,6 +69,19 @@ worktree_count() {
   assert_output --partial "WARNING: claude-code also authored commits"
 }
 
+@test "tells the reviewer only when the human allowed a same-vendor review" {
+  author_commit claude-code
+  REVIEW_ALLOW_SAME_VENDOR=1 run "$REVIEW" plan/02-git-review-tooling claude
+  assert_success
+  run grep -F "The human set REVIEW_ALLOW_SAME_VENDOR=1" "$STUB_LOG"
+  assert_success
+  : >"$STUB_LOG"
+  run "$REVIEW" plan/02-git-review-tooling codex
+  assert_success
+  run grep -F "REVIEW_ALLOW_SAME_VENDOR" "$STUB_LOG"
+  assert_failure 1
+}
+
 @test "round 2 reviews only commits after the reviewed head and leaves no temporary branch" {
   author_commit codex
   local reviewed
