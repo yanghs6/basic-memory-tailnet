@@ -19,7 +19,20 @@ make_archive() {
   ARCHIVE="$BACKUP_DIR/bm-20261007T000000Z.tgz"
   tar -C "$src" -czf "$ARCHIVE" basic-memory
   printf '%s  %s\n' "$(sha256sum "$ARCHIVE" | awk '{ print $1 }')" "$(basename "$ARCHIVE")" >"$ARCHIVE.sha256"
-  (cd "$src/basic-memory" && find . -type f -exec sha256sum {} + | LC_ALL=C sort -k2) >"$ARCHIVE.manifest"
+  local_manifest "$src/basic-memory" >"$ARCHIVE.manifest"
+}
+
+# local_manifest DIR -> the manifest of DIR, built by the same command backup.sh and restore.sh run on the VM.
+local_manifest() {
+  bash -c "$(. "$REPO_DIR/scripts/lib/common.sh" && manifest_cmd "$1")"
+}
+
+# fail_command NAME -> put a NAME first on PATH that prints an error and exits 1.
+fail_command() {
+  mkdir -p "$BATS_TEST_TMPDIR/failbin"
+  printf '#!/usr/bin/env bash\necho "%s: simulated failure" >&2\nexit 1\n' "$1" >"$BATS_TEST_TMPDIR/failbin/$1"
+  chmod +x "$BATS_TEST_TMPDIR/failbin/$1"
+  export PATH="$BATS_TEST_TMPDIR/failbin:$PATH"
 }
 
 restore_with_answer() {
@@ -64,6 +77,17 @@ restore_with_answer() {
   assert_success
   run ls -A "$BACKUP_DIR"
   assert_output ""
+}
+
+@test "backup fails and writes nothing when listing the data files fails" {
+  fail_command find
+  run "$BACKUP"
+  assert_failure
+  assert_output --partial "could not build the data manifest"
+  run ls -A "$BACKUP_DIR"
+  assert_output ""
+  run grep -F 'docker compose start' "$STUB_LOG"
+  assert_success
 }
 
 # --- restore ---
@@ -213,4 +237,22 @@ restore_with_answer() {
   assert_output "previous compose"
   run cat "$BM_REMOTE_APP_DIR/.env"
   assert_output "PREVIOUS=env"
+}
+
+# --- round trip (spec completion criterion 3) ---
+
+@test "a backup made by backup.sh restores with restore.sh and matches its manifest" {
+  run "$BACKUP"
+  assert_success
+  ARCHIVE="$(ls "$BACKUP_DIR"/bm-*.tgz)"
+  echo "changed after the backup" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  echo "written after the backup" >"$BM_REMOTE_DATA_ROOT/knowledge/later.md"
+  restore_with_answer yes
+  assert_success
+  assert_output --partial "restored $(basename "$ARCHIVE")"
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
+  [[ ! -e "$BM_REMOTE_DATA_ROOT/knowledge/later.md" ]]
+  run local_manifest "$BM_REMOTE_DATA_ROOT"
+  assert_output "$(cat "$ARCHIVE.manifest")"
 }
