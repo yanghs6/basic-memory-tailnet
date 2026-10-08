@@ -71,7 +71,8 @@ probe_is_open() {
   if err="$(probe_port "$1" "$2" "$3")"; then
     return 0
   fi
-  if [[ -z "$err" ]] || grep -qiE 'refused|timed out|timeout' <<<"$err"; then
+  # "No route to host" is how nc reports an ICMP reject (the OCI Ubuntu image's iptables uses icmp-host-prohibited).
+  if [[ -z "$err" ]] || grep -qiE 'refused|timed out|timeout|no route to host|unreachable|prohibited' <<<"$err"; then
     return 1
   fi
   die "public port probe error on $2:$3: $err"

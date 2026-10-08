@@ -195,6 +195,13 @@ setup() {
   assert_success
 }
 
+@test "verify treats an ICMP reject from the VM firewall as closed" {
+  # The OCI Ubuntu image's iptables rejects with icmp-host-prohibited, which nc reports as no route to host.
+  export NC_STUB_EXIT=1 NC_STUB_STDERR="nc: connect to 203.0.113.10 port 8737 (tcp) failed: No route to host"
+  run "$REPO_DIR/scripts/verify-vm.sh"
+  assert_success
+}
+
 # --- status ---
 
 @test "status shows containers, memory use and tailscale serve" {
