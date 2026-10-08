@@ -12,14 +12,19 @@ setup() {
 
 # make_archive NOTE -> creates $ARCHIVE (+ .sha256, .manifest) holding basic-memory/knowledge/restored.md
 make_archive() {
-  local src="$BATS_TEST_TMPDIR/src"
-  mkdir -p "$src/basic-memory/knowledge" "$src/basic-memory/config"
-  echo "$1" >"$src/basic-memory/knowledge/restored.md"
+  SRC="$BATS_TEST_TMPDIR/src"
+  mkdir -p "$SRC/basic-memory/knowledge" "$SRC/basic-memory/config"
+  echo "$1" >"$SRC/basic-memory/knowledge/restored.md"
   mkdir -p "$BACKUP_DIR"
   ARCHIVE="$BACKUP_DIR/bm-20261007T000000Z.tgz"
-  tar -C "$src" -czf "$ARCHIVE" basic-memory
+  pack_archive basic-memory
+  local_manifest "$SRC/basic-memory" >"$ARCHIVE.manifest"
+}
+
+# pack_archive TAR_ARGS... -> rebuild $ARCHIVE from $SRC with a valid .sha256 (the manifest is left as is).
+pack_archive() {
+  tar -C "$SRC" -czf "$ARCHIVE" "$@"
   printf '%s  %s\n' "$(sha256sum "$ARCHIVE" | awk '{ print $1 }')" "$(basename "$ARCHIVE")" >"$ARCHIVE.sha256"
-  local_manifest "$src/basic-memory" >"$ARCHIVE.manifest"
 }
 
 # local_manifest DIR -> the manifest of DIR, built by the same command backup.sh and restore.sh run on the VM.
@@ -102,6 +107,8 @@ restore_with_answer() {
   assert_output "original"
   run stat -c '%u' "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
   assert_output "1000"
+  run grep -F 'tar --no-same-owner --no-same-permissions -C' "$STUB_LOG"
+  assert_success
   run grep -F 'compose up -d --wait --wait-timeout 180' "$STUB_LOG"
   assert_success
   run diff "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
@@ -138,6 +145,48 @@ restore_with_answer() {
   restore_with_answer yes
   assert_failure
   assert_output --partial "checksum mismatch"
+  run grep -F 'ssh' "$STUB_LOG"
+  assert_failure
+}
+
+@test "restore refuses an archive holding a symlink before touching the VM" {
+  make_archive "x"
+  ln -s /etc "$SRC/basic-memory/knowledge/etc"
+  pack_archive basic-memory
+  restore_with_answer yes
+  assert_failure
+  assert_output --partial "unsafe archive"
+  assert_output --partial "not a regular file or directory"
+  run grep -F 'ssh' "$STUB_LOG"
+  assert_failure
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
+}
+
+@test "restore refuses an archive holding a ../ path before touching the VM" {
+  make_archive "x"
+  echo "outside" >"$BATS_TEST_TMPDIR/outside.md"
+  pack_archive -P basic-memory ../outside.md
+  run tar -tzf "$ARCHIVE"
+  assert_line "../outside.md"
+  restore_with_answer yes
+  assert_failure
+  assert_output --partial "unsafe archive"
+  assert_output --partial "'..' component"
+  run grep -F 'ssh' "$STUB_LOG"
+  assert_failure
+}
+
+@test "restore refuses an archive holding an absolute path before touching the VM" {
+  make_archive "x"
+  echo "outside" >"$BATS_TEST_TMPDIR/outside.md"
+  pack_archive -P basic-memory "$BATS_TEST_TMPDIR/outside.md"
+  run tar -tzf "$ARCHIVE"
+  assert_line "$BATS_TEST_TMPDIR/outside.md"
+  restore_with_answer yes
+  assert_failure
+  assert_output --partial "unsafe archive"
+  assert_output --partial "absolute path"
   run grep -F 'ssh' "$STUB_LOG"
   assert_failure
 }

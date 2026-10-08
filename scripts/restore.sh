@@ -31,6 +31,22 @@ verify_checksum() {
     || die "checksum mismatch for $archive (expected $expected, got $actual): the file is corrupt or was modified"
 }
 
+# check_archive_entries ARCHIVE: refuse entries that could write outside the staging dir when tar runs as root
+# on the VM: absolute paths, '..' components, and anything but regular files and directories (symlinks, hard
+# links, devices, fifos). The manifest covers regular files only, so it cannot catch these. `tar -tv` prints
+# the entry type as the first character of the mode column on GNU tar and bsdtar alike.
+check_archive_entries() {
+  local archive="$1" names types
+  names="$(tar -tzf "$archive")" || die "could not list the entries of $archive: the archive is unreadable"
+  types="$(tar -tzvf "$archive" | cut -c1)" || die "could not list the entries of $archive: the archive is unreadable"
+  if grep -qv '^[-d]$' <<<"$types"; then
+    die "unsafe archive $archive: it holds an entry that is not a regular file or directory (symlink, hard link or device); restore only archives made by 'make backup'"
+  fi
+  if grep -qE '^/|(^|/)\.\.(/|$)' <<<"$names"; then
+    die "unsafe archive $archive: it holds an absolute path or a '..' component; restore only archives made by 'make backup'"
+  fi
+}
+
 confirm() {
   local answer=""
   read -r -p "$1" answer || true
@@ -68,6 +84,7 @@ main() {
   require_cmd ssh
   require_env BM_VM_HOST BM_VM_USER
   verify_checksum "$archive"
+  check_archive_entries "$archive"
   confirm "Replace $ROOT, $COMPOSE_FILE and $ENV_FILE on $BM_VM_HOST with $(basename "$archive") and this repo's compose.yaml? Current data moves to $PREV. Type 'yes': "
 
   trap rollback EXIT
@@ -78,7 +95,7 @@ main() {
     || die "could not confirm the container stopped"
 
   step "extract into $STAGE"
-  remote "sudo -n mkdir -p $STAGE && sudo -n tar -C $STAGE -xzf -" <"$archive" \
+  remote "sudo -n mkdir -p $STAGE && sudo -n tar --no-same-owner --no-same-permissions -C $STAGE -xzf -" <"$archive" \
     || die "extract failed; current data was not touched"
 
   step "check extracted files against $(basename "$archive").manifest"
