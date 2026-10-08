@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Test stub for codex: logs "codex <args> :: cwd=<dir>". With -o FILE it writes a plan review to FILE,
+# otherwise it prints a diff review. CODEX_STUB_EXIT=<n> makes every call fail.
+set -euo pipefail
+printf 'codex %s :: cwd=%s\n' "$*" "$PWD" >>"$STUB_LOG"
+if [[ -n "${CODEX_STUB_EXIT:-}" ]]; then
+  echo "codex stub: simulated failure" >&2
+  exit "$CODEX_STUB_EXIT"
+fi
+out=""
+while (($#)); do
+  case "$1" in
+    -o)
+      out="$2"
+      shift 2
+      ;;
+    *) shift ;;
+  esac
+done
+if [[ -n "$out" ]]; then
+  echo "codex plan review" >"$out"
+else
+  echo "codex diff review"
+fi

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Test stub for claude: logs "claude <args> :: cwd=<dir>" and prints a review.
+# CLAUDE_STUB_EXIT=<n> makes every call fail.
+set -euo pipefail
+printf 'claude %s :: cwd=%s\n' "$*" "$PWD" >>"$STUB_LOG"
+if [[ -n "${CLAUDE_STUB_EXIT:-}" ]]; then
+  echo "claude stub: simulated failure" >&2
+  exit "$CLAUDE_STUB_EXIT"
+fi
+echo "claude review"
