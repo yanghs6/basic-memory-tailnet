@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# Check the git policy for a branch (docs/specs/2026-10-07-git-review-policy-design.md):
+# branch name, trailers on every non-merge commit in BASE..BRANCH, forbidden trailers, worktree config.
+# Usage: check-git.sh [BASE] [BRANCH]   (defaults: main, the current branch)
+# Pass BRANCH to check a branch from anywhere, e.g. from a reviewer's detached worktree.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+. "$SCRIPT_DIR/lib/common.sh"
+
+readonly BRANCH_PATTERN='^(plan/[0-9]{2}-[a-z0-9-]+|work/[a-z0-9-]+)$'
+readonly ASSISTED_BY_PATTERN='^(claude-code|codex|antigravity|gemini-cli) [^ ]+$'
+readonly PLAN_PATTERN='^([0-9]{2}|none)$'
+readonly TASK_PATTERN='^([0-9]+|review|none)$'
+readonly FORBIDDEN_TRAILERS="Co-authored-by Signed-off-by"
+readonly GIT_CONFIG_KEY_MISSING=1
+readonly POLICY_HINT="see AGENTS.md, Git; ask the human before rewriting history"
+
+PROBLEMS=""
+
+add_problem() {
+  PROBLEMS="${PROBLEMS}  - $*
+"
+}
+
+# trailer COMMIT KEY -> the trailer's values joined by commas; empty when absent.
+trailer() {
+  git log -1 --format="%(trailers:key=$2,valueonly,separator=%x2C)" "$1"
+}
+
+# Spec section 2: Antigravity breaks when the key is present, so any value (1, yes, even false) is flagged.
+check_worktree_config() {
+  local values status=0
+  values="$(git config --get-all extensions.worktreeConfig)" || status=$?
+  ((status != GIT_CONFIG_KEY_MISSING)) || return 0
+  ((status == 0)) || die "could not read extensions.worktreeConfig (git config exit $status); fix the git config file"
+  add_problem "extensions.worktreeConfig is set (value '$(tr '\n' ' ' <<<"$values" | sed 's/ $//')') and breaks Antigravity whatever its value: git config --unset-all extensions.worktreeConfig"
+}
+
+# check_branch BASE BRANCH: BRANCH is empty on a detached HEAD.
+check_branch() {
+  local base="$1" branch="$2"
+  if [[ -z "$branch" ]]; then
+    add_problem "detached HEAD: create a branch first (git switch -c plan/NN-slug or work/slug)"
+  elif [[ "$branch" == "$base" ]]; then
+    add_problem "on $base: agents never commit to $base; move the work with git switch -c work/<slug>"
+  elif [[ ! "$branch" =~ $BRANCH_PATTERN ]]; then
+    add_problem "branch '$branch' must look like plan/NN-slug or work/slug: git branch -m <new-name>"
+  fi
+}
+
+# check_trailer WHERE COMMIT KEY PATTERN FORMAT
+check_trailer() {
+  local where="$1" sha="$2" key="$3" pattern="$4" format="$5" value
+  value="$(trailer "$sha" "$key")"
+  if [[ -z "$value" ]]; then
+    add_problem "$where: missing trailer '$key: $format' ($POLICY_HINT)"
+  elif [[ ! "$value" =~ $pattern ]]; then
+    add_problem "$where: trailer '$key: $value' must be '$key: $format'"
+  fi
+}
+
+check_commit() {
+  local sha="$1" where key
+  where="$(git log -1 --format='%h "%s"' "$sha")"
+  check_trailer "$where" "$sha" Assisted-by "$ASSISTED_BY_PATTERN" "<claude-code|codex|antigravity|gemini-cli> <model>"
+  check_trailer "$where" "$sha" Plan "$PLAN_PATTERN" "<NN|none>"
+  check_trailer "$where" "$sha" Task "$TASK_PATTERN" "<N|review|none>"
+  for key in $FORBIDDEN_TRAILERS; do
+    if [[ -n "$(trailer "$sha" "$key")" ]]; then
+      add_problem "$where: agents never add '$key' ($POLICY_HINT)"
+    fi
+  done
+}
+
+main() {
+  local base="${1:-main}" branch="${2:-}" head=HEAD sha count=0
+  require_cmd git
+  git rev-parse --verify --quiet "$base^{commit}" >/dev/null || die "base branch '$base' not found"
+  if [[ -n "$branch" ]]; then
+    git show-ref --verify --quiet "refs/heads/$branch" || die "branch '$branch' not found"
+    head="refs/heads/$branch"
+  else
+    branch="$(git symbolic-ref --quiet --short HEAD || true)"
+  fi
+  check_worktree_config
+  check_branch "$base" "$branch"
+  for sha in $(git rev-list --reverse --no-merges "$base..$head"); do
+    check_commit "$sha"
+    count=$((count + 1))
+  done
+  if [[ -n "$PROBLEMS" ]]; then
+    printf 'git policy violations:\n%s' "$PROBLEMS" >&2
+    exit 1
+  fi
+  log "OK: git policy ($count commits since $base)"
+}
+
+main "$@"

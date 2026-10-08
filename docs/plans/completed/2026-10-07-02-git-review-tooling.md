@@ -20,7 +20,7 @@
 
 - Git (`docs/specs/2026-10-07-git-review-policy-design.md`):
   - 이 계획은 `plan/02-git-review-tooling` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
-  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: 02`, `Task: N`을 단다. 커밋 명령은 시작 단계에서 정한 `AGENT_ID` 환경변수를 쓴다.
+  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: 02`, `Task: N`을 단다. 커밋 명령의 `Assisted-by` 값은 시작 단계에서 정한 신원을 그대로 적는다(셸 변수는 명령 사이에 남지 않을 수 있다).
   - `Co-authored-by`와 `Signed-off-by`는 넣지 않는다(사용자 전역 설정과 저장소 정책).
   - 매 커밋 전에 `make check`를 실행한다.
 - 스크립트 작성 규칙:
@@ -56,7 +56,7 @@ Makefile                                                          Task 1, 2에�
 
 ### 시작: 브랜치와 worktree
 
-- [ ] 이 계획을 진행할 에이전트를 기록한다: `export AGENT_ID="<도구> <모델 ID>"` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다.
+- [ ] 이 계획을 진행할 에이전트 신원을 기록한다: `<도구> <모델 ID>` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다. 커밋마다 이 값을 `Assisted-by:` 트레일러에 그대로 적는다.
 - [ ] 전용 worktree와 브랜치를 만든다. 한 계획 브랜치는 한 번에 한 worktree에서만 진행한다.
   - Claude Code: `claude --worktree plan-02-git-review-tooling`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/02-git-review-tooling`
   - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-02-git-review-tooling -b plan/02-git-review-tooling main` 후 그 디렉터리에서 작업
@@ -64,7 +64,7 @@ Makefile                                                          Task 1, 2에�
 
 ```bash
 git mv docs/plans/backlog/2026-10-07-02-git-review-tooling.md docs/plans/active/
-git commit -m "docs: activate plan 02" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 02" --trailer "Task: none"
+git commit -m "docs: activate plan 02" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: none"
 ```
 
 ---
@@ -323,7 +323,7 @@ Expected: `OK: git policy (<n> commits since main)`. 이 계획의 커밋이 모
 Run: `make check` (PASS)
 ```bash
 git add scripts/check-git.sh tests/check_git.bats Makefile
-git commit -m "feat: add git policy check for branch names and commit trailers" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 02" --trailer "Task: 1"
+git commit -m "feat: add git policy check for branch names and commit trailers" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: 1"
 ```
 
 ---
@@ -692,7 +692,7 @@ review: ## Read-only review by another vendor: BRANCH=<branch> REVIEWER=codex|cl
 Run: `make check` (PASS)
 ```bash
 git add scripts/review.sh tests/stubs/codex tests/stubs/claude tests/review.bats Makefile
-git commit -m "feat: add read-only cross-vendor review runner" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 02" --trailer "Task: 2"
+git commit -m "feat: add read-only cross-vendor review runner" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: 2"
 ```
 
 ---
@@ -823,7 +823,7 @@ Policy: docs/specs/2026-10-07-git-review-policy-design.md. Never commit to `main
 
 ## Start
 
-1. Set your identity once: `export AGENT_ID="<claude-code|codex|antigravity|gemini-cli> <model id>"`.
+1. Your identity is `<claude-code|codex|antigravity|gemini-cli> <model id>`; write it literally in every commit command.
 2. Work in your own worktree on your own branch: one agent per worktree, one worktree per branch, never the main checkout.
    - Claude Code: start with `claude --worktree <slug>` (or enter a worktree in the session), then `git branch -m plan/NN-slug` or `git branch -m work/slug`.
    - Other tools: `git worktree add ../027_agent_share_poc-wt/<slug> -b plan/NN-slug main`, then work in that directory.
@@ -832,7 +832,7 @@ Policy: docs/specs/2026-10-07-git-review-policy-design.md. Never commit to `main
 ## Commit
 
 1. Run `make check`.
-2. `git commit -m "<type>: <description>" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: <NN|none>" --trailer "Task: <N|review|none>"`
+2. `git commit -m "<type>: <description>" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: <NN|none>" --trailer "Task: <N|review|none>"`
 3. Never add `Co-authored-by` or `Signed-off-by`.
 4. Before asking for review, `make check-git` must pass.
 
@@ -981,7 +981,7 @@ Expected: PASS(총 67 tests).
 Run: `make check` (PASS)
 ```bash
 git add .claude/agents .claude/skills .claude/settings.json .agents docs/reviews AGENTS.md tests/repo.bats
-git commit -m "docs: add reviewer agent, git and review skills, and code review rules" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 02" --trailer "Task: 3"
+git commit -m "docs: add reviewer agent, git and review skills, and code review rules" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: 3"
 ```
 
 ---
@@ -995,7 +995,7 @@ git commit -m "docs: add reviewer agent, git and review skills, and code review 
 
 ```bash
 git mv docs/plans/active/2026-10-07-02-git-review-tooling.md docs/plans/completed/
-git commit -m "docs: complete plan 02" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 02" --trailer "Task: none"
+git commit -m "docs: complete plan 02" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: none"
 ```
 
 - [ ] 1차 리뷰(작성자와 다른 벤더): 작성 도구가 Claude Code면 `make review BRANCH=plan/02-git-review-tooling REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
@@ -1004,7 +1004,7 @@ git commit -m "docs: complete plan 02" --trailer "Assisted-by: $AGENT_ID" --trai
 
 ```bash
 git add docs/reviews/plan-02-git-review-tooling.md
-git commit -m "docs: record review of plan 02" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: 02" --trailer "Task: review"
+git commit -m "docs: record review of plan 02" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: review"
 ```
 
 - [ ] 지적마다 재현하거나 근거를 인용해 검증하고, 받아들인 지적은 하나당 커밋 하나로 고친다(`--trailer "Review-Finding: R1-F<n>"`). 거절은 근거와 함께 기록한다.
@@ -1021,3 +1021,9 @@ git commit -m "docs: record review of plan 02" --trailer "Assisted-by: $AGENT_ID
 | 2026-10-07 | Verified | 로컬 codex-cli 0.160.1: `codex exec review`에 `--base`/`--commit`/`--uncommitted`/PROMPT, `codex exec`에 `-s/--sandbox`, `-o/--output-last-message` 옵션이 있음 (`--help`) |
 | 2026-10-07 | Verified | 로컬 Claude Code 2.1.292: `--agent`, `--permission-mode`, `--no-session-persistence`, `--disallowedTools` 옵션이 있음 (`--help`) |
 | 2026-10-07 | Verified | Claude Code `attribution.commit`은 `""` 또는 `false`면 트레일러를 넣지 않음 (code.claude.com/docs/en/settings-reference) |
+| 2026-10-08 | Verified | `make check`: 테스트 92개 전부 PASS, 라인 커버리지 96.88%(check-git.sh·review-bash-guard.sh 100%). `make check-git`: `OK: git policy (13 commits since main)` |
+| 2026-10-08 | Verified | Subagent-driven 진행: Task 1 `20ae84e`, Task 2 `de7f265`, Task 3 `3cf3a83`. 태스크 리뷰 3회와 최종 리뷰(opus) 뒤 fix wave로 `SDD-T1-F1`, `SDD-T2-F1·F3·F4`, `SDD-T3-F1~F9`를 고침(커밋마다 `Review-Finding` 트레일러) |
+| 2026-10-08 | Verified | code.claude.com/docs/en/sub-agents.md: `tools`/`disallowedTools`는 도구 이름만 받고, `permissionMode: plan`은 Bash를 허용 목록으로 제한하지 않음. frontmatter `hooks.PreToolUse`는 exit 2일 때만 막고 `--agent`에서도 적용됨 → 계획에 없던 `scripts/review-bash-guard.sh` 훅을 추가함(`git diff/log/show` + 안전 문자 토큰만 허용, `--ou*` 차단, 실패 시 `|| exit 2`) |
+| 2026-10-08 | Assumption | 훅 명령은 POSIX 셸로 실행되고 `$CLAUDE_PROJECT_DIR`은 리뷰 worktree 루트다. Claude 리뷰어를 실제로 실행할 때 허용되지 않는 명령이 막히는지 확인한다 |
+| 2026-10-08 | Verified | 셸은 명령마다 새로 뜰 수 있어 `export AGENT_ID`가 커밋 사이에 남지 않음(최종 리뷰가 `git interpret-trailers`로 빈 트레일러 재현) → 계획 02~05의 커밋 단계를 신원 값을 그대로 적는 형태로 바꿈(`146447a`) |
+| 2026-10-08 | Open question | 미룬 지적: 리뷰어 설정(에이전트·가드)이 리뷰 대상 브랜치에서 옴, `Review-Finding` 값 미검증, `review.sh`의 브랜치 이름 검사 없음, worktreeConfig는 값과 무관하게 막아야 함(스펙 §2) 등. 목록은 리뷰 기록에 옮긴다 |

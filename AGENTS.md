@@ -24,7 +24,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - Never delete `backups/` or `/srv/basic-memory.prev-*` directories.
 
 ## Git (policy: docs/specs/2026-10-07-git-review-policy-design.md)
-- Work only in your own git worktree on `plan/<NN>-<slug>` or `work/<slug>`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) before review.
+- Work only in your own git worktree on `plan/<NN>-<slug>` or `work/<slug>`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) with `git branch -m` before review; on a detached HEAD (Codex app) run `git switch -c <branch>` first. Per-tool start steps: the `git-workflow` skill.
 - Never commit to `main`, force-push, rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree.
 - End every commit message with the trailers `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>`, `Plan: <NN|none>` and `Task: <N|review|none>`; add `Review-Finding: R<n>-F<m>` (cross-vendor review) or `SDD-T<task>-F<n>` (in-plan task review) to review fixes. Never add `Co-authored-by` or `Signed-off-by`.
 - A reviewer from another vendor reviews each branch read-only; findings go to `docs/reviews/`; only the human merges, with `git merge --no-ff`.
@@ -38,3 +38,20 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - `scripts/` lifecycle scripts; `scripts/lib/common.sh` shared helpers.
 - `tests/` bats tests; `tools/` test image and coverage gate.
 - `docs/specs/`, `docs/plans/{active,backlog,completed}/`.
+- `.agents/skills/` skills for Codex and Antigravity; `.claude/skills/<name>` symlinks and `.claude/agents/branch-reviewer.md` for Claude Code.
+- `docs/reviews/` review records (template in its README).
+
+## Code Review Rules
+Reviewers check only the changes since the base (Codex reads this section; Claude uses the `branch-review` skill):
+1. Every task of the plan is implemented and its verification passed with evidence.
+2. No changes outside the plan's scope.
+3. The plan's Progress log records a passing `make check`; `scripts/check-git.sh <base> <branch>` passes.
+4. Security: secrets, `.env`, public exposure, unauthenticated endpoints.
+5. Docs required by this file are updated.
+6. Every commit carries the Git trailers.
+Severity: P0 data loss, security or outage and P1 bug or unmet requirement block the merge; P2 maintainability is fixed or deferred by the human with a reason; P3 is optional.
+Each finding: `[Pn] path:line - failure scenario - suggested fix`. Report only problems these changes introduce; no style nits.
+
+## Skills
+- `git-workflow`: start, commit, request review and prepare the merge of agent work.
+- `branch-review`: review another agent's branch read-only.
