@@ -35,11 +35,24 @@ check_serve_tailnet_only() {
   log "OK: tailscale serve is tailnet only"
 }
 
+# probe_port PLATFORM HOST PORT -> succeeds when HOST accepts a TCP connection on PORT.
+# Assumption (macOS nc(1) as quoted by ss64.com; primary source not checked): on macOS -w only limits an idle
+# established connection and -G limits the TCP connect, so without -G a silently dropped SYN waits for the
+# OS connect timeout (about 75 s per port). On Linux netcat-openbsd -G means something else, so Darwin only.
+probe_port() {
+  if [[ "$1" == Darwin ]]; then
+    nc -z -G "$PUBLIC_PROBE_TIMEOUT_SECONDS" -w "$PUBLIC_PROBE_TIMEOUT_SECONDS" "$2" "$3" >/dev/null 2>&1
+  else
+    nc -z -w "$PUBLIC_PROBE_TIMEOUT_SECONDS" "$2" "$3" >/dev/null 2>&1
+  fi
+}
+
 check_public_closed() {
-  local port="$1" probe
+  local port="$1" probe platform
+  platform="$(uname -s)" || die "could not detect the local platform with uname -s"
   step "check public IP $BM_VM_PUBLIC_IP refuses ports $PUBLIC_PROBE_PORTS $port"
   for probe in $PUBLIC_PROBE_PORTS "$port"; do
-    if nc -z -w "$PUBLIC_PROBE_TIMEOUT_SECONDS" "$BM_VM_PUBLIC_IP" "$probe" >/dev/null 2>&1; then
+    if probe_port "$platform" "$BM_VM_PUBLIC_IP" "$probe"; then
       die "public IP $BM_VM_PUBLIC_IP accepts connections on port $probe: remove that OCI ingress rule"
     fi
   done

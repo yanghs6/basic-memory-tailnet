@@ -2,7 +2,7 @@
 load helpers
 
 setup() {
-  setup_stubs ssh docker curl sudo tailscale ss free nc
+  setup_stubs ssh docker curl sudo tailscale ss free nc uname
   use_vm_env
   export BM_VM_PUBLIC_IP=203.0.113.10
   export VERIFY_ID=test1
@@ -87,6 +87,26 @@ setup() {
   assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8737"
   run grep -c '^nc ' "$STUB_LOG"
   assert_output 4
+}
+
+@test "verify bounds the public probe's connect time with -G on macOS" {
+  export UNAME_STUB_OUTPUT=Darwin
+  run "$REPO_DIR/scripts/verify-vm.sh"
+  assert_success
+  run grep -Fx 'nc -z -G 5 -w 5 203.0.113.10 22' "$STUB_LOG"
+  assert_success
+  run grep -c '^nc -z -G 5 -w 5 ' "$STUB_LOG"
+  assert_output 4
+}
+
+@test "verify probes public ports without -G on Linux" {
+  export UNAME_STUB_OUTPUT=Linux
+  run "$REPO_DIR/scripts/verify-vm.sh"
+  assert_success
+  run grep -Fx 'nc -z -w 5 203.0.113.10 22' "$STUB_LOG"
+  assert_success
+  run grep -F -- '-G' "$STUB_LOG"
+  assert_failure
 }
 
 @test "verify requires the public IP so exposure is always checked" {
