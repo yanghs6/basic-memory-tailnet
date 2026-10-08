@@ -257,6 +257,25 @@ restore_with_answer() {
   assert_output "bad"
 }
 
+@test "restore rollback recreates the container so it mounts the previous data even with an unchanged compose" {
+  make_archive "bad"
+  cp "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
+  printf 'BM_PORT=8737\nBM_KNOWLEDGE_DIR=%s/knowledge\nBM_CONFIG_DIR=%s/config\n' \
+    "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT" >"$BM_REMOTE_APP_DIR/.env"
+  # Only the restore's own start fails; the rollback start succeeds.
+  export DOCKER_STUB_FAIL_MATCH="up -d --wait"
+  restore_with_answer yes
+  assert_failure
+  assert_output --partial "container did not become healthy with the restored data"
+  assert_output --partial "rolled back: the previous data is live again"
+  run grep -F 'docker compose up -d --force-recreate --wait --wait-timeout 180' "$STUB_LOG"
+  assert_success
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
+  run diff "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
+  assert_success
+}
+
 @test "restore writes the VM .env and succeeds on a recreated VM with no data, compose or .env" {
   make_archive "fresh"
   rm -r "$BM_REMOTE_DATA_ROOT"
