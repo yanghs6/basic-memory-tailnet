@@ -9,7 +9,7 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: '"$CLAUDE_PROJECT_DIR"/scripts/review-bash-guard.sh'
+          command: '"$CLAUDE_PROJECT_DIR"/scripts/review-bash-guard.sh || exit 2'
 ---
 
 Follow the `branch-review` skill (.agents/skills/branch-review/SKILL.md) and the Code Review Rules in AGENTS.md.

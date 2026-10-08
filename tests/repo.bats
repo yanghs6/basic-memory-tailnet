@@ -202,8 +202,25 @@ frontmatter() {
   assert_line '    - matcher: "Bash"'
   assert_line "      hooks:"
   assert_line "        - type: command"
-  assert_line "          command: '\"\$CLAUDE_PROJECT_DIR\"/scripts/review-bash-guard.sh'"
-  [[ -x "$REPO_DIR/scripts/review-bash-guard.sh" ]] || fail "scripts/review-bash-guard.sh must exist and be executable, or the hook fails instead of blocking"
+  assert_line "          command: '\"\$CLAUDE_PROJECT_DIR\"/scripts/review-bash-guard.sh || exit 2'"
+  [[ -x "$REPO_DIR/scripts/review-bash-guard.sh" ]] || fail "scripts/review-bash-guard.sh must exist and be executable"
   run grep -F "git status" "$agent"
   assert_failure 1
+}
+
+# reviewer_hook_command: the hook command line from the branch-reviewer agent frontmatter.
+reviewer_hook_command() {
+  frontmatter "$REPO_DIR/.claude/agents/branch-reviewer.md" | sed -n "s/^ *command: '\(.*\)'\$/\1/p"
+}
+
+@test "the reviewer hook command blocks (exit 2) even when the guard script is missing" {
+  # Only exit 2 blocks a tool call; a missing script exits 127, which would let the call through.
+  local hook input='{"tool_input": {"command": "git diff"}}'
+  hook="$(reviewer_hook_command)"
+  [[ -n "$hook" ]] || fail "no hook command found in .claude/agents/branch-reviewer.md"
+  mkdir -p "$BATS_TEST_TMPDIR/no-guard"
+  CLAUDE_PROJECT_DIR="$BATS_TEST_TMPDIR/no-guard" run sh -c "$hook" <<<"$input"
+  assert_failure 2
+  CLAUDE_PROJECT_DIR="$REPO_DIR" run sh -c "$hook" <<<"$input"
+  assert_success
 }
