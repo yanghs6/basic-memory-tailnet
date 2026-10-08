@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Test stub for ssh: logs the call, then runs the remote command locally so other stubs on PATH
+# act as the VM. SSH_STUB_FAIL_MATCH=<substring> makes matching remote commands fail with 255.
+set -euo pipefail
+printf 'ssh %s\n' "$*" >>"$STUB_LOG"
+remote_cmd="${*: -1}"
+if [[ -n "${SSH_STUB_FAIL_MATCH:-}" && "$remote_cmd" == *"$SSH_STUB_FAIL_MATCH"* ]]; then
+  echo "ssh stub: simulated failure for: $remote_cmd" >&2
+  exit 255
+fi
+exec bash -c "$remote_cmd"

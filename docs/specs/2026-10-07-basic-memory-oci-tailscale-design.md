@@ -85,7 +85,7 @@ compose.yaml         Basic Memory 서비스
 .env.example         사용자별 비밀이 아닌 값: BM_VM_HOST, BM_VM_USER, BM_TAILNET_DOMAIN, BM_PORT
 .gitignore           .env*(.env.example 제외), .local-data/, backups/, CLAUDE.local.md, .claude/settings.local.json
 .editorconfig  .shellcheckrc
-.claude/settings.json            .env* 읽기 거부, make lint/test/check 허용
+.claude/settings.json            .env(.env.example은 읽기 가능), backups/, .local-data/ 읽기 거부, make lint/test/check 허용
 .claude/skills/<name>            → ../../.agents/skills/<name> (스킬별 심볼릭 링크)
 .agents/skills/bm-upgrade/SKILL.md
 .agents/skills/bm-recover/SKILL.md

@@ -1,0 +1,28 @@
+# Basic Memory MCP server. The same file runs locally (make local-up) and on the VM (make deploy).
+# Defaults are the local values; on the VM, scripts/deploy.sh writes absolute paths into .env.
+name: basic-memory
+services:
+  basic-memory:
+    image: ghcr.io/basicmachines-co/basic-memory:0.23.2@sha256:939f1173d96626c280763e14622f2381d49fbbb7db17cae2e832f4f639405643
+    container_name: basic-memory-server
+    # The image default is `--transport sse`; agents connect over streamable HTTP at /mcp.
+    command: ["basic-memory", "mcp", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8000", "--path", "/mcp"]
+    # Basic Memory has no authentication: never bind anything but loopback.
+    ports:
+      - "127.0.0.1:${BM_PORT:-8737}:8000"
+    volumes:
+      - "${BM_KNOWLEDGE_DIR:-./.local-data/knowledge}:/app/data"
+      - "${BM_CONFIG_DIR:-./.local-data/config}:/home/appuser/.basic-memory"
+    environment:
+      BASIC_MEMORY_DEFAULT_PROJECT: main
+      BASIC_MEMORY_INDEX_CHANGES: "true"
+      BASIC_MEMORY_LOG_LEVEL: INFO
+    healthcheck:
+      # Upstream checks `basic-memory --version`, which passes even when the server is down.
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), timeout=5).close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
+    restart: unless-stopped
