@@ -127,9 +127,10 @@ frontmatter() {
 }
 
 @test "at least one repository skill exists" {
-  run skill_dirs
-  assert_success
-  refute_output ""
+  [[ -d "$REPO_DIR/.agents/skills" ]] || fail "missing directory .agents/skills"
+  local skills
+  skills="$(find "$REPO_DIR/.agents/skills" -mindepth 2 -maxdepth 2 -name SKILL.md)"
+  [[ -n "$skills" ]] || fail "no .agents/skills/*/SKILL.md found"
 }
 
 @test "skills use only Agent Skills standard frontmatter keys" {
