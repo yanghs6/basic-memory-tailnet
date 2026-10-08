@@ -1021,3 +1021,9 @@ git commit -m "docs: record review of the git-review-tooling plan" --trailer "As
 | 2026-10-07 | Verified | 로컬 codex-cli 0.160.1: `codex exec review`에 `--base`/`--commit`/`--uncommitted`/PROMPT, `codex exec`에 `-s/--sandbox`, `-o/--output-last-message` 옵션이 있음 (`--help`) |
 | 2026-10-07 | Verified | 로컬 Claude Code 2.1.292: `--agent`, `--permission-mode`, `--no-session-persistence`, `--disallowedTools` 옵션이 있음 (`--help`) |
 | 2026-10-07 | Verified | Claude Code `attribution.commit`은 `""` 또는 `false`면 트레일러를 넣지 않음 (code.claude.com/docs/en/settings-reference) |
+| 2026-10-08 | Verified | `make check`: 테스트 92개 전부 PASS, 라인 커버리지 96.88%(check-git.sh·review-bash-guard.sh 100%). `make check-git`: `OK: git policy (13 commits since main)` |
+| 2026-10-08 | Verified | Subagent-driven 진행: Task 1 `21f7113`, Task 2 `e2d6465`, Task 3 `286b8fa`. 태스크 리뷰 3회와 최종 리뷰(opus) 뒤 fix wave로 `SDD-T1-F1`, `SDD-T2-F1·F3·F4`, `SDD-T3-F1~F9`를 고침(커밋마다 `Review-Finding` 트레일러) |
+| 2026-10-08 | Verified | code.claude.com/docs/en/sub-agents.md: `tools`/`disallowedTools`는 도구 이름만 받고, `permissionMode: plan`은 Bash를 허용 목록으로 제한하지 않음. frontmatter `hooks.PreToolUse`는 exit 2일 때만 막고 `--agent`에서도 적용됨 → 계획에 없던 `scripts/review-bash-guard.sh` 훅을 추가함(`git diff/log/show` + 안전 문자 토큰만 허용, `--ou*` 차단, 실패 시 `|| exit 2`) |
+| 2026-10-08 | Assumption | 훅 명령은 POSIX 셸로 실행되고 `$CLAUDE_PROJECT_DIR`은 리뷰 worktree 루트다. Claude 리뷰어를 실제로 실행할 때 허용되지 않는 명령이 막히는지 확인한다 |
+| 2026-10-08 | Verified | 셸은 명령마다 새로 뜰 수 있어 `export AGENT_ID`가 커밋 사이에 남지 않음(최종 리뷰가 `git interpret-trailers`로 빈 트레일러 재현) → git-review-tooling·[vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md)·[docs-skills](plan-2026-10-07-hydaxf15-docs-skills.md)·[vm-rollout](plan-2026-10-07-qtvzskgx-vm-rollout.md) 계획의 커밋 단계를 신원 값을 그대로 적는 형태로 바꿈(`16e7d88`) |
+| 2026-10-08 | Open question | 미룬 지적: 리뷰어 설정(에이전트·가드)이 리뷰 대상 브랜치에서 옴, `Review-Finding` 값 미검증, `review.sh`의 브랜치 이름 검사 없음, worktreeConfig는 값과 무관하게 막아야 함(스펙 §2) 등. 목록은 리뷰 기록에 옮긴다 |
