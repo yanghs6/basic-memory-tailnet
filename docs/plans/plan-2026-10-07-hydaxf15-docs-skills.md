@@ -44,7 +44,7 @@
   - 저장소 노트에는 `Verified` / `Command` / `Assumption` / `Open question` 표기를 쓴다.
 - Git (`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`):
   - 이 계획은 `plan/hydaxf15-docs-skills` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
-  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: hydaxf15`, `Task: N`을 단다. 커밋 명령은 시작 단계에서 정한 `AGENT_ID` 환경변수를 쓴다.
+  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: hydaxf15`, `Task: N`을 단다. 커밋 명령의 `Assisted-by` 값은 시작 단계에서 정한 신원을 그대로 적는다(셸 변수는 명령 사이에 남지 않을 수 있다).
   - `Co-authored-by`와 `Signed-off-by`는 넣지 않는다(사용자 전역 설정과 저장소 정책).
   - 매 커밋 전에 `make check`를 실행한다.
 - 수명주기 작업은 Make 타깃으로만 한다. raw `docker compose`나 `ssh`는 실패 진단에만 쓰고, 그 이유를 기록한다.
@@ -70,7 +70,7 @@ tests/repo.bats                                                               Ta
 
 ### 시작: 브랜치와 worktree
 
-- [ ] 이 계획을 진행할 에이전트를 기록한다: `export AGENT_ID="<도구> <모델 ID>"` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다.
+- [ ] 이 계획을 진행할 에이전트 신원을 기록한다: `<도구> <모델 ID>` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다. 커밋마다 이 값을 `Assisted-by:` 트레일러에 그대로 적는다.
 - [ ] 전용 worktree와 브랜치를 만든다. 한 계획 브랜치는 한 번에 한 worktree에서만 진행한다.
   - Claude Code: `claude --worktree plan-04-docs-skills`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/hydaxf15-docs-skills`
   - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-04-docs-skills -b plan/hydaxf15-docs-skills main` 후 그 디렉터리에서 작업
@@ -78,7 +78,7 @@ tests/repo.bats                                                               Ta
 
 ```bash
 git mv docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md docs/plans/active/
-git commit -m "docs: activate the docs-skills plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: none"
+git commit -m "docs: activate the docs-skills plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: none"
 ```
 
 ---
@@ -227,7 +227,7 @@ Expected: PASS(총 113 tests). `docs/ARCHITECTURE.md`는 Task 2에서 만든다(
 Run: `make check` (PASS)
 ```bash
 git add .agents .claude/skills AGENTS.md tests/repo.bats
-git commit -m "docs: add repo skills for upgrade, recovery and diagnosis" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: 1"
+git commit -m "docs: add repo skills for upgrade, recovery and diagnosis" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: 1"
 ```
 
 ---
@@ -640,7 +640,7 @@ Expected: PASS(총 115 tests). 링크 테스트가 README, ARCHITECTURE, 런북,
 Run: `make check` (PASS)
 ```bash
 git add README.md docs/ARCHITECTURE.md docs/runbooks docs/decisions tests/repo.bats
-git commit -m "docs: add README, architecture, runbooks and ADRs" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: 2"
+git commit -m "docs: add README, architecture, runbooks and ADRs" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: 2"
 ```
 
 
@@ -672,7 +672,7 @@ Expected: `OK: MCP round trip passed`가 네 번 출력된다(재시작 전 2번
 이 파일 맨 아래 Progress log에 날짜, 명령, 결과(테스트 수, 커버리지 %, 메모리)를 `Verified`로 추가한다.
 ```bash
 git add docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md
-git commit -m "docs: record local verification evidence" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: 3"
+git commit -m "docs: record local verification evidence" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: 3"
 ```
 
 
@@ -686,7 +686,7 @@ git commit -m "docs: record local verification evidence" --trailer "Assisted-by:
 ```bash
 git mv docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md docs/plans/completed/
 git add docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md
-git commit -m "docs: complete the docs-skills plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: none"
+git commit -m "docs: complete the docs-skills plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: none"
 ```
 
 - [ ] 1차 리뷰(작성자와 다른 벤더, 읽기 전용): 작성 도구가 Claude Code면 `make review BRANCH=plan/hydaxf15-docs-skills REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
@@ -694,7 +694,7 @@ git commit -m "docs: complete the docs-skills plan" --trailer "Assisted-by: $AGE
 
 ```bash
 git add docs/reviews/rev-2026-10-12-aqhzgwq1-docs-skills.md
-git commit -m "docs: record review of the docs-skills plan" --trailer "Assisted-by: $AGENT_ID" --trailer "Plan: hydaxf15" --trailer "Task: review"
+git commit -m "docs: record review of the docs-skills plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: review"
 ```
 
 - [ ] 지적마다 재현하거나 근거를 인용해 검증하고, 받아들인 지적은 하나당 커밋 하나로 고친다(`--trailer "Review-Finding: R1-F<n>"`). 거절은 근거와 함께 기록한다.
