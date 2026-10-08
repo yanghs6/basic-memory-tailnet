@@ -19,8 +19,11 @@ run_bootstrap_with_key() {
   export TS_STUB_STATUS_EXIT=1
   run_bootstrap_with_key tskey-auth-test123
   assert_success
-  run grep -F 'apt-get install -y -q docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin' "$STUB_LOG"
+  run grep -F 'apt-get -o DPkg::Lock::Timeout=300 install -y -q docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin' "$STUB_LOG"
   assert_success
+  # Every apt-get call waits for the dpkg lock that unattended-upgrades holds right after first boot.
+  run bash -c 'grep "^apt-get " "$0" | grep -vF -- "apt-get -o DPkg::Lock::Timeout=300 "' "$STUB_LOG"
+  assert_failure
   run cat "$ETC_DIR/apt/sources.list.d/docker.sources"
   assert_line "Suites: noble"
   assert_line "Architectures: arm64"

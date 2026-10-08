@@ -14,6 +14,8 @@ readonly ETC_DIR="${ETC_DIR:-/etc}"
 readonly RUN_DIR="${RUN_DIR:-/run}"
 readonly OS_RELEASE="${OS_RELEASE:-/etc/os-release}"
 readonly DOCKER_PACKAGES="docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
+# Assumption: unattended-upgrades often holds the dpkg lock right after first boot; wait instead of failing.
+readonly APT_LOCK_TIMEOUT_SECONDS=300
 
 # Never prompt during package installs (there is no tty over ssh).
 export DEBIAN_FRONTEND=noninteractive
@@ -44,21 +46,25 @@ Signed-By: /etc/apt/keyrings/docker.asc
 EOF
 }
 
+apt_get() {
+  apt-get -o "DPkg::Lock::Timeout=$APT_LOCK_TIMEOUT_SECONDS" "$@"
+}
+
 install_docker() {
   if command -v docker >/dev/null 2>&1; then
     log "docker already installed"
     return 0
   fi
   log "installing docker from download.docker.com"
-  apt-get update -q
-  apt-get install -y -q ca-certificates curl
+  apt_get update -q
+  apt_get install -y -q ca-certificates curl
   install -m 0755 -d "$ETC_DIR/apt/keyrings"
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o "$ETC_DIR/apt/keyrings/docker.asc"
   chmod a+r "$ETC_DIR/apt/keyrings/docker.asc"
   write_docker_source
-  apt-get update -q
+  apt_get update -q
   # shellcheck disable=SC2086
-  apt-get install -y -q $DOCKER_PACKAGES
+  apt_get install -y -q $DOCKER_PACKAGES
 }
 
 ensure_docker_group() {
