@@ -92,9 +92,12 @@ report_no_previous_data() {
   log "nothing rolled back: $BM_VM_HOST had no data before this restore; $where. Next: run 'make status' and 'make logs', fix the cause, then rerun 'make restore BACKUP=<archive>'"
 }
 
-# upload_vm_file TARGET PREV: keep a copy of TARGET at PREV, then read the new content from stdin.
+# upload_vm_file TARGET PREV: keep a copy of TARGET at PREV, then replace TARGET with stdin. Both writes go to
+# a temp name first and are moved into place only when complete, so a partial copy never replaces a good file
+# or becomes the rollback source; on failure the temp files are removed.
 upload_vm_file() {
-  remote "mkdir -p $BM_REMOTE_APP_DIR && if [ -e $1 ]; then cp $1 $2; fi && cat > $1"
+  local target="$1" prev="$2" tmp="$1.upload-$STAMP"
+  remote "mkdir -p $BM_REMOTE_APP_DIR && { if [ -e $target ]; then cp $target $prev.partial && mv $prev.partial $prev; fi && cat > $tmp && mv $tmp $target; } || { rm -f $tmp $prev.partial; exit 1; }"
 }
 
 main() {
