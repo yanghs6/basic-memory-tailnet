@@ -39,12 +39,42 @@ check_serve_tailnet_only() {
 # Assumption (macOS nc(1) as quoted by ss64.com; primary source not checked): on macOS -w only limits an idle
 # established connection and -G limits the TCP connect, so without -G a silently dropped SYN waits for the
 # OS connect timeout (about 75 s per port). On Linux netcat-openbsd -G means something else, so Darwin only.
+# shellcheck disable=SC2069  # intentional: send stderr to the capture, drop stdout
 probe_port() {
   if [[ "$1" == Darwin ]]; then
-    nc -z -G "$PUBLIC_PROBE_TIMEOUT_SECONDS" -w "$PUBLIC_PROBE_TIMEOUT_SECONDS" "$2" "$3" >/dev/null 2>&1
+    nc -z -G "$PUBLIC_PROBE_TIMEOUT_SECONDS" -w "$PUBLIC_PROBE_TIMEOUT_SECONDS" "$2" "$3" 2>&1 >/dev/null
   else
-    nc -z -w "$PUBLIC_PROBE_TIMEOUT_SECONDS" "$2" "$3" >/dev/null 2>&1
+    nc -z -w "$PUBLIC_PROBE_TIMEOUT_SECONDS" "$2" "$3" 2>&1 >/dev/null
   fi
+}
+
+# validate_public_ip IP -> dies unless IP is a dotted IPv4 (octets 0-255) outside loopback, private,
+# link-local and unspecified ranges (probing those would say nothing about the VM's public side).
+validate_public_ip() {
+  local ip="$1" a b c d hint
+  hint="use the VM's public IP from the OCI console (Compute > Instance > Public IP)"
+  [[ "$ip" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]] \
+    || die "BM_VM_PUBLIC_IP must be the VM's public IPv4 (got '$ip'): $hint"
+  a=$((10#${BASH_REMATCH[1]})) b=$((10#${BASH_REMATCH[2]})) c=$((10#${BASH_REMATCH[3]})) d=$((10#${BASH_REMATCH[4]}))
+  if ((a > 255 || b > 255 || c > 255 || d > 255)); then
+    die "BM_VM_PUBLIC_IP must be the VM's public IPv4 (octets 0-255, got '$ip'): $hint"
+  fi
+  if ((a == 0 || a == 127 || a == 10 || (a == 172 && b >= 16 && b <= 31) || (a == 192 && b == 168) || (a == 169 && b == 254))); then
+    die "BM_VM_PUBLIC_IP '$ip' is loopback, private, link-local or unspecified: $hint"
+  fi
+}
+
+# probe_is_open PLATFORM HOST PORT -> succeeds when the port accepts a connection, fails when it is closed;
+# dies on any other nc failure (bad option, bad host) so a broken probe can never read as "closed".
+probe_is_open() {
+  local err
+  if err="$(probe_port "$1" "$2" "$3")"; then
+    return 0
+  fi
+  if [[ -z "$err" ]] || grep -qiE 'refused|timed out|timeout' <<<"$err"; then
+    return 1
+  fi
+  die "public port probe error on $2:$3: $err"
 }
 
 check_public_closed() {
@@ -52,7 +82,7 @@ check_public_closed() {
   platform="$(uname -s)" || die "could not detect the local platform with uname -s"
   step "check public IP $BM_VM_PUBLIC_IP refuses ports $PUBLIC_PROBE_PORTS $port"
   for probe in $PUBLIC_PROBE_PORTS "$port"; do
-    if probe_port "$platform" "$BM_VM_PUBLIC_IP" "$probe"; then
+    if probe_is_open "$platform" "$BM_VM_PUBLIC_IP" "$probe"; then
       die "public IP $BM_VM_PUBLIC_IP accepts connections on port $probe: remove that OCI ingress rule"
     fi
   done
@@ -69,6 +99,7 @@ main() {
   require_env BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP
   [[ "$BM_TAILNET_DOMAIN" =~ ^[a-z0-9-]+\.ts\.net$ ]] \
     || die "BM_TAILNET_DOMAIN must look like tail1234.ts.net (no https://, no trailing dot): '$BM_TAILNET_DOMAIN'"
+  validate_public_ip "$BM_VM_PUBLIC_IP"
   url="https://${BM_VM_HOST}.${BM_TAILNET_DOMAIN}/mcp"
 
   if [[ "${1:-}" == --read-only ]]; then

@@ -146,6 +146,55 @@ setup() {
   assert_output --partial "accepts connections on port 22"
 }
 
+@test "verify rejects a malformed public IP before probing" {
+  export BM_VM_PUBLIC_IP=999.1.1.1
+  run "$REPO_DIR/scripts/verify-vm.sh"
+  assert_failure
+  assert_output --partial "BM_VM_PUBLIC_IP must be the VM's public IPv4"
+  run grep -c '^nc ' "$STUB_LOG"
+  assert_output 0
+}
+
+@test "verify rejects non-IP and private or loopback public IPs" {
+  local ip
+  for ip in example.com 1.2.3 127.0.0.1 10.0.0.5 172.16.0.1 172.31.255.255 192.168.1.1 169.254.1.1 0.0.0.0; do
+    BM_VM_PUBLIC_IP="$ip" run "$REPO_DIR/scripts/verify-vm.sh"
+    assert_failure
+    assert_output --partial "public IP from the OCI console"
+  done
+}
+
+@test "verify accepts a public IP next to the private ranges" {
+  BM_VM_PUBLIC_IP=172.32.0.1 run "$REPO_DIR/scripts/verify-vm.sh"
+  assert_success
+}
+
+@test "verify fails when nc rejects its options instead of probing" {
+  export NC_STUB_EXIT=1 NC_STUB_STDERR="nc: invalid option -- G"
+  run "$REPO_DIR/scripts/verify-vm.sh"
+  assert_failure
+  assert_output --partial "public port probe error on 203.0.113.10:22: nc: invalid option -- G"
+}
+
+@test "verify fails on an nc usage message" {
+  export NC_STUB_EXIT=1 NC_STUB_STDERR="usage: nc [-46bCDdFhklNnrStUuvZz] host port"
+  run "$REPO_DIR/scripts/verify-vm.sh"
+  assert_failure
+  assert_output --partial "public port probe error"
+}
+
+@test "verify treats a refused connection message as closed" {
+  export NC_STUB_EXIT=1 NC_STUB_STDERR="nc: connect to 203.0.113.10 port 22 (tcp) failed: Connection refused"
+  run "$REPO_DIR/scripts/verify-vm.sh"
+  assert_success
+}
+
+@test "verify treats a timed out connection as closed" {
+  export NC_STUB_EXIT=1 NC_STUB_STDERR="nc: connect to 203.0.113.10 port 22 (tcp) failed: Operation timed out"
+  run "$REPO_DIR/scripts/verify-vm.sh"
+  assert_success
+}
+
 # --- status ---
 
 @test "status shows containers, memory use and tailscale serve" {
