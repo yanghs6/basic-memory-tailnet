@@ -11,6 +11,7 @@
       "Bash(make test)",
       "Bash(make coverage)",
       "Bash(make check)",
+      "Bash(make check-git)",
       "Bash(make local-verify)"
     ],
     "deny": [
