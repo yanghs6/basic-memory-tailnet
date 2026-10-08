@@ -16,7 +16,7 @@ GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir)
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -55,3 +55,6 @@ local-logs: ## Show recent local container logs
 local-verify: ## Verify the local MCP endpoint (plain and *.ts.net Host header)
 	scripts/verify-mcp.sh "http://127.0.0.1:$(BM_PORT)/mcp"
 	scripts/verify-mcp.sh --host-header bm-node.example.ts.net "http://127.0.0.1:$(BM_PORT)/mcp"
+
+check-git: ## Check the git policy for the current branch (name, commit trailers, worktree config)
+	scripts/check-git.sh
