@@ -186,3 +186,17 @@ frontmatter() {
   assert_line --regexp '^disallowedTools: .*Write.*Edit'
   refute_line --regexp '^tools: .*(Write|Edit)'
 }
+
+@test "the Claude reviewer agent runs every Bash call through the read-only guard hook" {
+  local agent="$REPO_DIR/.claude/agents/branch-reviewer.md"
+  run frontmatter "$agent"
+  assert_line "hooks:"
+  assert_line "  PreToolUse:"
+  assert_line '    - matcher: "Bash"'
+  assert_line "      hooks:"
+  assert_line "        - type: command"
+  assert_line "          command: '\"\$CLAUDE_PROJECT_DIR\"/scripts/review-bash-guard.sh'"
+  [[ -x "$REPO_DIR/scripts/review-bash-guard.sh" ]] || fail "scripts/review-bash-guard.sh must exist and be executable, or the hook fails instead of blocking"
+  run grep -F "git status" "$agent"
+  assert_failure 1
+}
