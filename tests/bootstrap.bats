@@ -121,8 +121,13 @@ run_bootstrap_with_key() {
   assert_output --partial "using auth key tske****"
   assert_output --partial "only then delete the OCI ingress rule for port 22"
   refute_output --partial "tskey-auth-wrapper123"
-  run grep -F 'root@203.0.113.10 cat > /tmp/bm-bootstrap.sh' "$STUB_LOG"
+  run grep -E 'root@203.0.113.10 cat > /tmp/bm-bootstrap\.[A-Za-z0-9]{6}$' "$STUB_LOG"
   assert_success
+  run grep -F '/tmp/bm-bootstrap.sh' "$STUB_LOG"
+  assert_failure
+  remote_script="$(grep -oE '/tmp/bm-bootstrap\.[A-Za-z0-9]{6}' "$STUB_LOG" | head -n 1)"
+  [[ -n "$remote_script" ]]
+  [[ ! -e "$remote_script" ]]
   run grep -F 'tskey-auth-wrapper123' "$STUB_LOG"
   assert_failure
   run cat "$STUB_LOG.authkey"
@@ -144,15 +149,32 @@ run_bootstrap_with_key() {
 }
 
 @test "bootstrap-vm explains an upload failure" {
-  export BM_VM_USER=root TS_AUTHKEY=tskey-auth-x SSH_STUB_FAIL_MATCH="cat > /tmp/bm-bootstrap.sh"
+  export BM_VM_USER=root TS_AUTHKEY=tskey-auth-x SSH_STUB_FAIL_MATCH="cat > /tmp/bm-bootstrap."
   run "$WRAPPER" 203.0.113.10
   assert_failure
   assert_output --partial "upload failed"
+  run grep -F 'rm -f /tmp/bm-bootstrap.' "$STUB_LOG"
+  assert_success
 }
 
 @test "bootstrap-vm says a failed run is safe to repeat" {
-  export BM_VM_USER=root TS_AUTHKEY=tskey-auth-x SSH_STUB_FAIL_MATCH="bash /tmp/bm-bootstrap.sh"
+  export BM_VM_USER=root TS_AUTHKEY=tskey-auth-x SSH_STUB_FAIL_MATCH="bash /tmp/bm-bootstrap."
   run "$WRAPPER" 203.0.113.10
   assert_failure
   assert_output --partial "it is safe to repeat"
+  remote_script="$(grep -oE '/tmp/bm-bootstrap\.[A-Za-z0-9]{6}' "$STUB_LOG" | head -n 1)"
+  [[ -n "$remote_script" ]]
+  [[ ! -e "$remote_script" ]]
+}
+
+@test "bootstrap-vm refuses an unexpected temp path from the VM" {
+  export BM_VM_USER=root TS_AUTHKEY=tskey-auth-x
+  mkdir -p "$BATS_TEST_TMPDIR/fakebin"
+  printf '#!/usr/bin/env bash\necho "/tmp/x; touch pwned"\n' >"$BATS_TEST_TMPDIR/fakebin/mktemp"
+  chmod +x "$BATS_TEST_TMPDIR/fakebin/mktemp"
+  PATH="$BATS_TEST_TMPDIR/fakebin:$PATH" run "$WRAPPER" 203.0.113.10
+  assert_failure
+  assert_output --partial "unexpected temp path from mktemp"
+  run grep -F 'cat > /tmp/x' "$STUB_LOG"
+  assert_failure
 }
