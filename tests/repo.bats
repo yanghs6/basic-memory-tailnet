@@ -259,3 +259,56 @@ reviewer_hook_command() {
     [[ -f "$REPO_DIR/.agents/skills/$name/SKILL.md" ]] || fail "missing .agents/skills/$name/SKILL.md"
   done
 }
+
+markdown_files() {
+  git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- '*.md'
+}
+
+# markdown_links FILE -> the link targets of FILE, one per line, ignoring fenced code blocks and external URLs.
+# grep exits 1 when a file has no links, which is fine; exit 2 (a real error) must surface.
+markdown_links() {
+  local links status=0
+  links="$(awk '/^```/ { fence = !fence; next } !fence' "$REPO_DIR/$1" | grep -oE '\]\([^)]+\)')" || status=$?
+  ((status <= 1)) || return "$status"
+  if [[ -n "$links" ]]; then
+    sed -E 's/^\]\((.*)\)$/\1/' <<<"$links" | grep -vE '^(https?:|mailto:)' || [[ $? -eq 1 ]]
+  fi
+}
+
+@test "relative links in markdown files resolve" {
+  local files file link target broken="" checked=0
+  files="$(markdown_files)" || fail "git ls-files failed"
+  [[ -n "$files" ]] || fail "git returned no markdown files"
+  [[ -f "$REPO_DIR/README.md" ]] || fail "README.md is missing"
+  while IFS= read -r file; do
+    while IFS= read -r link; do
+      link="${link%%#*}"
+      [[ -n "$link" ]] || continue
+      checked=$((checked + 1))
+      target="$(cd "$REPO_DIR/$(dirname "$file")" && realpath -m "$link")"
+      [[ -e "$target" ]] || broken="$broken $file->$link"
+    done < <(markdown_links "$file")
+  done <<<"$files"
+  ((checked > 0)) || fail "no relative links were checked"
+  [[ -z "$broken" ]] || fail "broken relative links:$broken"
+}
+
+@test "every docs markdown path named in scripts, skills and AGENTS.md exists" {
+  local path missing="" count=0 paths
+  paths="$(grep -rhoE 'docs/[A-Za-z0-9_./-]+\.md' "$REPO_DIR/scripts" "$REPO_DIR/.agents/skills" "$REPO_DIR/AGENTS.md" | sort -u)" \
+    || fail "found no docs/*.md references to check"
+  while IFS= read -r path; do
+    count=$((count + 1))
+    [[ -f "$REPO_DIR/$path" ]] || missing="$missing $path"
+  done <<<"$paths"
+  ((count > 0)) || fail "no docs paths were checked"
+  [[ -z "$missing" ]] || fail "referenced docs do not exist:$missing"
+}
+
+@test "runbooks contain the sections scripts and skills point to" {
+  run grep -E '^## (Exposure audit|Idle reclamation|Incident log)' "$REPO_DIR/docs/runbooks/operations.md"
+  assert_success
+  assert_line --partial "Exposure audit"
+  assert_line --partial "Idle reclamation"
+  assert_line --partial "Incident log"
+}
