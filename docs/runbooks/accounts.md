@@ -43,7 +43,7 @@ cp .env.example .env
 
 `.env`는 git에 커밋하지 않습니다(`.gitignore`가 제외). tailnet DNS 이름(예: `tail1234.ts.net`)을 `.env`의 `BM_TAILNET_DOMAIN`에 적습니다. `.env`는 사용자가 직접 편집합니다(에이전트는 읽을 수 없음). `BM_VM_HOST`는 `bm-node` 그대로 둡니다. 부트스트랩이 기기 이름을 `bm-node`로 고정하므로 바꾸면 deploy와 verify가 VM을 찾지 못합니다. GCP 인스턴스 이름(예: `agent-hub-01`)은 `bm-node`와 달라도 되며, 스크립트는 `bm-node`만 씁니다.
 
-`.env`, `backups/`, `.local-data/`는 **main 체크아웃에만** 둡니다. Makefile은 어느 체크아웃에서 실행하든 main 체크아웃의 `.env`를 읽고, `make backup`은 main 체크아웃의 `backups/`에 저장합니다. worktree 안에 `.env`나 백업을 따로 만들지 마세요. `git worktree remove`는 worktree 안의 git ignore 파일을 경고 없이 지웁니다.
+`.env`와 `backups/`는 **main 체크아웃에만** 둡니다(`.local-data/`는 `make local-up`을 실행한 체크아웃마다 따로 생기는 로컬 테스트 데이터입니다). Makefile은 어느 체크아웃에서 실행하든 main 체크아웃의 `.env`를 읽고, `make backup`은 main 체크아웃의 `backups/`에 저장합니다. worktree 안에 `.env`나 백업을 따로 만들지 마세요. `git worktree remove`는 worktree 안의 git ignore 파일을 경고 없이 지웁니다.
 
 ## 4. 접근 정책 (Access controls)
 

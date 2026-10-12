@@ -35,12 +35,13 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`bm-node
 |---|---|---|
 | Markdown 노트 | `.local-data/knowledge/basic-memory/` | `/srv/basic-memory/knowledge/basic-memory/` |
 | SQLite 인덱스·설정·임베딩 모델 캐시 | `.local-data/config/` | `/srv/basic-memory/config/` |
-| compose와 `.env` | main 체크아웃 루트 | `/opt/basic-memory/` |
+| `compose.yaml` | 명령을 실행한 체크아웃 루트(`make deploy`가 그 파일을 올림) | `/opt/basic-memory/` |
+| `.env` | main 체크아웃 루트 | `/opt/basic-memory/` (VM용 `.env`는 `make deploy`가 생성) |
 | 스왑 | 해당 없음 | `/swapfile` (1GB, `/etc/fstab`에 등록) |
 
 기본 프로젝트 `main`은 `/app/data/basic-memory`에 생성됩니다(**Verified**, 0.23.2).
 
-`.env`, `backups/`, `.local-data/`는 main 체크아웃에만 둡니다. Makefile은 어느 체크아웃에서 실행하든 main 체크아웃의 `.env`를 읽고, `backup`은 main 체크아웃의 `backups/`에 저장합니다.
+`.env`와 `backups/`는 main 체크아웃에만 둡니다(`.local-data/`는 `make local-up`을 실행한 체크아웃마다 생기는 로컬 테스트 데이터). Makefile은 어느 체크아웃에서 실행하든 main 체크아웃의 `.env`를 읽고, `backup`은 main 체크아웃의 `backups/`에 저장합니다.
 
 ## 신뢰 경계
 
