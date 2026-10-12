@@ -5,7 +5,7 @@ description: Read-only troubleshooting for the Basic Memory MCP endpoint, Tailsc
 
 # Diagnose Basic Memory
 
-Read-only. Run only `make probe`, `make status` and `make logs` (plus `tailscale status` and `ssh ubuntu@bm-node true` on this machine). On the VM read only with `ls`, `df` and named config files; never run an unrestricted `cat`. Anything that writes notes, starts or restarts something, or changes settings (`make verify`, `make local-up`, `make deploy`, `make restore`, `make backup`) is a proposal for the user, not a step you run. You cannot read `.env`; ask the user to check values in it.
+Read-only. Run only `make probe`, `make status` and `make logs` (plus `tailscale status` and `ssh ubuntu@bm-node true` on this machine). On the VM read only with `ls`, `df` and this one named file: `/opt/basic-memory/compose.yaml` (the deployed compose file). Never read the VM's `/opt/basic-memory/.env` and never run an unrestricted `cat`. Anything that writes notes, starts or restarts something, or changes settings (`make verify`, `make local-up`, `make deploy`, `make restore`, `make backup`) is a proposal for the user, not a step you run. The local `.env` belongs to the user: do not read it by any means; ask the user to check values in it.
 
 Work top-down and stop at the first layer that fails:
 
