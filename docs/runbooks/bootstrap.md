@@ -4,15 +4,15 @@
 
 ## 준비
 
-```bash
-cp .env.example .env    # BM_TAILNET_DOMAIN, BM_VM_PUBLIC_IP 채우기 (사용자가 직접 편집)
-```
+`.env`는 [accounts 3단계](accounts.md)에서 만들었습니다. `BM_TAILNET_DOMAIN`과 `BM_VM_PUBLIC_IP`가 채워져 있는지 사용자가 확인합니다(에이전트는 읽을 수 없음). 없으면 `cp .env.example .env` 후 채웁니다.
 
 [accounts 런북 5단계](accounts.md)대로 1회용 인증 키를 발급해 둡니다.
 
 ## 순서
 
-1. 이전에 같은 이름의 VM에 접속한 적이 있으면(재구축 등) 옛 호스트 키를 지웁니다: `ssh-keygen -R bm-node`
+1. VM을 다시 만드는 경우(재구축)에만:
+   - Tailscale admin console에서 옛 `bm-node` 기기를 먼저 삭제합니다. 남아 있으면 새 노드가 `bm-node-1` 같은 다른 이름으로 들어옵니다.
+   - 옛 호스트 키를 지웁니다: `ssh-keygen -R bm-node`. 새 VM이 옛 공인 IP를 그대로 받았다면 `ssh-keygen -R <공인 IP>`도 실행합니다.
 2. `make vm-bootstrap HOST=<공인 IP>` → 숨김 프롬프트에 인증 키를 붙여 넣습니다(화면에 표시되지 않음).
    - 인증 키를 명령줄에 쓰지 마세요(`make vm-bootstrap TS_AUTHKEY=...` 금지: 셸 기록과 프로세스 목록에 남습니다). 프롬프트를 쓰거나, 먼저 `read -rs TS_AUTHKEY && export TS_AUTHKEY`를 실행합니다.
    - Docker·Tailscale 설치, tailnet 참여(`bm-node`, Tailscale SSH), 데이터 디렉터리 생성, Serve 설정까지 합니다.
@@ -38,5 +38,7 @@ cp .env.example .env    # BM_TAILNET_DOMAIN, BM_VM_PUBLIC_IP 채우기 (사용�
 | `Serve is not active` | [accounts 3단계](accounts.md)의 MagicDNS와 HTTPS Certificates를 켠 뒤 `make vm-bootstrap`을 다시 실행 |
 | `Funnel is on for this node` | Funnel을 끄고([운영 런북](operations.md)의 Exposure audit) 다시 실행 |
 | `Host key verification failed` / `REMOTE HOST IDENTIFICATION HAS CHANGED` | VM을 다시 만들면 호스트 키가 바뀝니다. `ssh-keygen -R bm-node` 후 대화형 `ssh ubuntu@bm-node true`로 새 키를 수락 |
+| `make vm-bootstrap` 중 `REMOTE HOST IDENTIFICATION HAS CHANGED` (공인 IP) | 재구축한 VM이 같은 공인 IP를 쓰면 옛 키와 충돌합니다. `ssh-keygen -R <공인 IP>` 후 다시 실행 |
+| 새 노드 이름이 `bm-node-1` | 옛 `bm-node` 기기가 admin console에 남아 있습니다. 옛 기기를 삭제한 뒤 `make vm-bootstrap`을 다시 실행해 이름을 확인(`tailscale status`) |
 | `ssh ubuntu@bm-node` 실패 | 정책의 `ssh` 규칙([accounts 4단계](accounts.md)) |
 | 22번을 지운 뒤 접속 불가 | OCI 콘솔 → 인스턴스 → **Console connection**(시리얼 콘솔)으로 들어가 `sudo tailscale status` 확인 |

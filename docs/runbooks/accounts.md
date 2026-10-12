@@ -18,7 +18,13 @@ Admin console → **DNS**에서 다음을 켭니다.
 - **MagicDNS**
 - **HTTPS Certificates**: 인증서가 발급된 기기 이름은 공개 Certificate Transparency 로그에 기록됩니다(**Verified**). 그래서 기기 이름을 일반적인 `bm-node`로 씁니다.
 
-tailnet DNS 이름(예: `tail1234.ts.net`)을 `.env`의 `BM_TAILNET_DOMAIN`에 적습니다. `.env`는 사용자가 직접 편집합니다(에이전트는 읽을 수 없음). `BM_VM_HOST`는 `bm-node` 그대로 둡니다. 부트스트랩이 기기 이름을 `bm-node`로 고정하므로 바꾸면 deploy와 verify가 VM을 찾지 못합니다.
+먼저 저장소 루트에서 설정 파일을 만듭니다(이미 있으면 건너뜁니다).
+
+```bash
+cp .env.example .env
+```
+
+`.env`는 git에 커밋하지 않습니다(`.gitignore`가 제외). tailnet DNS 이름(예: `tail1234.ts.net`)을 `.env`의 `BM_TAILNET_DOMAIN`에 적습니다. `.env`는 사용자가 직접 편집합니다(에이전트는 읽을 수 없음). `BM_VM_HOST`는 `bm-node` 그대로 둡니다. 부트스트랩이 기기 이름을 `bm-node`로 고정하므로 바꾸면 deploy와 verify가 VM을 찾지 못합니다.
 
 ## 4. 접근 정책 (Access controls)
 
