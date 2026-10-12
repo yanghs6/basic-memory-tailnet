@@ -252,3 +252,10 @@ reviewer_hook_command() {
   CLAUDE_PROJECT_DIR="$REPO_DIR" run sh -c "$hook" <<<"$input"
   assert_success
 }
+
+@test "operational skills bm-upgrade, bm-recover and bm-diagnose exist" {
+  local name
+  for name in bm-upgrade bm-recover bm-diagnose; do
+    [[ -f "$REPO_DIR/.agents/skills/$name/SKILL.md" ]] || fail "missing .agents/skills/$name/SKILL.md"
+  done
+}
