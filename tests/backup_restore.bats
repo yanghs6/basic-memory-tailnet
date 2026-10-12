@@ -276,7 +276,7 @@ fix_backup_stamp() {
 @test "restore prints usage without an argument" {
   run "$RESTORE"
   assert_failure
-  assert_output --partial "usage: make restore BACKUP=backups/bm-<stamp>.tgz"
+  assert_output --partial "usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz"
 }
 
 @test "restore leaves current data live and restarts when extraction fails" {

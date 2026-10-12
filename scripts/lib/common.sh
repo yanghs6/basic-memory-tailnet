@@ -34,7 +34,7 @@ require_cmd() {
 require_env() {
   local name
   for name in "$@"; do
-    [[ -n "${!name:-}" ]] || die "missing env $name: copy .env.example to .env and set it"
+    [[ -n "${!name:-}" ]] || die "missing env $name: set it in .env in the main checkout (copy .env.example there; see docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md)"
   done
 }
 
