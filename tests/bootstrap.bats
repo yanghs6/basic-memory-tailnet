@@ -2,11 +2,12 @@
 load helpers
 
 setup() {
-  setup_stubs apt-get dpkg id usermod tailscale curl sudo ssh
+  setup_stubs apt-get dpkg id usermod tailscale curl sudo ssh swapon fallocate mkswap
   use_vm_env
   export ETC_DIR="$BATS_TEST_TMPDIR/etc" RUN_DIR="$BATS_TEST_TMPDIR/run"
   export OS_RELEASE="$REPO_DIR/tests/fixtures/os-release" ADMIN_USER=root
-  mkdir -p "$RUN_DIR"
+  export SWAP_FILE="$BATS_TEST_TMPDIR/swapfile"
+  mkdir -p "$RUN_DIR" "$ETC_DIR"
   BOOTSTRAP="$REPO_DIR/scripts/remote/bootstrap.sh"
   WRAPPER="$REPO_DIR/scripts/bootstrap-vm.sh"
 }
@@ -143,7 +144,7 @@ run_bootstrap_with_key() {
   run "$WRAPPER" 203.0.113.10
   assert_success
   assert_output --partial "using auth key tske****"
-  assert_output --partial "only then delete the OCI ingress rule for port 22"
+  assert_output --partial "only then delete the firewall rule that opens port 22"
   refute_output --partial "tskey-auth-wrapper123"
   run grep -E 'root@203.0.113.10 cat > /tmp/bm-bootstrap\.[A-Za-z0-9]{6}$' "$STUB_LOG"
   assert_success
@@ -201,4 +202,93 @@ run_bootstrap_with_key() {
   assert_output --partial "unexpected temp path from mktemp"
   run grep -F 'cat > /tmp/x' "$STUB_LOG"
   assert_failure
+}
+
+@test "creates, formats and enables a swap file when no swap is active" {
+  setup_stubs docker
+  run_bootstrap_with_key ""
+  assert_success
+  run grep -F "fallocate -l 1024M $SWAP_FILE" "$STUB_LOG"
+  assert_success
+  run grep -F "mkswap $SWAP_FILE" "$STUB_LOG"
+  assert_success
+  run grep -F "swapon $SWAP_FILE" "$STUB_LOG"
+  assert_success
+  [[ "$(stat -c %a "$SWAP_FILE")" == 600 ]]
+  run cat "$ETC_DIR/fstab"
+  assert_output "$SWAP_FILE none swap sw 0 0"
+}
+
+@test "sets up swap before installing docker" {
+  export TS_STUB_STATUS_EXIT=1
+  run_bootstrap_with_key tskey-auth-test123
+  assert_success
+  run cat "$STUB_LOG"
+  assert_line --index 0 "swapon --show --noheadings"
+  local swap_line apt_line
+  swap_line="$(grep -nF "swapon $SWAP_FILE" "$STUB_LOG" | head -n 1 | cut -d: -f1)"
+  apt_line="$(grep -nF "apt-get" "$STUB_LOG" | head -n 1 | cut -d: -f1)"
+  ((swap_line < apt_line))
+}
+
+@test "skips the swap setup when swap is already active" {
+  setup_stubs docker
+  export SWAPON_STUB_ACTIVE="/dev/sda2 partition 1G 0B -2"
+  run_bootstrap_with_key ""
+  assert_success
+  assert_output --partial "swap already active"
+  run grep -E 'fallocate|mkswap' "$STUB_LOG"
+  assert_failure
+  run grep -F "swapon $SWAP_FILE" "$STUB_LOG"
+  assert_failure
+  [[ ! -e "$ETC_DIR/fstab" ]]
+}
+
+@test "keeps a single fstab line when bootstrap runs twice" {
+  setup_stubs docker
+  run_bootstrap_with_key ""
+  assert_success
+  run_bootstrap_with_key ""
+  assert_success
+  run grep -c "^$SWAP_FILE none swap sw 0 0\$" "$ETC_DIR/fstab"
+  assert_output 1
+}
+
+@test "keeps other fstab entries and appends the swap line after them" {
+  setup_stubs docker
+  printf 'UUID=abc / ext4 defaults 0 1\n' >"$ETC_DIR/fstab"
+  run_bootstrap_with_key ""
+  assert_success
+  run cat "$ETC_DIR/fstab"
+  assert_line --index 0 "UUID=abc / ext4 defaults 0 1"
+  assert_line --index 1 "$SWAP_FILE none swap sw 0 0"
+}
+
+@test "fails with an actionable message when the swap file cannot be allocated" {
+  export FALLOCATE_STUB_EXIT=1
+  run_bootstrap_with_key ""
+  assert_failure
+  assert_output --partial "could not create $SWAP_FILE"
+  assert_output --partial "rerun 'make vm-bootstrap'"
+  [[ ! -e "$ETC_DIR/fstab" ]]
+  run grep -F 'apt-get' "$STUB_LOG"
+  assert_failure
+}
+
+@test "fails and writes no fstab line when mkswap fails" {
+  setup_stubs docker
+  export MKSWAP_STUB_EXIT=1
+  run_bootstrap_with_key ""
+  assert_failure
+  assert_output --partial "mkswap failed"
+  [[ ! -e "$ETC_DIR/fstab" ]]
+}
+
+@test "fails and writes no fstab line when swapon fails" {
+  setup_stubs docker
+  export SWAPON_STUB_EXIT=1
+  run_bootstrap_with_key ""
+  assert_failure
+  assert_output --partial "swapon failed"
+  [[ ! -e "$ETC_DIR/fstab" ]]
 }

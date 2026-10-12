@@ -156,8 +156,8 @@ OCI 설계 §7과 같고 다음만 다르다.
 
 OCI 설계 §7.4의 단계에 **스왑 단계**를 더한다. 단계마다 이미 된 일은 건너뛰므로 다시 실행해도 결과가 같다.
 
-1. 공식 apt 저장소로 Docker Engine과 compose 플러그인을 설치하고, `ubuntu`를 docker 그룹에 추가한다.
-2. **스왑:** 활성 스왑이 없으면 `/swapfile`을 `SWAP_SIZE_MB`(1024) 크기로 만들고 0600 권한, `mkswap`, `swapon`을 거쳐 `/etc/fstab`에 한 번만 등록한다. 활성 스왑이 있으면 건너뛴다.
+1. **스왑:** 활성 스왑이 없으면 `/swapfile`을 `SWAP_SIZE_MB`(1024) 크기로 만들고 0600 권한, `mkswap`, `swapon`을 거쳐 `/etc/fstab`에 한 번만 등록한다. 활성 스왑이 있으면 건너뛴다. 1GB 머신에서는 apt와 dpkg가 메모리를 많이 쓰므로 가장 먼저 한다.
+2. 공식 apt 저장소로 Docker Engine과 compose 플러그인을 설치하고, `ubuntu`를 docker 그룹에 추가한다.
 3. Tailscale 설치와 tailnet 참여(인증 키는 stdin → `/run`의 0600 임시 파일 → `--auth-key=file:` → 즉시 삭제).
 4. `/srv/basic-memory/{knowledge,config}`를 1000:1000으로, `/opt/basic-memory`를 `ubuntu` 소유로 만든다.
 5. `tailscale serve --bg http://127.0.0.1:8737`을 적용하고 결과를 다시 읽어 확인한다.
@@ -206,7 +206,7 @@ OCI 설계 §9와 같고 다음을 더한다.
 
 - **스왑 (`tests/bootstrap.bats`):** 활성 스왑이 없으면 파일을 만들고 켜며 fstab에 한 번만 등록한다. 활성 스왑이 있으면 아무것도 하지 않는다. 다시 실행해도 fstab 줄이 늘지 않는다. 스텁: `swapon`, `fallocate`, `mkswap`.
 - **`status` (`tests/vm_ops.bats`):** 메모리·스왑을 출력하고, 스왑이 없으면 경고한다. 유휴 회수 테스트는 지운다.
-- **클라우드 중립 (`tests/repo.bats`):** `scripts/` 아래 모든 파일(주석 포함)에 `OCI`, `Oracle`, `GCP`, `gcloud`가 대소문자 구분 없이 나오지 않는다.
+- **클라우드 중립 (`tests/cloud_neutral.bats`):** `scripts/` 아래 모든 파일(주석 포함)에 `OCI`, `Oracle`, `GCP`, `gcloud`가 단어 단위로, 대소문자 구분 없이 나오지 않는다. 유일한 예외는 스크립트가 런북을 가리키는 경로 `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`다.
 - **main 체크아웃 기준 경로:** worktree에서 실행해도 `backup.sh`가 main 체크아웃의 `backups/`에 저장하고, Makefile이 worktree의 `.env`가 아니라 main 체크아웃의 `.env`를 읽는다.
 - **E2E (VM, 수동, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)):** §3의 Assumption, 스왑 활성, 재부팅 뒤 외부 IP 유지, Tailscale SSH만으로 `vm-bootstrap` 재실행, 완료 조건 5(청구)를 확인하고 진행 로그에 기록한다.
 
