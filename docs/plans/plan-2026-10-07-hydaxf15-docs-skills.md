@@ -2489,3 +2489,9 @@ git commit -m "docs: record review of the docs-skills plan" --trailer "Assisted-
 | 2026-10-12 | Command | `make local-up local-verify local-down`을 두 번 따로 실행(make는 한 명령줄의 같은 타깃을 한 번만 실행하므로 나눠야 한다) |
 | 2026-10-12 | Verified | 두 번 모두 컨테이너가 healthy가 되고 `OK: MCP round trip passed`가 일반 요청과 `*.ts.net` Host 헤더 요청에서 각각 나옴(총 4회). 내렸다 다시 올린 뒤에도 같은 결과 |
 | 2026-10-12 | Open question | 계획의 원래 Step 2(`docker restart` + `sleep 20`)는 Make 타깃만 쓰는 규칙에 맞지 않아 down/up 주기로 바꿨다. 로컬 메모리 측정은 하지 않았다(VM 메모리는 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 24시간 뒤 측정) |
+| 2026-10-12 | Command | `git status --short && make check` (작업 트리 깨끗함, 0a98c9e 기준). 실행 전 `docker ps`에 compose.yaml의 `basic-memory-server`가 없음을 확인 |
+| 2026-10-12 | Verified | `make check`: 테스트 220개 전부 PASS(실패 0), 라인 커버리지 97.97%(최소 80%). 커버리지 목록에 실행 스크립트 12개와 `lib/common.sh`가 모두 나옴 |
+| 2026-10-12 | Command | `make local-up local-verify local-down`을 두 번 따로 실행하고 끝날 때마다 `basic-memory` 컨테이너가 없는지 확인 |
+| 2026-10-12 | Verified | 두 번 모두 종료 코드 0. `OK: MCP round trip passed`가 일반 요청과 `*.ts.net` Host 헤더 요청에서 각각 나와 총 4회 확인 |
+| 2026-10-12 | Command | `grep -rniwE 'oci|oracle' scripts AGENTS.md README.md docs/ARCHITECTURE.md docs/runbooks .agents/skills; echo "exit=$?"` |
+| 2026-10-12 | Verified | grep 결과 없음, `exit=1`. 클라우드 이름이 남아 있지 않음 |
