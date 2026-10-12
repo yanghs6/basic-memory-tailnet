@@ -356,6 +356,8 @@ markdown_links() {
   assert_success
   run grep -F -- '--configuration=bm-personal' "$REPO_DIR/AGENTS.md"
   assert_success
+  run grep -F 'never run `gcloud config configurations activate`' "$REPO_DIR/AGENTS.md"
+  assert_success
   run grep -F '`.env` and `backups/` live only in the main checkout' "$REPO_DIR/AGENTS.md"
   assert_success
   run grep -F 'in their own terminal' "$REPO_DIR/AGENTS.md"
