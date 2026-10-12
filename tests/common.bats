@@ -107,3 +107,31 @@ setup() {
   PATH="$BATS_TEST_TMPDIR/failbin:$PATH" run bash -c "$(manifest_cmd "$BATS_TEST_TMPDIR/d")"
   assert_failure
 }
+
+@test "main_checkout_root prints the repo root when asked about the main checkout" {
+  make_worktree_fixture
+  run main_checkout_root "$MAIN_REPO"
+  assert_success
+  assert_output "$MAIN_REPO"
+}
+
+@test "main_checkout_root prints the main checkout when asked about a linked worktree" {
+  make_worktree_fixture
+  run main_checkout_root "$LINKED_WT"
+  assert_success
+  assert_output "$MAIN_REPO"
+}
+
+@test "main_checkout_root defaults to the repo that holds the scripts" {
+  run main_checkout_root
+  assert_success
+  assert_output --regexp '^/.+'
+  refute_output --regexp '\.git$'
+}
+
+@test "main_checkout_root fails outside a git repository" {
+  mkdir -p "$BATS_TEST_TMPDIR/plain"
+  export GIT_CEILING_DIRECTORIES="$BATS_TEST_TMPDIR"
+  run main_checkout_root "$BATS_TEST_TMPDIR/plain"
+  assert_failure
+}

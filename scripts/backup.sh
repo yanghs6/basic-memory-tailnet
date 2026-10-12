@@ -1,21 +1,33 @@
 #!/usr/bin/env bash
-# Download a consistent backup of the VM data root into backups/: archive, .sha256 and a .manifest of every
+# Download a consistent backup of the VM data root into the main checkout's backups/: archive, .sha256 and a .manifest of every
 # data file. The container is stopped briefly so SQLite files are not copied mid-write; the restart is
 # registered before the stop, so it runs even if the stop's reply is lost.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
 # shellcheck source=lib/common.sh
 . "$SCRIPT_DIR/lib/common.sh"
 
-readonly BACKUP_DIR="${BACKUP_DIR:-$REPO_DIR/backups}"
+readonly BACKUPS_DIRNAME="backups"
 readonly PARTIAL_SUFFIX=".partial"
 ARCHIVE=""
 IS_RESERVED=0
 IS_FINALIZED=0
 # How many of this run's files (in finalize order) were renamed into place; cleanup removes only those.
 RENAMED_COUNT=0
+
+# resolve_backup_dir -> absolute backup directory (created). BACKUP_DIR from the environment wins; otherwise
+# backups/ in the MAIN checkout, so an archive made in a worktree survives 'git worktree remove'.
+resolve_backup_dir() {
+  local dir="${BACKUP_DIR:-}" root
+  if [[ -z "$dir" ]]; then
+    root="$(main_checkout_root)" \
+      || die "cannot find the main checkout (is this a git checkout?): set BACKUP_DIR=<dir> and run 'make backup' again"
+    dir="$root/$BACKUPS_DIRNAME"
+  fi
+  mkdir -p "$dir" || die "could not create the backup directory $dir"
+  (cd "$dir" && pwd)
+}
 
 # reserve_archive -> claim $ARCHIVE for this run before anything can clean up; dies if the name is taken.
 reserve_archive() {
@@ -74,7 +86,7 @@ main() {
   local parent name digest
   require_cmd ssh
   require_env BM_VM_HOST BM_VM_USER
-  mkdir -p "$BACKUP_DIR"
+  BACKUP_DIR="$(resolve_backup_dir)" || exit 1
   ARCHIVE="$BACKUP_DIR/bm-$(date -u +%Y%m%dT%H%M%SZ).tgz"
   parent="$(dirname "$BM_REMOTE_DATA_ROOT")"
   name="$(basename "$BM_REMOTE_DATA_ROOT")"
