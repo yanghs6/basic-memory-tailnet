@@ -1449,3 +1449,10 @@ git commit -m "docs: record review of the vm-scripts plan" --trailer "Assisted-b
 | 날짜 | 표기 | 내용 |
 |---|---|---|
 | 2026-10-07 | Verified | `tailscale up --auth-key=file:<path>` 지원 (tailscale.com/kb/1241) |
+| 2026-10-08 | Verified | `make check`: 테스트 172개 전부 PASS, 라인 커버리지 97.92%. 시작 기준은 98개였다(계획 작성 시 가정한 67개가 아님) |
+| 2026-10-08 | Verified | Subagent-driven 진행: Task 1 `de303eb`, Task 2 `7c4bc1a`, Task 3 `9fcd6e2`. 사전 점검에서 결함 4·충돌 4를 판정해 반영(복원 시 VM `.env` 업로드와 롤백, 교체 실패 롤백 테스트, 인증 키 파일 trap, [local-foundation 계획](plan-2026-10-07-sqzn0teq-local-foundation.md)에서 미룬 지적 a~e) |
+| 2026-10-08 | Verified | 태스크 리뷰와 최종 리뷰(opus) 뒤 수정: `SDD-T1-F1~F4`, `SDD-T2-F1~F4`, `SDD-T3-F1~F5`. 실패 테스트가 실제 결함을 드러냄: `find` 실패 시 빈 manifest로 백업 성공, 심볼릭 링크 아카이브 복원, 롤백이 반쪽 compose.yaml로 덮어씀, 롤백이 컨테이너를 다시 만들지 않아 실패한 데이터를 계속 마운트 |
+| 2026-10-08 | Verified | 최종 리뷰가 1차 자료로 확인: sudo의 `VAR=val`(ALL 규칙), `docker compose up --wait --wait-timeout`, `tailscale status` 종료 코드, `serve status`의 `(tailnet only)`·`(Funnel on)`·`No serve config` 문자열 |
+| 2026-10-08 | Assumption | macOS `nc -G`가 연결 대기 시간을 제한한다. VM 로그인 셸은 bash다(manifest 명령의 pipefail). 실제 VM 확인 16항목은 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) 문서로 옮김 |
+| 2026-10-08 | Verified | 사용자 결정: VM 작업 중 사용자 확인이 필요한 것은 `vm-bootstrap`·`deploy`·`restore`뿐이다. `verify`·`backup`은 확인 없이 실행한다(`83e92fb`). 에이전트의 `AGENTS.md` 수정은 자동 권한 검사기가 막아서, 사용자가 선택한 뒤 컨트롤러가 반영했다 |
+| 2026-10-08 | Open question | 미룬 지적: `make status`가 Serve 설정 누락을 못 봄, 멈춘 노드를 tailnet 밖으로 보고, bootstrap 호스트명 고정, 런북 경로([docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md)에서 생성) 등. 목록은 리뷰 기록에 옮긴다 |

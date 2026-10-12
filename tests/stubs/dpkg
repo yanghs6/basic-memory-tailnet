@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Test stub for dpkg: answers --print-architecture with arm64.
+set -euo pipefail
+printf 'dpkg %s\n' "$*" >>"$STUB_LOG"
+if [[ "${1:-}" == --print-architecture ]]; then
+  echo arm64
+fi
