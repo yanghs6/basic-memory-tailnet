@@ -11,3 +11,5 @@ CLAUDE.local.md
 backups/
 .coverage/
 .review-out/
+# Agent scratch (SDD ledgers, task briefs, review packages)
+.superpowers/

@@ -5,7 +5,7 @@
 ## 0. 변수와 설정 확인
 
 ```bash
-INSTANCE=agent-hub-01   # 현재 인스턴스 이름(재구축 뒤에는 새 이름). Tailscale 기기 이름(bm-node)과 달라도 됩니다.
+INSTANCE=agent-hub-01   # 현재 인스턴스 이름(재구축 뒤에는 새 이름). Tailscale 기기 이름(agent-hub)과 달라도 됩니다.
 ZONE=us-west1-b
 gcloud config list --configuration=bm-personal
 env | grep '^CLOUDSDK_'   # 아무것도 출력되지 않아야 합니다

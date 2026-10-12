@@ -74,7 +74,7 @@ run_bootstrap_with_key() {
   assert_output "tskey-auth-secret987"
   run grep -F 'tskey-auth-secret987' "$STUB_LOG"
   assert_failure
-  run grep -E 'tailscale up --auth-key=file:.* --hostname=bm-node --ssh' "$STUB_LOG"
+  run grep -E 'tailscale up --auth-key=file:.* --hostname=agent-hub --ssh' "$STUB_LOG"
   assert_success
   run ls -A "$RUN_DIR"
   assert_output ""
@@ -102,7 +102,7 @@ run_bootstrap_with_key() {
   setup_stubs docker
   run_bootstrap_with_key ""
   assert_success
-  run grep -F 'tailscale set --hostname=bm-node --ssh' "$STUB_LOG"
+  run grep -F 'tailscale set --hostname=agent-hub --ssh' "$STUB_LOG"
   assert_success
   run grep -F 'tailscale up' "$STUB_LOG"
   assert_failure

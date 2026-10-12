@@ -23,9 +23,9 @@ case "${1:-}" in
         exit 0
       fi
       if [[ "${TS_STUB_FUNNEL:-off}" == on ]]; then
-        echo "https://bm-node.example.ts.net (Funnel on)"
+        echo "https://agent-hub.example.ts.net (Funnel on)"
       else
-        echo "https://bm-node.example.ts.net (tailnet only)"
+        echo "https://agent-hub.example.ts.net (tailnet only)"
       fi
       echo "|-- / proxy http://127.0.0.1:8737"
     fi
