@@ -130,6 +130,8 @@ fix_backup_stamp() {
     run cat "$BACKUP_DIR/$file"
     assert_output "old"
   done
+  # The name check runs after the exclusive reservation, so the run must release its own reservation.
+  [[ ! -e "$BACKUP_DIR/bm-20261008T000000Z.tgz.partial" ]]
   run grep -F 'compose stop' "$STUB_LOG"
   assert_failure
 }
