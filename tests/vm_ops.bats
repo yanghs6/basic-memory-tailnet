@@ -160,7 +160,7 @@ setup() {
   for ip in example.com 1.2.3 127.0.0.1 10.0.0.5 172.16.0.1 172.31.255.255 192.168.1.1 169.254.1.1 0.0.0.0; do
     BM_VM_PUBLIC_IP="$ip" run "$REPO_DIR/scripts/verify-vm.sh"
     assert_failure
-    assert_output --partial "public IP from the OCI console"
+    assert_output --partial "docs/runbooks/gcp-vm.md"
   done
 }
 
@@ -196,7 +196,7 @@ setup() {
 }
 
 @test "verify treats an ICMP reject from the VM firewall as closed" {
-  # The OCI Ubuntu image's iptables rejects with icmp-host-prohibited, which nc reports as no route to host.
+  # A host firewall may reject with icmp-host-prohibited, which nc reports as no route to host.
   export NC_STUB_EXIT=1 NC_STUB_STDERR="nc: connect to 203.0.113.10 port 8737 (tcp) failed: No route to host"
   run "$REPO_DIR/scripts/verify-vm.sh"
   assert_success
@@ -209,16 +209,33 @@ setup() {
   assert_success
   assert_output --partial "basic-memory-server"
   assert_output --partial "memory used: 23%"
+  assert_output --partial "swap used: 0/1023 MB"
   assert_output --partial "proxy http://127.0.0.1:8737"
   refute_output --partial "WARNING"
 }
 
-@test "status warns about OCI idle reclamation below 20% memory" {
-  export FREE_STUB_AVAILABLE_MB=3500
+@test "status shows swap usage" {
+  export FREE_STUB_SWAP_USED_MB=200
   run "$REPO_DIR/scripts/status.sh"
   assert_success
-  assert_output --partial "memory used: 10%"
-  assert_output --partial "WARNING: memory below 20%"
+  assert_output --partial "swap used: 200/1023 MB"
+  refute_output --partial "WARNING"
+}
+
+@test "status warns to rerun vm-bootstrap when no swap is active" {
+  export FREE_STUB_SWAP_TOTAL_MB=0
+  run "$REPO_DIR/scripts/status.sh"
+  assert_success
+  assert_output --partial "swap used: 0/0 MB"
+  assert_output --partial "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/bootstrap.md)"
+  assert_output --partial "proxy http://127.0.0.1:8737"
+}
+
+@test "status fails when memory usage cannot be read" {
+  export SSH_STUB_FAIL_MATCH="free -m"
+  run "$REPO_DIR/scripts/status.sh"
+  assert_failure
+  assert_output --partial "could not read memory usage on bm-node"
 }
 
 @test "status fails when tailscale serve is not configured" {

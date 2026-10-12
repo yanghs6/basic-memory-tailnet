@@ -78,7 +78,7 @@ verify: ## Full VM check: MCP write/read/delete, loopback binding, tailnet-only 
 probe: ## Read-only VM check: same as verify but writes no notes (safe while diagnosing)
 	scripts/verify-vm.sh --read-only
 
-status: ## Show VM containers, memory use (idle-reclaim risk) and tailscale serve
+status: ## Show VM containers, memory and swap use, and tailscale serve
 	scripts/status.sh
 
 logs: ## Show the last 200 lines of the VM container logs
