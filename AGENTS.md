@@ -23,7 +23,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - Ask the user before anything that changes the VM or cloud resources: `vm-bootstrap`, `deploy`, `restore`, resizing, firewall rules, instance metadata, Tailscale policy.
 - Never delete `backups/` or `/srv/basic-memory.prev-*` directories.
 - `.env` and `backups/` live only in the main checkout: the Makefile and `make backup` use them from any worktree. Never create or copy them in a worktree, and check a worktree's `backups/` before `git worktree remove`.
-- Run `gcloud` only with `--configuration=bm-personal`; never activate another gcloud configuration or run `gcloud auth application-default`. Read-only `describe`/`list` calls need no OK.
+- Run `gcloud` only with `--configuration=bm-personal` (except `gcloud config configurations list`, which shows the active configuration); never run `gcloud config configurations activate` or `gcloud auth application-default`. Read-only `describe`/`list` calls need no OK.
 - The user types the Tailscale auth key and the restore `yes` in their own terminal, never in chat or through a pipe.
 
 ## Git (policy: docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md)
