@@ -5,16 +5,15 @@
 ## 0. 변수와 설정 확인
 
 ```bash
-INSTANCE=agent-hub-01   # GCP 인스턴스 이름. Tailscale 기기 이름(bm-node)과 달라도 됩니다.
+INSTANCE=agent-hub-01   # 현재 인스턴스 이름(재구축 뒤에는 새 이름). Tailscale 기기 이름(bm-node)과 달라도 됩니다.
 ZONE=us-west1-b
 gcloud config list --configuration=bm-personal
+env | grep '^CLOUDSDK_'   # 아무것도 출력되지 않아야 합니다
 ```
 
-Expected: `account`가 개인 계정이고 `project`가 이 저장소 전용 프로젝트입니다. 회사 계정이나 회사 프로젝트가 보이면 **여기서 멈추고** [accounts 1단계](rbk-2026-10-12-hqxjjqy8-accounts.md)를 다시 합니다.
+Expected: `account`가 개인 계정이고 `project`가 이 저장소 전용 프로젝트입니다. 회사 계정이나 회사 프로젝트가 보이면 **여기서 멈추고** [accounts 1단계](rbk-2026-10-12-hqxjjqy8-accounts.md)를 다시 합니다. `env | grep '^CLOUDSDK_'`가 무언가 출력하면(`CLOUDSDK_CORE_PROJECT`, `CLOUDSDK_CORE_ACCOUNT` 등) 먼저 그 셸에서 해당 변수를 `unset`합니다. **Assumption:** gcloud 속성 우선순위(플래그 > 환경 변수 > 설정)에 따라 환경 변수가 `--configuration=bm-personal`의 값을 덮어씁니다.
 
-옛 인스턴스가 아직 남아 있는 재구축이라면 `INSTANCE`에 다른 이름을 씁니다(옛 VM은 복원이 검증된 뒤에 지웁니다).
-
-인스턴스 이름은 바꿀 수 없으므로 새 VM은 반드시 다른 `INSTANCE` 이름으로 만들고 옛 VM은 정지해 둡니다. 두 대의 e2-micro나 부트 디스크 두 개가 함께 있는 동안에는 무료 등급을 넘을 수 있습니다(무료 등급은 비선점형 e2-micro 1대의 월 사용 시간과 표준 영구 디스크 30GB-월이며, 정지된 VM의 디스크도 포함됩니다). 그러니 복원이 검증된 뒤 옛 VM과 디스크를 서둘러 지우고 [비용 점검](rbk-2026-10-12-t79ex2ny-operations.md#비용-점검)으로 청구를 확인합니다.
+인스턴스 이름은 바꿀 수 없으므로, 재구축이면 새 VM은 반드시 다른 `INSTANCE` 이름으로 만들고 옛 VM은 정지해 둡니다(옛 VM은 복원이 검증된 뒤에 지웁니다). 두 대의 e2-micro나 부트 디스크 두 개가 함께 있는 동안에는 무료 등급을 넘을 수 있습니다(무료 등급은 비선점형 e2-micro 1대의 월 사용 시간과 표준 영구 디스크 30GB-월이며, 정지된 VM의 디스크도 포함됩니다). 그러니 복원이 검증된 뒤 옛 VM과 디스크를 서둘러 지우고 [비용 점검](rbk-2026-10-12-t79ex2ny-operations.md#비용-점검)으로 청구를 확인합니다.
 
 ## 1. SSH 키
 
@@ -45,10 +44,13 @@ gcloud compute instances create "$INSTANCE" --configuration=bm-personal \
   --image-family=ubuntu-minimal-2604-lts-amd64 --image-project=ubuntu-os-cloud \
   --boot-disk-type=pd-standard --boot-disk-size=30GB \
   --provisioning-model=STANDARD --network-tier=PREMIUM \
+  --no-service-account --no-scopes \
   --metadata=ssh-keys="ubuntu:$(cat ~/.ssh/id_ed25519.pub)"
 ```
 
 Expected: 인스턴스가 `RUNNING`으로 만들어지고 `EXTERNAL_IP`가 한 줄 보입니다.
+
+**Assumption:** 게스트 에이전트의 `ssh-keys` 메타데이터 처리에는 서비스 계정이 필요 없으므로 `--no-service-account --no-scopes`로 VM 안에서 메타데이터 서버 토큰을 받을 수 없게 합니다. 이미 있는 `agent-hub-01`은 기본 서비스 계정을 유지하며, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)이 이를 기록합니다.
 
 **Assumption ([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 확인):** 26.04 Minimal에 `ss`(iproute2)와 `free`(procps)가 기본으로 있고, 메타데이터 키로 만든 `ubuntu`에게 암호 없는 sudo가 있습니다.
 

@@ -744,6 +744,7 @@ make check
 
 - Expected: 충돌 없이 끝나고(두 Task는 파일이 겹치지 않는다) `make check`가 PASS한다. 충돌이 나면 멈추고 원인을 Progress log에 기록한 뒤 사용자에게 알린다.
 - 임시 worktree를 지우기 전에 `ls "$MAIN/.claude/worktrees/p04-t4/backups" "$MAIN/.claude/worktrees/p04-t5/backups"`로 백업 파일이 없는지 확인하고, 그다음 `git worktree remove`로 지운다. 임시 브랜치는 docs-skills 계획이 병합된 뒤 사람이 `git branch -D`로 지운다.
+- 실제로는 임시 worktree를 Agent worktree isolation이 만들었다(경로 `.claude/worktrees/agent-a5a0efb1c7ac22d6e`와 `.claude/worktrees/agent-a2883e065d67ce206`, 위 `p04-t4`·`p04-t5` 경로는 쓰이지 않았다). 브랜치는 `work/p04-t4-main-checkout`, `work/p04-t5-gcp-docs`와 isolation이 만든 `worktree-agent-a5a0efb1c7ac22d6e`, `worktree-agent-a2883e065d67ce206`이다.
 - Task 4·5의 SDD 태스크 리뷰는 cherry-pick된 커밋 범위(`plan/hydaxf15-docs-skills` 위)를 대상으로 하며, 읽기 전용이라 단계 B와 동시에 진행한다.
 
 **단계 B: Task 6** (Task 5의 `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`와 `rbk-2026-10-12-t79ex2ny-operations.md`에 의존)
@@ -2476,7 +2477,7 @@ git commit -m "docs: record review of the docs-skills plan" --trailer "Assisted-
 - [ ] 고친 것이 있으면 2차 리뷰: `make review BRANCH=plan/hydaxf15-docs-skills REVIEWER=<같은 리뷰어> ROUND=2 REVIEW_BASE=<리뷰한 head>`. 2회차 뒤 남은 이견은 사람이 결정한다.
 - [ ] `git-workflow` 스킬의 "Prepare the merge"대로 `.review-out/merge-plan-04-docs-skills.txt`를 쓴다.
 - [ ] 사람에게 병합을 요청한다. 에이전트는 병합하지 않는다. 사람은 `main` 체크아웃에서 `git merge --no-ff plan/hydaxf15-docs-skills -F <그 파일의 절대 경로>`를 실행한다.
-- [ ] 병합 뒤 worktree와 브랜치를 정리한다: `ls <경로>/backups`로 아카이브가 없는지 확인 → `git worktree remove <경로>` → `git branch -d plan/hydaxf15-docs-skills`. 단계 A의 임시 브랜치(`work/p04-t4-main-checkout`, `work/p04-t5-gcp-docs`)는 cherry-pick으로 옮겨져 병합 표시가 없으므로 사람이 `git branch -D`로 지운다.
+- [ ] 병합 뒤 worktree와 브랜치를 정리한다: `ls <경로>/backups`로 아카이브가 없는지 확인 → `git worktree remove <경로>` → `git branch -d plan/hydaxf15-docs-skills`. 단계 A의 임시 worktree 두 개(`.claude/worktrees/agent-a5a0efb1c7ac22d6e`, `.claude/worktrees/agent-a2883e065d67ce206`)도 각각 `ls <경로>/backups`로 아카이브가 없는지 확인한 뒤 `git worktree remove <경로>`로 지운다. 단계 A의 임시 브랜치 네 개(`work/p04-t4-main-checkout`, `work/p04-t5-gcp-docs`, `worktree-agent-a5a0efb1c7ac22d6e`, `worktree-agent-a2883e065d67ce206`)는 cherry-pick으로 옮겨져 병합 표시가 없으므로 사람이 `git branch -D`로 지운다.
 
 ---
 
@@ -2489,9 +2490,9 @@ git commit -m "docs: record review of the docs-skills plan" --trailer "Assisted-
 | 2026-10-12 | Command | `make local-up local-verify local-down`을 두 번 따로 실행(make는 한 명령줄의 같은 타깃을 한 번만 실행하므로 나눠야 한다) |
 | 2026-10-12 | Verified | 두 번 모두 컨테이너가 healthy가 되고 `OK: MCP round trip passed`가 일반 요청과 `*.ts.net` Host 헤더 요청에서 각각 나옴(총 4회). 내렸다 다시 올린 뒤에도 같은 결과 |
 | 2026-10-12 | Open question | 계획의 원래 Step 2(`docker restart` + `sleep 20`)는 Make 타깃만 쓰는 규칙에 맞지 않아 down/up 주기로 바꿨다. 로컬 메모리 측정은 하지 않았다(VM 메모리는 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 24시간 뒤 측정) |
-| 2026-10-12 | Command | `git status --short && make check` (작업 트리 깨끗함, 0a98c9e 기준). 실행 전 `docker ps`에 compose.yaml의 `basic-memory-server`가 없음을 확인 |
+| 2026-10-12 | Command | `git status --short && make check` (작업 트리 깨끗함, 0a98c9e 기준) |
 | 2026-10-12 | Verified | `make check`: 테스트 220개 전부 PASS(실패 0), 라인 커버리지 97.97%(최소 80%). 커버리지 목록에 실행 스크립트 12개와 `lib/common.sh`가 모두 나옴 |
-| 2026-10-12 | Command | `make local-up local-verify local-down`을 두 번 따로 실행하고 끝날 때마다 `basic-memory` 컨테이너가 없는지 확인 |
+| 2026-10-12 | Command | `make local-up local-verify local-down`을 두 번 따로 실행하고 끝날 때마다 `basic-memory` 컨테이너가 없는지 확인. 실행 전 `docker ps`에 compose.yaml의 `basic-memory-server`가 없음을 확인 |
 | 2026-10-12 | Verified | 두 번 모두 종료 코드 0. `OK: MCP round trip passed`가 일반 요청과 `*.ts.net` Host 헤더 요청에서 각각 나와 총 4회 확인 |
 | 2026-10-12 | Command | `grep -rniwE 'oci|oracle' scripts AGENTS.md README.md docs/ARCHITECTURE.md docs/runbooks .agents/skills; echo "exit=$?"` |
 | 2026-10-12 | Verified | grep 결과 없음, `exit=1`. 클라우드 이름이 남아 있지 않음 |
