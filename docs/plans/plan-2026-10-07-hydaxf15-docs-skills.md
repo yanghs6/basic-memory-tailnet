@@ -83,7 +83,7 @@ GCP 전환 (2026-10-12)
 Makefile scripts/lib/common.sh scripts/backup.sh scripts/restore.sh           Task 4 (Makefile은 include 부분만)
 .agents/skills/git-workflow/SKILL.md                                          Task 4
 tests/main_checkout.bats (새 파일) tests/common.bats tests/backup_restore.bats tests/helpers.bash  Task 4
-README.md docs/ARCHITECTURE.md docs/runbooks/*.md docs/decisions/*.md         Task 5 (rbk-2026-10-12-vebvx40g-oci-vm.md → rbk-2026-10-12-tcjs7m6x-gcp-vm.md, basic-memory-on-gcp-tailscale ADR 이름 변경)
+README.md docs/ARCHITECTURE.md docs/runbooks/*.md docs/decisions/*.md         Task 5 (rbk-2026-10-12-vebvx40g-oci-vm.md → rbk-2026-10-12-tcjs7m6x-gcp-vm.md, ADR 0001 이름 변경)
 .agents/skills/{bm-upgrade,bm-recover,bm-diagnose}/SKILL.md tests/repo.bats   Task 5
 scripts/remote/bootstrap.sh scripts/status.sh scripts/bootstrap-vm.sh         Task 6
 scripts/verify-vm.sh Makefile(status 도움말) .env.example tests/stubs/*         Task 6

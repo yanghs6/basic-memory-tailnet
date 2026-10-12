@@ -308,9 +308,43 @@ markdown_links() {
 }
 
 @test "runbooks contain the sections scripts and skills point to" {
-  run grep -E '^## (Exposure audit|Idle reclamation|Incident log)' "$REPO_DIR/docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md"
+  run grep -E '^## (Exposure audit|비용 점검|Incident log)' "$REPO_DIR/docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md"
   assert_success
   assert_line --partial "Exposure audit"
-  assert_line --partial "Idle reclamation"
+  assert_line --partial "비용 점검"
   assert_line --partial "Incident log"
+}
+
+@test "the VM runbook is rbk-2026-10-12-tcjs7m6x-gcp-vm.md and the ADR 0001 file names the GCP host" {
+  [[ -f "$REPO_DIR/docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md" ]] || fail "missing docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md"
+  [[ ! -e "$REPO_DIR/docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md" ]] || fail "docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md should be renamed to rbk-2026-10-12-tcjs7m6x-gcp-vm.md"
+  [[ -f "$REPO_DIR/docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md" ]] || fail "missing docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md"
+  [[ ! -e "$REPO_DIR/docs/decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md" ]] || fail "the old ADR 0001 should be renamed"
+}
+
+@test "human docs and operational skills carry no leftover OCI or idle-reclaim text" {
+  # ADR 0001 is excluded on purpose: it records why the first host was given up.
+  run grep -rniE '\b(OCI|Oracle)\b|A1\.Flex|reclaim|reclamation' \
+    "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR/docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md" \
+    "$REPO_DIR/docs/runbooks" "$REPO_DIR"/.agents/skills/*/SKILL.md
+  assert_failure 1
+}
+
+@test "every gcloud command in runbooks and skills names the bm-personal configuration" {
+  local file hits line status missing="" checked=0
+  for file in "$REPO_DIR"/docs/runbooks/*.md "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR"/.agents/skills/*/SKILL.md; do
+    status=0
+    hits="$(grep -nE 'gcloud [a-z]' "$file")" || status=$?
+    ((status <= 1)) || fail "grep failed on $file (exit status $status)"
+    while IFS= read -r line; do
+      [[ -n "$line" ]] || continue
+      case "$line" in
+        *'gcloud config configurations create'* | *'gcloud config configurations list'*) continue ;;
+      esac
+      checked=$((checked + 1))
+      [[ "$line" == *'--configuration=bm-personal'* ]] || missing="$missing ${file#"$REPO_DIR"/}:${line%%:*}"
+    done <<<"$hits"
+  done
+  ((checked > 0)) || fail "no gcloud commands were checked"
+  [[ -z "$missing" ]] || fail "gcloud commands without --configuration=bm-personal:$missing"
 }
