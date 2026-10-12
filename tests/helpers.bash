@@ -21,7 +21,7 @@ setup_stubs() {
 
 # use_vm_env: point scripts at a fake VM whose directories live in the test tmpdir.
 use_vm_env() {
-  export BM_VM_HOST=bm-node BM_VM_USER=ubuntu BM_TAILNET_DOMAIN=example.ts.net BM_PORT=8737
+  export BM_VM_HOST=agent-hub BM_VM_USER=ubuntu BM_TAILNET_DOMAIN=example.ts.net BM_PORT=8737
   export BM_REMOTE_APP_DIR="$BATS_TEST_TMPDIR/opt/basic-memory"
   export BM_REMOTE_DATA_ROOT="$BATS_TEST_TMPDIR/srv/basic-memory"
   mkdir -p "$BM_REMOTE_APP_DIR" "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config"

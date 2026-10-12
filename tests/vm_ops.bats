@@ -39,7 +39,7 @@ setup() {
   export SSH_STUB_FAIL_MATCH="compose.yaml"
   run "$REPO_DIR/scripts/deploy.sh"
   assert_failure
-  assert_output --partial "is bm-node reachable over Tailscale SSH?"
+  assert_output --partial "is agent-hub reachable over Tailscale SSH?"
 }
 
 @test "deploy requires the VM settings from .env" {
@@ -56,7 +56,7 @@ setup() {
   assert_success
   assert_output --partial "OK: MCP round trip passed"
   assert_output --partial "port 8737 listens on 127.0.0.1 only"
-  run grep -F 'https://bm-node.example.ts.net/mcp' "$STUB_LOG"
+  run grep -F 'https://agent-hub.example.ts.net/mcp' "$STUB_LOG"
   assert_success
 }
 
@@ -235,7 +235,7 @@ setup() {
   export SSH_STUB_FAIL_MATCH="free -m"
   run "$REPO_DIR/scripts/status.sh"
   assert_failure
-  assert_output --partial "could not read memory usage on bm-node"
+  assert_output --partial "could not read memory usage on agent-hub"
 }
 
 @test "status fails when tailscale serve is not configured" {
@@ -249,7 +249,7 @@ setup() {
   export SSH_STUB_FAIL_MATCH="compose ps"
   run "$REPO_DIR/scripts/status.sh"
   assert_failure
-  assert_output --partial "could not query containers on bm-node"
+  assert_output --partial "could not query containers on agent-hub"
 }
 
 # --- logs ---
@@ -265,5 +265,5 @@ setup() {
   export SSH_STUB_FAIL_MATCH="compose logs"
   run "$REPO_DIR/scripts/logs.sh"
   assert_failure
-  assert_output --partial "could not read logs from bm-node"
+  assert_output --partial "could not read logs from agent-hub"
 }

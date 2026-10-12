@@ -60,7 +60,7 @@ setup() {
   assert_success
   assert_output "hi"
   run cat "$STUB_LOG"
-  assert_output "ssh -o BatchMode=yes -o ConnectTimeout=10 ubuntu@bm-node echo hi"
+  assert_output "ssh -o BatchMode=yes -o ConnectTimeout=10 ubuntu@agent-hub echo hi"
 }
 
 @test "remote_compose runs docker compose inside the VM app dir" {
