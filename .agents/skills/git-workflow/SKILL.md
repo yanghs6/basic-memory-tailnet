@@ -17,6 +17,7 @@ Policy: docs/specs/2026-10-07-git-review-policy-design.md. Never commit to `main
      `git -C "$(git rev-parse --path-format=absolute --git-common-dir)/.." worktree add ../027_agent_share_poc-wt/<slug> -b plan/NN-slug main`
      Then end this session and start the tool again inside that directory (`codex -C <dir>`, `cd <dir> && gemini`, or open the folder in Antigravity); `git worktree list` shows its absolute path.
 3. For a plan, make the first commit move the plan file from `docs/plans/backlog/` to `docs/plans/active/`.
+4. For work that belongs to no plan (an upgrade, a fix, a doc change), use a `work/<slug>` branch and write `Plan: none` and `Task: none` in every commit.
 
 ## Commit
 
@@ -31,7 +32,8 @@ Policy: docs/specs/2026-10-07-git-review-policy-design.md. Never commit to `main
 2. Ask the other vendor to review; never review your own branch:
    - you are Claude Code: `make review BRANCH=<branch> REVIEWER=codex` (runs `codex exec review` with `-c 'sandbox_mode="read-only"'`; never use a writable sandbox)
    - you are Codex, Antigravity or Gemini: `make review BRANCH=<branch> REVIEWER=claude`
-3. `make review` logs the exact report paths. The raw reviews are in the main checkout's `.review-out/` (`<main checkout>/.review-out/<branch-slug>-r<round>-<reviewer>-diff.md` and `-plan.md`), not in your worktree. Copy the findings into `docs/reviews/<branch-slug>.md` using `docs/reviews/README.md`, and commit with `Task: review`.
+3. `make review` starts `codex` or `claude`, which need network access: run it where they can reach the network, outside the sandbox of the agent that calls it. If your sandbox blocks the network, ask the human to run the command.
+4. `make review` logs the exact report paths. The raw reviews are in the main checkout's `.review-out/` (`<main checkout>/.review-out/<branch-slug>-r<round>-<reviewer>-diff.md` and `-plan.md`), not in your worktree. Copy the findings into `docs/reviews/<branch-slug>.md` using `docs/reviews/README.md`, and commit with `Task: review`.
 
 ## Fix findings
 
@@ -57,4 +59,4 @@ Follow the spec, section 6, in this order:
    ```
 
    Ask the human to run, from the main checkout: `git merge --no-ff <branch> -F .review-out/merge-<branch-slug>.txt` (or the path you gave).
-4. After the merge, the human cleans up: `git worktree remove <your worktree>` and `git branch -d <branch>`.
+4. After the merge, the human cleans up. `git worktree remove` deletes ignored files such as `backups/` and `.env` without any warning, so first run `ls <your worktree>/backups <your worktree>/.env` and move any archive into the main checkout's `backups/` (never overwrite a file there), then run `git worktree remove <your worktree>` and `git branch -d <branch>`.

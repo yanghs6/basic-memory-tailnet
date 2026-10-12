@@ -36,6 +36,14 @@ setup() {
   assert_output --partial "session test****"
 }
 
+@test "logs 'no session id' unmasked when initialize returns no session header" {
+  printf 'HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\n\r\n' >"$FIXTURES/headers.txt"
+  run "$VERIFY" "$URL"
+  assert_success
+  assert_output --partial "no session id"
+  refute_output --partial "session ****"
+}
+
 @test "sends the Host header on every request when --host-header is given" {
   run "$VERIFY" --host-header bm-node.example.ts.net "$URL"
   assert_success

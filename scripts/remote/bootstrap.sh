@@ -9,10 +9,13 @@ readonly BM_REMOTE_DATA_ROOT="${BM_REMOTE_DATA_ROOT:-/srv/basic-memory}"
 readonly BM_REMOTE_APP_DIR="${BM_REMOTE_APP_DIR:-/opt/basic-memory}"
 readonly ADMIN_USER="${ADMIN_USER:-ubuntu}"
 readonly CONTAINER_UID=1000
+readonly SWAP_SIZE_MB=1024
+readonly SWAP_FILE_MODE=600
 # Overridable only for tests.
 readonly ETC_DIR="${ETC_DIR:-/etc}"
 readonly RUN_DIR="${RUN_DIR:-/run}"
 readonly OS_RELEASE="${OS_RELEASE:-/etc/os-release}"
+readonly SWAP_FILE="${SWAP_FILE:-/swapfile}"
 readonly DOCKER_PACKAGES="docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
 # Assumption: unattended-upgrades often holds the dpkg lock right after first boot; wait instead of failing.
 readonly APT_LOCK_TIMEOUT_SECONDS=300
@@ -28,6 +31,31 @@ log() { printf '[bootstrap] %s\n' "$*" >&2; }
 die() {
   printf '[bootstrap] ERROR: %s\n' "$*" >&2
   exit 1
+}
+
+# fstab_has_entry FSTAB -> succeeds when FSTAB already lists $SWAP_FILE as its first field.
+fstab_has_entry() {
+  [[ -f "$1" ]] && awk -v file="$SWAP_FILE" '$1 == file { found = 1 } END { exit !found }' "$1"
+}
+
+# ensure_swap -> a 1 GB swap file unless the VM already has active swap. Every step is safe to repeat: fallocate
+# resizes a leftover file, mkswap rewrites it, and the fstab line is added once, after swapon succeeded.
+ensure_swap() {
+  local active fstab="$ETC_DIR/fstab"
+  active="$(swapon --show --noheadings)" || die "could not list swap: is swapon installed?"
+  if [[ -n "$active" ]]; then
+    log "swap already active; skipping"
+    return 0
+  fi
+  fallocate -l "${SWAP_SIZE_MB}M" "$SWAP_FILE" \
+    || die "could not create $SWAP_FILE: free some disk space, then rerun 'make vm-bootstrap'"
+  chmod "$SWAP_FILE_MODE" "$SWAP_FILE"
+  mkswap "$SWAP_FILE" >/dev/null || die "mkswap failed on $SWAP_FILE: rerun 'make vm-bootstrap'"
+  swapon "$SWAP_FILE" || die "swapon failed on $SWAP_FILE: rerun 'make vm-bootstrap'"
+  if ! fstab_has_entry "$fstab"; then
+    printf '%s none swap sw 0 0\n' "$SWAP_FILE" >>"$fstab"
+  fi
+  log "swap enabled: $SWAP_FILE (${SWAP_SIZE_MB} MB)"
 }
 
 write_docker_source() {
@@ -127,6 +155,7 @@ configure_serve() {
 main() {
   local auth_key=""
   IFS= read -r auth_key || true
+  ensure_swap
   install_docker
   ensure_docker_group
   install_tailscale

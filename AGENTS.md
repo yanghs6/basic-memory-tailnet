@@ -1,7 +1,7 @@
 # Agent instructions
 
-This repo deploys a Basic Memory MCP server on an OCI Always Free VM that is reachable only inside a Tailscale tailnet.
-Read first: `docs/specs/2026-10-07-basic-memory-oci-tailscale-design.md`.
+This repo deploys a Basic Memory MCP server on a GCP free-tier e2-micro VM that is reachable only inside a Tailscale tailnet.
+Read first: `docs/specs/2026-10-12-basic-memory-gcp-tailscale-design.md`, then `docs/ARCHITECTURE.md`.
 Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`).
 
 ## Commands
@@ -11,7 +11,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 
 ## Invariants (enforced by tests/repo.bats; never weaken a test to make it pass)
 - Basic Memory has no auth: publish its port on `127.0.0.1` only, never enable Tailscale Funnel, keep zero public ingress on the VM.
-- Pin container images by digest; change the pin only after reading the release notes and passing `make check local-up local-verify`.
+- Pin container images by digest; change the pin only after reading the release notes and passing `make check local-up local-verify`. Upgrade Basic Memory only through the `bm-upgrade` skill.
 - Scripts: `#!/usr/bin/env bash` then `set -euo pipefail`; source `scripts/lib/common.sh`; fail with an actionable message via `die`.
 - Scripts must run on macOS bash 3.2: no `mapfile`, associative arrays, `${x,,}`, `inherit_errexit`, or empty array expansion. After `x="$(fn)"` where `fn` can fail, add `|| exit 1`.
 - Name constants instead of magic numbers. Never print secrets or session ids; use `mask`.
@@ -20,8 +20,11 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 ## Safety
 - Never commit secrets, `.env`, Tailscale auth keys, `backups/`, `.local-data/`, or note content.
 - The only secret is the Tailscale auth key. It reaches the VM via `TS_AUTHKEY` or the hidden prompt, never via a file in the repo or a command argument.
-- Ask the user before anything that changes the VM or cloud resources: `vm-bootstrap`, `deploy`, `restore`, resizing, OCI security rules, Tailscale policy.
+- Ask the user before anything that changes the VM or cloud resources: `vm-bootstrap`, `deploy`, `restore`, resizing, firewall rules, instance metadata, Tailscale policy.
 - Never delete `backups/` or `/srv/basic-memory.prev-*` directories.
+- `.env` and `backups/` live only in the main checkout: the Makefile and `make backup` use them from any worktree. Never create or copy them in a worktree, and check a worktree's `backups/` before `git worktree remove`.
+- Run `gcloud` only with `--configuration=bm-personal` (except `gcloud config configurations list`, which shows the active configuration); never run `gcloud config configurations activate` or `gcloud auth application-default`. Read-only `describe`/`list` calls need no OK.
+- The user types the Tailscale auth key and the restore `yes` in their own terminal, never in chat or through a pipe.
 
 ## Git (policy: docs/specs/2026-10-07-git-review-policy-design.md)
 - Work only in your own git worktree on `plan/<NN>-<slug>` or `work/<slug>`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) with `git branch -m` before review; on a detached HEAD (Codex app) run `git switch -c <branch>` first. Per-tool start steps: the `git-workflow` skill.
@@ -40,6 +43,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - `docs/specs/`, `docs/plans/{active,backlog,completed}/`.
 - `.agents/skills/` skills for Codex and Antigravity; `.claude/skills/<name>` symlinks and `.claude/agents/branch-reviewer.md` for Claude Code.
 - `docs/reviews/` review records (template in its README).
+- `docs/runbooks/` accounts, VM creation, bootstrap, operations (incident log); `docs/decisions/` ADRs.
 
 ## Code Review Rules
 Reviewers check only the changes since the base (Codex reads this section; Claude uses the `branch-review` skill):
@@ -55,3 +59,6 @@ Each finding: `[Pn] path:line - failure scenario - suggested fix`. Report only p
 ## Skills
 - `git-workflow`: start, commit, request review and prepare the merge of agent work.
 - `branch-review`: review another agent's branch read-only.
+- `bm-upgrade`: bump the pinned Basic Memory image and roll it out safely.
+- `bm-recover`: start a stopped VM; rebuild only a deleted or unusable VM, then restore the latest backup.
+- `bm-diagnose`: read-only troubleshooting of MCP, Tailscale and container problems.

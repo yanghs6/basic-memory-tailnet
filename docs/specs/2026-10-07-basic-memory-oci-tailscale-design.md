@@ -1,6 +1,7 @@
 # Basic Memory on OCI Always Free + Tailscale — 설계
 
-- 상태: 승인됨 (2026-10-07). 구현 계획은 순서대로 5개다. 진행 중인 계획은 `docs/plans/active/`, 대기 중인 계획은 `docs/plans/backlog/`에 있다. 모든 계획은 [git·리뷰 정책](2026-10-07-git-review-policy-design.md)을 따른다.
+- 상태: **대체됨 (2026-10-12)** → [GCP 설계](2026-10-12-basic-memory-gcp-tailscale-design.md). 호스팅을 OCI에서 GCP로 옮겼다. 이 문서는 완료된 계획 01~03의 기준으로만 남긴다.
+- 이전 상태: 승인됨 (2026-10-07). 구현 계획은 순서대로 5개다. 진행 중인 계획은 `docs/plans/active/`, 대기 중인 계획은 `docs/plans/backlog/`에 있다. 모든 계획은 [git·리뷰 정책](2026-10-07-git-review-policy-design.md)을 따른다.
   1. `2026-10-07-01-local-foundation.md`: 도구 체인, compose, 로컬 MCP 검증, AGENTS.md 기본판(Git 섹션 포함)
   2. `2026-10-07-02-git-review-tooling.md`: `make check-git`, `make review`, 리뷰어 에이전트, git·리뷰 스킬
   3. `2026-10-07-03-vm-scripts.md`: 부트스트랩, 배포·검증·상태·로그, 백업·복원

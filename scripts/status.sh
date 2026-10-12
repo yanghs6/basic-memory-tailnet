@@ -1,32 +1,32 @@
 #!/usr/bin/env bash
-# Show VM container state, memory use against the OCI idle threshold, and tailscale serve config.
+# Show VM container state, memory and swap use, and tailscale serve config.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 . "$SCRIPT_DIR/lib/common.sh"
 
-# OCI may reclaim Always Free A1 VMs when CPU (p95), network and memory all stay below 20% for 7 days.
-readonly IDLE_MEMORY_PERCENT=20
-
-memory_used_percent() {
-  remote "free -m" | awk '/^Mem:/ { printf "%d\n", ($2 - $7) * 100 / $2 }'
+# memory_swap_summary -> "<memory used %> <swap used MB> <swap total MB>" from one `free -m` run on the VM.
+# Memory used is total minus available. Exits 1 when free prints no Mem: or no Swap: line, or a zero memory total.
+memory_swap_summary() {
+  remote "free -m" | awk '/^Mem:/ { if ($2 > 0) mem = int(($2 - $7) * 100 / $2) } /^Swap:/ { swap_total = $2; swap_used = $3 } END { if (mem == "" || swap_total == "") exit 1; printf "%d %d %d\n", mem, swap_used, swap_total }'
 }
 
 main() {
-  local used
+  local summary used swap_used swap_total
   require_cmd ssh
   require_env BM_VM_HOST BM_VM_USER
 
   step "containers"
   remote_compose "ps" || die "could not query containers on $BM_VM_HOST (try: ssh $BM_VM_USER@$BM_VM_HOST true)"
 
-  step "memory (OCI idle threshold ${IDLE_MEMORY_PERCENT}%)"
-  used="$(memory_used_percent)" || die "could not read memory usage on $BM_VM_HOST"
-  [[ "$used" =~ ^[0-9]+$ ]] || die "unexpected memory reading from free -m: '$used'"
+  step "memory and swap"
+  summary="$(memory_swap_summary)" || die "could not read memory usage on $BM_VM_HOST (try: ssh $BM_VM_USER@$BM_VM_HOST free -m)"
+  read -r used swap_used swap_total <<<"$summary"
   log "memory used: ${used}%"
-  if ((used < IDLE_MEMORY_PERCENT)); then
-    log "WARNING: memory below ${IDLE_MEMORY_PERCENT}%; with idle CPU and network OCI may reclaim this VM (docs/runbooks/operations.md, Idle reclamation)"
+  log "swap used: ${swap_used}/${swap_total} MB"
+  if ((swap_total == 0)); then
+    log "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/bootstrap.md)"
   fi
 
   step "tailscale serve"

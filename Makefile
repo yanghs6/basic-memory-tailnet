@@ -3,7 +3,12 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
--include .env
+# A worktree .git file points at the main repo .git dir by absolute path; mount it so git works in containers.
+GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+# .env lives only in the main checkout (the parent of the common git dir), whichever checkout runs make.
+# Outside git there is no main checkout to find, so fall back to the current directory.
+MAIN_ROOT := $(if $(GIT_COMMON_DIR),$(abspath $(GIT_COMMON_DIR)/..),$(CURDIR))
+-include $(MAIN_ROOT)/.env
 BM_PORT := $(or $(BM_PORT),8737)
 export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT
 export REVIEW_BASE REVIEW_ALLOW_SAME_VENDOR
@@ -12,8 +17,6 @@ SHELLCHECK_IMAGE := koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6fe
 SHFMT_IMAGE := mvdan/shfmt:v3.12.0@sha256:307d265ffd25ce832899ae17c93ed5062fc3375c514bba8f52cbf52792735c4d
 TOOLS_IMAGE := bm-tools:local
 COVERAGE_MIN := 80
-# A worktree .git file points at the main repo .git dir by absolute path; mount it so git works in containers.
-GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir)
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*')
 
@@ -75,15 +78,15 @@ verify: ## Full VM check: MCP write/read/delete, loopback binding, tailnet-only 
 probe: ## Read-only VM check: same as verify but writes no notes (safe while diagnosing)
 	scripts/verify-vm.sh --read-only
 
-status: ## Show VM containers, memory use (idle-reclaim risk) and tailscale serve
+status: ## Show VM containers, memory and swap use, and tailscale serve
 	scripts/status.sh
 
 logs: ## Show the last 200 lines of the VM container logs
 	scripts/logs.sh
 
-backup: ## Download a consistent backup of VM data into backups/ (brief container stop)
+backup: ## Download a consistent backup of VM data into the main checkout's backups/ (brief container stop)
 	scripts/backup.sh
 
-restore: ## Restore BACKUP=backups/bm-<stamp>.tgz to the VM (asks for yes), then verify
+restore: ## Restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz to the VM (asks for yes), then verify
 	scripts/restore.sh "$(BACKUP)"
 	scripts/verify-vm.sh
