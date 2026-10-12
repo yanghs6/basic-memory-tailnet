@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Verify the VM end to end: MCP round trip over the tailnet URL (read-only probe with --read-only),
 # loopback-only binding, tailnet-only Serve (no Funnel), and that the public IP refuses common ports.
-# OCI ingress rules and the tailnet policy cannot be read from here; audit them by hand
+# Firewall rules and the tailnet policy cannot be read from here; audit them by hand
 # (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit).
 # Usage: verify-vm.sh [--read-only]
 set -euo pipefail
@@ -52,7 +52,7 @@ probe_port() {
 # link-local and unspecified ranges (probing those would say nothing about the VM's public side).
 validate_public_ip() {
   local ip="$1" a b c d hint
-  hint="use the VM's public IP from the OCI console (Compute > Instance > Public IP)"
+  hint="look up the VM's public IP as described in docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md"
   [[ "$ip" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]] \
     || die "BM_VM_PUBLIC_IP must be the VM's public IPv4 (got '$ip'): $hint"
   a=$((10#${BASH_REMATCH[1]})) b=$((10#${BASH_REMATCH[2]})) c=$((10#${BASH_REMATCH[3]})) d=$((10#${BASH_REMATCH[4]}))
@@ -71,7 +71,7 @@ probe_is_open() {
   if err="$(probe_port "$1" "$2" "$3")"; then
     return 0
   fi
-  # "No route to host" is how nc reports an ICMP reject (the OCI Ubuntu image's iptables uses icmp-host-prohibited).
+  # "No route to host" is how nc reports an ICMP reject (a host firewall may reject with icmp-host-prohibited).
   if [[ -z "$err" ]] || grep -qiE 'refused|timed out|timeout|no route to host|unreachable|prohibited' <<<"$err"; then
     return 1
   fi
@@ -84,7 +84,7 @@ check_public_closed() {
   step "check public IP $BM_VM_PUBLIC_IP refuses ports $PUBLIC_PROBE_PORTS $port"
   for probe in $PUBLIC_PROBE_PORTS "$port"; do
     if probe_is_open "$platform" "$BM_VM_PUBLIC_IP" "$probe"; then
-      die "public IP $BM_VM_PUBLIC_IP accepts connections on port $probe: remove that OCI ingress rule"
+      die "public IP $BM_VM_PUBLIC_IP accepts connections on port $probe: remove the firewall rule that allows it"
     fi
   done
   log "OK: public IP $BM_VM_PUBLIC_IP refuses ports $PUBLIC_PROBE_PORTS $port"
@@ -111,7 +111,7 @@ main() {
   check_loopback_binding "$port"
   check_serve_tailnet_only
   check_public_closed "$port"
-  log "OK: automated VM checks passed; audit OCI ingress rules and the tailnet policy by hand (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"
+  log "OK: automated VM checks passed; audit firewall rules and the tailnet policy by hand (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"
 }
 
 main "$@"

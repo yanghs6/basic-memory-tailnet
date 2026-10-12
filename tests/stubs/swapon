@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Test stub for swapon. `--show` prints SWAPON_STUB_ACTIVE (default empty = no active swap).
+# Enabling a file exits SWAPON_STUB_EXIT (default 0).
+set -euo pipefail
+printf 'swapon %s\n' "$*" >>"$STUB_LOG"
+if [[ "${1:-}" == --show ]]; then
+  if [[ -n "${SWAPON_STUB_ACTIVE:-}" ]]; then
+    printf '%s\n' "$SWAPON_STUB_ACTIVE"
+  fi
+  exit 0
+fi
+exit "${SWAPON_STUB_EXIT:-0}"

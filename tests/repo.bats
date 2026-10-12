@@ -252,3 +252,116 @@ reviewer_hook_command() {
   CLAUDE_PROJECT_DIR="$REPO_DIR" run sh -c "$hook" <<<"$input"
   assert_success
 }
+
+@test "operational skills bm-upgrade, bm-recover and bm-diagnose exist" {
+  local name
+  for name in bm-upgrade bm-recover bm-diagnose; do
+    [[ -f "$REPO_DIR/.agents/skills/$name/SKILL.md" ]] || fail "missing .agents/skills/$name/SKILL.md"
+  done
+}
+
+markdown_files() {
+  git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- '*.md'
+}
+
+# markdown_links FILE -> the link targets of FILE, one per line, ignoring fenced code blocks and external URLs.
+# grep exits 1 when a file has no links, which is fine; exit 2 (a real error) must surface.
+markdown_links() {
+  local links status=0
+  links="$(awk '/^```/ { fence = !fence; next } !fence' "$REPO_DIR/$1" | grep -oE '\]\([^)]+\)')" || status=$?
+  ((status <= 1)) || return "$status"
+  if [[ -n "$links" ]]; then
+    sed -E 's/^\]\((.*)\)$/\1/' <<<"$links" | grep -vE '^(https?:|mailto:)' || [[ $? -eq 1 ]]
+  fi
+}
+
+@test "relative links in markdown files resolve" {
+  local files file link target broken="" checked=0
+  files="$(markdown_files)" || fail "git ls-files failed"
+  [[ -n "$files" ]] || fail "git returned no markdown files"
+  [[ -f "$REPO_DIR/README.md" ]] || fail "README.md is missing"
+  while IFS= read -r file; do
+    while IFS= read -r link; do
+      link="${link%%#*}"
+      [[ -n "$link" ]] || continue
+      checked=$((checked + 1))
+      target="$(cd "$REPO_DIR/$(dirname "$file")" && realpath -m "$link")"
+      [[ -e "$target" ]] || broken="$broken $file->$link"
+    done < <(markdown_links "$file")
+  done <<<"$files"
+  ((checked > 0)) || fail "no relative links were checked"
+  [[ -z "$broken" ]] || fail "broken relative links:$broken"
+}
+
+@test "every docs markdown path named in scripts, skills and AGENTS.md exists" {
+  local path missing="" count=0 found paths
+  # Capture grep alone: tests run without pipefail, so a pipe into sort would hide grep's exit status.
+  found="$(grep -rhoE 'docs/[A-Za-z0-9_./-]+\.md' "$REPO_DIR/scripts" "$REPO_DIR/.agents/skills" "$REPO_DIR/AGENTS.md")" \
+    || fail "found no docs/*.md references to check (grep exit status $?)"
+  paths="$(sort -u <<<"$found")"
+  while IFS= read -r path; do
+    count=$((count + 1))
+    [[ -f "$REPO_DIR/$path" ]] || missing="$missing $path"
+  done <<<"$paths"
+  ((count > 0)) || fail "no docs paths were checked"
+  [[ -z "$missing" ]] || fail "referenced docs do not exist:$missing"
+}
+
+@test "runbooks contain the sections scripts and skills point to" {
+  run grep -E '^## (Exposure audit|비용 점검|Incident log)' "$REPO_DIR/docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md"
+  assert_success
+  assert_line --partial "Exposure audit"
+  assert_line --partial "비용 점검"
+  assert_line --partial "Incident log"
+}
+
+@test "the VM runbook is rbk-2026-10-12-tcjs7m6x-gcp-vm.md and the ADR 0001 file names the GCP host" {
+  [[ -f "$REPO_DIR/docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md" ]] || fail "missing docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md"
+  [[ ! -e "$REPO_DIR/docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md" ]] || fail "docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md should be renamed to rbk-2026-10-12-tcjs7m6x-gcp-vm.md"
+  [[ -f "$REPO_DIR/docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md" ]] || fail "missing docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md"
+  [[ ! -e "$REPO_DIR/docs/decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md" ]] || fail "the old ADR 0001 should be renamed"
+}
+
+@test "human docs and operational skills carry no leftover OCI or idle-reclaim text" {
+  # ADR 0001 is excluded on purpose: it records why the first host was given up.
+  run grep -rniE '\b(OCI|Oracle)\b|A1\.Flex|reclaim|reclamation' \
+    "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR/docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md" \
+    "$REPO_DIR/docs/runbooks" "$REPO_DIR"/.agents/skills/*/SKILL.md
+  assert_failure 1
+}
+
+@test "every gcloud command in runbooks and skills names the bm-personal configuration" {
+  local file hits line status missing="" checked=0
+  for file in "$REPO_DIR"/docs/runbooks/*.md "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR"/.agents/skills/*/SKILL.md; do
+    status=0
+    hits="$(grep -nE 'gcloud [a-z]' "$file")" || status=$?
+    ((status <= 1)) || fail "grep failed on $file (exit status $status)"
+    while IFS= read -r line; do
+      [[ -n "$line" ]] || continue
+      case "$line" in
+        *'gcloud config configurations create'* | *'gcloud config configurations list'*) continue ;;
+      esac
+      checked=$((checked + 1))
+      [[ "$line" == *'--configuration=bm-personal'* ]] || missing="$missing ${file#"$REPO_DIR"/}:${line%%:*}"
+    done <<<"$hits"
+  done
+  ((checked > 0)) || fail "no gcloud commands were checked"
+  [[ -z "$missing" ]] || fail "gcloud commands without --configuration=bm-personal:$missing"
+}
+
+@test "AGENTS.md points at the GCP spec and states the GCP safety rules" {
+  run grep -F 'Read first: `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -F 'GCP free-tier e2-micro VM' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -F -- '--configuration=bm-personal' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -F 'never run `gcloud config configurations activate`' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -F '`.env` and `backups/` live only in the main checkout' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -F 'in their own terminal' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -iwE 'oci|oracle' "$REPO_DIR/AGENTS.md"
+  [[ $status -eq 1 ]] || fail "AGENTS.md still names OCI (grep status $status): $output"
+}

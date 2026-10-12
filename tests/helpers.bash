@@ -26,3 +26,16 @@ use_vm_env() {
   export BM_REMOTE_DATA_ROOT="$BATS_TEST_TMPDIR/srv/basic-memory"
   mkdir -p "$BM_REMOTE_APP_DIR" "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config"
 }
+
+# make_worktree_fixture: MAIN_REPO (a main checkout) and LINKED_WT (a linked worktree of it), as real paths.
+make_worktree_fixture() {
+  MAIN_REPO="$BATS_TEST_TMPDIR/main"
+  LINKED_WT="$BATS_TEST_TMPDIR/linked"
+  git init -q -b main "$MAIN_REPO"
+  git -C "$MAIN_REPO" -c user.name=test -c user.email=test@example.com -c commit.gpgsign=false \
+    commit -q --allow-empty -m "chore: init"
+  git -C "$MAIN_REPO" worktree add -q "$LINKED_WT" -b work/fixture
+  MAIN_REPO="$(cd "$MAIN_REPO" && pwd -P)"
+  LINKED_WT="$(cd "$LINKED_WT" && pwd -P)"
+  export MAIN_REPO LINKED_WT
+}

@@ -4,6 +4,10 @@
 # Must stay compatible with macOS bash 3.2.
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
 
+# Directory of this file. A script in a linked worktree sources its own copy, so this finds the right repo.
+COMMON_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" || exit 1
+readonly COMMON_LIB_DIR
+
 # VM layout. Overridable only so tests can point at a temp dir.
 readonly BM_REMOTE_APP_DIR="${BM_REMOTE_APP_DIR:-/opt/basic-memory}"
 readonly BM_REMOTE_DATA_ROOT="${BM_REMOTE_DATA_ROOT:-/srv/basic-memory}"
@@ -30,7 +34,7 @@ require_cmd() {
 require_env() {
   local name
   for name in "$@"; do
-    [[ -n "${!name:-}" ]] || die "missing env $name: copy .env.example to .env and set it"
+    [[ -n "${!name:-}" ]] || die "missing env $name: set it in .env in the main checkout (copy .env.example there; see docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md)"
   done
 }
 
@@ -75,4 +79,13 @@ sha256_of() {
   else
     shasum -a 256 "$1" | awk '{ print $1 }'
   fi
+}
+
+# main_checkout_root [DIR] -> absolute path of the main checkout that DIR (default: the repo holding these
+# scripts) belongs to. Linked worktrees share the main checkout's .git, so its parent is the main root.
+# .env and backups/ are git-ignored, so each checkout has its own; this is the one that keeps them.
+main_checkout_root() {
+  local common
+  common="$(git -C "${1:-$COMMON_LIB_DIR}" rev-parse --path-format=absolute --git-common-dir)" || return 1
+  dirname "$common"
 }

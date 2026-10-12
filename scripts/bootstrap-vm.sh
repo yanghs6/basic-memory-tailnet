@@ -40,14 +40,14 @@ main() {
   step "upload bootstrap script to $user@$host"
   # mktemp gives an unpredictable path and mode 0600, so no other VM user can swap the file root runs.
   remote_script="$(ssh_public "$user@$host" "mktemp $REMOTE_SCRIPT_TEMPLATE")" \
-    || die "upload failed: check the public IP, your SSH key, and the OCI ingress rule for port 22"
+    || die "upload failed: check the public IP, your SSH key, and that a firewall rule allows port 22 from your IP (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md)"
   # The path is spliced into later remote commands, so accept only what mktemp should print.
   [[ "$remote_script" =~ ^/tmp/bm-bootstrap\.[A-Za-z0-9]{6}$ ]] \
     || die "unexpected temp path from mktemp on the VM: '$remote_script'"
   ssh_public "$user@$host" "cat > $remote_script" <"$SCRIPT_DIR/remote/bootstrap.sh" \
     || {
       remove_remote_script "$user@$host" "$remote_script"
-      die "upload failed: check the public IP, your SSH key, and the OCI ingress rule for port 22"
+      die "upload failed: check the public IP, your SSH key, and that a firewall rule allows port 22 from your IP (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md)"
     }
 
   step "run bootstrap on the VM (docker, tailscale, data dirs, serve)"
@@ -62,7 +62,7 @@ main() {
 
   log "Next steps:"
   log "  1. ssh $user@$TS_HOSTNAME true    # must succeed over Tailscale SSH"
-  log "  2. only then delete the OCI ingress rule for port 22 (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"
+  log "  2. only then delete the firewall rule that opens port 22 (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"
   log "  3. make deploy verify status"
 }
 

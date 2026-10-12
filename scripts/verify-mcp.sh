@@ -119,7 +119,11 @@ initialize() {
     '{protocolVersion: $version, capabilities: {}, clientInfo: {name: "bm-verify", version: "1"}}')"
   rpc 1 initialize "$params" >/dev/null
   SESSION_ID="$(grep -i '^mcp-session-id:' "$WORK_DIR/headers" | cut -d: -f2- | tr -d ' \r' || true)"
-  log "initialized (session $(mask "${SESSION_ID:-none}"))"
+  if [[ -n "$SESSION_ID" ]]; then
+    log "initialized (session $(mask "$SESSION_ID"))"
+  else
+    log "initialized (no session id)"
+  fi
   notify notifications/initialized
 }
 
