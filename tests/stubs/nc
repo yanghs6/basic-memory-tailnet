@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Test stub for nc: exits NC_STUB_EXIT (default 1 = connection refused) and prints NC_STUB_STDERR to stderr.
+# open: NC_STUB_EXIT=0; refused: default; timeout: NC_STUB_STDERR="nc: connect to ... port 22 (tcp) timed out";
+# option error: NC_STUB_STDERR="nc: invalid option -- G" (or "usage: nc ...").
+set -euo pipefail
+printf 'nc %s\n' "$*" >>"$STUB_LOG"
+if [[ -n "${NC_STUB_STDERR:-}" ]]; then
+  printf '%s\n' "$NC_STUB_STDERR" >&2
+fi
+exit "${NC_STUB_EXIT:-1}"

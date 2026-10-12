@@ -139,6 +139,38 @@ EOF
   assert_output --partial "usage: verify-mcp.sh"
 }
 
+@test "fails with a clear message when the tool result text is not JSON" {
+  cat >"$FIXTURES/call_read_note.body" <<'EOT'
+data: {"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"not json"}],"isError":false}}
+EOT
+  run "$VERIFY" "$URL"
+  assert_failure
+  assert_output --partial "read_note: unexpected result"
+}
+
+@test "fails with a clear message when tools/list has no tools" {
+  echo 'data: {"jsonrpc":"2.0","id":2,"result":{}}' >"$FIXTURES/tools_list.body"
+  run "$VERIFY" "$URL"
+  assert_failure
+  assert_output --partial "tools/list: unexpected result"
+}
+
+@test "warns with the note title when cleanup cannot delete the leftover note" {
+  cat >"$FIXTURES/call_read_note.body" <<'EOT'
+data: {"jsonrpc":"2.0","id":4,"result":{"content":[],"isError":false,"structuredContent":{"result":{"title":"bm-verify-test1","content":"something else"}}}}
+EOT
+  echo 500 >"$FIXTURES/call_delete_note.status"
+  run "$VERIFY" "$URL"
+  assert_failure
+  assert_output --partial "WARNING: could not delete 'bm-verify-test1'"
+}
+
+@test "rejects a second URL argument" {
+  run "$VERIFY" "$URL" http://127.0.0.1:9999/mcp
+  assert_failure
+  assert_output --partial "only one URL"
+}
+
 @test "rejects unknown options" {
   run "$VERIFY" --bogus "$URL"
   assert_failure

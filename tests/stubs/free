@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Test stub for free -m: 3900 MB total, FREE_STUB_AVAILABLE_MB available (default 3000 -> 23% used).
+set -euo pipefail
+printf 'free %s\n' "$*" >>"$STUB_LOG"
+printf '               total        used        free      shared  buff/cache   available\n'
+printf 'Mem:            3900         700        2200           5        1000        %s\n' "${FREE_STUB_AVAILABLE_MB:-3000}"
+printf 'Swap:              0           0           0\n'

@@ -70,8 +70,40 @@ setup() {
   assert_success
 }
 
+@test "remote propagates a failing command's non-zero exit" {
+  export SSH_STUB_FAIL_MATCH="boom"
+  run remote "boom"
+  assert_failure 255
+}
+
+@test "remote_compose propagates a failing compose command's non-zero exit" {
+  export DOCKER_STUB_FAIL_MATCH="up -d"
+  run remote_compose "up -d"
+  assert_failure 1
+}
+
 @test "sha256_of prints only the hex digest" {
   printf 'abc' >"$BATS_TEST_TMPDIR/f"
   run sha256_of "$BATS_TEST_TMPDIR/f"
   assert_output "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+}
+
+@test "manifest_cmd lists every file's sha256 sorted by path" {
+  setup_stubs sudo
+  mkdir -p "$BATS_TEST_TMPDIR/d/b"
+  printf 'abc' >"$BATS_TEST_TMPDIR/d/b/z.md"
+  printf 'abc' >"$BATS_TEST_TMPDIR/d/a.md"
+  run bash -c "$(manifest_cmd "$BATS_TEST_TMPDIR/d")"
+  assert_success
+  assert_line --index 0 "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  ./a.md"
+  assert_line --index 1 "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  ./b/z.md"
+}
+
+@test "manifest_cmd fails when find fails instead of printing a short list" {
+  setup_stubs sudo
+  mkdir -p "$BATS_TEST_TMPDIR/d" "$BATS_TEST_TMPDIR/failbin"
+  printf '#!/usr/bin/env bash\necho "find: simulated failure" >&2\nexit 1\n' >"$BATS_TEST_TMPDIR/failbin/find"
+  chmod +x "$BATS_TEST_TMPDIR/failbin/find"
+  PATH="$BATS_TEST_TMPDIR/failbin:$PATH" run bash -c "$(manifest_cmd "$BATS_TEST_TMPDIR/d")"
+  assert_failure
 }

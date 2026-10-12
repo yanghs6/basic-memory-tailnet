@@ -22,7 +22,7 @@ while IFS= read -r script; do
   if ! jq -e --arg f "$script" 'any(.files[]; .file == $f)' "$report" >/dev/null; then
     missing="$missing $script"
   fi
-done < <(find "$REPO_DIR/scripts" -name '*.sh' -not -path '*/lib/*' | sort)
+done < <(find "$REPO_DIR/scripts" -type f -perm -u+x | sort)
 if [[ -n "$missing" ]]; then
   echo "never executed by any test (add bats tests):$missing" >&2
   exit 1

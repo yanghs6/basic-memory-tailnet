@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Test stub for uname: prints UNAME_STUB_OUTPUT (default Linux) so tests choose the platform.
+set -euo pipefail
+printf 'uname %s\n' "$*" >>"$STUB_LOG"
+echo "${UNAME_STUB_OUTPUT:-Linux}"

@@ -46,6 +46,21 @@ require_shell_files() {
   [[ -z "$missing" ]] || fail "add '## <description>' to these Makefile targets: $missing"
 }
 
+@test "every documented Make target is declared .PHONY" {
+  local phony target missing=""
+  phony=" $(grep -E '^\.PHONY:' "$REPO_DIR/Makefile" | cut -d: -f2 | tr '\n' ' ') "
+  for target in $(grep -oE '^[a-z0-9-]+:.*## ' "$REPO_DIR/Makefile" | cut -d: -f1); do
+    [[ "$phony" == *" $target "* ]] || missing="$missing $target"
+  done
+  [[ -z "$missing" ]] || fail "add these targets to .PHONY in the Makefile:$missing"
+}
+
+@test "no Make target is defined twice" {
+  local dupes
+  dupes="$(grep -oE '^[a-z0-9-]+:([^=]|$)' "$REPO_DIR/Makefile" | cut -d: -f1 | sort | uniq -d)"
+  [[ -z "$dupes" ]] || fail "these Make targets are defined more than once (make keeps only the last recipe): $dupes"
+}
+
 @test "make help lists every documented target" {
   # kcov exports xtrace settings that break the `bash -u` shell make spawns; the Makefile needs no tracing.
   run env -u SHELLOPTS -u PS4 -u BASH_ENV make -s -C "$REPO_DIR" help
@@ -75,6 +90,14 @@ require_shell_files() {
   assert_success
   run grep -F '"--path", "/mcp"' "$REPO_DIR/compose.yaml"
   assert_success
+}
+
+@test "compose healthcheck probes port 8000 and does not rely on --version" {
+  local healthcheck
+  healthcheck="$(grep -E '^ +test: \[' "$REPO_DIR/compose.yaml")"
+  [[ -n "$healthcheck" ]] || fail "compose.yaml has no healthcheck test"
+  [[ "$healthcheck" != *"--version"* ]] || fail "healthcheck must not use --version (passes while the server is down)"
+  [[ "$healthcheck" == *"8000"* ]] || fail "healthcheck must probe port 8000"
 }
 
 @test "compose restarts the container after reboots" {
@@ -211,6 +234,11 @@ frontmatter() {
 # reviewer_hook_command: the hook command line from the branch-reviewer agent frontmatter.
 reviewer_hook_command() {
   frontmatter "$REPO_DIR/.claude/agents/branch-reviewer.md" | sed -n "s/^ *command: '\(.*\)'\$/\1/p"
+}
+
+@test "no script enables Tailscale Funnel" {
+  run grep -rniE 'tailscale[[:space:]]+funnel' "$REPO_DIR/scripts"
+  assert_failure 1
 }
 
 @test "the reviewer hook command blocks (exit 2) even when the guard script is missing" {

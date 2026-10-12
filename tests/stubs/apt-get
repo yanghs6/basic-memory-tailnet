@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Test stub for apt-get: logs only.
+set -euo pipefail
+printf 'apt-get %s\n' "$*" >>"$STUB_LOG"
