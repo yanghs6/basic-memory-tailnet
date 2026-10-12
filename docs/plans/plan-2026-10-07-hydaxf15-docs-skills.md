@@ -2496,3 +2496,7 @@ git commit -m "docs: record review of the docs-skills plan" --trailer "Assisted-
 | 2026-10-12 | Verified | 두 번 모두 종료 코드 0. `OK: MCP round trip passed`가 일반 요청과 `*.ts.net` Host 헤더 요청에서 각각 나와 총 4회 확인 |
 | 2026-10-12 | Command | `grep -rniwE 'oci|oracle' scripts AGENTS.md README.md docs/ARCHITECTURE.md docs/runbooks .agents/skills; echo "exit=$?"` |
 | 2026-10-12 | Verified | grep 결과 없음, `exit=1`. 클라우드 이름이 남아 있지 않음 |
+| 2026-10-12 | Verified | 계획 내 최종 리뷰(opus, 241d82d..8c6f37f): Critical 0, Important 1(새 VM에서 배포 전 이미지 점검 불가), Minor 11. 수정 4커밋(176062f, 0167c5c, cccd6fd, 427b489) 뒤 범위 재리뷰에서 모두 해결, 새 Critical·Important 없음 |
+| 2026-10-12 | Command | `make check` (427b489) |
+| 2026-10-12 | Verified | 테스트 220개 전부 PASS, 라인 커버리지 97.97%. `scripts/check-git.sh main plan/hydaxf15-docs-skills` OK |
+| 2026-10-12 | Open question | Task 4 임시 worktree(`.claude/worktrees/agent-a5a0efb1c7ac22d6e`)의 `backups/`에 RED 단계 테스트가 만든 가짜 아카이브(`bm-20261012T064944Z.tgz`, 200바이트)가 있다. 실제 VM 백업이 아니며, AGENTS.md 규칙에 따라 지우지 않고 사람이 정리할 때 판단한다 |
