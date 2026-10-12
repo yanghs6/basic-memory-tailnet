@@ -20,12 +20,17 @@ RENAMED_COUNT=0
 # reserve_archive -> claim $ARCHIVE for this run before anything can clean up; dies if the name is taken.
 reserve_archive() {
   local file
-  for file in "$ARCHIVE" "$ARCHIVE.manifest" "$ARCHIVE.sha256"; do
-    [[ ! -e "$file" ]] || die "a backup named $(basename "$ARCHIVE") already exists; wait a second and run 'make backup' again"
-  done
   # noclobber makes the create exclusive, so two runs in the same second cannot both own this name.
   (set -C && : >"$ARCHIVE$PARTIAL_SUFFIX") 2>/dev/null \
     || die "another backup is writing $(basename "$ARCHIVE") right now; wait for it, then run 'make backup' again"
+  # Check the final names only after the reservation: another run's finalize renames its .partial to the final
+  # name atomically, so a name finished by another run is always visible here. Checking first left a window.
+  for file in "$ARCHIVE" "$ARCHIVE.manifest" "$ARCHIVE.sha256"; do
+    if [[ -e "$file" ]]; then
+      rm -f "$ARCHIVE$PARTIAL_SUFFIX" || log "WARNING: could not remove $ARCHIVE$PARTIAL_SUFFIX; delete it by hand"
+      die "a backup named $(basename "$ARCHIVE") already exists; wait a second and run 'make backup' again"
+    fi
+  done
   IS_RESERVED=1
 }
 
