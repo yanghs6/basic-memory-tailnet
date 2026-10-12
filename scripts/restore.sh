@@ -102,7 +102,7 @@ upload_vm_file() {
 
 main() {
   local archive="${1:-}" actual expected present
-  [[ -n "$archive" ]] || die "usage: make restore BACKUP=backups/bm-<stamp>.tgz"
+  [[ -n "$archive" ]] || die "usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz"
   [[ -f "$archive" ]] || die "backup not found: $archive (archives from 'make backup' are in <main checkout>/backups/; pass the full path if you are in another checkout)"
   [[ -f "$archive.sha256" ]] || die "checksum file missing: $archive.sha256 (restore only archives made by 'make backup')"
   [[ -f "$archive.manifest" ]] || die "manifest missing: $archive.manifest (restore only archives made by 'make backup')"

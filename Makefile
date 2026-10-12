@@ -87,6 +87,6 @@ logs: ## Show the last 200 lines of the VM container logs
 backup: ## Download a consistent backup of VM data into the main checkout's backups/ (brief container stop)
 	scripts/backup.sh
 
-restore: ## Restore BACKUP=backups/bm-<stamp>.tgz to the VM (asks for yes), then verify
+restore: ## Restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz to the VM (asks for yes), then verify
 	scripts/restore.sh "$(BACKUP)"
 	scripts/verify-vm.sh

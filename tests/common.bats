@@ -42,6 +42,7 @@ setup() {
   run require_env BM_TEST_MISSING
   assert_failure
   assert_output --partial "missing env BM_TEST_MISSING"
+  assert_output --partial "set it in .env in the main checkout"
 }
 
 @test "mask keeps only a 4-character prefix of long values" {
