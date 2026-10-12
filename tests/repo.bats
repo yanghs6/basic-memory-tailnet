@@ -348,3 +348,18 @@ markdown_links() {
   ((checked > 0)) || fail "no gcloud commands were checked"
   [[ -z "$missing" ]] || fail "gcloud commands without --configuration=bm-personal:$missing"
 }
+
+@test "AGENTS.md points at the GCP spec and states the GCP safety rules" {
+  run grep -F 'Read first: `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -F 'GCP free-tier e2-micro VM' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -F -- '--configuration=bm-personal' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -F '`.env` and `backups/` live only in the main checkout' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -F 'in their own terminal' "$REPO_DIR/AGENTS.md"
+  assert_success
+  run grep -iwE 'oci|oracle' "$REPO_DIR/AGENTS.md"
+  [[ $status -eq 1 ]] || fail "AGENTS.md still names OCI (grep status $status): $output"
+}
