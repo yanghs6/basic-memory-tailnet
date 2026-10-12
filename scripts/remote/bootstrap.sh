@@ -3,7 +3,7 @@
 # stdin: first line is the Tailscale auth key; it may be empty when the VM is already on the tailnet.
 set -euo pipefail
 
-readonly TS_HOSTNAME="${TS_HOSTNAME:-bm-node}"
+readonly TS_HOSTNAME="${TS_HOSTNAME:-agent-hub}"
 readonly BM_PORT="${BM_PORT:-8737}"
 readonly BM_REMOTE_DATA_ROOT="${BM_REMOTE_DATA_ROOT:-/srv/basic-memory}"
 readonly BM_REMOTE_APP_DIR="${BM_REMOTE_APP_DIR:-/opt/basic-memory}"

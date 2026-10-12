@@ -33,7 +33,7 @@
 
 ## Review Focus
 
-1. **`default-allow-ssh`를 먼저 지워 접속 불가:** Tailscale SSH 확인 전에 규칙을 지우면 gcloud로 규칙을 다시 만들거나 시리얼 콘솔 말고는 들어갈 방법이 없다. 정책에 `tag:bm-server`용 `ssh` 규칙이 없으면 Tailscale SSH가 거부된다. → Step 7·8의 순서를 지키고, Step 1에서 정책을 함께 검토한다.
+1. **`default-allow-ssh`를 먼저 지워 접속 불가:** Tailscale SSH 확인 전에 규칙을 지우면 gcloud로 규칙을 다시 만들거나 시리얼 콘솔 말고는 들어갈 방법이 없다. 정책에 `tag:agent-hub`용 `ssh` 규칙이 없으면 Tailscale SSH가 거부된다. → Step 7·8의 순서를 지키고, Step 1에서 정책을 함께 검토한다.
 2. **재부팅 후 자동 복구:** 컨테이너(`restart: unless-stopped`), Serve 설정(`--bg`), 스왑(`/etc/fstab`)이 재부팅 뒤 자동으로 돌아와야 하고 외부 IP가 그대로여야 한다. → Step 13.
 3. **1GB RAM과 OOM:** e2-micro에서 컨테이너, dockerd, tailscaled, 임베딩 모델이 함께 돈다. 스왑이 켜져 있어도 OOM kill이 나면 [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)을 다시 판단한다. → Step 9, 13, 16.
 4. **자동 검증이 못 보는 노출:** 방화벽 규칙과 tailnet 정책의 funnel 속성은 `make verify`가 읽을 수 없다. → Step 11의 Exposure audit을 거쳐야 완료 조건 2를 만족한다. 합격 기준은 런북·스펙과 같다(VPC 밖 소스를 허용하는 인바운드 규칙 0개, `default-allow-internal`의 `10.128.0.0/9`만 남음).
@@ -48,39 +48,39 @@
 
 **[vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md)에서 이어진 항목 (OCI 전용 문구는 GCP에 맞게 바꿨다):**
 
-1. `make vm-bootstrap`: tailnet HTTPS 인증서가 켜진 상태에서 enable URL이 나오지 않고, `ssh ubuntu@bm-node sudo tailscale serve status`에 `(tailnet only)`와 `|-- / proxy http://127.0.0.1:8737`이 보인다. 한 번 더 실행해도 `serve --bg`가 그대로 성공한다. (Step 6)
+1. `make vm-bootstrap`: tailnet HTTPS 인증서가 켜진 상태에서 enable URL이 나오지 않고, `ssh ubuntu@agent-hub sudo tailscale serve status`에 `(tailnet only)`와 `|-- / proxy http://127.0.0.1:8737`이 보인다. 한 번 더 실행해도 `serve --bg`가 그대로 성공한다. (Step 6)
 2. 새로 설치해 로그아웃 상태인 노드에서 `tailscale status`가 0이 아닌 코드로 끝나 join 경로가 실행된다. 부트스트랩 출력에서 join 경로가 실행됐는지 확인한다. (Step 6)
 3. `sudo BM_PORT=... bash /tmp/bm-bootstrap.XXXXXX`가 허용된다. 메타데이터 키로 만든 `ubuntu`가 암호 없는 sudo를 갖는다: `ssh ubuntu@<공인 IP> 'sudo -n true && echo NOPASSWD; sudo ls /etc/sudoers.d'`. (Step 4)
-4. 26.04(resolute)/amd64에서 deb822 `docker.sources`로 Docker가 설치되고 apt 잠금 실패나 needrestart·debconf 프롬프트가 없다: 부트스트랩 출력과 `ssh ubuntu@bm-node 'docker --version; ls /etc/apt/sources.list.d; dpkg --print-architecture'`. (Step 6)
-5. 첫 `ssh ubuntu@bm-node true`에서 호스트 키를 수락한 뒤 `make deploy`(BatchMode)가 수동 단계 없이 동작한다. (Step 7, 9)
+4. 26.04(resolute)/amd64에서 deb822 `docker.sources`로 Docker가 설치되고 apt 잠금 실패나 needrestart·debconf 프롬프트가 없다: 부트스트랩 출력과 `ssh ubuntu@agent-hub 'docker --version; ls /etc/apt/sources.list.d; dpkg --print-architecture'`. (Step 6)
+5. 첫 `ssh ubuntu@agent-hub true`에서 호스트 키를 수락한 뒤 `make deploy`(BatchMode)가 수동 단계 없이 동작한다. (Step 7, 9)
 6. 부트스트랩 직후 Tailscale SSH 새 세션에서 sudo 없이 `docker compose version`이 되고(docker 그룹 반영) `sudo -n true`도 된다. (Step 7)
 7. `make deploy`가 e2-micro 1GB + 스왑에서 `HEALTH_TIMEOUT_SECONDS=180` 안에 healthy가 된다(걸린 시간 기록). 초과하면 발견 사항으로 기록하고 수정은 별도 계획으로 분리한다. (Step 9)
-8. `ssh ubuntu@bm-node "ss -Hltn 'sport = :8737'"`가 4번째 열에 `127.0.0.1:8737`이 있는 한 줄만 출력한다(기본 userland-proxy 가정). 26.04 Minimal에 `ss`가 있는지도 같이 본다. (Step 4, 9)
+8. `ssh ubuntu@agent-hub "ss -Hltn 'sport = :8737'"`가 4번째 열에 `127.0.0.1:8737`이 있는 한 줄만 출력한다(기본 userland-proxy 가정). 26.04 Minimal에 `ss`가 있는지도 같이 본다. (Step 4, 9)
 9. `free -m`의 7번째 열이 `available`(procps-ng 4)이고 `make status`의 메모리·스왑 값이 그럴듯하다. 26.04 Minimal에 `free`가 있는지도 같이 본다. (Step 4, 9)
 10. Serve를 거친 MCP 왕복(Host 헤더, HTTPS 인증서)이 스펙 §3대로 통과한다: `make verify`. (Step 9)
 11. `default-allow-ssh`를 지운 뒤 Mac에서 `time make probe`. 포트 하나가 10초를 넘으면 `nc -G` 가정(Assumption)이 틀린 것이다. 22/80/443/8737이 모두 닫힘으로 나온다. (Step 10)
 12. 실제 VM에서 `make backup` 후 `make restore BACKUP=<그 파일>`: manifest 일치, 복원 파일 소유자 1000:1000, 컨테이너 healthy, `/srv/basic-memory.prev-<stamp>` 존재, 백업 이후에 쓴 노트가 사라짐. (Step 12)
 13. 복원한 SQLite 인덱스가 열리고, 복원 후 `make verify`가 노트를 쓰고 읽고 지운다. (Step 12)
-14. Ubuntu 26.04 Minimal에 Tailscale(UDP, DERP 우회)과 컨테이너 egress를 막는 기본 iptables·nftables 규칙이 없다: `ssh ubuntu@bm-node 'sudo iptables -S 2>&1 | head; sudo nft list ruleset 2>&1 | head'`. 첫 `search_notes`가 FastEmbed 모델을 내려받는다: `make verify`와 `make logs`. (Step 9)
+14. Ubuntu 26.04 Minimal에 Tailscale(UDP, DERP 우회)과 컨테이너 egress를 막는 기본 iptables·nftables 규칙이 없다: `ssh ubuntu@agent-hub 'sudo iptables -S 2>&1 | head; sudo nft list ruleset 2>&1 | head'`. 첫 `search_notes`가 FastEmbed 모델을 내려받는다: `make verify`와 `make logs`. (Step 9)
 15. `make backup`이 컨테이너를 몇 초만 멈추고 `docker compose start`로 healthy가 된다(멈춘 시간 기록). (Step 12)
 16. Funnel 감지를 실제 `tailscale serve status` 출력으로 확인한다(Funnel을 켜지 않고 출력 형식만 읽는다). (Step 14)
-17. [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md) 이월 Assumption: macOS `nc -G`가 연결 시간을 제한한다(11번), VM 로그인 셸이 bash다(`ssh ubuntu@bm-node 'echo $SHELL'`, manifest `pipefail`). (Step 4, 10)
+17. [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md) 이월 Assumption: macOS `nc -G`가 연결 시간을 제한한다(11번), VM 로그인 셸이 bash다(`ssh ubuntu@agent-hub 'echo $SHELL'`, manifest `pipefail`). (Step 4, 10)
 
 **GCP에서 새로 추가한 항목:**
 
 18. 스케줄링이 STANDARD이고 디스크가 `pd-standard`다: `gcloud compute instances describe agent-hub-01 --zone=us-west1-b --configuration=bm-personal --format='value(scheduling.provisioningModel,scheduling.preemptible,disks[0].type,disks[0].diskSizeGb)'`. (Step 2)
 19. 인스턴스 메타데이터에 `enable-oslogin`이 TRUE가 아니다(프로젝트 수준은 2026-10-12에 확인함): `gcloud compute instances describe agent-hub-01 --zone=us-west1-b --configuration=bm-personal --format=json | jq '.metadata.items[]? | select(.key=="enable-oslogin")'`가 비어 있다. (Step 3)
 20. 메타데이터 `ssh-keys`로 `ubuntu` 계정이 생기고 로그인된다: `ssh ubuntu@<공인 IP> id`. (Step 2)
-21. 스왑: 부트스트랩 뒤 `ssh ubuntu@bm-node 'swapon --show; grep -c swapfile /etc/fstab'`에 `/swapfile` 1G와 `1`이 나온다. 두 번째 실행 뒤에도 `1`이다. 재부팅 뒤에도 켜져 있다. `make status`에 스왑 경고가 없다. (Step 6, 13)
-22. OOM이 없다: 모델을 로드한 `make verify` 뒤 `ssh ubuntu@bm-node 'dmesg | grep -i -E "out of memory|oom-kill" || echo none'`가 `none`이고 `docker inspect -f '{{.RestartCount}} {{.State.OOMKilled}}' <컨테이너 이름>`이 `0 false`다(컨테이너 이름은 `make status`로 확인). (Step 9, 13)
+21. 스왑: 부트스트랩 뒤 `ssh ubuntu@agent-hub 'swapon --show; grep -c swapfile /etc/fstab'`에 `/swapfile` 1G와 `1`이 나온다. 두 번째 실행 뒤에도 `1`이다. 재부팅 뒤에도 켜져 있다. `make status`에 스왑 경고가 없다. (Step 6, 13)
+22. OOM이 없다: 모델을 로드한 `make verify` 뒤 `ssh ubuntu@agent-hub 'dmesg | grep -i -E "out of memory|oom-kill" || echo none'`가 `none`이고 `docker inspect -f '{{.RestartCount}} {{.State.OOMKilled}}' <컨테이너 이름>`이 `0 false`다(컨테이너 이름은 `make status`로 확인). (Step 9, 13)
 23. 방화벽: `gcloud compute firewall-rules list --configuration=bm-personal --format='table(name,direction,sourceRanges.list(),allowed[].map().firewall_rule().list())'`에 VPC 밖 소스를 허용하는 인바운드 규칙이 없다. (Step 11)
 24. 게스트 재부팅으로 외부 IP가 바뀌지 않는다: 재부팅 전후 `gcloud compute instances describe agent-hub-01 --zone=us-west1-b --configuration=bm-personal --format='value(networkInterfaces[0].accessConfigs[0].natIP)'`. (Step 13)
 25. 배포 다음 날 청구 보고서의 SKU별 금액(e2-micro 코어·RAM, standard PD, 외부 IPv4 `External IP Charge on a Standard VM`, 네트워크 egress)이 0이다. egress는 DERP 중계 트래픽을 포함한다. (Step 15)
 26. Budget 알림(월 $1)이 있다: `gcloud billing budgets list --billing-account=<결제 계정> --configuration=bm-personal` 또는 콘솔에서 확인한 내용을 기록한다. (Step 1)
 27. gcloud 분리: `gcloud config configurations list`에서 회사 설정이 그대로 활성이다. 이 계획의 모든 gcloud 명령에 `--configuration=bm-personal`이 있다. (전 단계)
 28. 기본 ICMP 규칙은 이미 지웠다. 큰 전송(`make backup`, `make restore`)이 멈추지 않으면 PMTU 문제가 없다고 기록한다. 런북·ARCHITECTURE에 "ICMP type 3 규칙이 남아 있다"는 문구가 있으면 고친다(문서 수정은 별도 커밋). (Step 12)
-29. 22번이 닫힌 뒤 Tailscale SSH만으로 `make vm-bootstrap HOST=bm-node`가 다시 실행되고, Serve가 재적용된다([docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md) 최종 리뷰 I2). (Step 14)
-30. Funnel을 끄는 방법: `serve --bg`가 443의 Funnel을 지우는지, 아니면 `ssh ubuntu@bm-node sudo tailscale serve reset`이 필요한지 출력 형식으로만 확인한다(Funnel을 켜서 시험하지 않는다). 결과를 `rbk-2026-10-12-t79ex2ny-operations.md`와 `bm-recover` 스킬의 Assumption 문구에 반영한다. (Step 14)
+29. 22번이 닫힌 뒤 Tailscale SSH만으로 `make vm-bootstrap HOST=agent-hub`가 다시 실행되고, Serve가 재적용된다([docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md) 최종 리뷰 I2). (Step 14)
+30. Funnel을 끄는 방법: `serve --bg`가 443의 Funnel을 지우는지, 아니면 `ssh ubuntu@agent-hub sudo tailscale serve reset`이 필요한지 출력 형식으로만 확인한다(Funnel을 켜서 시험하지 않는다). 결과를 `rbk-2026-10-12-t79ex2ny-operations.md`와 `bm-recover` 스킬의 Assumption 문구에 반영한다. (Step 14)
 31. C1: worktree에서 실행한 `make backup`이 main 체크아웃의 `backups/`에 절대 경로로 저장한다: 출력의 `backup saved: <main>/backups/bm-<stamp>.tgz`와 `ls <main>/backups`. (Step 12)
 
 ---
@@ -125,7 +125,7 @@ git commit -m "docs: activate the vm-rollout plan" --trailer "Assisted-by: <도�
 
 - [ ] **Step 1 (사용자):** `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`의 남은 부분을 완료한다. 에이전트는 정책 JSON 편집을 함께 검토한다.
   - Budget 알림(월 $1)을 확인하거나 만든다(항목 26).
-  - Tailscale: MagicDNS와 HTTPS 인증서를 켠다. 정책에 `funnel` 속성이 없는지 본다. `tag:bm-server`와 그 태그에 대한 `ssh` 규칙을 정의한다(Review Focus 1). 인증 키는 Step 6 직전에 발급한다(사전 승인, 1회용, 태그).
+  - Tailscale: MagicDNS와 HTTPS 인증서를 켠다. 정책에 `funnel` 속성이 없는지 본다. `tag:agent-hub`와 그 태그에 대한 `ssh` 규칙을 정의한다(Review Focus 1). 인증 키는 Step 6 직전에 발급한다(사전 승인, 1회용, 태그).
   - 정책 변경은 사용자 확인 뒤에만 한다.
 - [ ] **Step 2 (사용자 확인 후):** 인스턴스 메타데이터 `ssh-keys`에 공개키를 넣는다. 먼저 기존 값을 읽어 덮어쓰지 않는지 확인한다.
   ```bash
@@ -146,11 +146,11 @@ git commit -m "docs: activate the vm-rollout plan" --trailer "Assisted-by: <도�
   ```
   Expected: `ss`, `free`, `sudo`의 경로, `NOPASSWD`, `resolute`, `amd64`, 활성 스왑 없음(항목 3, 8, 9, 17). `ss`나 `free`가 없으면 멈춘다. 부트스트랩에 패키지 설치를 추가해야 하므로 별도 계획이나 `work/` 브랜치로 분리한다(스펙 §10).
 - [ ] **Step 5 (사용자):** main 체크아웃에서 `.env.example`을 복사해 `.env`를 만들고 `BM_VM_HOST`, `BM_VM_USER=ubuntu`, `BM_TAILNET_DOMAIN`, `BM_VM_PUBLIC_IP`를 채운다. 에이전트는 `.env`를 읽지 않는다.
-  Expected: `git -C <main 체크아웃> check-ignore .env`가 `.env`를 출력한다. 이 worktree에서 `make --no-print-directory --eval='show-host: ; @echo "[$(BM_VM_HOST)]"' show-host`가 `[bm-node]`를 출력한다(Makefile이 main 체크아웃의 `.env`를 읽음, C1 수정 확인). `.env`의 다른 값은 출력하지 않는다.
+  Expected: `git -C <main 체크아웃> check-ignore .env`가 `.env`를 출력한다. 이 worktree에서 `make --no-print-directory --eval='show-host: ; @echo "[$(BM_VM_HOST)]"' show-host`가 `[agent-hub]`를 출력한다(Makefile이 main 체크아웃의 `.env`를 읽음, C1 수정 확인). `.env`의 다른 값은 출력하지 않는다.
 - [ ] **Step 6 (사용자 확인 후 실행):** Step 1의 인증 키를 발급한 뒤 `make vm-bootstrap HOST=<공인 IP>`를 실행한다. 사용자가 프롬프트에 키를 붙여 넣는다. 끝나면 `unset TS_AUTHKEY`.
   Expected: `[bootstrap] done`과 Next steps 안내. 스왑 1GB가 켜진다(항목 21).
   **Assumption 확인:** 같은 명령을 한 번 더 실행한다(멱등성). 두 번째 실행은 키 없이 `already on the tailnet`으로 끝나야 하고, `/etc/fstab`의 swapfile 줄이 늘지 않아야 한다. 항목 1, 2, 4의 증거도 여기서 모은다.
-- [ ] **Step 7:** `ssh ubuntu@bm-node true`를 먼저 대화형으로 실행해 호스트 키를 수락하고, 다시 `ssh -o BatchMode=yes ubuntu@bm-node true`로 성공을 확인한다. 새 세션에서 `docker compose version`(sudo 없이)과 `sudo -n true`도 확인한다(항목 5, 6).
+- [ ] **Step 7:** `ssh ubuntu@agent-hub true`를 먼저 대화형으로 실행해 호스트 키를 수락하고, 다시 `ssh -o BatchMode=yes ubuntu@agent-hub true`로 성공을 확인한다. 새 세션에서 `docker compose version`(sudo 없이)과 `sudo -n true`도 확인한다(항목 5, 6).
   Expected: 모두 성공. 하나라도 실패하면 Step 8로 가지 않는다.
 - [ ] **Step 8 (사용자 확인 후):** Step 7이 BatchMode로 통과한 뒤에만 `default-allow-ssh`를 지운다.
   ```bash
@@ -172,23 +172,23 @@ git commit -m "docs: activate the vm-rollout plan" --trailer "Assisted-by: <도�
   VPC 밖 소스를 허용하는 인바운드 규칙이 0개이고(`default-allow-internal`의 `10.128.0.0/9`만 남음), tailnet 정책 `nodeAttrs`에 `funnel`이 없는지 확인하고 "점검 기록" 표에 남긴다.
   Expected: Step 9와 Step 11을 함께 통과해야 완료 조건 2를 충족한다.
 - [ ] **Step 12: 백업·복원이 기존 데이터를 되살리는지 확인 (사용자 확인 후)**
-  1. 기준 파일 만들기: `ssh ubuntu@bm-node 'D=/srv/basic-memory/knowledge/basic-memory/restore-check; sudo -n -u "#1000" mkdir -p $D && date -u "+baseline %s" | sudo -n -u "#1000" tee $D/baseline.md'` → 출력 내용을 기록한다.
+  1. 기준 파일 만들기: `ssh ubuntu@agent-hub 'D=/srv/basic-memory/knowledge/basic-memory/restore-check; sudo -n -u "#1000" mkdir -p $D && date -u "+baseline %s" | sudo -n -u "#1000" tee $D/baseline.md'` → 출력 내용을 기록한다.
   2. `make backup` → 출력의 `backup saved: <main>/backups/bm-<stamp>.tgz` 절대 경로를 기록하고(항목 31), `ls <main 체크아웃>/backups`로 파일을 확인한다. manifest에 기준 파일이 있는지 본다: `grep restore-check/baseline.md <main>/backups/<파일>.manifest`. 컨테이너가 멈춘 시간을 기록한다(항목 15).
-  3. 백업 이후 변경 만들기: `ssh ubuntu@bm-node 'D=/srv/basic-memory/knowledge/basic-memory/restore-check; echo changed | sudo -n -u "#1000" tee -a $D/baseline.md; echo new | sudo -n -u "#1000" tee $D/after-backup.md'`
+  3. 백업 이후 변경 만들기: `ssh ubuntu@agent-hub 'D=/srv/basic-memory/knowledge/basic-memory/restore-check; echo changed | sudo -n -u "#1000" tee -a $D/baseline.md; echo new | sudo -n -u "#1000" tee $D/after-backup.md'`
   4. `make status`의 이미지와 `compose.yaml`의 `image:`를 다시 비교한 뒤 `make restore BACKUP=<main>/backups/<파일>` (사용자가 `yes` 입력). restore가 manifest 대조와 verify까지 실행한다.
-  5. 확인: `ssh ubuntu@bm-node 'D=/srv/basic-memory/knowledge/basic-memory/restore-check; cat $D/baseline.md; ls $D'`; `ssh ubuntu@bm-node 'ls -ld /srv/basic-memory.prev-*'`; 복원 파일 소유자 1000:1000.
+  5. 확인: `ssh ubuntu@agent-hub 'D=/srv/basic-memory/knowledge/basic-memory/restore-check; cat $D/baseline.md; ls $D'`; `ssh ubuntu@agent-hub 'ls -ld /srv/basic-memory.prev-*'`; 복원 파일 소유자 1000:1000.
   Expected: `baseline.md`의 내용이 1단계와 같고(`changed` 줄 없음), `after-backup.md`는 없다. 컨테이너 healthy, `make verify`가 노트를 쓰고 읽고 지운다(항목 12, 13). 백업·복원 중 큰 전송이 멈추지 않는다(항목 28). 완료 조건 3 충족.
   6. `restore-check/` 폴더와 `/srv/basic-memory.prev-*`를 지울지 사용자에게 묻는다. 에이전트는 지우지 않는다.
 - [ ] **Step 13 (사용자 확인 후):** 재부팅 시험. VM은 정지하지 않는다(IP가 바뀐다).
   ```bash
   gcloud compute instances describe agent-hub-01 --zone=us-west1-b --configuration=bm-personal --format='value(networkInterfaces[0].accessConfigs[0].natIP)'
-  ssh ubuntu@bm-node sudo reboot
+  ssh ubuntu@agent-hub sudo reboot
   ```
-  2분 대기 → 같은 gcloud 명령으로 IP를 다시 읽는다 → `make verify status`, `ssh ubuntu@bm-node 'swapon --show'`, 항목 22의 OOM 점검.
+  2분 대기 → 같은 gcloud 명령으로 IP를 다시 읽는다 → `make verify status`, `ssh ubuntu@agent-hub 'swapon --show'`, 항목 22의 OOM 점검.
   Expected: 외부 IP 그대로(항목 24, 스펙 §3의 Assumption), 스왑 켜짐(항목 21), 컨테이너 healthy, Serve 복구, 재부팅 뒤에도 verify 통과(Review Focus 2). IP가 바뀌었으면 `.env`의 `BM_VM_PUBLIC_IP`를 갱신하도록 사용자에게 요청하고 Open question으로 기록한다.
 - [ ] **Step 14 (사용자 확인 후): 22번이 닫힌 뒤 Tailscale SSH만으로 재실행**
-  1. 실제 출력 형식만 읽는다(Funnel을 켜지 않는다): `ssh ubuntu@bm-node 'sudo tailscale serve status; sudo tailscale funnel status'` (항목 16).
-  2. `make vm-bootstrap HOST=bm-node`를 실행한다. 노드가 이미 tailnet에 있으므로 키 프롬프트는 없어야 한다(항목 29). 키를 요구하면 멈추고 기록한다.
+  1. 실제 출력 형식만 읽는다(Funnel을 켜지 않는다): `ssh ubuntu@agent-hub 'sudo tailscale serve status; sudo tailscale funnel status'` (항목 16).
+  2. `make vm-bootstrap HOST=agent-hub`를 실행한다. 노드가 이미 tailnet에 있으므로 키 프롬프트는 없어야 한다(항목 29). 키를 요구하면 멈추고 기록한다.
   3. Funnel을 끄는 방법: 위 출력과 `serve --bg`의 동작을 근거로 `serve reset`이 필요한지 판단하고 결과를 기록한다(항목 30). 필요하면 `rbk-2026-10-12-t79ex2ny-operations.md`와 `bm-recover`의 Assumption 문구를 고친다.
   Expected: Serve 설정이 그대로이고 `make verify`가 통과한다.
 - [ ] **Step 15 (배포 다음 날, 사용자와 함께):** [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)의 측정도 한다: 배포 24시간 뒤, `make backup`으로 컨테이너를 재시작하고 `search_notes`로 임베딩 모델을 올린 상태에서 `make status`의 메모리·스왑 사용량을 기록한다(Step 16에서 ADR을 확정할 때 쓴다). 청구 보고서를 SKU별로 확인한다(완료 조건 5, 항목 25). 대상은 e2-micro 코어·RAM, standard PD, 외부 IPv4(`External IP Charge on a Standard VM`), egress다. 사용자가 SKU별 금액을 붙여 넣거나 확인한 값을 알려 준다.
@@ -238,8 +238,8 @@ git commit -m "docs: record review of the vm-rollout plan" --trailer "Assisted-b
 ## Follow-ups (이 계획 밖)
 
 - `scripts/status.sh`가 아직 아무것도 배포하지 않은 VM에서 죽지 말고 "nothing deployed yet"을 보고한 뒤 메모리·스왑·Serve 구간을 계속 보여 주게 한다(새 VM의 스왑 상태가 `make status`로 보이도록).
-- 항목 29가 `Verified`가 된 뒤, `scripts/status.sh`와 Makefile의 `vm-bootstrap` 힌트를 `HOST=<public-ip>`에서 `HOST=bm-node`로 바꾼다.
-- [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md) 이월 non-blocking 항목(`make status`가 Serve 설정 누락을 모름, 중지된 Tailscale 노드를 "not on the tailnet"으로 보고함, bootstrap의 `bm-node` 하드코딩, restore 롤백의 force-recreate, bootstrap 테스트 보강 등)은 `work/vm-scripts-hardening` 브랜치로 분리한다. 실제 VM에서 재현되는 것이 있으면 Progress log에 `Verified`로 남겨 근거를 준다.
+- 항목 29가 `Verified`가 된 뒤, `scripts/status.sh`와 Makefile의 `vm-bootstrap` 힌트를 `HOST=<public-ip>`에서 `HOST=agent-hub`로 바꾼다.
+- [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md) 이월 non-blocking 항목(`make status`가 Serve 설정 누락을 모름, 중지된 Tailscale 노드를 "not on the tailnet"으로 보고함, bootstrap의 `agent-hub` 하드코딩, restore 롤백의 force-recreate, bootstrap 테스트 보강 등)은 `work/vm-scripts-hardening` 브랜치로 분리한다. 실제 VM에서 재현되는 것이 있으면 Progress log에 `Verified`로 남겨 근거를 준다.
 - 26.04 Minimal에 `ss`·`free`가 없거나 부트스트랩이 실패하면 수정은 별도 계획이다.
 - Open question: 회사 Mac을 개인 tailnet에 참여시키는 것이 회사 보안 정책과 Tailscale Personal 약관에 맞는지는 사용자가 확인한다.
 

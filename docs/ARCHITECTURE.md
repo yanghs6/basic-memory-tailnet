@@ -3,7 +3,7 @@
 ## 토폴로지
 
 ```
-[개인/회사 Mac] ── tailnet ──▶ https://bm-node.<tailnet>.ts.net/mcp
+[개인/회사 Mac] ── tailnet ──▶ https://agent-hub.<tailnet>.ts.net/mcp
   에이전트, make deploy/verify/backup       │ Tailscale Serve (HTTPS, tailnet 전용)
   (Tailscale SSH)                           ▼
                         GCP e2-micro (us-west1-b, Ubuntu 26.04 Minimal amd64, 1GB + 스왑 1GB)
@@ -14,7 +14,7 @@
                               /srv/basic-memory/config    → /home/appuser/.basic-memory
 ```
 
-GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`bm-node`)은 서로 다를 수 있습니다. 스크립트는 Tailscale 이름만 씁니다.
+GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-hub`)은 서로 다를 수 있습니다. 스크립트는 Tailscale 이름만 씁니다.
 
 ## 구성 요소
 

@@ -33,7 +33,7 @@ Expected: 첫 명령에서 회사 설정이 계속 `IS_ACTIVE=True`입니다. �
 
 Admin console → **DNS**에서 다음을 켭니다.
 - **MagicDNS**
-- **HTTPS Certificates**: 인증서가 발급된 기기 이름은 공개 Certificate Transparency 로그에 기록됩니다(**Verified**). 그래서 기기 이름을 일반적인 `bm-node`로 씁니다.
+- **HTTPS Certificates**: 인증서가 발급된 기기 이름은 공개 Certificate Transparency 로그에 기록됩니다(**Verified**). 그래서 기기 이름을 일반적인 `agent-hub`로 씁니다.
 
 먼저 **main 체크아웃**의 루트에서 설정 파일을 만듭니다(이미 있으면 건너뜁니다).
 
@@ -41,7 +41,7 @@ Admin console → **DNS**에서 다음을 켭니다.
 cp .env.example .env
 ```
 
-`.env`는 git에 커밋하지 않습니다(`.gitignore`가 제외). tailnet DNS 이름(예: `tail1234.ts.net`)을 `.env`의 `BM_TAILNET_DOMAIN`에 적습니다. `.env`는 사용자가 직접 편집합니다(에이전트는 읽을 수 없음). `BM_VM_HOST`는 `bm-node` 그대로 둡니다. 부트스트랩이 기기 이름을 `bm-node`로 고정하므로 바꾸면 deploy와 verify가 VM을 찾지 못합니다. GCP 인스턴스 이름(예: `agent-hub-01`)은 `bm-node`와 달라도 되며, 스크립트는 `bm-node`만 씁니다.
+`.env`는 git에 커밋하지 않습니다(`.gitignore`가 제외). tailnet DNS 이름(예: `tail1234.ts.net`)을 `.env`의 `BM_TAILNET_DOMAIN`에 적습니다. `.env`는 사용자가 직접 편집합니다(에이전트는 읽을 수 없음). `BM_VM_HOST`는 `agent-hub` 그대로 둡니다. 부트스트랩이 기기 이름을 `agent-hub`로 고정하므로 바꾸면 deploy와 verify가 VM을 찾지 못합니다. GCP 인스턴스 이름(예: `agent-hub-01`)은 `agent-hub`와 달라도 되며, 스크립트는 `agent-hub`만 씁니다.
 
 `.env`와 `backups/`는 **main 체크아웃에만** 둡니다(`.local-data/`는 `make local-up`을 실행한 체크아웃마다 따로 생기는 로컬 테스트 데이터입니다). Makefile은 어느 체크아웃에서 실행하든 main 체크아웃의 `.env`를 읽고, `make backup`은 main 체크아웃의 `backups/`에 저장합니다. worktree 안에 `.env`나 백업을 따로 만들지 마세요. `git worktree remove`는 worktree 안의 git ignore 파일을 경고 없이 지웁니다.
 
@@ -56,13 +56,13 @@ Admin console → **Access controls**에서 정책 파일을 편집합니다.
 ```json
 {
   "tagOwners": {
-    "tag:bm-server": ["autogroup:admin"]
+    "tag:agent-hub": ["autogroup:admin"]
   },
   "ssh": [
     {
       "action": "accept",
       "src": ["autogroup:member"],
-      "dst": ["tag:bm-server"],
+      "dst": ["tag:agent-hub"],
       "users": ["ubuntu"]
     }
   ]
@@ -77,7 +77,7 @@ Settings → **Keys** → **Generate auth key**:
 - Reusable: **끔** (1회용)
 - Ephemeral: **끔** (서버는 계속 유지)
 - Pre-approved: **켬**
-- Tags: `tag:bm-server`
+- Tags: `tag:agent-hub`
 - Expiration: 1일
 
 키는 어디에도 저장하지 말고, 사용자가 자기 터미널에서 `make vm-bootstrap`의 숨김 프롬프트에 붙여 넣습니다. 채팅에 붙여 넣거나 명령줄 인자로 넘기지 않습니다([부트스트랩 런북](rbk-2026-10-12-ha5w72pm-bootstrap.md)).

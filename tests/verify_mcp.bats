@@ -45,9 +45,9 @@ setup() {
 }
 
 @test "sends the Host header on every request when --host-header is given" {
-  run "$VERIFY" --host-header bm-node.example.ts.net "$URL"
+  run "$VERIFY" --host-header agent-hub.example.ts.net "$URL"
   assert_success
-  run grep -c 'Host: bm-node.example.ts.net' "$STUB_LOG"
+  run grep -c 'Host: agent-hub.example.ts.net' "$STUB_LOG"
   assert_output 6
 }
 

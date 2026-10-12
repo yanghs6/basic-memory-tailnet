@@ -58,7 +58,7 @@ local-logs: ## Show recent local container logs
 
 local-verify: ## Verify the local MCP endpoint (plain and *.ts.net Host header)
 	scripts/verify-mcp.sh "http://127.0.0.1:$(BM_PORT)/mcp"
-	scripts/verify-mcp.sh --host-header bm-node.example.ts.net "http://127.0.0.1:$(BM_PORT)/mcp"
+	scripts/verify-mcp.sh --host-header agent-hub.example.ts.net "http://127.0.0.1:$(BM_PORT)/mcp"
 
 check-git: ## Check the git policy for the current branch (name, commit trailers, worktree config)
 	scripts/check-git.sh
