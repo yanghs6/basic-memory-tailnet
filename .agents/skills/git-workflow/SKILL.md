@@ -59,4 +59,4 @@ Follow the spec, section 6, in this order:
    ```
 
    Ask the human to run, from the main checkout: `git merge --no-ff <branch> -F .review-out/merge-<branch-slug>.txt` (or the path you gave).
-4. After the merge, the human cleans up: `git worktree remove <your worktree>` and `git branch -d <branch>`.
+4. After the merge, the human cleans up. `git worktree remove` deletes ignored files such as `backups/` and `.env` without any warning, so first run `ls <your worktree>/backups <your worktree>/.env` and move any archive into the main checkout's `backups/` (never overwrite a file there), then run `git worktree remove <your worktree>` and `git branch -d <branch>`.
