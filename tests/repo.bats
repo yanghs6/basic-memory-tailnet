@@ -294,9 +294,11 @@ markdown_links() {
 }
 
 @test "every docs markdown path named in scripts, skills and AGENTS.md exists" {
-  local path missing="" count=0 paths
-  paths="$(grep -rhoE 'docs/[A-Za-z0-9_./-]+\.md' "$REPO_DIR/scripts" "$REPO_DIR/.agents/skills" "$REPO_DIR/AGENTS.md" | sort -u)" \
-    || fail "found no docs/*.md references to check"
+  local path missing="" count=0 found paths
+  # Capture grep alone: tests run without pipefail, so a pipe into sort would hide grep's exit status.
+  found="$(grep -rhoE 'docs/[A-Za-z0-9_./-]+\.md' "$REPO_DIR/scripts" "$REPO_DIR/.agents/skills" "$REPO_DIR/AGENTS.md")" \
+    || fail "found no docs/*.md references to check (grep exit status $?)"
+  paths="$(sort -u <<<"$found")"
   while IFS= read -r path; do
     count=$((count + 1))
     [[ -f "$REPO_DIR/$path" ]] || missing="$missing $path"
