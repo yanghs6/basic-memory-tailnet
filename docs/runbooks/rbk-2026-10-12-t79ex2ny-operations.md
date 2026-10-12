@@ -25,7 +25,7 @@
 - 백업 중에는 컨테이너가 몇 초 멈춥니다. SQLite 파일이 쓰는 도중에 복사되지 않게 하기 위해서입니다.
 - 백업마다 `.sha256`(아카이브 무결성)과 `.manifest`(데이터 파일별 체크섬)가 함께 저장됩니다. 둘 중 하나라도 없으면 `make restore`가 거부합니다.
 - 복원은 임시 경로에 먼저 풀고 manifest와 대조한 뒤에만 교체합니다. 기존 데이터는 `/srv/basic-memory.prev-<시각>`으로 옮겨지고, 실패하면 자동으로 되돌아갑니다(실패한 복원본은 `.failed-<시각>`에 남음).
-- `.prev-*`와 `.failed-*` 삭제는 **사람만** 합니다. 에이전트는 지우지 않습니다. 결과를 확인한 뒤 직접: `ssh ubuntu@bm-node sudo rm -r /srv/basic-memory.prev-<시각>`
+- `.prev-*`와 `.failed-*` 삭제는 **사람만** 합니다. 에이전트는 지우지 않습니다. 결과를 확인한 뒤 직접: `ssh ubuntu@agent-hub sudo rm -r /srv/basic-memory.prev-<시각>`
 
 ## 업그레이드·복구·진단
 
@@ -54,7 +54,7 @@ VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 �
 
 1. 최신 백업(`.sha256`과 `.manifest` 포함)이 main 체크아웃의 `backups/`에 있는지 확인합니다.
 2. [rbk-2026-10-12-tcjs7m6x-gcp-vm.md](rbk-2026-10-12-tcjs7m6x-gcp-vm.md)대로 VM을 다시 만들고 방화벽을 정리합니다. 옛 인스턴스와 디스크는 복원이 검증되기 전에는 지우지 않습니다.
-3. [rbk-2026-10-12-ha5w72pm-bootstrap.md](rbk-2026-10-12-ha5w72pm-bootstrap.md) 1단계(옛 `bm-node` 기기 삭제, 호스트 키 정리)와 2~4단계(부트스트랩, Tailscale SSH 확인, `default-allow-ssh` 삭제)를 합니다.
+3. [rbk-2026-10-12-ha5w72pm-bootstrap.md](rbk-2026-10-12-ha5w72pm-bootstrap.md) 1단계(옛 `agent-hub` 기기 삭제, 호스트 키 정리)와 2~4단계(부트스트랩, Tailscale SSH 확인, `default-allow-ssh` 삭제)를 합니다.
 4. 배포 전에 `make status`의 이미지와 `compose.yaml`의 `image:`를 비교합니다(위의 이미지 점검). 아직 아무것도 배포하지 않은 VM에서는 `make status`가 `could not query containers`로 끝나는 것이 정상이며 비교는 건너뜁니다(에이전트는 `git diff main -- compose.yaml`이 비어 있는지만 확인). 그다음 `make deploy`, `make restore BACKUP=<절대 경로>`를 합니다.
 5. Exposure audit을 다시 합니다(방화벽을 새로 만들었으므로).
 6. Incident log와 점검 기록에 행을 추가합니다.
@@ -72,7 +72,7 @@ VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 �
    `direction`이 `INGRESS`, `disabled`가 `False`이면서 소스가 `10.128.0.0/9`가 아닌 행이 없어야 합니다(`default-allow-ssh`는 부트스트랩이 끝나면 지워져 있어야 함). **Assumption:** 기본 `default` 네트워크 하나만 쓰는 프로젝트입니다.
 2. Tailscale admin console → Access controls의 정책 `nodeAttrs`에 **`"funnel"`이 없는지** 확인합니다.
 
-스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@bm-node sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다. **Assumption ([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 확인):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=bm-node`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다. 또한 **Assumption (vm-rollout 계획에서 확인):** `serve --bg`가 443의 Funnel 플래그는 지우지만 다른 포트의 것은 지우지 않을 수 있습니다. 그 경우 `ssh ubuntu@bm-node sudo tailscale serve reset`을 사용자 OK 후에 실행합니다.
+스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@agent-hub sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다. **Assumption ([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 확인):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=agent-hub`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다. 또한 **Assumption (vm-rollout 계획에서 확인):** `serve --bg`가 443의 Funnel 플래그는 지우지만 다른 포트의 것은 지우지 않을 수 있습니다. 그 경우 `ssh ubuntu@agent-hub sudo tailscale serve reset`을 사용자 OK 후에 실행합니다.
 
 ## 비용 점검
 

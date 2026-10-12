@@ -28,7 +28,7 @@
 
 **완료 조건**
 
-1. `make verify`가 tailnet 안에서 `https://bm-node.<tailnet>.ts.net/mcp`로 MCP 왕복(initialize → tools/list → 노트 쓰기/읽기/삭제)을 통과한다.
+1. `make verify`가 tailnet 안에서 `https://agent-hub.<tailnet>.ts.net/mcp`로 MCP 왕복(initialize → tools/list → 노트 쓰기/읽기/삭제)을 통과한다.
 2. 공개 노출이 없다. 두 가지를 모두 충족해야 한다.
    - 자동 검증: `make verify`로 VM의 공인 IP에서 22·80·443·8737번 포트가 닫혀 있고, Serve가 tailnet 전용(Funnel off)임을 확인한다.
    - 수동 점검: 프로젝트의 인바운드 방화벽 규칙 중 VPC 밖의 소스를 허용하는 규칙이 0개(`default-allow-internal`의 `10.128.0.0/9`만 남음)이고, tailnet 정책에 `funnel` 속성이 없음을 확인해 기록한다(운영 런북의 Exposure audit). 이 둘은 VM에서 읽을 수 없어 자동 검증 범위 밖이다.
@@ -58,6 +58,7 @@
 | 로컬 검증 | 같은 compose로 Mac Docker에서 먼저 검증한다 | VM에서의 시행착오를 줄이고 검증 스크립트를 재사용한다 |
 | 호스트 포트 | `127.0.0.1:8737` (컨테이너 내부는 8000) | 8188은 ComfyUI 기본 포트라 제외. 8737은 IANA 미할당 |
 | 사용 범위 | 개인 기억만 저장하고, 개인 Mac과 회사 Mac이 tailnet에 참여한다 | 사용자 선택 |
+| Tailscale 기기 이름·태그 | 기기 이름 `agent-hub`, 태그 `tag:agent-hub` (2026-10-12, 처음 이름은 `bm-node`·`tag:bm-server`) | 이 서버를 Basic Memory 말고도 여러 에이전트 작업에 쓸 예정이라 일반적인 이름을 쓴다(사용자 결정) |
 | 백업 | 수동 `make backup` / `make restore`. 아카이브는 항상 main 체크아웃의 `backups/`에 둔다 | VM 손실 대비. worktree 삭제로 백업을 잃지 않게 한다. 자동화는 다음 목표 |
 | 비용 안전장치 | 생성 전에 Budget 알림(월 $1), 배포 다음 날 SKU별 청구 확인 | 무료 등급 밖 과금을 빨리 발견한다 |
 | 메시지 표현 | 스크립트 메시지는 특정 클라우드 이름 대신 "the firewall rule that opens port 22"처럼 쓰고, 구체적인 방법은 런북을 가리킨다 | 호스트가 다시 바뀌어도 코드를 고치지 않는다 |
@@ -74,7 +75,7 @@
 - **Verified:** `tailscale serve --bg http://127.0.0.1:<port>`는 tailnet 안에서 HTTPS 443으로 노출한다. HTTPS 인증서와 MagicDNS를 켜야 한다. 인증서가 발급된 기기 이름은 공개 CT 로그에 기록된다.
 - **Verified (tailscale.com/docs/features/tailscale-funnel):** Funnel은 기본 비활성이다. `tailscale funnel`을 승인하면 정책 `nodeAttrs`에 `funnel` 속성이 추가된다.
 - **Verified:** 서버용으로는 사전 승인된 태그 인증 키를 권장한다. `tailscale set --ssh`를 켜면 공인 22번 포트를 닫을 수 있다. Tailscale Personal 요금제는 비상업 용도로 한정된다.
-- **Verified (2026-10-07, 로컬 0.23.2 컨테이너):** `Host: bm-node.example.ts.net` 헤더로 보낸 initialize가 200으로 응답했고 write/read/delete 왕복도 성공했다. 컨테이너 메모리는 212~449 MiB였다(`docker stats`, 임베딩 모델 로드 전후).
+- **Verified (2026-10-07, 로컬 0.23.2 컨테이너):** `Host: bm-node.example.ts.net` 헤더로 보낸 initialize가 200으로 응답했고 write/read/delete 왕복도 성공했다. 컨테이너 메모리는 212~449 MiB였다(`docker stats`, 임베딩 모델 로드 전후). (당시 기기 이름. 2026-10-12에 `agent-hub`로 바꿈)
 - **Open question:** 회사 Mac을 개인 tailnet에 참여시키는 것이 회사 보안 정책과 Tailscale Personal 약관에 맞는지는 사용자가 확인해야 한다.
 
 **OCI를 포기한 근거 (2026-10-12)**
@@ -96,7 +97,7 @@
 ## 4. 아키텍처
 
 ```
-[개인/회사 Mac] ── tailnet ──▶ https://bm-node.<tailnet>.ts.net/mcp
+[개인/회사 Mac] ── tailnet ──▶ https://agent-hub.<tailnet>.ts.net/mcp
   에이전트, make deploy/verify/backup       │ Tailscale Serve (HTTPS, tailnet 전용)
   (Tailscale SSH)                           ▼
                         GCP e2-micro (us-west1-b, Ubuntu 26.04 Minimal amd64, 1GB + swap 1GB)
@@ -107,7 +108,7 @@
                               /srv/basic-memory/config    → /home/appuser/.basic-memory
 ```
 
-신뢰 경계는 tailnet이다. Basic Memory에 인증이 없으므로 접근 제어는 Tailscale의 기기 인증과 정책에 맡긴다. 컨테이너 포트는 어느 환경에서도 `127.0.0.1`에만 바인딩한다. GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`bm-node`)은 서로 다를 수 있다. 스크립트는 Tailscale 이름만 쓴다.
+신뢰 경계는 tailnet이다. Basic Memory에 인증이 없으므로 접근 제어는 Tailscale의 기기 인증과 정책에 맡긴다. 컨테이너 포트는 어느 환경에서도 `127.0.0.1`에만 바인딩한다. GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-hub`)은 서로 다른 이름이다. 스크립트는 Tailscale 이름만 쓴다.
 
 ## 5. 저장소 구조
 
@@ -161,7 +162,7 @@ OCI 설계 §7.4의 단계에 **스왑 단계**를 더한다. 단계마다 이�
 3. Tailscale 설치와 tailnet 참여(인증 키는 stdin → `/run`의 0600 임시 파일 → `--auth-key=file:` → 즉시 삭제).
 4. `/srv/basic-memory/{knowledge,config}`를 1000:1000으로, `/opt/basic-memory`를 `ubuntu` 소유로 만든다.
 5. `tailscale serve --bg http://127.0.0.1:8737`을 적용하고 결과를 다시 읽어 확인한다.
-6. 다음 단계를 안내한다: `ssh ubuntu@bm-node true`로 Tailscale SSH 확인 → 성공한 뒤에만 22번을 여는 방화벽 규칙 삭제(`docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md`).
+6. 다음 단계를 안내한다: `ssh ubuntu@agent-hub true`로 Tailscale SSH 확인 → 성공한 뒤에만 22번을 여는 방화벽 규칙 삭제(`docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md`).
 
 ### 7.6 `verify-vm.sh` 메시지
 
@@ -180,7 +181,7 @@ OCI 설계와 같고, 기본 저장 위치 `BACKUP_DIR`이 **main 체크아웃�
 1. **`rbk-2026-10-12-hqxjjqy8-accounts.md` (사용자):**
    - GCP: 개인 Google 계정으로 결제 계정과 전용 프로젝트를 만든다. Budget 알림(월 $1)을 먼저 만든다.
    - 로컬 gcloud: `gcloud config configurations create bm-personal --no-activate` → `gcloud auth login --configuration=bm-personal` → `gcloud config set project <프로젝트> --configuration=bm-personal`. 회사 설정은 활성 상태로 둔다. `gcloud config configurations activate`와 `gcloud auth application-default ...`는 실행하지 않는다.
-   - Tailscale: 가입 → MagicDNS와 HTTPS 인증서 켜기 → 정책에 `funnel` 속성이 있으면 제거 → `tag:bm-server`와 Tailscale SSH 규칙 정의 → 인증 키는 부트스트랩 직전에 발급(사전 승인, 1회용, 태그).
+   - Tailscale: 가입 → MagicDNS와 HTTPS 인증서 켜기 → 정책에 `funnel` 속성이 있으면 제거 → `tag:agent-hub`와 Tailscale SSH 규칙 정의 → 인증 키는 부트스트랩 직전에 발급(사전 승인, 1회용, 태그).
    - `.env`는 main 체크아웃에서 `.env.example`을 복사해 만든다.
 2. **`rbk-2026-10-12-tcjs7m6x-gcp-vm.md` (사용자, gcloud):** 모든 명령에 `--configuration=bm-personal`을 붙이고, 첫 단계에서 `gcloud config list --configuration=bm-personal`로 계정과 프로젝트를 확인한다.
    - 생성(재구축 포함): `e2-micro`, `us-west1-b`, Ubuntu 26.04 LTS Minimal amd64, `pd-standard` 30GB, `--provisioning-model=STANDARD`, Premium 티어, 메타데이터 `ssh-keys=ubuntu:<공개키>`.
@@ -189,7 +190,7 @@ OCI 설계와 같고, 기본 저장 위치 `BACKUP_DIR`이 **main 체크아웃�
    - 공인 IP 조회 명령과 `.env`의 `BM_VM_PUBLIC_IP` 갱신(정지 후 시작하면 IP가 바뀜).
    - Spot으로 잘못 만들었을 때의 전환 절차(§3의 export → 수정 → update-from-file).
 3. **`rbk-2026-10-12-ha5w72pm-bootstrap.md`:**
-   - `make vm-bootstrap HOST=<공인IP>` → `ssh ubuntu@bm-node true` 확인 → `default-allow-ssh` 삭제 → `make deploy verify status`
+   - `make vm-bootstrap HOST=<공인IP>` → `ssh ubuntu@agent-hub true` 확인 → `default-allow-ssh` 삭제 → `make deploy verify status`
    - Exposure audit을 수동으로 마친다.
    - 비상 경로: 22번 규칙을 gcloud로 다시 추가하거나 GCP 시리얼 콘솔을 쓴다.
 4. **`rbk-2026-10-12-t79ex2ny-operations.md`:**
@@ -227,5 +228,5 @@ OCI 설계 §9와 같고 다음을 더한다.
 | 업그레이드 리뷰 중 옛 이미지로 deploy·restore | 배포·복원 전 이미지 비교(§8.4), `bm-upgrade`의 경고 |
 | 인증 없는 엔드포인트 노출 | `127.0.0.1` 바인딩, Serve tailnet 전용, 외부 소스 인바운드 0개. 구조 테스트, `make verify`, Exposure audit |
 | 복원·업그레이드 롤백 중 데이터 손상 | 임시 경로에 풀고 manifest 대조 후 교체, 실패 시 자동 롤백, 이미지와 데이터를 함께 복원 |
-| 기기 이름의 CT 로그 공개 | 일반적인 이름 `bm-node` 사용 |
+| 기기 이름의 CT 로그 공개 | 일반적인 이름 `agent-hub` 사용 |
 | 회사 기기의 개인 tailnet 참여 | Open question으로 남기고 사용자가 확인 |

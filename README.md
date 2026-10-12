@@ -33,7 +33,7 @@ VM이나 클라우드 자원을 바꾸는 명령(`vm-bootstrap`, `deploy`, `rest
 
 1. [계정 준비](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md): GCP 프로젝트·Budget 알림·gcloud `bm-personal`, Tailscale, 정책. Tailscale 인증 키는 부트스트랩 직전에 발급합니다(accounts 5단계, 만료 1일).
 2. [VM 만들기](docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md): e2-micro, us-west1-b, Ubuntu 26.04 Minimal, pd-standard 30GB, 방화벽 정리, `default-allow-ssh`를 내 IP/32로 제한
-3. [부트스트랩](docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md): `make vm-bootstrap` → `ssh ubuntu@bm-node true` 확인 → `default-allow-ssh` 삭제 → `make deploy verify status`
+3. [부트스트랩](docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md): `make vm-bootstrap` → `ssh ubuntu@agent-hub true` 확인 → `default-allow-ssh` 삭제 → `make deploy verify status`
 4. [운영](docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md): 백업, 복원, 업그레이드, 정지된 VM 시작, 비용 점검
 
 ## 에이전트용 스킬
