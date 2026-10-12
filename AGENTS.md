@@ -1,7 +1,7 @@
 # Agent instructions
 
 This repo deploys a Basic Memory MCP server on an OCI Always Free VM that is reachable only inside a Tailscale tailnet.
-Read first: `docs/specs/2026-10-07-basic-memory-oci-tailscale-design.md`.
+Read first: `docs/specs/2026-10-07-basic-memory-oci-tailscale-design.md`, then `docs/ARCHITECTURE.md`.
 Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`).
 
 ## Commands
@@ -11,7 +11,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 
 ## Invariants (enforced by tests/repo.bats; never weaken a test to make it pass)
 - Basic Memory has no auth: publish its port on `127.0.0.1` only, never enable Tailscale Funnel, keep zero public ingress on the VM.
-- Pin container images by digest; change the pin only after reading the release notes and passing `make check local-up local-verify`.
+- Pin container images by digest; change the pin only after reading the release notes and passing `make check local-up local-verify`. Upgrade Basic Memory only through the `bm-upgrade` skill.
 - Scripts: `#!/usr/bin/env bash` then `set -euo pipefail`; source `scripts/lib/common.sh`; fail with an actionable message via `die`.
 - Scripts must run on macOS bash 3.2: no `mapfile`, associative arrays, `${x,,}`, `inherit_errexit`, or empty array expansion. After `x="$(fn)"` where `fn` can fail, add `|| exit 1`.
 - Name constants instead of magic numbers. Never print secrets or session ids; use `mask`.
@@ -40,6 +40,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - `docs/specs/`, `docs/plans/{active,backlog,completed}/`.
 - `.agents/skills/` skills for Codex and Antigravity; `.claude/skills/<name>` symlinks and `.claude/agents/branch-reviewer.md` for Claude Code.
 - `docs/reviews/` review records (template in its README).
+- `docs/runbooks/` accounts, VM creation, bootstrap, operations (incident log); `docs/decisions/` ADRs.
 
 ## Code Review Rules
 Reviewers check only the changes since the base (Codex reads this section; Claude uses the `branch-review` skill):
@@ -55,3 +56,6 @@ Each finding: `[Pn] path:line - failure scenario - suggested fix`. Report only p
 ## Skills
 - `git-workflow`: start, commit, request review and prepare the merge of agent work.
 - `branch-review`: review another agent's branch read-only.
+- `bm-upgrade`: bump the pinned Basic Memory image and roll it out safely.
+- `bm-recover`: rebuild after the VM is reclaimed or broken, then restore the latest backup.
+- `bm-diagnose`: read-only troubleshooting of MCP, Tailscale and container problems.
