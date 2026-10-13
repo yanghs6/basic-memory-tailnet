@@ -120,6 +120,9 @@ setup() {
     BM_VM_PUBLIC_IP="$ip" run "$REPO_DIR/scripts/verify-vm.sh"
     assert_failure
     assert_output --partial "docs/runbooks/gcp-vm.md"
+    if [[ "$ip" == 999.1.1.1 ]]; then
+      assert_output --partial "BM_VM_PUBLIC_IP must be the VM's public IPv4"
+    fi
   done
   run grep -c '^nc ' "$STUB_LOG"
   assert_output 0
