@@ -24,14 +24,6 @@ cloud_name_matches() {
   refute_output --partial "runbooks"
 }
 
-@test "the scan passes a clean directory" {
-  mkdir -p "$BATS_TEST_TMPDIR/clean"
-  printf '# a firewall rule that opens port 22\n' >"$BATS_TEST_TMPDIR/clean/a.sh"
-  run cloud_name_matches "$BATS_TEST_TMPDIR/clean"
-  assert_success
-  assert_output ""
-}
-
 @test "scripts name no cloud provider, comments included" {
   local leftover
   leftover="$(cloud_name_matches "$REPO_DIR/scripts")" || fail "the scan itself failed"

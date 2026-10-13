@@ -27,6 +27,8 @@ make local-down
 
 `local-up`은 고정된 컨테이너 이름과 포트를 쓰므로 한 번에 한 작업 트리에서만 실행합니다.
 
+테스트는 불변식, 데이터 안전, 대표 성공 경로, 조용한 실패, Git 정책을 지키는 것만 둡니다. 기준은 [ADR 0004](docs/decisions/0004-test-scope.md)에 있습니다.
+
 ## VM 구축 순서
 
 VM이나 클라우드 자원을 바꾸는 명령(`vm-bootstrap`, `deploy`, `restore`, gcloud 명령)은 사람이 승인한 뒤에만 실행합니다. `.env`와 `backups/`는 main 체크아웃에만 둡니다(`git worktree remove`가 worktree 안의 git ignore 파일을 경고 없이 지우기 때문입니다).

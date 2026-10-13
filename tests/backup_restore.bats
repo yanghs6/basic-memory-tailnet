@@ -73,13 +73,6 @@ add_model_cache() {
   ln -s ../../blobs/hash1 "$cache/snapshots/rev/model.onnx"
 }
 
-@test "backup excludes the model cache from the tar command" {
-  run "$BACKUP"
-  assert_success
-  run grep -F 'tar -C' "$STUB_LOG"
-  assert_output --partial "--exclude=basic-memory/config/fastembed_cache"
-}
-
 @test "backup archive and manifest skip the model cache and restore accepts that archive" {
   add_model_cache
   echo "{}" >"$BM_REMOTE_DATA_ROOT/config/config.json"
@@ -214,17 +207,6 @@ fix_backup_stamp() {
   assert_failure
 }
 
-@test "restore works on a fresh VM without existing data" {
-  make_archive "fresh"
-  rm -r "$BM_REMOTE_DATA_ROOT"
-  restore_with_answer yes
-  assert_success
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
-  assert_output "fresh"
-  run bash -c 'ls -d "$0".prev-* 2>/dev/null' "$BM_REMOTE_DATA_ROOT"
-  assert_failure
-}
-
 @test "restore aborts without touching the VM unless the user types yes" {
   make_archive "x"
   restore_with_answer no
@@ -260,32 +242,22 @@ fix_backup_stamp() {
   assert_output "original"
 }
 
-@test "restore refuses an archive holding a ../ path before touching the VM" {
-  make_archive "x"
-  echo "outside" >"$BATS_TEST_TMPDIR/outside.md"
-  pack_archive -P basic-memory ../outside.md
-  run tar -tzf "$ARCHIVE"
-  assert_line "../outside.md"
-  restore_with_answer yes
-  assert_failure
-  assert_output --partial "unsafe archive"
-  assert_output --partial "'..' component"
-  run grep -F 'ssh' "$STUB_LOG"
-  assert_failure
-}
-
-@test "restore refuses an archive holding an absolute path before touching the VM" {
-  make_archive "x"
-  echo "outside" >"$BATS_TEST_TMPDIR/outside.md"
-  pack_archive -P basic-memory "$BATS_TEST_TMPDIR/outside.md"
-  run tar -tzf "$ARCHIVE"
-  assert_line "$BATS_TEST_TMPDIR/outside.md"
-  restore_with_answer yes
-  assert_failure
-  assert_output --partial "unsafe archive"
-  assert_output --partial "absolute path"
-  run grep -F 'ssh' "$STUB_LOG"
-  assert_failure
+@test "restore refuses an archive holding a ../ or absolute path before touching the VM" {
+  local entry pack_path reason
+  for entry in "../outside.md|../outside.md|'..' component" "$BATS_TEST_TMPDIR/outside.md|$BATS_TEST_TMPDIR/outside.md|absolute path"; do
+    IFS='|' read -r entry pack_path reason <<<"$entry"
+    make_archive "x"
+    echo "outside" >"$BATS_TEST_TMPDIR/outside.md"
+    pack_archive -P basic-memory "$pack_path"
+    run tar -tzf "$ARCHIVE"
+    assert_line "$entry"
+    restore_with_answer yes
+    assert_failure
+    assert_output --partial "unsafe archive"
+    assert_output --partial "$reason"
+    run grep -F 'ssh' "$STUB_LOG"
+    assert_failure
+  done
 }
 
 @test "restore requires an existing archive with its checksum and manifest files" {
@@ -304,12 +276,6 @@ fix_backup_stamp() {
   run "$RESTORE" "$ARCHIVE"
   assert_failure
   assert_output --partial "manifest missing"
-}
-
-@test "restore prints usage without an argument" {
-  run "$RESTORE"
-  assert_failure
-  assert_output --partial "usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz"
 }
 
 @test "restore leaves current data live and restarts when extraction fails" {
@@ -387,18 +353,6 @@ fix_backup_stamp() {
   assert_output "restored"
 }
 
-@test "restore on a VM without previous data says nothing is live when it fails before the swap" {
-  make_archive "x"
-  rm -r "$BM_REMOTE_DATA_ROOT"
-  export SSH_STUB_FAIL_MATCH="-xzf"
-  restore_with_answer yes
-  assert_failure
-  refute_output --partial "the previous data is live again"
-  assert_output --partial "had no data before this restore"
-  assert_output --partial "$BM_REMOTE_DATA_ROOT does not exist"
-  [[ ! -e "$BM_REMOTE_DATA_ROOT" ]]
-}
-
 @test "restore never rolls back to a partial copy of compose.yaml" {
   make_archive "x"
   echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
@@ -426,6 +380,8 @@ compose.yaml"
   rm -f "$BM_REMOTE_APP_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/.env"
   restore_with_answer yes
   assert_success
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
+  assert_output "fresh"
   run cat "$BM_REMOTE_APP_DIR/.env"
   assert_line "BM_PORT=8737"
   assert_line "BM_KNOWLEDGE_DIR=$BM_REMOTE_DATA_ROOT/knowledge"
