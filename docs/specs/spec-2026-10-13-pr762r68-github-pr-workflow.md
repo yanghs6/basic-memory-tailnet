@@ -118,7 +118,7 @@ Plan: k93wjt1a
   - 입력은 환경변수(`PR_TITLE`, `PR_BODY`)로 받는다. 워크플로는 `${{ }}`를 `run:`에 직접 넣지 않고 `env:`로 넘긴다. 스크립트 주입을 막기 위해서다.
 - 권한은 `permissions: contents: read`만 준다. 비밀값은 쓰지 않는다. `pull_request_target`은 쓰지 않는다. 그래서 fork에서 온 PR도 쓰기 권한이나 비밀값에 닿지 못한다.
 - 외부 Action은 전체 커밋 SHA로 고정한다. 이미지를 digest로 고정하는 불변식과 같은 원칙이다.
-- `scripts/check-git.sh`의 규칙은 그대로 둔다. 바꾸는 것은 base 기본값(`origin/main`)과 CI에서 실행할 수 있게 하는 부분뿐이다.
+- `scripts/check-git.sh`의 규칙과 기본값은 그대로 둔다. `make check-git`이 base로 `origin/main`을 넘기고, CI는 `scripts/check-git.sh origin/main <PR 브랜치>`를 직접 실행한다. 스크립트 기본값을 그대로 두므로, 원격이 없는 테스트 저장소에서 도는 테스트는 영향을 받지 않는다.
 
 ## 7. 저장소 설정과 ruleset
 
@@ -149,7 +149,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
   - 리뷰는 계획 단위로 하고 최대 2회차까지 한다.
   - 기준은 `AGENTS.md`의 `## Code Review Rules`와 P0~P3다.
   - 지적은 먼저 검증하고, 커밋 하나에 지적 하나씩 고친다.
-- **변경:** `scripts/review.sh`의 base 기본값을 `origin/main`으로 바꾼다.
+- **변경:** `make review`의 `REVIEW_BASE` 기본값을 `origin/main`으로 바꾼다. `scripts/review.sh`의 기본값은 그대로 둔다. 원격 추적 브랜치를 base로 받으면 기존 임시 base 브랜치 로직이 처리한다.
 - **게시 ([review-posting 계획](../plans/plan-2026-10-13-znbc3ase-review-posting.md)):** `scripts/post-review.sh`와 `make review-post PR=<번호>`를 만든다.
   - `.review-out/`의 diff 리포트와 plan 리포트를 회차·리뷰어마다 PR 코멘트 하나로 올린다. 코멘트 머리에는 리뷰 도구와 모델, base와 head SHA, 회차를 적는다.
 - **지적 기록:** "Review record" 코멘트 하나에 지적 표를 두고, 머신 계정이 상태가 바뀔 때마다 갱신한다.
@@ -169,7 +169,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
    1. `git fetch origin` 후 `git merge origin/main`으로 PR 브랜치에 main을 합친다. 충돌이 나면 해결한다.
    2. `make check`를 통과시키고 push한다. 새 push로 기존 승인은 무효가 되고 CI가 다시 돈다.
    3. 충돌 해결로 코드가 바뀌었으면 PR 코멘트에 그 내용을 적는다. 다른 벤더 리뷰를 이미 마쳤다면, 변경분(`<직전 head>..HEAD`)만 리뷰를 다시 받는다. 충돌 없이 합쳐졌으면 CI와 사람의 재승인으로 충분하다.
-   4. 사람이 다시 승인한다. 사람이 GitHub의 "Update branch"(merge 방식)를 누르는 것도 같은 갱신이다.
+   4. 사람이 다시 승인한다. 사람은 GitHub의 "Update branch"를 누르지 않는다. 누르면 마지막 push가 사람의 것이 되고, ruleset의 마지막 push 승인 규칙 때문에 그 사람은 PR을 승인할 수 없다.
 
    병합 커밋에는 트레일러가 없지만, `check-git.sh`는 `--no-merges`로 병합 커밋을 검사에서 뺀다.
 3. **사람:** GitHub에서 Approve한 뒤 Squash and merge를 누른다. 에이전트는 병합하지 않는다. ruleset은 승인만 강제하므로, 이 규칙은 `AGENTS.md`로 지킨다.
@@ -231,7 +231,7 @@ git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 
 | 계획 | 범위 |
 |---|---|
-| 08 GitHub 전환 | `.github/workflows/ci.yml`·`pr-rules.yml`, `scripts/check-pr.sh`와 테스트, `check-git.sh`·`review.sh`의 base 변경, `.github/pull_request_template.md`, `.github/rulesets/main.json`, `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md`(부트스트랩, 공개 전 점검, 설정 적용, 토큰 교체), `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`의 머신 계정 항목, `AGENTS.md`의 `## Git`과 Safety(VM IP 기록 금지), git-workflow 스킬, 기존 정책 스펙의 상태 표시 |
+| 08 GitHub 전환 | `.github/workflows/ci.yml`·`pr-rules.yml`, `scripts/check-pr.sh`와 테스트, `make check-git`·`make review`의 base 기본값 변경, `.github/pull_request_template.md`, `.github/rulesets/main.json`, `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md`(부트스트랩, 공개 전 점검, 설정 적용, 토큰 교체), `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`의 머신 계정 항목, `AGENTS.md`의 `## Git`과 Safety(VM IP 기록 금지), git-workflow 스킬, 기존 정책 스펙의 상태 표시 |
 | 09 리뷰 게시 | `scripts/post-review.sh`와 테스트, `make review-post`, git-workflow 스킬의 리뷰 절, branch-review 스킬, `docs/reviews/README.md`, `AGENTS.md`의 `## Code Review Rules` 3·6번("CI 통과"로 바꿈) |
 
 ## 13. 위험과 대응
