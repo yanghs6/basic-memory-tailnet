@@ -13,7 +13,8 @@ readonly BM_REMOTE_APP_DIR="${BM_REMOTE_APP_DIR:-/opt/basic-memory}"
 readonly BM_REMOTE_DATA_ROOT="${BM_REMOTE_DATA_ROOT:-/srv/basic-memory}"
 readonly BM_CONTAINER_UID=1000
 readonly SSH_CONNECT_TIMEOUT_SECONDS=10
-readonly HEALTH_TIMEOUT_SECONDS=180
+# Longer than the compose healthcheck start_period (300s) so `up --wait` can use the whole grace period.
+readonly HEALTH_TIMEOUT_SECONDS=360
 
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*" >&2; }
 

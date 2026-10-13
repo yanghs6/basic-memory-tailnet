@@ -23,6 +23,9 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      # A cold start on the e2-micro VM took 161-192s. Failed checks inside start_period do not count, so a slow
+      # start no longer turns the container unhealthy (which fails `up --wait` at once); start_interval still
+      # marks it healthy within seconds of listening.
+      start_period: 300s
       start_interval: 2s
     restart: unless-stopped
