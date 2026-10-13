@@ -24,6 +24,7 @@
 - worktree를 지우기 전에 그 안에 `backups/`가 없는지 확인합니다. `git worktree remove`는 git ignore 파일을 경고 없이 지웁니다.
 - 백업 중에는 컨테이너가 몇 초 멈춥니다. SQLite 파일이 쓰는 도중에 복사되지 않게 하기 위해서입니다.
 - 백업마다 `.sha256`(아카이브 무결성)과 `.manifest`(데이터 파일별 체크섬)가 함께 저장됩니다. 둘 중 하나라도 없으면 `make restore`가 거부합니다.
+- 임베딩 모델 캐시(`config/fastembed_cache/`)는 백업에 포함하지 않습니다. 다시 내려받을 수 있고 심볼릭 링크를 담고 있어 복원 검사가 거부하기 때문입니다. 복원 뒤 Basic Memory가 처음 쓸 때 모델을 다시 내려받으므로 첫 검색·인덱싱은 평소보다 오래 걸릴 수 있습니다.
 - 복원은 임시 경로에 먼저 풀고 manifest와 대조한 뒤에만 교체합니다. 기존 데이터는 `/srv/basic-memory.prev-<시각>`으로 옮겨지고, 실패하면 자동으로 되돌아갑니다(실패한 복원본은 `.failed-<시각>`에 남음).
 - `.prev-*`와 `.failed-*` 삭제는 **사람만** 합니다. 에이전트는 지우지 않습니다. 결과를 확인한 뒤 직접: `ssh ubuntu@agent-hub sudo rm -r /srv/basic-memory.prev-<시각>`
 

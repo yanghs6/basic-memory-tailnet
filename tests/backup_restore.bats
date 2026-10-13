@@ -65,6 +65,39 @@ restore_with_answer() {
   assert_line --index 1 "docker compose start"
 }
 
+# add_model_cache -> a HuggingFace-style cache in the fake data root: a blob plus a relative symlink to it.
+add_model_cache() {
+  local cache="$BM_REMOTE_DATA_ROOT/config/fastembed_cache"
+  mkdir -p "$cache/blobs" "$cache/snapshots/rev"
+  echo "model" >"$cache/blobs/hash1"
+  ln -s ../../blobs/hash1 "$cache/snapshots/rev/model.onnx"
+}
+
+@test "backup excludes the model cache from the tar command" {
+  run "$BACKUP"
+  assert_success
+  run grep -F 'tar -C' "$STUB_LOG"
+  assert_output --partial "--exclude=basic-memory/config/fastembed_cache"
+}
+
+@test "backup archive and manifest skip the model cache and restore accepts that archive" {
+  add_model_cache
+  echo "{}" >"$BM_REMOTE_DATA_ROOT/config/config.json"
+  run "$BACKUP"
+  assert_success
+  local archive
+  archive="$(ls "$BACKUP_DIR"/bm-*.tgz)"
+  run tar -tzf "$archive"
+  assert_line "basic-memory/config/config.json"
+  refute_output --partial "fastembed_cache"
+  run cat "$archive.manifest"
+  refute_output --partial "fastembed_cache"
+  ARCHIVE="$archive"
+  restore_with_answer yes
+  assert_success
+  [[ ! -e "$BM_REMOTE_DATA_ROOT/config/fastembed_cache" ]]
+}
+
 @test "backup leaves no partial archive and still restarts the container when streaming fails" {
   export SSH_STUB_FAIL_MATCH="tar -C"
   run "$BACKUP"

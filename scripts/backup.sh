@@ -102,7 +102,7 @@ main() {
     || die "could not build the data manifest; no backup was written"
 
   step "stream $BM_REMOTE_DATA_ROOT from $BM_VM_HOST"
-  remote "sudo -n tar -C $parent -czf - $name" >"$ARCHIVE.partial" \
+  remote "sudo -n tar -C $parent --exclude=$name/$BM_MODEL_CACHE_REL_PATH -czf - $name" >"$ARCHIVE.partial" \
     || die "backup stream failed; no archive was written"
   digest="$(sha256_of "$ARCHIVE.partial")" || exit 1
   printf '%s  %s\n' "$digest" "$(basename "$ARCHIVE")" >"$ARCHIVE.sha256.partial" \

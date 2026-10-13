@@ -100,6 +100,17 @@ setup() {
   assert_line --index 1 "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  ./b/z.md"
 }
 
+@test "manifest_cmd skips the model cache but lists the other files" {
+  setup_stubs sudo
+  mkdir -p "$BATS_TEST_TMPDIR/d/config/fastembed_cache/blobs" "$BATS_TEST_TMPDIR/d/config/fastembed_cache/snapshots/rev"
+  printf 'abc' >"$BATS_TEST_TMPDIR/d/config/config.json"
+  printf 'abc' >"$BATS_TEST_TMPDIR/d/config/fastembed_cache/blobs/hash1"
+  ln -s ../../blobs/hash1 "$BATS_TEST_TMPDIR/d/config/fastembed_cache/snapshots/rev/model.onnx"
+  run bash -c "$(manifest_cmd "$BATS_TEST_TMPDIR/d")"
+  assert_success
+  assert_output "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  ./config/config.json"
+}
+
 @test "manifest_cmd fails when find fails instead of printing a short list" {
   setup_stubs sudo
   mkdir -p "$BATS_TEST_TMPDIR/d" "$BATS_TEST_TMPDIR/failbin"
