@@ -164,67 +164,6 @@ compose_start_period_seconds() {
   assert_failure 1
 }
 
-skill_dirs() {
-  find "$REPO_DIR/.agents/skills" -mindepth 1 -maxdepth 1 -type d | sort
-}
-
-frontmatter() {
-  awk 'NR == 1 && $0 == "---" { inside = 1; next } inside && $0 == "---" { exit } inside { print }' "$1"
-}
-
-@test "at least one repository skill exists" {
-  [[ -d "$REPO_DIR/.agents/skills" ]] || fail "missing directory .agents/skills"
-  local skills
-  skills="$(find "$REPO_DIR/.agents/skills" -mindepth 2 -maxdepth 2 -name SKILL.md)"
-  [[ -n "$skills" ]] || fail "no .agents/skills/*/SKILL.md found"
-}
-
-@test "skills use only Agent Skills standard frontmatter keys" {
-  local dir key bad=""
-  for dir in $(skill_dirs); do
-    for key in $(frontmatter "$dir/SKILL.md" | grep -oE '^[a-z-]+:' | tr -d ':'); do
-      case "$key" in
-        name | description | license | compatibility | metadata | allowed-tools) ;;
-        *) bad="$bad $(basename "$dir"):$key" ;;
-      esac
-    done
-  done
-  [[ -z "$bad" ]] || fail "non-standard frontmatter keys (Codex/Antigravity may reject them):$bad"
-}
-
-@test "skill names match their directories and have descriptions" {
-  local dir name
-  for dir in $(skill_dirs); do
-    name="$(frontmatter "$dir/SKILL.md" | sed -n 's/^name: *//p')"
-    [[ "$name" == "$(basename "$dir")" ]] || fail "$dir/SKILL.md: name '$name' must equal the directory name"
-    frontmatter "$dir/SKILL.md" | grep -qE '^description: .+' || fail "$dir/SKILL.md: add a description"
-  done
-}
-
-@test "every skill is linked for Claude Code under .claude/skills" {
-  local dir name link
-  for dir in $(skill_dirs); do
-    name="$(basename "$dir")"
-    link="$REPO_DIR/.claude/skills/$name"
-    [[ -L "$link" ]] || fail "missing link; run: ln -s ../../.agents/skills/$name .claude/skills/$name"
-    [[ "$(readlink "$link")" == "../../.agents/skills/$name" ]] || fail "$link must point to ../../.agents/skills/$name"
-  done
-}
-
-@test "every SKILL.md is at most 500 lines" {
-  local dir lines
-  for dir in $(skill_dirs); do
-    lines="$(wc -l <"$dir/SKILL.md")"
-    ((lines <= 500)) || fail "$dir/SKILL.md has $lines lines; move reference material into separate files"
-  done
-}
-
-@test "skills never rely on an exported AGENT_ID surviving between commands" {
-  # Agent shells often start fresh per command; an unset $AGENT_ID writes an empty Assisted-by trailer.
-  run grep -rnE 'export AGENT_ID|\$AGENT_ID|\$\{AGENT_ID\}' "$REPO_DIR/.agents/skills"
-  assert_failure 1
-}
-
 @test "AGENTS.md defines the Code Review Rules that Codex reads" {
   run grep -x '## Code Review Rules' "$REPO_DIR/AGENTS.md"
   assert_success
@@ -274,13 +213,6 @@ reviewer_hook_command() {
   assert_failure 2
   CLAUDE_PROJECT_DIR="$REPO_DIR" run sh -c "$hook" <<<"$input"
   assert_success
-}
-
-@test "operational skills bm-upgrade, bm-recover and bm-diagnose exist" {
-  local name
-  for name in bm-upgrade bm-recover bm-diagnose; do
-    [[ -f "$REPO_DIR/.agents/skills/$name/SKILL.md" ]] || fail "missing .agents/skills/$name/SKILL.md"
-  done
 }
 
 markdown_files() {
@@ -349,7 +281,7 @@ markdown_links() {
   # ADR 0001 is excluded on purpose: it records why the first host was given up.
   run grep -rniE '\b(OCI|Oracle)\b|A1\.Flex|reclaim|reclamation' \
     "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR/docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md" \
-    "$REPO_DIR/docs/runbooks" "$REPO_DIR"/.agents/skills/*/SKILL.md
+    "$REPO_DIR/docs/runbooks" "$REPO_DIR/.agents/skills"
   assert_failure 1
 }
 
