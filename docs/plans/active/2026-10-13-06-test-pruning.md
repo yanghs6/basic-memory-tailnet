@@ -73,7 +73,7 @@ tests/backup_restore.bats tests/common.bats tests/main_checkout.bats          Ta
 tests/vm_ops.bats tests/bootstrap.bats tests/stubs/{id,fallocate,mkswap,free}  Task 2
 tests/verify_mcp.bats tests/repo.bats tests/cloud_neutral.bats                Task 3
 tests/check_git.bats tests/review.bats tests/review_bash_guard.bats tests/skills.bats  Task 4
-docs/decisions/0004-test-scope.md, 이 계획 파일                                 Task 5 (컨트롤러)
+docs/decisions/0004-test-scope.md, README.md(ADR 링크 한 줄), 이 계획 파일        Task 5 (컨트롤러)
 ```
 
 줄 번호(Lnn)는 `main` 5561329 기준으로, 각 `@test` 줄의 번호다. 작업할 때는 줄 번호가 아니라 테스트 이름으로 찾는다.
@@ -83,7 +83,7 @@ docs/decisions/0004-test-scope.md, 이 계획 파일                            
 ### 시작: 브랜치와 worktree (컨트롤러)
 
 - [x] `git worktree add .claude/worktrees/plan-06-test-pruning -b plan/06-test-pruning main` (5561329)
-- [ ] 첫 커밋으로 이 계획 파일을 `docs/plans/active/`에 추가한다.
+- [x] 첫 커밋으로 이 계획 파일을 `docs/plans/active/`에 추가한다.
 
 ```bash
 git add docs/plans/active/2026-10-13-06-test-pruning.md
@@ -112,7 +112,7 @@ git commit -m "docs: add plan 06 test pruning" --trailer "Assisted-by: claude-co
 - Produces: `common.bats` L40을 지운다. 그 안내 assertion은 Task 2가 `vm_ops.bats` L45로 옮긴다.
 - Produces: `main_checkout.bats` L113을 지운다. `backup_restore.bats` L291은 본문을 바꾸지 않는다.
 
-- [ ] **Step 1: `tests/backup_restore.bats` (28 → 23)**
+- [x] **Step 1: `tests/backup_restore.bats` (28 → 23)**
   - 삭제:
     - L76 `backup excludes the model cache from the tar command`
     - L309 `restore prints usage without an argument`
@@ -126,14 +126,14 @@ git commit -m "docs: add plan 06 test pruning" --trailer "Assisted-by: claude-co
       - 두 입력 모두 원래 assertion을 지킨다: 실패, 그리고 ssh 호출 없음.
       - 이름은 `restore refuses an archive holding a ../ or absolute path before touching the VM`으로 바꾼다.
   - L291은 본문을 바꾸지 않는다(교차 파일 생존 목록).
-- [ ] **Step 2: `tests/common.bats` (20 → 3)**
+- [x] **Step 2: `tests/common.bats` (20 → 3)**
   - 유지:
     - L53 `mask hides short values completely`. L48 `mask keeps only a 4-character prefix of long values`의 assertion을 여기에 합친다. 이름은 `mask hides short values completely and keeps only a 4-character prefix of long ones`로 바꾼다.
     - L58 `remote runs ssh in batch mode against BM_VM_USER@BM_VM_HOST`
     - L92 `manifest_cmd lists every file's sha256 sorted by path`
   - 삭제: L11, L17, L23, L28, L34, L40, L66, L74, L80, L86, L103, L114, L123, L130, L137, L144
   - 정리: 남은 세 테스트가 `docker` 스텁을 쓰지 않으면 `setup`의 `setup_stubs`에서 `docker`를 뺀다. 파일 안의 고아 헬퍼도 지운다.
-- [ ] **Step 3: `tests/main_checkout.bats` (11 → 5)**
+- [x] **Step 3: `tests/main_checkout.bats` (11 → 5)**
   - 유지:
     - L37 `make reads the main checkout .env, not the worktree .env, from a linked worktree`. 여기에 L45 `make ignores a worktree .env when the main checkout has none`를 두 번째 단계로 합친다: main 체크아웃의 `.env`를 지운 뒤 worktree의 값이 쓰이지 않음을 확인한다.
     - L71, L92, L101, L122
@@ -142,7 +142,7 @@ git commit -m "docs: add plan 06 test pruning" --trailer "Assisted-by: claude-co
     - L52만 쓰던 `GIT_CEILING_DIRECTORIES` export를 지운다.
     - L30만 쓰던 `cp Makefile "$MAIN_REPO/Makefile"`을 지운다.
     - 둘 다 남은 테스트가 쓰지 않는지 먼저 확인한다.
-- [ ] **Step 4: 개수와 전체 검사**
+- [x] **Step 4: 개수와 전체 검사**
 
 ```bash
 grep -c '^@test' tests/backup_restore.bats tests/common.bats tests/main_checkout.bats
@@ -153,7 +153,7 @@ Expected:
 - `23`, `3`, `5`
 - `make check` 종료 코드 0. 커버리지 보고에서 kcov 측정 줄을 잃는 곳은 `scripts/restore.sh:89` 하나다.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add tests/backup_restore.bats tests/common.bats tests/main_checkout.bats
@@ -168,7 +168,7 @@ git commit -m "test: keep only essential backup, restore, common and main-checko
 **Interfaces:**
 - Consumes: Task 1이 `common.bats` L40을 지운다. 그래서 `require_env`의 main 체크아웃 안내 문구는 이 Task가 지킨다.
 
-- [ ] **Step 1: `tests/vm_ops.bats` (32 → 16)**
+- [x] **Step 1: `tests/vm_ops.bats` (32 → 16)**
   - 유지: L15, L31, L45, L54, L63, L92, L112, L119, L126, L142, L158, L172, L192, L207, L225, L257
   - 삭제: L38, L70, L77, L136, L167, L179, L217, L234, L241, L248, L264
   - 병합:
@@ -179,7 +179,7 @@ git commit -m "test: keep only essential backup, restore, common and main-checko
       - L192를 세 메시지(refused, timed out, ICMP reject)를 도는 반복문으로 바꾼다.
       - 이름은 `verify treats refused, timed out and ICMP-rejected connections as closed`로 바꾼다.
   - L45 `deploy requires the VM settings from .env`에 assertion을 하나 더한다. `require_env`가 출력하는 main 체크아웃 안내 문구(`scripts/lib/common.sh`의 `require_env` 본문에서 실제 문구를 확인)를 assertion으로 옮긴다. 출처는 `common.bats` L40이다.
-- [ ] **Step 2: `tests/bootstrap.bats` (25 → 15)**
+- [x] **Step 2: `tests/bootstrap.bats` (25 → 15)**
   - 유지: L19, L68, L83, L93, L111, L123, L133, L142, L162, L185, L195, L207, L234, L257, L287
   - 삭제: L42, L170, L176, L267, L278
   - 병합:
@@ -192,11 +192,11 @@ git commit -m "test: keep only essential backup, restore, common and main-checko
       - L257에서 bootstrap을 두 번 실행한다.
       - fstab이 정확히 [기존 줄, 스왑 줄 하나]인지 확인한다.
       - 이름은 `keeps other fstab entries and a single swap line after them, even when run twice`로 바꾼다.
-- [ ] **Step 3: 스텁 옵션 정리**
+- [x] **Step 3: 스텁 옵션 정리**
   - 대상: `ID_STUB_GROUPS`(`tests/stubs/id`), `FALLOCATE_STUB_EXIT`(`tests/stubs/fallocate`), `MKSWAP_STUB_EXIT`(`tests/stubs/mkswap`), `FREE_STUB_SWAP_USED_MB`(`tests/stubs/free`)
   - 각 옵션을 `grep -rn '<옵션>' tests/`로 확인하고, 사용처가 스텁 자신뿐이면 그 옵션 코드만 지운다. 스텁 파일 자체는 지우지 않는다.
   - 이미 쓰이지 않던 `FREE_STUB_AVAILABLE_MB`는 범위 밖이므로 두고, 보고에만 적는다.
-- [ ] **Step 4: 개수와 전체 검사**
+- [x] **Step 4: 개수와 전체 검사**
 
 ```bash
 grep -c '^@test' tests/vm_ops.bats tests/bootstrap.bats
@@ -207,7 +207,7 @@ Expected:
 - `16`, `15`
 - `make check` 종료 코드 0. kcov 측정 줄을 잃는 곳은 `scripts/verify-vm.sh`의 usage die, `scripts/bootstrap-vm.sh`의 업로드 실패 정리 두 줄, `scripts/remote/bootstrap.sh`의 "이미 docker 그룹" 분기 두 줄 정도다.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add tests/vm_ops.bats tests/bootstrap.bats tests/stubs/id tests/stubs/fallocate tests/stubs/mkswap tests/stubs/free
@@ -219,21 +219,21 @@ git commit -m "test: keep only essential VM operation and bootstrap tests" --tra
 **Files:**
 - Modify: `tests/verify_mcp.bats`, `tests/repo.bats`, `tests/cloud_neutral.bats`
 
-- [ ] **Step 1: `tests/verify_mcp.bats` (23 → 14)**
+- [x] **Step 1: `tests/verify_mcp.bats` (23 → 14)**
   - 유지: L14, L20, L33, L39, L47, L54, L61, L71, L80, L87, L101, L113, L123, L144
   - 삭제: L94, L130, L138, L150, L159, L166, L176, L182
   - 병합: L26 `sends the session id from initialize on every later request` → L14. `Mcp-Session-Id` 개수 assertion을 옮긴다.
-- [ ] **Step 2: `tests/repo.bats` (31 → 22)**
+- [x] **Step 2: `tests/repo.bats` (31 → 22)**
   - 유지: L14, L38, L49, L58, L74, L79, L88, L95, L108, L117, L126, L131, L153, L158, L167, L174, L182, L201, L206, L233, L251, L288
   - 삭제: L26, L64, L140, L147, L265, L273, L280, L307
   - 병합: L43 `every Make target has a ## description` → L49
     - L49를 Makefile의 **모든** 타깃을 도는 반복문으로 바꾼다. 각 타깃에 `##` 설명이 있고 `.PHONY`에 선언됐는지 확인한다.
     - 이름은 `every Make target has a ## description and is declared .PHONY`로 바꾼다.
   - L233이 쓰는 `markdown_files()`, `markdown_links()`는 남긴다(Q1-B). 삭제한 테스트만 쓰던 헬퍼나 상수가 있으면 지운다.
-- [ ] **Step 3: `tests/cloud_neutral.bats` (4 → 3)**
+- [x] **Step 3: `tests/cloud_neutral.bats` (4 → 3)**
   - 삭제: L27 `the scan passes a clean directory`
   - 유지: L17, L35, L41
-- [ ] **Step 4: 개수와 전체 검사**
+- [x] **Step 4: 개수와 전체 검사**
 
 ```bash
 grep -c '^@test' tests/verify_mcp.bats tests/repo.bats tests/cloud_neutral.bats
@@ -244,7 +244,7 @@ Expected:
 - `14`, `22`, `3`
 - `make check` 종료 코드 0. kcov 측정 줄을 잃는 곳은 `scripts/verify-mcp.sh`의 알 수 없는 옵션 분기 하나다.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add tests/verify_mcp.bats tests/repo.bats tests/cloud_neutral.bats
@@ -256,12 +256,12 @@ git commit -m "test: keep only essential MCP verify, repo and cloud-neutral test
 **Files:**
 - Modify: `tests/check_git.bats`, `tests/review.bats`, `tests/review_bash_guard.bats`, `tests/skills.bats`
 
-- [ ] **Step 1: `tests/check_git.bats` (17 → 14)**
+- [x] **Step 1: `tests/check_git.bats` (17 → 14)**
   - 삭제:
     - L88 `flags extensions.worktreeConfig because it breaks Antigravity`. 남는 테스트는 L96.
     - L108 `flags extensions.worktreeConfig set twice and shows every value`
     - L145 `reports the explicit branch's commits, not HEAD's, from a detached HEAD`. 남는 테스트는 L136.
-- [ ] **Step 2: `tests/review.bats` (18 → 11)**
+- [x] **Step 2: `tests/review.bats` (18 → 11)**
   - 유지: L28, L52, L62, L82, L98, L111, L126, L135, L145, L173, L195
   - 삭제: L70, L204, L210
   - 병합:
@@ -269,11 +269,11 @@ git commit -m "test: keep only essential MCP verify, repo and cloud-neutral test
     - L91 `allows a same-vendor review only when explicitly requested` → L98. 같은 벤더 허용 실행의 성공 assertion과 WARNING 줄 assertion을 옮긴다.
     - L160 `a failed review removes this round's earlier reports` → L126. 이전 보고서를 미리 만들어 두는 준비 줄과 "실패 후 이전 보고서가 지워짐" assertion을 옮긴다.
     - L186 `a successful review leaves only the final pair of reports` → L28. `.partial`이 남지 않고 최종 보고서 두 개만 있다는 assertion을 옮긴다.
-- [ ] **Step 3: `tests/review_bash_guard.bats` (10 → 8)**
+- [x] **Step 3: `tests/review_bash_guard.bats` (10 → 8)**
   - 병합:
     - L78 `blocks quoting and escapes that the shell would strip into --output` → L84. 세 입력 문자열을 L84의 반복문에 넣는다. 실제 우회 사례(b61ddbf)다.
     - L120 `blocks commands other than git` → L101. `rm`, `make`, 빈 문자열을 L101의 반복문에 넣는다.
-- [ ] **Step 4: `tests/skills.bats` (18 → 13)**
+- [x] **Step 4: `tests/skills.bats` (18 → 13)**
   - 유지: L30, L44, L72, L88, L97, L105, L119, L125, L136, L142, L161, L173, L179. ADR 0003 결정 7과 `skill-authoring`의 "(tested)" 규칙을 지키므로 남긴다(Q2-A).
   - 삭제: L23 `at least one repository skill exists`, L186 `the skill-authoring template starts with standard frontmatter`
   - 병합:
@@ -283,7 +283,7 @@ git commit -m "test: keep only essential MCP verify, repo and cloud-neutral test
       - L142가 양방향을 모두 검사하게 한다.
       - 이름은 `.agents/skills and .claude/skills link every skill both ways`로 바꾼다.
   - 정리: L186만 쓰던 `TEMPLATE` 상수를 지운다. `MAX_COMPATIBILITY_CHARS`와 `MAX_SKILL_LINES`는 L88과 L97이 계속 쓴다.
-- [ ] **Step 5: 개수와 전체 검사**
+- [x] **Step 5: 개수와 전체 검사**
 
 ```bash
 grep -c '^@test' tests/check_git.bats tests/review.bats tests/review_bash_guard.bats tests/skills.bats
@@ -294,7 +294,7 @@ Expected:
 - `14`, `11`, `8`, `13`
 - `make check` 종료 코드 0. kcov 측정 줄을 잃는 곳은 `scripts/review.sh`의 usage 본문과 `reviewer_tool`의 `*) usage` 두 줄이다.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add tests/check_git.bats tests/review.bats tests/review_bash_guard.bats tests/skills.bats
@@ -307,7 +307,7 @@ git commit -m "test: keep only essential git policy, review and skill tests" --t
 - Create: `docs/decisions/0004-test-scope.md`
 - Modify: 이 계획 파일(Progress log)
 
-- [ ] **Step 1: cherry-pick**
+- [x] **Step 1: cherry-pick**
 
 ```bash
 git cherry-pick <T1 SHA> <T2 SHA> <T3 SHA> <T4 SHA>
@@ -317,12 +317,12 @@ make check
 
 Expected: 충돌 없음(파일이 겹치지 않음). 합계 `147`, `make check` 종료 코드 0.
 
-- [ ] **Step 2: ADR 0004 작성 (한국어)**
+- [x] **Step 2: ADR 0004 작성 (한국어)**
   - 맥락: 237개 중 상당수가 문구·중복·변형 테스트였다.
   - 결정: "판정 기준"의 K1~K5만 새 테스트로 쓴다. 변형은 대표 테스트의 반복문으로 쓴다.
   - 결과: 147개로 줄었다. 커버리지는 Step 1에서 측정한 실제 값을 적는다. 잃은 kcov 측정 줄을 목록으로 적는다.
   - 대체 범위: 대체된 OCI 스펙(`docs/specs/2026-10-07-basic-memory-oci-tailscale-design.md`) §9의 "스크립트마다 명령·환경 변수 누락과 원격 단계 실패 테스트" 요구를 이 ADR이 대체한다. GCP 스펙 §9의 테스트 요구(스왑, `status`, 클라우드 중립)는 그대로 지켜진다.
-- [ ] **Step 3: Progress log에 `Verified`/`Command`로 기록하고 커밋**
+- [x] **Step 3: Progress log에 `Verified`/`Command`로 기록하고 커밋**
 
 ```bash
 git add docs/decisions/0004-test-scope.md docs/plans/active/2026-10-13-06-test-pruning.md
@@ -354,3 +354,12 @@ make check-git
 | 날짜 | 표기 | 내용 |
 |---|---|---|
 | 2026-10-13 | Verified | 서브에이전트 4개가 테스트 237개를 판정 기준으로 분류(읽기 전용). 사용자가 "테스트 조정을 진행하세요"로 진행을 지시. Q1·Q2는 따로 고르지 않아 추천안(Q1-B, Q2-A)을 적용 |
+| 2026-10-13 | Command | `make check` (5693ff3, 기준선) |
+| 2026-10-13 | Verified | 테스트 237개 전부 PASS(not ok 0), 라인 커버리지 97.97% |
+| 2026-10-13 | Verified | Task 1~4를 sonnet 구현 에이전트 4개가 격리 worktree에서 병렬로 실행(브랜치 `plan/06-test-pruning-t1`~`t4`, 기준 5693ff3). Task마다 별도 검증 에이전트가 diff를 계획과 대조하고 `make check`를 직접 실행 |
+| 2026-10-13 | Verified | Task 1 e2159ab: 검증 PASS, 209 ok, 커버리지 97.83%(잃은 줄 `restore.sh:89`) |
+| 2026-10-13 | Verified | Task 2 88c4696: 검증 PASS지만, 병합한 L149의 "must be the VM's public IPv4" assertion이 빠진 것을 발견. 수정 1회차 7d8c19a로 복원, 재검증 PASS, 211 ok, 커버리지 97.25% |
+| 2026-10-13 | Verified | Task 3 3079854: 검증 PASS, 218 ok |
+| 2026-10-13 | Verified | Task 4 24f77f6: 검증 PASS, 220 ok, 커버리지 97.68%. guard L120 병합은 브리프에 적은 3개가 아니라 원래 입력 6개(rm, echo, make, cat, gitdiff, 빈 문자열)를 모두 옮김(Global Constraints의 "모두 옮긴다" 규칙) |
+| 2026-10-13 | Command | 계획 브랜치에 e2159ab, 3079854, 24f77f6, 88c4696, 7d8c19a를 cherry-pick한 뒤 `make check` (747d2c7) |
+| 2026-10-13 | Verified | 충돌 없음. 테스트 147개 전부 PASS(not ok 0), 라인 커버리지 96.67%. 기준선과 비교해 테스트가 닿지 않게 된 측정 줄은 9개: `restore.sh:89`, `review.sh:29,49`, `verify-mcp.sh:41`, `verify-vm.sh:97`, `bootstrap-vm.sh:49-50`, `remote/bootstrap.sh:100-101`(kcov `cobertura.xml`의 hits=0 줄을 기준선의 스크립트별 수치와 대조) |
