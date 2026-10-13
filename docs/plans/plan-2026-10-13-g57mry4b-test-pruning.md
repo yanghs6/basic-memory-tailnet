@@ -330,7 +330,7 @@ git commit -m "docs: record the test scope decision and the test-pruning plan ev
 make check-git
 ```
 
-- [ ] **Step 4: 최종 검증 에이전트 (읽기 전용, 브랜치 전체)**
+- [x] **Step 4: 최종 검증 에이전트 (읽기 전용, 브랜치 전체)**
   - "교차 파일 생존 목록"의 남기는 테스트가 모두 있다.
   - K1 테스트가 모두 남았다:
     - `repo.bats` L14, L38, L74, L79, L131, L158, L201, L288
@@ -366,3 +366,4 @@ make check-git
 | 2026-10-13 | Verified | 최종 리뷰(opus): READY WITH FIXES. Important 1: 지운 "rejects an unknown reviewer" 테스트가 `review.sh`의 리뷰어 허용 목록(`*) usage ;;`)을 지키는 유일한 테스트였음(없으면 `check_independence`가 같은 벤더 거부를 조용히 건너뜀). Minor 6 |
 | 2026-10-13 | Command | 최종 리뷰 수정 적용 후 `make check` (400196e 위의 작업 트리) |
 | 2026-10-13 | Verified | exit 0, 테스트 148개 ok, not ok 0, 라인 커버리지 96.96%. 잃은 측정 줄 7개: `restore.sh:89`, `verify-mcp.sh:41`, `verify-vm.sh:97`, `bootstrap-vm.sh:49-50`, `remote/bootstrap.sh:100-101`(`review.sh:29,49`는 복원한 테스트로 다시 커버). 삭제 63개, 병합 26개(상태 스왑 사용량 테스트를 status 테스트에 병합) |
+| 2026-10-13 | Verified | 최종 수정(c02cc62) 재검증 에이전트: PASS. I1·M1·M2·M3·M4·M6과 C1 모두 반영, 새 결함 없음. 재검증 에이전트가 직접 실행한 `make check` exit 0(148 ok, not ok 0, 96.96%), `scripts/check-git.sh main plan/g57mry4b-test-pruning` OK(8 commits). M5(747d2c7에 `Review-Finding: SDD-T2-F1` 트레일러 누락)는 이력 재작성 금지라 고치지 않고 리뷰 기록과 머지 메시지에 남긴다 |
