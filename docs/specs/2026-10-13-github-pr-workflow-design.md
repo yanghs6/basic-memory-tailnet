@@ -43,6 +43,10 @@
   - `main` 이력 123커밋의 작성자는 모두 `yanghs6 <yanghs632@gmail.com>`이다.
   - `tskey-`로 시작하는 값은 모두 테스트 자리표시자다.
   - 실제 VM IP, GCP 프로젝트 ID, tailnet 이름은 없다.
+- **Verified (Command: `git log -p --branches --not main`을 grep으로 검사, 2026-10-13):**
+  - 아직 main에 들어가지 않은 로컬 브랜치 전체에서 VM 외부 IP와 GCP 프로젝트 ID는 어떤 커밋에도 없다.
+  - VM의 Tailscale IP(`100.64.0.0/10` 대역)는 `plan/05-vm-rollout`의 커밋 하나(`fe73353`, 계획 05 Progress log의 ssh 출력)에만 있다.
+  - `main`에는 이 대역의 주소가 없다.
 - **Verified (근거 조사 보고서):** 공개 프로젝트의 공통 관행은 다음과 같다.
   - 트렁크 기반 브랜치, squash 병합, 승인 1개 이상
   - 에이전트 PR을 초안으로 열기
@@ -194,6 +198,15 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
 - **진행 중인 브랜치(`plan/05-vm-rollout`, `plan/06-test-pruning` 등):**
   - 10절 2단계 전에 끝나면 기존 정책으로 병합한다. 그 내용은 `main` 이력과 함께 공개된다.
   - 그 뒤에 끝나면 `origin/main` 위로 push하고 PR을 연다.
+  - **예외: `plan/05-vm-rollout`** (사용자 결정 2026-10-13: VM IP를 감춘다)
+    - 커밋 `fe73353`에 VM의 Tailscale IP가 있으므로 이 브랜치는 `--no-ff`로 병합하지도, push하지도 않는다. 원래 브랜치는 로컬에만 둔다. 기존 ref를 고치지 않으므로 이력 재작성도 아니다.
+    - 계획 05가 끝나면 그 결과를 공개용 새 브랜치로 옮긴다.
+      1. 10절 2단계 뒤에 `origin/main`에서 `plan/05-vm-rollout-public`을 만든다.
+      2. `git merge --squash plan/05-vm-rollout`으로 결과만 가져온다.
+      3. IP를 자리표시자(`<agent-hub tailnet IP>`)로 바꾸고 커밋 하나로 만든다. 트레일러는 `Assisted-by`(참여한 도구 전부), `Plan: 05`, `Task: none`이다.
+      4. 위의 점검 명령으로 그 브랜치를 다시 검사한 뒤 push하고 PR을 연다.
+    - PR 본문에 원본 브랜치 이름과 squash로 옮겼다는 사실을 적는다.
+- **앞으로의 기록 규칙:** Progress log, 런북, 리뷰 기록에는 VM의 외부 IP와 Tailscale IP를 적지 않는다. 호스트 이름(`agent-hub`)이나 자리표시자를 쓴다. 명령 출력을 옮길 때도 IP를 가린다. 계획 07에서 `AGENTS.md`의 Safety에 추가한다.
 - **공개 전 점검:** 처음 공개되는 이력(2단계의 `main`, 진행 중인 브랜치의 첫 push)마다 다음을 찾는다.
   - 비밀값: `tskey-` 실제 값, 개인키
   - 인프라 식별자: VM 외부 IP, GCP 프로젝트 ID, tailnet 이름, `100.x` Tailscale IP
@@ -216,7 +229,7 @@ git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 
 | 계획 | 범위 |
 |---|---|
-| 07 GitHub 전환 | `.github/workflows/ci.yml`·`pr-rules.yml`, `scripts/check-pr.sh`와 테스트, `check-git.sh`·`review.sh`의 base 변경, `.github/pull_request_template.md`, `.github/rulesets/main.json`, `docs/runbooks/github.md`(부트스트랩, 공개 전 점검, 설정 적용, 토큰 교체), `docs/runbooks/accounts.md`의 머신 계정 항목, `AGENTS.md`의 `## Git`, git-workflow 스킬, 기존 정책 스펙의 상태 표시 |
+| 07 GitHub 전환 | `.github/workflows/ci.yml`·`pr-rules.yml`, `scripts/check-pr.sh`와 테스트, `check-git.sh`·`review.sh`의 base 변경, `.github/pull_request_template.md`, `.github/rulesets/main.json`, `docs/runbooks/github.md`(부트스트랩, 공개 전 점검, 설정 적용, 토큰 교체), `docs/runbooks/accounts.md`의 머신 계정 항목, `AGENTS.md`의 `## Git`과 Safety(VM IP 기록 금지), git-workflow 스킬, 기존 정책 스펙의 상태 표시 |
 | 08 리뷰 게시 | `scripts/post-review.sh`와 테스트, `make review-post`, git-workflow 스킬의 리뷰 절, branch-review 스킬, `docs/reviews/README.md`, `AGENTS.md`의 `## Code Review Rules` 3·6번("CI 통과"로 바꿈) |
 
 ## 13. 위험과 대응
@@ -234,8 +247,8 @@ git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 
 ## 14. Open questions
 
-1. 기존 커밋의 작성자 이메일(`yanghs632@gmail.com`)이 공개된다. 바꾸려면 이력을 재작성해야 한다. 추천은 그대로 공개하는 것이다. 앞으로의 커밋만 GitHub noreply 주소로 바꿀 수도 있다. 10절 2단계 전에 사용자가 정한다.
-2. 계획 05 브랜치의 커밋에 VM 외부 IP 같은 인프라 식별자가 있으면, 11절에 따라 사용자가 정한다. 선택지는 공개 허용, 또는 push 전에 그 브랜치의 이력을 정리하도록 승인하는 것이다. 현재 파일만 고치는 것으로는 과거 커밋의 값을 막지 못한다.
+1. (결정됨, 2026-10-13) 기존 커밋의 작성자 이메일(`yanghs632@gmail.com`)은 그대로 공개한다.
+2. (결정됨, 2026-10-13) VM IP는 감춘다. VM 외부 IP는 어떤 커밋에도 없다. Tailscale IP가 있는 `plan/05-vm-rollout`은 11절의 예외 절차로 공개한다.
 3. GitHub squash 커밋의 작성자가 PR 작성자(머신 계정)인지, 그리고 커밋 작성자(사용자)를 `Co-authored-by`로 자동으로 붙이는지 확인해야 한다. 계획 07의 첫 PR로 확인한 뒤 `check-pr.sh`의 허용 범위를 정한다.
 4. 공개 저장소에서 GitHub Free로 저장소 단위 secret scanning과 push protection을 켤 수 있는지 계획 07에서 확인한다.
 5. 머신 계정 이름(예: `yanghs6-bot`)과 연락용 이메일
