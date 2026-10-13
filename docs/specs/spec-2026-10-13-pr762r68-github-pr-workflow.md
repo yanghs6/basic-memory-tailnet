@@ -156,7 +156,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
   - 표의 열: ID(`R1-F3`), 등급, 위치, 요약, 상태
   - 상태: `open`, `fixed <sha>`, `rejected <근거>`, `deferred <사람이 적은 이유>` 중 하나
 - **P0/P1 차단:** AI 리뷰는 일반 코멘트로 올라가서 "리뷰 스레드 해결" 규칙의 대상이 아니다. 그래서 사람이 승인하기 전에 Review record를 확인하는 방식으로 막는다. 줄 단위 리뷰 스레드(사람의 지적)는 ruleset이 막는다.
-- **임시 절차 ([github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md) 병합부터 08 병합까지):** 작성 에이전트가 `.review-out/` 리포트를 `gh pr comment --body-file`로 직접 게시한다.
+- **임시 절차 ([github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md) 병합부터 09 병합까지):** 작성 에이전트가 `.review-out/` 리포트를 `gh pr comment --body-file`로 직접 게시한다.
 - **`docs/reviews/`:** 기존 기록은 이력으로 보존하고 새 기록은 쓰지 않는다. README에 그렇게 적는다([review-posting 계획](../plans/plan-2026-10-13-znbc3ase-review-posting.md)).
 
 ## 9. 승인, 병합, 정리
@@ -227,10 +227,12 @@ git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 
 ## 12. 계획 분할
 
+계획 번호 06은 `plan/g57mry4b-test-pruning`이 쓰고 있다. 07은 `plan/qtvzskgx-vm-rollout`에 있는 backlog 계획 `plan-2026-10-13-gaewewkf-ipv6-egress.md`가 쓰고 있다. 그래서 이 스펙의 계획은 08과 09다.
+
 | 계획 | 범위 |
 |---|---|
-| 07 GitHub 전환 | `.github/workflows/ci.yml`·`pr-rules.yml`, `scripts/check-pr.sh`와 테스트, `check-git.sh`·`review.sh`의 base 변경, `.github/pull_request_template.md`, `.github/rulesets/main.json`, `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md`(부트스트랩, 공개 전 점검, 설정 적용, 토큰 교체), `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`의 머신 계정 항목, `AGENTS.md`의 `## Git`과 Safety(VM IP 기록 금지), git-workflow 스킬, 기존 정책 스펙의 상태 표시 |
-| 08 리뷰 게시 | `scripts/post-review.sh`와 테스트, `make review-post`, git-workflow 스킬의 리뷰 절, branch-review 스킬, `docs/reviews/README.md`, `AGENTS.md`의 `## Code Review Rules` 3·6번("CI 통과"로 바꿈) |
+| 08 GitHub 전환 | `.github/workflows/ci.yml`·`pr-rules.yml`, `scripts/check-pr.sh`와 테스트, `check-git.sh`·`review.sh`의 base 변경, `.github/pull_request_template.md`, `.github/rulesets/main.json`, `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md`(부트스트랩, 공개 전 점검, 설정 적용, 토큰 교체), `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`의 머신 계정 항목, `AGENTS.md`의 `## Git`과 Safety(VM IP 기록 금지), git-workflow 스킬, 기존 정책 스펙의 상태 표시 |
+| 09 리뷰 게시 | `scripts/post-review.sh`와 테스트, `make review-post`, git-workflow 스킬의 리뷰 절, branch-review 스킬, `docs/reviews/README.md`, `AGENTS.md`의 `## Code Review Rules` 3·6번("CI 통과"로 바꿈) |
 
 ## 13. 위험과 대응
 
