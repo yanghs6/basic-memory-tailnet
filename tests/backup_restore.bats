@@ -173,7 +173,7 @@ fix_backup_stamp() {
   assert_output "1000"
   run grep -F 'tar --no-same-owner --no-same-permissions -C' "$STUB_LOG"
   assert_success
-  run grep -F 'compose up -d --wait --wait-timeout 180' "$STUB_LOG"
+  run grep -F 'compose up -d --wait --wait-timeout 360' "$STUB_LOG"
   assert_success
   run diff "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
   assert_success
@@ -332,7 +332,7 @@ fix_backup_stamp() {
   assert_failure
   assert_output --partial "container did not become healthy with the restored data"
   assert_output --partial "rolled back: the previous data is live again"
-  run grep -F 'docker compose up -d --force-recreate --wait --wait-timeout 180' "$STUB_LOG"
+  run grep -F 'docker compose up -d --force-recreate --wait --wait-timeout 360' "$STUB_LOG"
   assert_success
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
   assert_output "original"
