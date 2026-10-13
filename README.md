@@ -38,7 +38,7 @@ VM이나 클라우드 자원을 바꾸는 명령(`vm-bootstrap`, `deploy`, `rest
 
 ## 에이전트용 스킬
 
-`.agents/skills/`(Claude Code는 `.claude/skills/` 링크)에 운영 스킬이 있습니다: `bm-upgrade`(이미지 업그레이드), `bm-recover`(VM 삭제·손상 후 복구), `bm-diagnose`(읽기 전용 진단), `git-workflow`, `branch-review`.
+`.agents/skills/`(Claude Code는 `.claude/skills/` 링크)에 스킬이 있습니다: `bm-upgrade`(이미지 업그레이드), `bm-recover`(VM 정지·삭제·손상 후 복구), `bm-diagnose`(읽기 전용 진단), `git-workflow`, `branch-review`, `skill-authoring`(스킬 추가·수정 규칙). 어떤 상황에 어떤 스킬을 쓰는지는 `AGENTS.md`의 `## Skills`에 있고, 구조 규칙은 `tests/skills.bats`가 검사합니다([skill-structure ADR](docs/decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md)).
 
 ## 범위 밖 (다음 목표)
 

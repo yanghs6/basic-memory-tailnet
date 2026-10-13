@@ -37,3 +37,9 @@ cloud_name_matches() {
   leftover="$(cloud_name_matches "$REPO_DIR/scripts")" || fail "the scan itself failed"
   [[ -z "$leftover" ]] || fail "cloud provider names in scripts/:"$'\n'"$leftover"
 }
+
+@test "skills name no cloud provider; they point to the runbook sections instead" {
+  local leftover
+  leftover="$(cloud_name_matches "$REPO_DIR/.agents/skills")" || fail "the scan itself failed"
+  [[ -z "$leftover" ]] || fail "cloud provider names in .agents/skills/ (move the command to a runbook):"$'\n'"$leftover"
+}

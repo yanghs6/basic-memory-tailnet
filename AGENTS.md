@@ -41,7 +41,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - `scripts/` lifecycle scripts; `scripts/lib/common.sh` shared helpers.
 - `tests/` bats tests; `tools/` test image and coverage gate.
 - `docs/specs/`, `docs/plans/{active,backlog,completed}/`.
-- `.agents/skills/` skills for Codex and Antigravity; `.claude/skills/<name>` symlinks and `.claude/agents/branch-reviewer.md` for Claude Code.
+- `.agents/skills/` canonical skills (Codex, Gemini CLI, Antigravity; rules in `tests/skills.bats`); `.claude/skills/<name>` symlinks and `.claude/agents/branch-reviewer.md` for Claude Code.
 - `docs/reviews/` review records (template in its README).
 - `docs/runbooks/` accounts, VM creation, bootstrap, operations (incident log); `docs/decisions/` ADRs.
 
@@ -57,8 +57,10 @@ Severity: P0 data loss, security or outage and P1 bug or unmet requirement block
 Each finding: `[Pn] path:line - failure scenario - suggested fix`. Report only problems these changes introduce; no style nits.
 
 ## Skills
-- `git-workflow`: start, commit, request review and prepare the merge of agent work.
-- `branch-review`: review another agent's branch read-only.
-- `bm-upgrade`: bump the pinned Basic Memory image and roll it out safely.
-- `bm-recover`: start a stopped VM; rebuild only a deleted or unusable VM, then restore the latest backup.
-- `bm-diagnose`: read-only troubleshooting of MCP, Tailscale and container problems.
+Load the matching skill before you act; when two match, use both.
+- Changing files, committing, asking for review, fixing findings or preparing a merge: `git-workflow`.
+- Reviewing another agent's branch (read-only): `branch-review`.
+- Updating, bumping, patching or rolling back the Basic Memory image: `bm-upgrade`.
+- VM stopped, deleted or unusable, or notes to restore onto a new VM (a stopped VM is only started): `bm-recover`.
+- Basic Memory unreachable, `make probe` or `make verify` failing, container or VM unhealthy (read-only): `bm-diagnose`.
+- Adding, renaming or editing a skill: `skill-authoring`.

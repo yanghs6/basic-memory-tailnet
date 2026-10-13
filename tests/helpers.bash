@@ -39,3 +39,13 @@ make_worktree_fixture() {
   LINKED_WT="$(cd "$LINKED_WT" && pwd -P)"
   export MAIN_REPO LINKED_WT
 }
+
+# skill_dirs: the canonical skill directories under .agents/skills, one per line.
+skill_dirs() {
+  find "$REPO_DIR/.agents/skills" -mindepth 1 -maxdepth 1 -type d | sort
+}
+
+# frontmatter FILE: the YAML lines between the opening and closing --- of FILE.
+frontmatter() {
+  awk 'NR == 1 && $0 == "---" { inside = 1; next } inside && $0 == "---" { exit } inside { print }' "$1"
+}
