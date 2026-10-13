@@ -24,7 +24,7 @@ setup() {
   assert_line "BM_CONFIG_DIR=$BM_REMOTE_DATA_ROOT/config"
   run grep -F 'docker compose pull -q' "$STUB_LOG"
   assert_success
-  run grep -F 'docker compose up -d --wait --wait-timeout 180' "$STUB_LOG"
+  run grep -F 'docker compose up -d --wait --wait-timeout 360' "$STUB_LOG"
   assert_success
 }
 
@@ -32,7 +32,7 @@ setup() {
   export DOCKER_STUB_FAIL_MATCH="up -d"
   run "$REPO_DIR/scripts/deploy.sh"
   assert_failure
-  assert_output --partial "did not become healthy within 180s"
+  assert_output --partial "did not become healthy within 360s"
 }
 
 @test "deploy explains an unreachable VM" {
