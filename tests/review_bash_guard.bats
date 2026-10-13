@@ -75,15 +75,13 @@ assert_blocked() {
   assert_blocked "git log -p --textc"
 }
 
-@test "blocks quoting and escapes that the shell would strip into --output" {
-  assert_blocked 'git diff --o""utput=/tmp/x'
-  assert_blocked "git diff --ou''tput=/tmp/x"
-  assert_blocked 'git diff --outp\ut=/tmp/x'
-}
-
 @test "blocks anything but single-space-separated plain tokens" {
   local cmd
+  # The first three inputs reproduce a real bypass where the shell stripped quotes/escapes into --output (commit 5a9c7d7); keep them.
   for cmd in \
+    'git diff --o""utput=/tmp/x' \
+    "git diff --ou''tput=/tmp/x" \
+    'git diff --outp\ut=/tmp/x' \
     "git diff"$'\t'"main" \
     "git diff  main" \
     "git diff main " \
@@ -98,7 +96,7 @@ assert_blocked() {
   done
 }
 
-@test "blocks every other git subcommand" {
+@test "blocks every other git subcommand and every non-git command" {
   local cmd
   for cmd in \
     "git status" \
@@ -112,14 +110,13 @@ assert_blocked() {
     "git diff-tree HEAD" \
     "git -C /tmp diff" \
     "git" \
-    " git diff"; do
-    assert_blocked "$cmd"
-  done
-}
-
-@test "blocks commands other than git" {
-  local cmd
-  for cmd in "rm -rf scripts" "echo hi" "make check" "cat AGENTS.md" "gitdiff" ""; do
+    " git diff" \
+    "rm -rf scripts" \
+    "echo hi" \
+    "make check" \
+    "cat AGENTS.md" \
+    "gitdiff" \
+    ""; do
     assert_blocked "$cmd"
   done
 }

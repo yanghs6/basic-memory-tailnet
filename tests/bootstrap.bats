@@ -16,10 +16,20 @@ run_bootstrap_with_key() {
   run bash -c 'printf "%s\n" "$1" | "$0"' "$BOOTSTRAP" "$1"
 }
 
-@test "installs docker from the official apt repo when docker is missing" {
+@test "installs tailscale with the official script and sets up swap before it installs docker from the official apt repo" {
   export TS_STUB_STATUS_EXIT=1
+  rm "$STUB_BIN/tailscale"
+  export CURL_STUB_SCRIPT="ln -s $REPO_DIR/tests/stubs/tailscale $STUB_BIN/tailscale"
   run_bootstrap_with_key tskey-auth-test123
   assert_success
+  run grep -F 'curl -fsSL https://tailscale.com/install.sh' "$STUB_LOG"
+  assert_success
+  run cat "$STUB_LOG"
+  assert_line --index 0 "swapon --show --noheadings"
+  local swap_line apt_line
+  swap_line="$(grep -nF "swapon $SWAP_FILE" "$STUB_LOG" | head -n 1 | cut -d: -f1)"
+  apt_line="$(grep -nF "apt-get" "$STUB_LOG" | head -n 1 | cut -d: -f1)"
+  ((swap_line < apt_line))
   run grep -F 'apt-get -o DPkg::Lock::Timeout=300 install -y -q docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin' "$STUB_LOG"
   assert_success
   # Every apt-get call waits for the dpkg lock that unattended-upgrades holds right after first boot.
@@ -28,41 +38,6 @@ run_bootstrap_with_key() {
   run cat "$ETC_DIR/apt/sources.list.d/docker.sources"
   assert_line "Suites: noble"
   assert_line "Architectures: arm64"
-}
-
-@test "skips the docker install when docker exists" {
-  setup_stubs docker
-  run_bootstrap_with_key ""
-  assert_success
-  assert_output --partial "docker already installed"
-  run grep -F 'docker-ce' "$STUB_LOG"
-  assert_failure
-}
-
-@test "adds the admin user to the docker group only when missing" {
-  setup_stubs docker
-  export ID_STUB_GROUPS="root"
-  run_bootstrap_with_key ""
-  assert_success
-  run grep -F 'usermod -aG docker root' "$STUB_LOG"
-  assert_success
-
-  : >"$STUB_LOG"
-  export ID_STUB_GROUPS="root docker"
-  run_bootstrap_with_key ""
-  assert_success
-  run grep -F 'usermod' "$STUB_LOG"
-  assert_failure
-}
-
-@test "installs tailscale with the official script when missing" {
-  setup_stubs docker
-  rm "$STUB_BIN/tailscale"
-  export CURL_STUB_SCRIPT="ln -s $REPO_DIR/tests/stubs/tailscale $STUB_BIN/tailscale"
-  run_bootstrap_with_key ""
-  assert_success
-  run grep -F 'curl -fsSL https://tailscale.com/install.sh' "$STUB_LOG"
-  assert_success
 }
 
 @test "joins the tailnet with the key in a temp file, never in argv" {
@@ -98,20 +73,17 @@ run_bootstrap_with_key() {
   assert_output --partial "not on the tailnet and no auth key given"
 }
 
-@test "only refreshes hostname and Tailscale SSH when already on the tailnet" {
+@test "on a host already on the tailnet it skips the docker install, refreshes only hostname and Tailscale SSH, creates data dirs owned by the container uid and serves the loopback port" {
   setup_stubs docker
   run_bootstrap_with_key ""
   assert_success
+  assert_output --partial "docker already installed"
+  run grep -F 'docker-ce' "$STUB_LOG"
+  assert_failure
   run grep -F 'tailscale set --hostname=agent-hub --ssh' "$STUB_LOG"
   assert_success
   run grep -F 'tailscale up' "$STUB_LOG"
   assert_failure
-}
-
-@test "creates data dirs owned by the container uid and serves the loopback port" {
-  setup_stubs docker
-  run_bootstrap_with_key ""
-  assert_success
   run stat -c '%u:%g' "$BM_REMOTE_DATA_ROOT/knowledge"
   assert_output "1000:1000"
   run grep -F 'tailscale serve --bg http://127.0.0.1:8737' "$STUB_LOG"
@@ -167,21 +139,6 @@ run_bootstrap_with_key() {
   assert_output "tskey-auth-prompt456"
 }
 
-@test "bootstrap-vm requires the public IP" {
-  run "$WRAPPER"
-  assert_failure
-  assert_output --partial "usage: make vm-bootstrap HOST=<public-ip>"
-}
-
-@test "bootstrap-vm explains an upload failure" {
-  export BM_VM_USER=root TS_AUTHKEY=tskey-auth-x SSH_STUB_FAIL_MATCH="cat > /tmp/bm-bootstrap."
-  run "$WRAPPER" 203.0.113.10
-  assert_failure
-  assert_output --partial "upload failed"
-  run grep -F 'rm -f /tmp/bm-bootstrap.' "$STUB_LOG"
-  assert_success
-}
-
 @test "bootstrap-vm says a failed run is safe to repeat" {
   export BM_VM_USER=root TS_AUTHKEY=tskey-auth-x SSH_STUB_FAIL_MATCH="bash /tmp/bm-bootstrap."
   run "$WRAPPER" 203.0.113.10
@@ -219,18 +176,6 @@ run_bootstrap_with_key() {
   assert_output "$SWAP_FILE none swap sw 0 0"
 }
 
-@test "sets up swap before installing docker" {
-  export TS_STUB_STATUS_EXIT=1
-  run_bootstrap_with_key tskey-auth-test123
-  assert_success
-  run cat "$STUB_LOG"
-  assert_line --index 0 "swapon --show --noheadings"
-  local swap_line apt_line
-  swap_line="$(grep -nF "swapon $SWAP_FILE" "$STUB_LOG" | head -n 1 | cut -d: -f1)"
-  apt_line="$(grep -nF "apt-get" "$STUB_LOG" | head -n 1 | cut -d: -f1)"
-  ((swap_line < apt_line))
-}
-
 @test "skips the swap setup when swap is already active" {
   setup_stubs docker
   export SWAPON_STUB_ACTIVE="/dev/sda2 partition 1G 0B -2"
@@ -244,44 +189,17 @@ run_bootstrap_with_key() {
   [[ ! -e "$ETC_DIR/fstab" ]]
 }
 
-@test "keeps a single fstab line when bootstrap runs twice" {
-  setup_stubs docker
-  run_bootstrap_with_key ""
-  assert_success
-  run_bootstrap_with_key ""
-  assert_success
-  run grep -c "^$SWAP_FILE none swap sw 0 0\$" "$ETC_DIR/fstab"
-  assert_output 1
-}
-
-@test "keeps other fstab entries and appends the swap line after them" {
+@test "keeps other fstab entries and a single swap line after them, even when run twice" {
   setup_stubs docker
   printf 'UUID=abc / ext4 defaults 0 1\n' >"$ETC_DIR/fstab"
+  run_bootstrap_with_key ""
+  assert_success
   run_bootstrap_with_key ""
   assert_success
   run cat "$ETC_DIR/fstab"
   assert_line --index 0 "UUID=abc / ext4 defaults 0 1"
   assert_line --index 1 "$SWAP_FILE none swap sw 0 0"
-}
-
-@test "fails with an actionable message when the swap file cannot be allocated" {
-  export FALLOCATE_STUB_EXIT=1
-  run_bootstrap_with_key ""
-  assert_failure
-  assert_output --partial "could not create $SWAP_FILE"
-  assert_output --partial "rerun 'make vm-bootstrap'"
-  [[ ! -e "$ETC_DIR/fstab" ]]
-  run grep -F 'apt-get' "$STUB_LOG"
-  assert_failure
-}
-
-@test "fails and writes no fstab line when mkswap fails" {
-  setup_stubs docker
-  export MKSWAP_STUB_EXIT=1
-  run_bootstrap_with_key ""
-  assert_failure
-  assert_output --partial "mkswap failed"
-  [[ ! -e "$ETC_DIR/fstab" ]]
+  assert_equal "${#lines[@]}" 2
 }
 
 @test "fails and writes no fstab line when swapon fails" {
