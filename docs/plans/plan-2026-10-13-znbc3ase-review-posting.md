@@ -33,7 +33,7 @@
 
 1. **리뷰 뒤에 커밋이 더 올라온 상태에서 게시함.** 이때 코멘트의 "reviewed head"가 실제로 리뷰한 커밋과 달라진다. → head는 게시 시점이 아니라 `review.sh`가 리뷰 시점에 남긴 값을 쓴다. Task 1 Step 1이 meta 파일 내용을 검사한다.
 2. **한 회차를 반만 게시함.** 예: diff 코멘트는 올라갔는데 plan 코멘트가 길이 제한에 걸림. → 두 본문의 크기를 모두 확인한 뒤에 게시한다. Task 1 Step 1의 "too long" 테스트가 gh 호출 0번을 확인한다.
-3. **Review record 코멘트가 둘 생기거나 엉뚱한 코멘트를 고침.** → 표식으로 찾고, 여러 개면 멈춘다. Task 2 Step 1이 세 경우(0개, 1개, 2개)를 검사한다.
+3. **Review record 코멘트가 둘 생기거나 엉뚱한 코멘트를 고침.** 공개 저장소라 외부 사용자도 같은 표식으로 코멘트를 달 수 있다. → 현재 `gh` 로그인(머신 계정)이 단 코멘트 가운데 표식으로 시작하는 것만 찾고, 여러 개면 멈춘다. 로그인을 읽지 못하면 새 기록을 만들지 않고 멈춘다. Task 2 Step 1이 네 경우(0개, 1개, 2개, 로그인 없음)와 검색 조건의 작성자 필터를 검사한다.
 4. **코멘트가 30개를 넘는 PR에서 Review record를 못 찾아 새로 만듦.** → `gh api --paginate`로 모든 페이지를 읽는다. 스텁으로는 페이지 나눔을 재현할 수 없으므로 Task 4에서 실제 PR로 확인한다.
 5. **한국어 리포트는 글자당 3바이트라서, 실제로는 GitHub 제한(65536자) 안인데 바이트 기준으로 거부될 수 있음.** → 거부 메시지가 줄인 사본을 `gh pr comment`로 올리라고 안내한다. 조용히 잘리지는 않는다.
 
@@ -82,7 +82,7 @@ Expected: `pr-rules`가 pass한다(이 계획이 새 흐름의 첫 실사용). P
   - `review.sh`가 `$OUT_DIR/<slug>-r<round>-<reviewer>-meta.txt`를 쓴다. 내용은 `base <sha>`와 `head <sha>` 두 줄이다.
   - `scripts/post-review.sh PR BRANCH codex|claude [ROUND]`. 환경변수는 `REVIEW_OUT_DIR`, `REVIEW_MODEL`이다.
   - `make review-post PR=<n> BRANCH=<b> REVIEWER=<r> [ROUND=1] [REVIEW_MODEL=<m>]`
-  - `tests/stubs/gh`: 호출마다 `gh <args>`를 `$STUB_LOG`에 남긴다. `--body-file F`와 `-F body=@F`의 F 내용은 `$STUB_LOG.body`에 이어 붙인다. `--jq`가 있는 호출은 `$GH_STUB_JQ_OUTPUT`을 출력한다. `GH_STUB_EXIT`가 있으면 그 값으로 실패한다. Task 2가 이 스텁을 쓴다.
+  - `tests/stubs/gh`: 호출마다 `gh <args>`를 `$STUB_LOG`에 남긴다. `--body-file F`와 `-F body=@F`의 F 내용은 `$STUB_LOG.body`에 이어 붙인다. `gh api user`는 `$GH_STUB_LOGIN`(기본 `agent-bot`, 빈 값이면 빈 출력)을 출력한다. 그 밖에 `--jq`가 있는 호출은 `$GH_STUB_JQ_OUTPUT`을 출력한다. `GH_STUB_EXIT`가 있으면 그 값으로 실패한다. Task 2가 이 스텁을 쓴다.
 
 - [ ] **Step 1: 실패하는 테스트 작성**
 
@@ -103,13 +103,18 @@ plan-02-git-review-tooling-r1-codex-plan.md"
 ```bash
 #!/usr/bin/env bash
 # Test stub for gh: logs "gh <args>" to $STUB_LOG and appends the text of every --body-file FILE and
-# -F body=@FILE to $STUB_LOG.body. A call with --jq prints $GH_STUB_JQ_OUTPUT (default: nothing), standing in
-# for the filtered API result. GH_STUB_EXIT=<n> makes every call fail.
+# -F body=@FILE to $STUB_LOG.body. "gh api user" prints $GH_STUB_LOGIN (default agent-bot; set it empty for no
+# login). Any other call with --jq prints $GH_STUB_JQ_OUTPUT (default: nothing), standing in for the filtered
+# API result. GH_STUB_EXIT=<n> makes every call fail.
 set -euo pipefail
 printf 'gh %s\n' "$*" >>"$STUB_LOG"
 if [[ -n "${GH_STUB_EXIT:-}" ]]; then
   echo "gh stub: simulated failure" >&2
   exit "$GH_STUB_EXIT"
+fi
+if [[ "${1:-}" == api && "${2:-}" == user ]]; then
+  printf '%s\n' "${GH_STUB_LOGIN-agent-bot}"
+  exit 0
 fi
 jq_call=""
 while (($#)); do
@@ -322,7 +327,7 @@ git push
 - Modify: `Makefile`(`.PHONY`, `review-record` 타깃)
 
 **Interfaces:**
-- Consumes: Task 1의 `tests/stubs/gh`(`GH_STUB_JQ_OUTPUT`, `$STUB_LOG.body`)
+- Consumes: Task 1의 `tests/stubs/gh`(`GH_STUB_LOGIN`, `GH_STUB_JQ_OUTPUT`, `$STUB_LOG.body`)
 - Produces:
   - `scripts/review-record.sh PR FILE`. FILE은 `docs/reviews/README.md` 형식의 지적 표다.
   - `make review-record PR=<n> FILE=<path>`
@@ -343,6 +348,9 @@ setup() {
 
 @test "creates the Review record when the PR has none, with the marker as its first line" {
   run "$RECORD" 12 "$FINDINGS"
+  assert_success
+  # Only the machine account's comments count: on a public repo anyone can post the marker.
+  run grep -F 'select(.user.login == "agent-bot" and (.body | startswith("<!-- review-record -->")))' "$STUB_LOG"
   assert_success
   run grep -F 'gh api -X POST repos/{owner}/{repo}/issues/12/comments -F body=@' "$STUB_LOG"
   assert_success
@@ -368,12 +376,20 @@ setup() {
   run grep -cE 'POST|PATCH' "$STUB_LOG"
   assert_output 0
 }
+
+@test "stops instead of creating a second record when gh reports no login" {
+  GH_STUB_LOGIN= run "$RECORD" 12 "$FINDINGS"
+  assert_failure
+  assert_output --partial "gh returned no login"
+  run grep -cE 'POST|PATCH' "$STUB_LOG"
+  assert_output 0
+}
 ```
 
 - [ ] **Step 2: 실패 확인**
 
 Run: `make test`
-Expected: FAIL. `review_record.bats` 3개가 `scripts/review-record.sh: No such file or directory`로 실패한다.
+Expected: FAIL. `review_record.bats` 4개가 `scripts/review-record.sh: No such file or directory`로 실패한다.
 
 - [ ] **Step 3: `scripts/review-record.sh` 구현 (`chmod +x`)**
 
@@ -396,10 +412,13 @@ usage() {
 }
 
 main() {
-  local pr="${1:-}" file="${2:-}" body ids count
+  local pr="${1:-}" file="${2:-}" me body ids count
   [[ "$pr" =~ ^[0-9]+$ && -n "$file" ]] || usage
   [[ -f "$file" ]] || die "findings file '$file' not found"
   require_cmd gh
+  # On a public repo anyone can post a comment that starts with the marker; only the machine account's count.
+  me="$(gh api user --jq .login)" || die "could not read the gh login; run gh auth status"
+  [[ -n "$me" ]] || die "gh returned no login; run gh auth status"
   body="$(mktemp "${TMPDIR:-/tmp}/review-record.XXXXXX")" || exit 1
   # shellcheck disable=SC2064  # expand $body now: it is local to main
   trap "rm -f '$body'" EXIT
@@ -407,7 +426,7 @@ main() {
     printf '%s\n' "$MARKER"
     cat "$file"
   } >"$body"
-  ids="$(gh api "repos/{owner}/{repo}/issues/$pr/comments" --paginate --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id")" \
+  ids="$(gh api "repos/{owner}/{repo}/issues/$pr/comments" --paginate --jq ".[] | select(.user.login == \"$me\" and (.body | startswith(\"$MARKER\"))) | .id")" \
     || die "could not list the comments of PR #$pr"
   count="$(grep -c . <<<"$ids" || true)"
   case "$count" in
@@ -442,7 +461,7 @@ review-record: ## Create or update the PR's Review record comment: PR=<number> F
 - [ ] **Step 5: 통과 확인**
 
 Run: `make check`
-Expected: exit 0. `review_record.bats` 3개가 ok이고, 커버리지 목록에 `review-record.sh`가 나온다.
+Expected: exit 0. `review_record.bats` 4개가 ok이고, 커버리지 목록에 `review-record.sh`가 나온다.
 
 - [ ] **Step 6: 커밋과 push**
 
