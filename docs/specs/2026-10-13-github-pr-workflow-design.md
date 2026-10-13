@@ -3,7 +3,7 @@
 - 상태: 초안 (2026-10-13), 사용자 검토 대기
 - 대체 범위: [에이전트 기반 Git·리뷰 정책](2026-10-07-git-review-policy-design.md)의 3절 중 브랜치 기준점, 4절의 병합 트레일러, 5절의 리뷰 기록 위치, 6절 전체. 나머지(브랜치 이름, worktree, 커밋 트레일러, 리뷰어 배정, 심각도)는 그 문서가 계속 정본이다.
 - 근거 조사: [에이전트 개발 오픈소스의 git 전략](../research/2026-10-13-agent-oss-git-strategies.md)
-- 적용 시점: 계획 07을 병합한 때부터. 그 전에 병합하는 브랜치는 기존 정책을 따른다.
+- 적용 시점: 계획 08을 병합한 때부터. 그 전에 병합하는 브랜치는 기존 정책을 따른다.
 
 ## 1. 목적과 범위
 
@@ -25,7 +25,7 @@
 1. `main`이 GitHub에 있고 ruleset이 활성 상태다. 직접 push, force push, 삭제가 막히고, PR·승인 1개·필수 체크·squash만 허용된다.
 2. 에이전트 PR은 머신 계정이 열고, 승인은 사람만 할 수 있다.
 3. PR마다 CI가 `make check`, `make check-git`, `scripts/check-pr.sh`를 실행한다.
-4. 리뷰 원문과 지적 기록이 PR 코멘트로 남는다(계획 08).
+4. 리뷰 원문과 지적 기록이 PR 코멘트로 남는다(계획 09).
 5. `AGENTS.md`, 스킬, 런북이 새 흐름과 일치하고 `make check`가 통과한다.
 
 ## 2. 근거가 된 사실 (2026-10-13)
@@ -37,7 +37,7 @@
 - **Reported (문서 검색 요약, [About rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets)):** ruleset은 GitHub Free에서도 공개 저장소라면 쓸 수 있다.
 - **Verified ([Managing personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)):** "Only personal access tokens (classic) have write access for public repositories that are not owned by you." fine-grained 토큰은 협업자로 참여한 저장소에 기여할 수 없는 제약이 있다.
 - **Verified ([Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request)):** "By default, a workflow only runs when a `pull_request` event's activity type is `opened`, `synchronize`, or `reopened`." `edited`는 따로 지정해야 한다.
-- **Assumption:** `edited`는 PR 제목, 본문, base 브랜치가 바뀔 때 발생한다. 위 문서와 webhook 문서는 그 의미를 적지 않았으므로, 계획 07의 첫 PR에서 본문을 고쳐 `pr-rules`가 다시 도는지 확인한다.
+- **Assumption:** `edited`는 PR 제목, 본문, base 브랜치가 바뀔 때 발생한다. 위 문서와 webhook 문서는 그 의미를 적지 않았으므로, 계획 08의 첫 PR에서 본문을 고쳐 `pr-rules`가 다시 도는지 확인한다.
 - **Verified ([About push protection](https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection)):** 계정 단위 push protection은 기본으로 켜져 있고, 공개 저장소로 비밀값을 push하는 것을 막는다. 저장소 단위 push protection은 기본으로 꺼져 있고 GitHub Secret Protection이 필요하다.
 - **Verified (Command: `git log main -p`를 grep으로 검사, 2026-10-13):**
   - `main` 이력 123커밋의 작성자는 모두 `yanghs6 <yanghs632@gmail.com>`이다.
@@ -91,7 +91,7 @@
 
 ```
 Assisted-by: claude-code claude-opus-5-5
-Plan: 07
+Plan: 08
 ```
 
 - 작업에 참여한 도구가 여럿이면 `Assisted-by`를 도구마다 한 줄씩 쓴다.
@@ -150,14 +150,14 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
   - 기준은 `AGENTS.md`의 `## Code Review Rules`와 P0~P3다.
   - 지적은 먼저 검증하고, 커밋 하나에 지적 하나씩 고친다.
 - **변경:** `scripts/review.sh`의 base 기본값을 `origin/main`으로 바꾼다.
-- **게시 (계획 08):** `scripts/post-review.sh`와 `make review-post PR=<번호>`를 만든다.
+- **게시 (계획 09):** `scripts/post-review.sh`와 `make review-post PR=<번호>`를 만든다.
   - `.review-out/`의 diff 리포트와 plan 리포트를 회차·리뷰어마다 PR 코멘트 하나로 올린다. 코멘트 머리에는 리뷰 도구와 모델, base와 head SHA, 회차를 적는다.
 - **지적 기록:** "Review record" 코멘트 하나에 지적 표를 두고, 머신 계정이 상태가 바뀔 때마다 갱신한다.
   - 표의 열: ID(`R1-F3`), 등급, 위치, 요약, 상태
   - 상태: `open`, `fixed <sha>`, `rejected <근거>`, `deferred <사람이 적은 이유>` 중 하나
 - **P0/P1 차단:** AI 리뷰는 일반 코멘트로 올라가서 "리뷰 스레드 해결" 규칙의 대상이 아니다. 그래서 사람이 승인하기 전에 Review record를 확인하는 방식으로 막는다. 줄 단위 리뷰 스레드(사람의 지적)는 ruleset이 막는다.
-- **임시 절차 (계획 07 병합부터 08 병합까지):** 작성 에이전트가 `.review-out/` 리포트를 `gh pr comment --body-file`로 직접 게시한다.
-- **`docs/reviews/`:** 기존 기록은 이력으로 보존하고 새 기록은 쓰지 않는다. README에 그렇게 적는다(계획 08).
+- **임시 절차 (계획 08 병합부터 09 병합까지):** 작성 에이전트가 `.review-out/` 리포트를 `gh pr comment --body-file`로 직접 게시한다.
+- **`docs/reviews/`:** 기존 기록은 이력으로 보존하고 새 기록은 쓰지 않는다. README에 그렇게 적는다(계획 09).
 
 ## 9. 승인, 병합, 정리
 
@@ -187,11 +187,11 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
 | 0 | 에이전트, 사람 | 이 스펙과 근거 조사를 담은 `work/workflow-alignment`를 기존 정책(로컬 교차 리뷰, 사람의 `--no-ff`)으로 병합한다 |
 | 1 | 사람 | 머신 계정을 만들고 이 저장소에 Write 협업자로 초대한다. classic PAT를 발급해 3절대로 등록한다 |
 | 2 | 사람 | 공개 전 점검(11절) 뒤 main 체크아웃에서 `git remote add origin https://github.com/yanghs6/basic-memory-tailnet.git`, `git fetch origin`, `git merge --allow-unrelated-histories origin/main`, `git push -u origin main`을 실행한다. force push를 쓰지 않으므로 원격의 `LICENSE` 커밋이 보존된다 |
-| 3 | 에이전트 | 계획 07을 GitHub의 첫 PR로 진행한다. 이때 ruleset은 아직 적용하지 않는다 |
-| 4 | 사람 | 계획 07을 병합한 뒤 7절의 저장소 설정과 ruleset을 적용한다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 한다. 그 전에 걸면 어떤 PR도 병합할 수 없다 |
-| 5 | 에이전트 | 계획 08을 새 흐름으로 진행한다 |
+| 3 | 에이전트 | 계획 08을 GitHub의 첫 PR로 진행한다. 이때 ruleset은 아직 적용하지 않는다 |
+| 4 | 사람 | 계획 08을 병합한 뒤 7절의 저장소 설정과 ruleset을 적용한다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 한다. 그 전에 걸면 어떤 PR도 병합할 수 없다 |
+| 5 | 에이전트 | 계획 09를 새 흐름으로 진행한다 |
 
-계획 07은 `plan/06-test-pruning`이 병합된 뒤에 시작한다. 계획 06이 `tests/`를 정리하는 중이어서 테스트 파일이 충돌하기 때문이다.
+계획 08은 `plan/06-test-pruning`이 병합된 뒤에 시작한다. 계획 06이 `tests/`를 정리하는 중이어서 테스트 파일이 충돌하기 때문이다.
 
 ## 11. 진행 중인 브랜치와 공개 전 점검
 
@@ -206,12 +206,12 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
       3. IP를 자리표시자(`<agent-hub tailnet IP>`)로 바꾸고 커밋 하나로 만든다. 트레일러는 `Assisted-by`(참여한 도구 전부), `Plan: 05`, `Task: none`이다.
       4. 위의 점검 명령으로 그 브랜치를 다시 검사한 뒤 push하고 PR을 연다.
     - PR 본문에 원본 브랜치 이름과 squash로 옮겼다는 사실을 적는다.
-- **앞으로의 기록 규칙:** Progress log, 런북, 리뷰 기록에는 VM의 외부 IP와 Tailscale IP를 적지 않는다. 호스트 이름(`agent-hub`)이나 자리표시자를 쓴다. 명령 출력을 옮길 때도 IP를 가린다. 계획 07에서 `AGENTS.md`의 Safety에 추가한다.
+- **앞으로의 기록 규칙:** Progress log, 런북, 리뷰 기록에는 VM의 외부 IP와 Tailscale IP를 적지 않는다. 호스트 이름(`agent-hub`)이나 자리표시자를 쓴다. 명령 출력을 옮길 때도 IP를 가린다. 계획 08에서 `AGENTS.md`의 Safety에 추가한다.
 - **공개 전 점검:** 처음 공개되는 이력(2단계의 `main`, 진행 중인 브랜치의 첫 push)마다 다음을 찾는다.
   - 비밀값: `tskey-` 실제 값, 개인키
   - 인프라 식별자: VM 외부 IP, GCP 프로젝트 ID, tailnet 이름, `100.x` Tailscale IP
   - **Assumption:** 계획 05의 Progress log에는 VM 외부 IP가 기록돼 있을 수 있다.
-- 2단계는 계획 07의 런북보다 먼저 오므로, 점검 명령을 여기에 둔다. 계획 07이 이 명령을 런북으로 옮긴다. `<ref>`는 공개할 브랜치다. 걸린 줄은 사람이 하나씩 보고 테스트용 자리표시자인지 확인한다.
+- 2단계는 계획 08의 런북보다 먼저 오므로, 점검 명령을 여기에 둔다. 계획 08이 이 명령을 런북으로 옮긴다. `<ref>`는 공개할 브랜치다. 걸린 줄은 사람이 하나씩 보고 테스트용 자리표시자인지 확인한다.
 
 ```
 git log -p <ref> | grep -nE 'tskey-[A-Za-z0-9]{10,}|PRIVATE KEY|([0-9]{1,3}\.){3}[0-9]{1,3}|[a-z0-9-]+\.ts\.net|@[A-Za-z0-9.-]+\.[a-z]{2,}'
@@ -227,10 +227,12 @@ git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 
 ## 12. 계획 분할
 
+계획 번호 06은 `plan/06-test-pruning`이 쓰고 있다. 07은 `plan/05-vm-rollout`에 있는 backlog 계획 `2026-10-13-07-ipv6-egress.md`가 쓰고 있다. 그래서 이 스펙의 계획은 08과 09다.
+
 | 계획 | 범위 |
 |---|---|
-| 07 GitHub 전환 | `.github/workflows/ci.yml`·`pr-rules.yml`, `scripts/check-pr.sh`와 테스트, `check-git.sh`·`review.sh`의 base 변경, `.github/pull_request_template.md`, `.github/rulesets/main.json`, `docs/runbooks/github.md`(부트스트랩, 공개 전 점검, 설정 적용, 토큰 교체), `docs/runbooks/accounts.md`의 머신 계정 항목, `AGENTS.md`의 `## Git`과 Safety(VM IP 기록 금지), git-workflow 스킬, 기존 정책 스펙의 상태 표시 |
-| 08 리뷰 게시 | `scripts/post-review.sh`와 테스트, `make review-post`, git-workflow 스킬의 리뷰 절, branch-review 스킬, `docs/reviews/README.md`, `AGENTS.md`의 `## Code Review Rules` 3·6번("CI 통과"로 바꿈) |
+| 08 GitHub 전환 | `.github/workflows/ci.yml`·`pr-rules.yml`, `scripts/check-pr.sh`와 테스트, `check-git.sh`·`review.sh`의 base 변경, `.github/pull_request_template.md`, `.github/rulesets/main.json`, `docs/runbooks/github.md`(부트스트랩, 공개 전 점검, 설정 적용, 토큰 교체), `docs/runbooks/accounts.md`의 머신 계정 항목, `AGENTS.md`의 `## Git`과 Safety(VM IP 기록 금지), git-workflow 스킬, 기존 정책 스펙의 상태 표시 |
+| 09 리뷰 게시 | `scripts/post-review.sh`와 테스트, `make review-post`, git-workflow 스킬의 리뷰 절, branch-review 스킬, `docs/reviews/README.md`, `AGENTS.md`의 `## Code Review Rules` 3·6번("CI 통과"로 바꿈) |
 
 ## 13. 위험과 대응
 
@@ -239,7 +241,7 @@ git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 | 머신 계정 토큰 유출 | 범위를 `public_repo`·`workflow`로 줄이고 90일 만료로 둔다. 키체인에 보관한다. 유출되면 즉시 폐기하고 런북 절차로 재발급한다 |
 | 머신 계정이 승인 뒤에 병합 | `AGENTS.md` 규칙으로 막는다. 승인 없이는 병합이 불가능하다. PR의 `merged_by`로 사후 확인한다 |
 | 에이전트가 CI를 약하게 수정 | 워크플로 변경도 PR과 사람의 승인을 거친다. PR 워크플로는 읽기 전용이고 비밀값이 없다 |
-| 필수 체크가 생기기 전에 ruleset을 켬 | 10절 순서대로, 계획 07 병합 뒤에 적용한다 |
+| 필수 체크가 생기기 전에 ruleset을 켬 | 10절 순서대로, 계획 08 병합 뒤에 적용한다 |
 | 민감한 값 공개 | 11절의 공개 전 점검과 push protection으로 막는다 |
 | 외부 PR·스팸 | 승인 1개가 필수다. 외부 협업자의 워크플로는 실행 전에 승인을 받는다 |
 | 샌드박스가 네트워크를 막는 도구(Codex CLI 등) | push와 `gh` 호출을 사람에게 부탁한다. 지금 `make review`의 규칙과 같다 |
@@ -249,6 +251,6 @@ git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 
 1. (결정됨, 2026-10-13) 기존 커밋의 작성자 이메일(`yanghs632@gmail.com`)은 그대로 공개한다.
 2. (결정됨, 2026-10-13) VM IP는 감춘다. VM 외부 IP는 어떤 커밋에도 없다. Tailscale IP가 있는 `plan/05-vm-rollout`은 11절의 예외 절차로 공개한다.
-3. GitHub squash 커밋의 작성자가 PR 작성자(머신 계정)인지, 그리고 커밋 작성자(사용자)를 `Co-authored-by`로 자동으로 붙이는지 확인해야 한다. 계획 07의 첫 PR로 확인한 뒤 `check-pr.sh`의 허용 범위를 정한다.
-4. 공개 저장소에서 GitHub Free로 저장소 단위 secret scanning과 push protection을 켤 수 있는지 계획 07에서 확인한다.
+3. GitHub squash 커밋의 작성자가 PR 작성자(머신 계정)인지, 그리고 커밋 작성자(사용자)를 `Co-authored-by`로 자동으로 붙이는지 확인해야 한다. 계획 08의 첫 PR로 확인한 뒤 `check-pr.sh`의 허용 범위를 정한다.
+4. 공개 저장소에서 GitHub Free로 저장소 단위 secret scanning과 push protection을 켤 수 있는지 계획 08에서 확인한다.
 5. 머신 계정 이름(예: `yanghs6-bot`)과 연락용 이메일
