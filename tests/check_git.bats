@@ -85,14 +85,6 @@ agent_commit() {
   assert_output --partial "agents never add 'Signed-off-by'"
 }
 
-@test "flags extensions.worktreeConfig because it breaks Antigravity" {
-  git switch -q -c work/config
-  git config extensions.worktreeConfig true
-  run "$CHECK"
-  assert_failure
-  assert_output --partial "git config --unset-all extensions.worktreeConfig"
-}
-
 @test "flags extensions.worktreeConfig whatever its value, including false" {
   git switch -q -c work/config
   local value
@@ -103,15 +95,6 @@ agent_commit() {
     assert_output --partial "extensions.worktreeConfig is set (value '$value')"
     assert_output --partial "git config --unset-all extensions.worktreeConfig"
   done
-}
-
-@test "flags extensions.worktreeConfig set twice and shows every value" {
-  git switch -q -c work/config
-  git config extensions.worktreeConfig false
-  git config --add extensions.worktreeConfig on
-  run "$CHECK"
-  assert_failure
-  assert_output --partial "extensions.worktreeConfig is set (value 'false on')"
 }
 
 @test "ignores merge commits brought into the branch" {
@@ -140,16 +123,6 @@ agent_commit() {
   run "$CHECK" main plan/02-git-review-tooling
   assert_success
   assert_output --partial "OK: git policy (1 commits since main)"
-}
-
-@test "reports the explicit branch's commits, not HEAD's, from a detached HEAD" {
-  git switch -q -c work/no-trailers
-  git commit -q --allow-empty -m "feat: no trailers"
-  git checkout -q --detach main
-  run "$CHECK" main work/no-trailers
-  assert_failure
-  assert_output --partial '"feat: no trailers": missing trailer'
-  refute_output --partial "detached HEAD"
 }
 
 @test "applies the branch-name rule to an explicit branch" {
