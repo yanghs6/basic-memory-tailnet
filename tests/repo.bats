@@ -100,6 +100,29 @@ require_shell_files() {
   [[ "$healthcheck" == *"8000"* ]] || fail "healthcheck must probe port 8000"
 }
 
+# compose_start_period_seconds: print the healthcheck start_period of compose.yaml in whole seconds (empty if absent).
+compose_start_period_seconds() {
+  sed -nE 's/^ +start_period: ([0-9]+)s$/\1/p' "$REPO_DIR/compose.yaml"
+}
+
+@test "compose healthcheck start_period covers the measured e2-micro cold start" {
+  # Measured on the VM (plan 05 Progress log, 2026-10-13): healthy 161s after the first deploy, 192s after a reboot.
+  local min_start_period_seconds=240 period
+  period="$(compose_start_period_seconds)"
+  [[ -n "$period" ]] || fail "compose.yaml has no healthcheck start_period in whole seconds (e.g. 300s)"
+  ((period >= min_start_period_seconds)) \
+    || fail "start_period ${period}s is below ${min_start_period_seconds}s: on the VM the container turns unhealthy during a cold start and 'docker compose up --wait' fails at once"
+}
+
+@test "deploy and restore wait longer than the healthcheck start_period" {
+  local period timeout
+  period="$(compose_start_period_seconds)"
+  timeout="$(sed -nE 's/^readonly HEALTH_TIMEOUT_SECONDS=([0-9]+)$/\1/p' "$REPO_DIR/scripts/lib/common.sh")"
+  [[ -n "$period" && -n "$timeout" ]] || fail "could not read start_period ('$period') or HEALTH_TIMEOUT_SECONDS ('$timeout')"
+  ((timeout > period)) \
+    || fail "HEALTH_TIMEOUT_SECONDS=$timeout must exceed start_period ${period}s, or --wait gives up inside the grace period"
+}
+
 @test "compose restarts the container after reboots" {
   run grep -E '^ +restart: unless-stopped$' "$REPO_DIR/compose.yaml"
   assert_success
