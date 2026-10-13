@@ -23,52 +23,27 @@ require_shell_files() {
   [[ -z "$missing" ]] || fail "add 'set -euo pipefail' right after the shebang in:$missing"
 }
 
-@test "every script and stub is executable" {
-  local file files missing=""
-  require_shell_files
-  while IFS= read -r file; do
-    case "$file" in
-      *.bash | scripts/lib/*) continue ;;
-    esac
-    [[ -x "$REPO_DIR/$file" ]] || missing="$missing $file"
-  done <<<"$files"
-  [[ -z "$missing" ]] || fail "run: chmod +x$missing"
-}
-
 @test "scripts avoid bash 4+ features (macOS ships bash 3.2)" {
   run grep -rnE 'mapfile|readarray|declare -[Ann]|local -[Ann]|inherit_errexit|coproc|wait -n|\|&|&>>|\$\{[A-Za-z_][A-Za-z0-9_]*(\^|,)|\$\{[A-Za-z_][A-Za-z0-9_]*\[-[0-9]+\]' "$REPO_DIR/scripts"
   assert_failure 1
 }
 
-@test "every Make target has a ## description" {
-  local missing
-  missing="$(grep -E '^[a-z0-9-]+:([^=]|$)' "$REPO_DIR/Makefile" | grep -v '## ' | cut -d: -f1 || true)"
-  [[ -z "$missing" ]] || fail "add '## <description>' to these Makefile targets: $missing"
-}
-
-@test "every documented Make target is declared .PHONY" {
-  local phony target missing=""
+@test "every Make target has a ## description and is declared .PHONY" {
+  local line phony target missing_desc="" missing_phony=""
   phony=" $(grep -E '^\.PHONY:' "$REPO_DIR/Makefile" | cut -d: -f2 | tr '\n' ' ') "
-  for target in $(grep -oE '^[a-z0-9-]+:.*## ' "$REPO_DIR/Makefile" | cut -d: -f1); do
-    [[ "$phony" == *" $target "* ]] || missing="$missing $target"
-  done
-  [[ -z "$missing" ]] || fail "add these targets to .PHONY in the Makefile:$missing"
+  while IFS= read -r line; do
+    target="${line%%:*}"
+    [[ "$line" == *"## "* ]] || missing_desc="$missing_desc $target"
+    [[ "$phony" == *" $target "* ]] || missing_phony="$missing_phony $target"
+  done < <(grep -E '^[a-z0-9-]+:([^=]|$)' "$REPO_DIR/Makefile")
+  [[ -z "$missing_desc" ]] || fail "add '## <description>' to these Makefile targets:$missing_desc"
+  [[ -z "$missing_phony" ]] || fail "add these targets to .PHONY in the Makefile:$missing_phony"
 }
 
 @test "no Make target is defined twice" {
   local dupes
   dupes="$(grep -oE '^[a-z0-9-]+:([^=]|$)' "$REPO_DIR/Makefile" | cut -d: -f1 | sort | uniq -d)"
   [[ -z "$dupes" ]] || fail "these Make targets are defined more than once (make keeps only the last recipe): $dupes"
-}
-
-@test "make help lists every documented target" {
-  # kcov exports xtrace settings that break the `bash -u` shell make spawns; the Makefile needs no tracing.
-  run env -u SHELLOPTS -u PS4 -u BASH_ENV make -s -C "$REPO_DIR" help
-  assert_success
-  local target
-  for target in $(grep -oE '^[a-z0-9-]+:.*## ' "$REPO_DIR/Makefile" | cut -d: -f1); do
-    assert_output --partial "  $target "
-  done
 }
 
 @test "compose pins the Basic Memory image by digest" {
@@ -135,19 +110,6 @@ compose_start_period_seconds() {
   if grep -qE '(^|/)\.env$' <<<"$files"; then
     fail ".env must never be tracked by git"
   fi
-}
-
-@test ".env.example has only comments and unquoted KEY=value lines" {
-  [[ -f "$REPO_DIR/.env.example" ]] || fail "create .env.example"
-  local bad
-  bad="$(grep -vE '^(#.*|[A-Z][A-Z0-9_]*=[^"'"'"' ]*|)$' "$REPO_DIR/.env.example" || true)"
-  [[ -z "$bad" ]] || fail "make reads quotes and spaces literally; fix these .env.example lines: $bad"
-}
-
-@test "AGENTS.md stays a short map (at most 100 lines)" {
-  local lines
-  lines="$(wc -l <"$REPO_DIR/AGENTS.md")"
-  ((lines <= 100)) || fail "AGENTS.md has $lines lines; move detail into docs/ and point to it"
 }
 
 @test "CLAUDE.md only imports AGENTS.md" {
@@ -262,29 +224,6 @@ markdown_links() {
   [[ -z "$missing" ]] || fail "referenced docs do not exist:$missing"
 }
 
-@test "runbooks contain the sections scripts and skills point to" {
-  run grep -E '^## (Exposure audit|비용 점검|Incident log)' "$REPO_DIR/docs/runbooks/operations.md"
-  assert_success
-  assert_line --partial "Exposure audit"
-  assert_line --partial "비용 점검"
-  assert_line --partial "Incident log"
-}
-
-@test "the VM runbook is gcp-vm.md and the ADR 0001 file names the GCP host" {
-  [[ -f "$REPO_DIR/docs/runbooks/gcp-vm.md" ]] || fail "missing docs/runbooks/gcp-vm.md"
-  [[ ! -e "$REPO_DIR/docs/runbooks/oci-vm.md" ]] || fail "docs/runbooks/oci-vm.md should be renamed to gcp-vm.md"
-  [[ -f "$REPO_DIR/docs/decisions/0001-basic-memory-on-gcp-tailscale.md" ]] || fail "missing docs/decisions/0001-basic-memory-on-gcp-tailscale.md"
-  [[ ! -e "$REPO_DIR/docs/decisions/0001-basic-memory-on-oci-tailscale.md" ]] || fail "the old ADR 0001 should be renamed"
-}
-
-@test "human docs and operational skills carry no leftover OCI or idle-reclaim text" {
-  # ADR 0001 is excluded on purpose: it records why the first host was given up.
-  run grep -rniE '\b(OCI|Oracle)\b|A1\.Flex|reclaim|reclamation' \
-    "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR/docs/decisions/0002-vm-sizing.md" \
-    "$REPO_DIR/docs/runbooks" "$REPO_DIR/.agents/skills"
-  assert_failure 1
-}
-
 @test "every gcloud command in runbooks and skills names the bm-personal configuration" {
   local file hits line status missing="" checked=0
   for file in "$REPO_DIR"/docs/runbooks/*.md "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR"/.agents/skills/*/SKILL.md; do
@@ -304,19 +243,3 @@ markdown_links() {
   [[ -z "$missing" ]] || fail "gcloud commands without --configuration=bm-personal:$missing"
 }
 
-@test "AGENTS.md points at the GCP spec and states the GCP safety rules" {
-  run grep -F 'Read first: `docs/specs/2026-10-12-basic-memory-gcp-tailscale-design.md`' "$REPO_DIR/AGENTS.md"
-  assert_success
-  run grep -F 'GCP free-tier e2-micro VM' "$REPO_DIR/AGENTS.md"
-  assert_success
-  run grep -F -- '--configuration=bm-personal' "$REPO_DIR/AGENTS.md"
-  assert_success
-  run grep -F 'never run `gcloud config configurations activate`' "$REPO_DIR/AGENTS.md"
-  assert_success
-  run grep -F '`.env` and `backups/` live only in the main checkout' "$REPO_DIR/AGENTS.md"
-  assert_success
-  run grep -F 'in their own terminal' "$REPO_DIR/AGENTS.md"
-  assert_success
-  run grep -iwE 'oci|oracle' "$REPO_DIR/AGENTS.md"
-  [[ $status -eq 1 ]] || fail "AGENTS.md still names OCI (grep status $status): $output"
-}

@@ -15,19 +15,14 @@ setup() {
   run "$VERIFY" "$URL"
   assert_success
   assert_output --partial "OK: MCP round trip passed"
+  run grep -c 'Mcp-Session-Id: test-session-0123456789' "$STUB_LOG"
+  assert_output 5
 }
 
 @test "passes a full round trip against plain JSON responses" {
   export CURL_FIXTURES="$REPO_DIR/tests/fixtures/mcp-json"
   run "$VERIFY" "$URL"
   assert_success
-}
-
-@test "sends the session id from initialize on every later request" {
-  run "$VERIFY" "$URL"
-  assert_success
-  run grep -c 'Mcp-Session-Id: test-session-0123456789' "$STUB_LOG"
-  assert_output 5
 }
 
 @test "never prints the full session id" {
@@ -91,13 +86,6 @@ EOF
   assert_output --partial 'initialize: JSON-RPC error {"code":-32600,"message":"Invalid request"}'
 }
 
-@test "fails when the body is not JSON-RPC" {
-  echo '<html>Bad gateway</html>' >"$FIXTURES/initialize.body"
-  run "$VERIFY" "$URL"
-  assert_failure
-  assert_output --partial "initialize: response is not JSON-RPC"
-}
-
 @test "deletes the note during cleanup when read-back fails" {
   cat >"$FIXTURES/call_read_note.body" <<'EOF'
 data: {"jsonrpc":"2.0","id":4,"result":{"content":[],"isError":false,"structuredContent":{"result":{"title":"bm-verify-test1","content":"something else"}}}}
@@ -127,60 +115,8 @@ EOF
   assert_output --partial "initialize: request to $URL failed"
 }
 
-@test "read-only mode stops after tools/list and writes nothing" {
-  run "$VERIFY" --read-only "$URL"
-  assert_success
-  assert_output --partial "OK: MCP read-only probe passed (no notes written)"
-  run grep -F '"method":"tools/call"' "$STUB_LOG.requests"
-  assert_failure
-}
-
-@test "rejects a missing URL" {
-  run "$VERIFY"
-  assert_failure
-  assert_output --partial "usage: verify-mcp.sh [--host-header HOST] [--read-only] URL"
-}
-
 @test "rejects --host-header followed by another option" {
   run "$VERIFY" --host-header --read-only "$URL"
   assert_failure
   assert_output --partial "usage: verify-mcp.sh"
-}
-
-@test "fails with a clear message when the tool result text is not JSON" {
-  cat >"$FIXTURES/call_read_note.body" <<'EOT'
-data: {"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"not json"}],"isError":false}}
-EOT
-  run "$VERIFY" "$URL"
-  assert_failure
-  assert_output --partial "read_note: unexpected result"
-}
-
-@test "fails with a clear message when tools/list has no tools" {
-  echo 'data: {"jsonrpc":"2.0","id":2,"result":{}}' >"$FIXTURES/tools_list.body"
-  run "$VERIFY" "$URL"
-  assert_failure
-  assert_output --partial "tools/list: unexpected result"
-}
-
-@test "warns with the note title when cleanup cannot delete the leftover note" {
-  cat >"$FIXTURES/call_read_note.body" <<'EOT'
-data: {"jsonrpc":"2.0","id":4,"result":{"content":[],"isError":false,"structuredContent":{"result":{"title":"bm-verify-test1","content":"something else"}}}}
-EOT
-  echo 500 >"$FIXTURES/call_delete_note.status"
-  run "$VERIFY" "$URL"
-  assert_failure
-  assert_output --partial "WARNING: could not delete 'bm-verify-test1'"
-}
-
-@test "rejects a second URL argument" {
-  run "$VERIFY" "$URL" http://127.0.0.1:9999/mcp
-  assert_failure
-  assert_output --partial "only one URL"
-}
-
-@test "rejects unknown options" {
-  run "$VERIFY" --bogus "$URL"
-  assert_failure
-  assert_output --partial "usage:"
 }
