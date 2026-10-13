@@ -36,6 +36,8 @@
 - **Verified ([GitHub 약관 B(3)](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service)):** 개인 계정 외에 무료 머신 계정을 하나 둘 수 있다. 사람이 직접 만들고 약관에 동의해야 하며, 자동화 작업에만 쓴다. 그 계정의 행동은 소유자가 책임진다.
 - **Reported (문서 검색 요약, [About rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets)):** ruleset은 GitHub Free에서도 공개 저장소라면 쓸 수 있다.
 - **Verified ([Managing personal access tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)):** "Only personal access tokens (classic) have write access for public repositories that are not owned by you." fine-grained 토큰은 협업자로 참여한 저장소에 기여할 수 없는 제약이 있다.
+- **Verified ([Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request)):** "By default, a workflow only runs when a `pull_request` event's activity type is `opened`, `synchronize`, or `reopened`." `edited`는 따로 지정해야 한다.
+- **Assumption:** `edited`는 PR 제목, 본문, base 브랜치가 바뀔 때 발생한다. 위 문서와 webhook 문서는 그 의미를 적지 않았으므로, [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)의 첫 PR에서 본문을 고쳐 `pr-rules`가 다시 도는지 확인한다.
 - **Verified ([About push protection](https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection)):** 계정 단위 push protection은 기본으로 켜져 있고, 공개 저장소로 비밀값을 push하는 것을 막는다. 저장소 단위 push protection은 기본으로 꺼져 있고 GitHub Secret Protection이 필요하다.
 - **Verified (Command: `git log main -p`를 grep으로 검사, 2026-10-13):**
   - `main` 이력 123커밋의 작성자는 모두 `yanghs6 <yanghs632@gmail.com>`이다.
@@ -56,7 +58,7 @@
 | 머신 계정 (이름은 Open question 5) | 모든 에이전트가 함께 쓴다. 브랜치 push, 초안 PR 생성, 리뷰 결과 코멘트 | 이 저장소의 Write 협업자 |
 
 - 어느 도구와 모델이 작업했는지는 계정이 아니라 커밋과 PR의 `Assisted-by` 트레일러로 구분한다.
-- 머신 계정의 토큰은 classic PAT이고, 범위는 `public_repo`와 `workflow`, 만료는 90일이다. `workflow`는 `.github/workflows/`를 바꾸는 push에 필요하다. 머신 계정이 협업자로 들어간 저장소가 이것 하나뿐이라, 실제로 쓸 수 있는 범위도 이 저장소로 한정된다.
+- 머신 계정의 토큰은 classic PAT이고, 범위는 `public_repo`와 `workflow`, 만료는 90일이다. `workflow`는 `.github/workflows/`를 바꾸는 push에 필요하다. classic PAT 자체는 저장소 단위로 제한되지 않는다. 실제 범위는 머신 계정이 가진 권한으로 정해진다. 그래서 머신 계정에는 이 저장소 말고 다른 저장소 권한을 추가하지 않고, 머신 계정으로 저장소를 만들지도 않는다.
 - 토큰은 사용자가 자기 터미널에서 대화형 `gh auth login`의 토큰 붙여넣기 프롬프트로 등록하고(키체인 보관), `gh auth setup-git`으로 git push 인증을 연결한다. 토큰을 채팅, 파일, 명령 인자, 파이프에 넣지 않는다. Tailscale 인증 키와 같은 규칙이다.
 - 커밋 작성자(`git config user.*`)는 지금처럼 사용자다. push하는 계정과 PR 작성자만 머신 계정이다.
 - 사용자가 관리자 권한으로 `gh`를 써야 하면(ruleset 적용 등) 머신 계정과 섞이지 않도록 별도 설정 디렉터리를 쓴다(`GH_CONFIG_DIR`).
@@ -94,12 +96,15 @@ Plan: k93wjt1a
 
 ## 6. CI
 
-`.github/workflows/ci.yml`은 `main`을 대상으로 하는 `pull_request`에서 실행한다.
+워크플로는 둘로 나눈다. 둘 다 `main`을 대상으로 하는 `pull_request`에서 실행한다.
 
-| 잡 | 내용 |
-|---|---|
-| `check` | `make check`: 린트, bats, 커버리지 80% 이상. 지금의 Docker 테스트 이미지를 쓴다. |
-| `pr-rules` | `make check-git`(base `origin/main`, PR head를 로컬 브랜치로 받음)과 `scripts/check-pr.sh` |
+| 워크플로 | 이벤트 타입 | 잡 | 내용 |
+|---|---|---|---|
+| `.github/workflows/ci.yml` | 기본값(`opened`, `synchronize`, `reopened`) | `check` | `make check`: 린트, bats, 커버리지 80% 이상. 지금의 Docker 테스트 이미지를 쓴다. |
+| `.github/workflows/pr-rules.yml` | `types: [opened, synchronize, reopened, edited]` | `pr-rules` | `make check-git`(base `origin/main`, PR head를 로컬 브랜치로 받음)과 `scripts/check-pr.sh` |
+
+- `pr-rules`에 `edited`를 넣는 이유는 PR 제목과 본문이 squash 커밋 메시지가 되기 때문이다. 기본 이벤트 타입만 쓰면 본문을 고쳐도 검사가 다시 돌지 않는다. 그러면 고친 뒤에도 실패가 남거나, 통과한 뒤에 트레일러를 지워도 성공 결과가 남는다.
+- 둘로 나누는 이유는 본문만 고쳤을 때 무거운 `make check`를 다시 돌리지 않기 위해서다. 한 워크플로 안에서 `if:`로 잡을 건너뛰는 방식은 쓰지 않는다. 같은 head의 이전 실패를 가릴 수 있다.
 
 - `scripts/check-pr.sh`(새 파일)는 다음을 검사한다.
   - PR 제목이 5절의 형식을 따르는가.
@@ -156,13 +161,20 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
    - CI가 통과했다.
    - Review record에 열린 P0/P1이 없다.
    - 미룬 P2에는 사람이 적은 이유가 있다.
-2. **사람:** GitHub에서 Approve한 뒤 Squash and merge를 누른다. 에이전트는 병합하지 않는다. ruleset은 승인만 강제하므로, 이 규칙은 `AGENTS.md`로 지킨다.
-3. **폐지하는 것:** 병합 트레일러 `Reviewed-by`, `Review-Agent`, `Review-Record`, `Reviewed-Head`와 `.review-out/merge-*.txt`를 쓰지 않는다. 같은 정보는 GitHub 승인 기록, Review record 코멘트, PR head SHA가 담는다.
-4. **정리:** `gh pr view <번호> --json state`가 `MERGED`이면 다음을 한다.
+2. **브랜치 갱신:** 다른 PR이 먼저 병합돼 PR 브랜치가 최신 `main`을 포함하지 않으면, strict 필수 체크 때문에 병합이 막힌다. 이때 작성 에이전트가 다음 순서로 갱신한다. 이력 재작성 금지를 지키기 위해 rebase나 force push는 쓰지 않는다.
+   1. `git fetch origin` 후 `git merge origin/main`으로 PR 브랜치에 main을 합친다. 충돌이 나면 해결한다.
+   2. `make check`를 통과시키고 push한다. 새 push로 기존 승인은 무효가 되고 CI가 다시 돈다.
+   3. 충돌 해결로 코드가 바뀌었으면 PR 코멘트에 그 내용을 적는다. 다른 벤더 리뷰를 이미 마쳤다면, 변경분(`<직전 head>..HEAD`)만 리뷰를 다시 받는다. 충돌 없이 합쳐졌으면 CI와 사람의 재승인으로 충분하다.
+   4. 사람이 다시 승인한다. 사람이 GitHub의 "Update branch"(merge 방식)를 누르는 것도 같은 갱신이다.
+
+   병합 커밋에는 트레일러가 없지만, `check-git.sh`는 `--no-merges`로 병합 커밋을 검사에서 뺀다.
+3. **사람:** GitHub에서 Approve한 뒤 Squash and merge를 누른다. 에이전트는 병합하지 않는다. ruleset은 승인만 강제하므로, 이 규칙은 `AGENTS.md`로 지킨다.
+4. **폐지하는 것:** 병합 트레일러 `Reviewed-by`, `Review-Agent`, `Review-Record`, `Reviewed-Head`와 `.review-out/merge-*.txt`를 쓰지 않는다. 같은 정보는 GitHub 승인 기록, Review record 코멘트, PR head SHA가 담는다.
+5. **정리:** `gh pr view <번호> --json state`가 `MERGED`이면 다음을 한다.
    1. worktree의 `backups/`를 확인한다.
    2. `git worktree remove`로 worktree를 지운다.
    3. `git branch -D <branch>`로 로컬 브랜치를 지운다. squash로 병합한 브랜치는 `-d`가 거부한다.
-5. **계획 파일 이동:** 기존 규칙과 같다. `completed/`로 옮기는 커밋은 병합 전에 PR 안에서 하고, `active/`로 옮기는 커밋은 다음 계획의 첫 커밋으로 한다.
+6. **계획 파일 이동:** 기존 규칙과 같다. `completed/`로 옮기는 커밋은 병합 전에 PR 안에서 하고, `active/`로 옮기는 커밋은 다음 계획의 첫 커밋으로 한다.
 
 ## 10. 이행 순서
 
@@ -193,14 +205,18 @@ git log -p <ref> | grep -nE 'tskey-[A-Za-z0-9]{10,}|PRIVATE KEY|([0-9]{1,3}\.){3
 git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 ```
 
-- 두 번째 명령은 사용자가 자기 터미널에서 실제 값을 넣어 실행한다. 0이 아니면 공개 전에 해당 줄을 자리표시자로 바꾼다(Open question 2).
+- 두 번째 명령은 사용자가 자기 터미널에서 실제 값을 넣어 실행한다.
+- **걸리면 공개(push)를 멈춘다.** 현재 파일만 자리표시자로 바꿔도 과거 커밋에는 값이 남고, push하면 그 커밋이 함께 공개된다. 사용자가 다음 둘 중 하나를 정한 뒤에만 진행한다.
+  - (a) 그 값의 공개를 허용한다.
+  - (b) 공개 전 이력 정리를 명시적으로 승인한다. 이력 재작성은 정책상 금지이므로 사용자의 승인이 있어야 한다. 정리한 뒤에는 공개할 이력 전체를 위 명령으로 다시 검사한다.
+- 걸린 값이 실제 자격증명(토큰, 키)이면 공개 여부와 관계없이 폐기하고 교체한다. 이력 정리는 이미 공개된 사본(fork, 캐시)까지 지우지 못한다([GitHub 안내](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)).
 - 실제 값을 테스트나 스크립트에 넣어 검사하면 그 값이 공개된다. 그래서 자동 검사는 GitHub secret scanning과 push protection에 맡긴다.
 
 ## 12. 계획 분할
 
 | 계획 | 범위 |
 |---|---|
-| 07 GitHub 전환 | `.github/workflows/ci.yml`, `scripts/check-pr.sh`와 테스트, `check-git.sh`·`review.sh`의 base 변경, `.github/pull_request_template.md`, `.github/rulesets/main.json`, `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md`(부트스트랩, 공개 전 점검, 설정 적용, 토큰 교체), `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`의 머신 계정 항목, `AGENTS.md`의 `## Git`, git-workflow 스킬, 기존 정책 스펙의 상태 표시 |
+| 07 GitHub 전환 | `.github/workflows/ci.yml`·`pr-rules.yml`, `scripts/check-pr.sh`와 테스트, `check-git.sh`·`review.sh`의 base 변경, `.github/pull_request_template.md`, `.github/rulesets/main.json`, `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md`(부트스트랩, 공개 전 점검, 설정 적용, 토큰 교체), `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`의 머신 계정 항목, `AGENTS.md`의 `## Git`, git-workflow 스킬, 기존 정책 스펙의 상태 표시 |
 | 08 리뷰 게시 | `scripts/post-review.sh`와 테스트, `make review-post`, git-workflow 스킬의 리뷰 절, branch-review 스킬, `docs/reviews/README.md`, `AGENTS.md`의 `## Code Review Rules` 3·6번("CI 통과"로 바꿈) |
 
 ## 13. 위험과 대응
@@ -219,7 +235,7 @@ git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 ## 14. Open questions
 
 1. 기존 커밋의 작성자 이메일(`yanghs632@gmail.com`)이 공개된다. 바꾸려면 이력을 재작성해야 한다. 추천은 그대로 공개하는 것이다. 앞으로의 커밋만 GitHub noreply 주소로 바꿀 수도 있다. 10절 2단계 전에 사용자가 정한다.
-2. [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)에 기록된 VM 외부 IP 같은 인프라 식별자를 공개 전에 자리표시자로 바꿀지 사용자가 정한다.
+2. [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) 브랜치의 커밋에 VM 외부 IP 같은 인프라 식별자가 있으면, 11절에 따라 사용자가 정한다. 선택지는 공개 허용, 또는 push 전에 그 브랜치의 이력을 정리하도록 승인하는 것이다. 현재 파일만 고치는 것으로는 과거 커밋의 값을 막지 못한다.
 3. GitHub squash 커밋의 작성자가 PR 작성자(머신 계정)인지, 그리고 커밋 작성자(사용자)를 `Co-authored-by`로 자동으로 붙이는지 확인해야 한다. [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)의 첫 PR로 확인한 뒤 `check-pr.sh`의 허용 범위를 정한다.
 4. 공개 저장소에서 GitHub Free로 저장소 단위 secret scanning과 push protection을 켤 수 있는지 [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)에서 확인한다.
 5. 머신 계정 이름(예: `yanghs6-bot`)과 연락용 이메일
