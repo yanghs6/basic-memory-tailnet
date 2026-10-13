@@ -39,8 +39,8 @@
 - **Verified ([Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request)):** "By default, a workflow only runs when a `pull_request` event's activity type is `opened`, `synchronize`, or `reopened`." `edited`는 따로 지정해야 한다.
 - **Assumption:** `edited`는 PR 제목, 본문, base 브랜치가 바뀔 때 발생한다. 위 문서와 webhook 문서는 그 의미를 적지 않았으므로, 계획 08의 첫 PR에서 본문을 고쳐 `pr-rules`가 다시 도는지 확인한다.
 - **Verified ([About push protection](https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection)):** 계정 단위 push protection은 기본으로 켜져 있고, 공개 저장소로 비밀값을 push하는 것을 막는다. 저장소 단위 push protection은 기본으로 꺼져 있고 GitHub Secret Protection이 필요하다.
-- **Verified (Command: `git log main -p`를 grep으로 검사, 2026-10-13):**
-  - `main` 이력 123커밋의 작성자는 모두 `yanghs6 <yanghs632@gmail.com>`이다.
+- **Verified (Command: `git log main -p`를 grep으로 검사, 2026-10-13, `main` 5561329까지. 그 뒤 병합된 `5561329..c10fb5c`(계획 06)도 같은 결과):**
+  - `main` 이력 123커밋(5561329 기준)의 작성자는 모두 `yanghs6 <yanghs632@gmail.com>`이다.
   - `tskey-`로 시작하는 값은 모두 테스트 자리표시자다.
   - 실제 VM IP, GCP 프로젝트 ID, tailnet 이름은 없다.
 - **Verified (Command: `git log -p --branches --not main`을 grep으로 검사, 2026-10-13):**
@@ -191,7 +191,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
 | 4 | 사람 | 계획 08을 병합한 뒤 7절의 저장소 설정과 ruleset을 적용한다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 한다. 그 전에 걸면 어떤 PR도 병합할 수 없다 |
 | 5 | 에이전트 | 계획 09를 새 흐름으로 진행한다 |
 
-계획 08은 `plan/06-test-pruning`이 병합된 뒤에 시작한다. 계획 06이 `tests/`를 정리하는 중이어서 테스트 파일이 충돌하기 때문이다.
+계획 08은 `plan/06-test-pruning`이 병합된 뒤에 시작한다. 계획 06이 `tests/`를 정리하고 있어서 테스트 파일이 충돌할 수 있었기 때문이다. 계획 06은 2026-10-13에 `c10fb5c`로 병합됐으므로, 이 조건은 이미 충족됐다.
 
 ## 11. 진행 중인 브랜치와 공개 전 점검
 
