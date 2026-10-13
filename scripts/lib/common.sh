@@ -12,6 +12,8 @@ readonly COMMON_LIB_DIR
 readonly BM_REMOTE_APP_DIR="${BM_REMOTE_APP_DIR:-/opt/basic-memory}"
 readonly BM_REMOTE_DATA_ROOT="${BM_REMOTE_DATA_ROOT:-/srv/basic-memory}"
 readonly BM_CONTAINER_UID=1000
+# Path under the data root of the FastEmbed model cache: re-downloadable and full of symlinks, so backups skip it.
+readonly BM_MODEL_CACHE_REL_PATH="config/fastembed_cache"
 readonly SSH_CONNECT_TIMEOUT_SECONDS=10
 # Longer than the compose healthcheck start_period (300s) so `up --wait` can use the whole grace period.
 readonly HEALTH_TIMEOUT_SECONDS=360
@@ -67,10 +69,10 @@ vm_env() {
 }
 
 # manifest_cmd DIR -> a shell command (run it with `remote`) that prints "<sha256>  ./<path>" for every file
-# under DIR, sorted by path. The one definition backup.sh, restore.sh and the tests share, so their
+# under DIR except the model cache, sorted by path. The one definition backup.sh, restore.sh and the tests share, so their
 # manifests cannot drift apart. pipefail makes a failing find fail the command instead of printing a short list.
 manifest_cmd() {
-  printf 'set -o pipefail; cd %s && sudo -n find . -type f -exec sha256sum {} + | LC_ALL=C sort -k2' "$1"
+  printf 'set -o pipefail; cd %s && sudo -n find . -path ./%s -prune -o -type f -exec sha256sum {} + | LC_ALL=C sort -k2' "$1" "$BM_MODEL_CACHE_REL_PATH"
 }
 
 # sha256_of FILE -> hex digest (sha256sum on Linux, shasum on macOS).
