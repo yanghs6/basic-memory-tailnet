@@ -121,6 +121,6 @@ use_backup_env() {
 
 @test "git-workflow cleanup checks the worktree's backups before git worktree remove" {
   run grep -E 'ls <your worktree>/backups.*git worktree remove <your worktree>' \
-    "$REPO_DIR/.agents/skills/git-workflow/SKILL.md"
+    "$REPO_DIR/.agents/skills/git-workflow/references/review-and-merge.md"
   assert_success
 }

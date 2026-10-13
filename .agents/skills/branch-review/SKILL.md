@@ -1,6 +1,6 @@
 ---
 name: branch-review
-description: Review another agent's plan/ or work/ branch in this repo as an independent, read-only reviewer (plan conformance, bugs, security, trailers) and report P0-P3 findings. Use when asked to review a branch or when make review runs you.
+description: Reviews another agent's plan/ or work/ branch in this repo as an independent, read-only reviewer (plan conformance, bugs, security, trailers) and reports P0-P3 findings. Use when asked to review a branch or check whether it is mergeable, or when make review runs you. Not for fixing findings or reviewing your own branch (the author does that through git-workflow).
 ---
 
 # Review a branch (read-only)
