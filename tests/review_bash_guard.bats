@@ -77,6 +77,7 @@ assert_blocked() {
 
 @test "blocks anything but single-space-separated plain tokens" {
   local cmd
+  # The first three inputs reproduce a real bypass where the shell stripped quotes/escapes into --output (commit 5a9c7d7); keep them.
   for cmd in \
     'git diff --o""utput=/tmp/x' \
     "git diff --ou''tput=/tmp/x" \
@@ -95,7 +96,7 @@ assert_blocked() {
   done
 }
 
-@test "blocks every other git subcommand" {
+@test "blocks every other git subcommand and every non-git command" {
   local cmd
   for cmd in \
     "git status" \

@@ -363,3 +363,6 @@ make check-git
 | 2026-10-13 | Verified | Task 4 24f77f6: 검증 PASS, 220 ok, 커버리지 97.68%. guard L120 병합은 브리프에 적은 3개가 아니라 원래 입력 6개(rm, echo, make, cat, gitdiff, 빈 문자열)를 모두 옮김(Global Constraints의 "모두 옮긴다" 규칙) |
 | 2026-10-13 | Command | 계획 브랜치에 e2159ab, 3079854, 24f77f6, 88c4696, 7d8c19a를 cherry-pick한 뒤 `make check` (747d2c7) |
 | 2026-10-13 | Verified | 충돌 없음. 테스트 147개 전부 PASS(not ok 0), 라인 커버리지 96.67%. 기준선과 비교해 테스트가 닿지 않게 된 측정 줄은 9개: `restore.sh:89`, `review.sh:29,49`, `verify-mcp.sh:41`, `verify-vm.sh:97`, `bootstrap-vm.sh:49-50`, `remote/bootstrap.sh:100-101`(kcov `cobertura.xml`의 hits=0 줄을 기준선의 스크립트별 수치와 대조) |
+| 2026-10-13 | Verified | 최종 리뷰(opus): READY WITH FIXES. Important 1: 지운 "rejects an unknown reviewer" 테스트가 `review.sh`의 리뷰어 허용 목록(`*) usage ;;`)을 지키는 유일한 테스트였음(없으면 `check_independence`가 같은 벤더 거부를 조용히 건너뜀). Minor 6 |
+| 2026-10-13 | Command | 최종 리뷰 수정 적용 후 `make check` (400196e 위의 작업 트리) |
+| 2026-10-13 | Verified | exit 0, 테스트 148개 ok, not ok 0, 라인 커버리지 96.96%. 잃은 측정 줄 7개: `restore.sh:89`, `verify-mcp.sh:41`, `verify-vm.sh:97`, `bootstrap-vm.sh:49-50`, `remote/bootstrap.sh:100-101`(`review.sh:29,49`는 복원한 테스트로 다시 커버). 삭제 63개, 병합 26개(상태 스왑 사용량 테스트를 status 테스트에 병합) |

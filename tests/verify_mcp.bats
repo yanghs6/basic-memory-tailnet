@@ -11,7 +11,7 @@ setup() {
   URL=http://127.0.0.1:8737/mcp
 }
 
-@test "passes a full round trip against SSE responses" {
+@test "passes a full round trip against SSE responses and sends the session id on every later request" {
   run "$VERIFY" "$URL"
   assert_success
   assert_output --partial "OK: MCP round trip passed"

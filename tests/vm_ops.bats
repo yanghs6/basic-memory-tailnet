@@ -157,6 +157,11 @@ setup() {
   assert_output --partial "swap used: 0/1023 MB"
   assert_output --partial "proxy http://127.0.0.1:8737"
   refute_output --partial "WARNING"
+  export FREE_STUB_SWAP_USED_MB=200
+  run "$REPO_DIR/scripts/status.sh"
+  assert_success
+  assert_output --partial "swap used: 200/1023 MB"
+  refute_output --partial "WARNING"
 }
 
 @test "status warns to rerun vm-bootstrap when no swap is active" {

@@ -102,7 +102,7 @@ plan-02-git-review-tooling-r1-codex-plan.md"
   assert_output ""
 }
 
-@test "removes the worktree even when the reviewer fails" {
+@test "removes the worktree and this round's earlier reports even when the reviewer fails" {
   author_commit claude-code
   mkdir -p "$REVIEW_OUT_DIR"
   echo stale >"$OUT-r1-codex-diff.md"
@@ -163,4 +163,10 @@ plan-02-git-review-tooling-r1-codex-plan.md"
   assert_output --partial "REVIEW_OUT_DIR must be an absolute path"
   run test -e out
   assert_failure
+}
+
+@test "rejects an unknown reviewer" {
+  run "$REVIEW" plan/02-git-review-tooling gemini
+  assert_failure
+  assert_output --partial "usage: make review BRANCH="
 }
