@@ -16,7 +16,7 @@ run_bootstrap_with_key() {
   run bash -c 'printf "%s\n" "$1" | "$0"' "$BOOTSTRAP" "$1"
 }
 
-@test "installs docker from the official apt repo when docker is missing" {
+@test "installs tailscale with the official script and sets up swap before it installs docker from the official apt repo" {
   export TS_STUB_STATUS_EXIT=1
   rm "$STUB_BIN/tailscale"
   export CURL_STUB_SCRIPT="ln -s $REPO_DIR/tests/stubs/tailscale $STUB_BIN/tailscale"
@@ -73,7 +73,7 @@ run_bootstrap_with_key() {
   assert_output --partial "not on the tailnet and no auth key given"
 }
 
-@test "creates data dirs owned by the container uid and serves the loopback port" {
+@test "on a host already on the tailnet it skips the docker install, refreshes only hostname and Tailscale SSH, creates data dirs owned by the container uid and serves the loopback port" {
   setup_stubs docker
   run_bootstrap_with_key ""
   assert_success

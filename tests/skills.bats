@@ -46,7 +46,7 @@ bundled_files() {
   done
 }
 
-@test "skill descriptions are plain YAML of at most 1024 characters that say when to use the skill" {
+@test "skill descriptions are plain YAML of at most 1024 characters that say when to use the skill, and frontmatter values fit on one line with only metadata nesting" {
   local dir description bad=""
   for dir in $(skill_dirs); do
     description="$(field_of "$dir/SKILL.md" description)"
