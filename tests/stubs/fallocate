@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
 # Test stub for fallocate: logs, then creates an empty file at the last argument.
-# FALLOCATE_STUB_EXIT=<n> makes it fail before creating anything.
 set -euo pipefail
 printf 'fallocate %s\n' "$*" >>"$STUB_LOG"
-if [[ "${FALLOCATE_STUB_EXIT:-0}" != 0 ]]; then
-  echo "fallocate stub: simulated failure" >&2
-  exit "$FALLOCATE_STUB_EXIT"
-fi
 touch "${*: -1}"
