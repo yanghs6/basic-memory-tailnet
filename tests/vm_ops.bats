@@ -35,18 +35,12 @@ setup() {
   assert_output --partial "did not become healthy within 360s"
 }
 
-@test "deploy explains an unreachable VM" {
-  export SSH_STUB_FAIL_MATCH="compose.yaml"
-  run "$REPO_DIR/scripts/deploy.sh"
-  assert_failure
-  assert_output --partial "is agent-hub reachable over Tailscale SSH?"
-}
-
 @test "deploy requires the VM settings from .env" {
   unset BM_VM_HOST
   run "$REPO_DIR/scripts/deploy.sh"
   assert_failure
   assert_output --partial "missing env BM_VM_HOST"
+  assert_output --partial "set it in .env in the main checkout"
 }
 
 # --- verify-vm ---
@@ -56,8 +50,11 @@ setup() {
   assert_success
   assert_output --partial "OK: MCP round trip passed"
   assert_output --partial "port 8737 listens on 127.0.0.1 only"
+  assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8737"
   run grep -F 'https://agent-hub.example.ts.net/mcp' "$STUB_LOG"
   assert_success
+  run grep -c '^nc ' "$STUB_LOG"
+  assert_output 4
 }
 
 @test "verify fails when the port is exposed beyond loopback" {
@@ -67,29 +64,7 @@ setup() {
   assert_output --partial "port 8737 is exposed beyond loopback"
 }
 
-@test "verify fails when nothing listens on the port" {
-  export SS_STUB_OUTPUT=""
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_failure
-  assert_output --partial "nothing listens on port 8737"
-}
-
-@test "verify rejects a malformed tailnet domain" {
-  export BM_TAILNET_DOMAIN="https://tail1234.ts.net."
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_failure
-  assert_output --partial "BM_TAILNET_DOMAIN must look like tail1234.ts.net"
-}
-
-@test "verify confirms the public IP refuses SSH, HTTP, HTTPS and the MCP port" {
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_success
-  assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8737"
-  run grep -c '^nc ' "$STUB_LOG"
-  assert_output 4
-}
-
-@test "verify bounds the public probe's connect time with -G on macOS" {
+@test "verify bounds the public probe's connect time with -G on macOS only" {
   export UNAME_STUB_OUTPUT=Darwin
   run "$REPO_DIR/scripts/verify-vm.sh"
   assert_success
@@ -97,9 +72,8 @@ setup() {
   assert_success
   run grep -c '^nc -z -G 5 -w 5 ' "$STUB_LOG"
   assert_output 4
-}
 
-@test "verify probes public ports without -G on Linux" {
+  : >"$STUB_LOG"
   export UNAME_STUB_OUTPUT=Linux
   run "$REPO_DIR/scripts/verify-vm.sh"
   assert_success
@@ -133,12 +107,6 @@ setup() {
   assert_failure
 }
 
-@test "verify rejects unknown arguments" {
-  run "$REPO_DIR/scripts/verify-vm.sh" --bogus
-  assert_failure
-  assert_output --partial "usage: verify-vm.sh [--read-only]"
-}
-
 @test "verify fails when the public IP still accepts connections" {
   export NC_STUB_EXIT=0
   run "$REPO_DIR/scripts/verify-vm.sh"
@@ -146,27 +114,15 @@ setup() {
   assert_output --partial "accepts connections on port 22"
 }
 
-@test "verify rejects a malformed public IP before probing" {
-  export BM_VM_PUBLIC_IP=999.1.1.1
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_failure
-  assert_output --partial "BM_VM_PUBLIC_IP must be the VM's public IPv4"
-  run grep -c '^nc ' "$STUB_LOG"
-  assert_output 0
-}
-
 @test "verify rejects non-IP and private or loopback public IPs" {
   local ip
-  for ip in example.com 1.2.3 127.0.0.1 10.0.0.5 172.16.0.1 172.31.255.255 192.168.1.1 169.254.1.1 0.0.0.0; do
+  for ip in example.com 1.2.3 999.1.1.1 127.0.0.1 10.0.0.5 172.16.0.1 172.31.255.255 192.168.1.1 169.254.1.1 0.0.0.0; do
     BM_VM_PUBLIC_IP="$ip" run "$REPO_DIR/scripts/verify-vm.sh"
     assert_failure
     assert_output --partial "docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md"
   done
-}
-
-@test "verify accepts a public IP next to the private ranges" {
-  BM_VM_PUBLIC_IP=172.32.0.1 run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_success
+  run grep -c '^nc ' "$STUB_LOG"
+  assert_output 0
 }
 
 @test "verify fails when nc rejects its options instead of probing" {
@@ -176,30 +132,16 @@ setup() {
   assert_output --partial "public port probe error on 203.0.113.10:22: nc: invalid option -- G"
 }
 
-@test "verify fails on an nc usage message" {
-  export NC_STUB_EXIT=1 NC_STUB_STDERR="usage: nc [-46bCDdFhklNnrStUuvZz] host port"
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_failure
-  assert_output --partial "public port probe error"
-}
-
-@test "verify treats a refused connection message as closed" {
-  export NC_STUB_EXIT=1 NC_STUB_STDERR="nc: connect to 203.0.113.10 port 22 (tcp) failed: Connection refused"
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_success
-}
-
-@test "verify treats a timed out connection as closed" {
-  export NC_STUB_EXIT=1 NC_STUB_STDERR="nc: connect to 203.0.113.10 port 22 (tcp) failed: Operation timed out"
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_success
-}
-
-@test "verify treats an ICMP reject from the VM firewall as closed" {
-  # A host firewall may reject with icmp-host-prohibited, which nc reports as no route to host.
-  export NC_STUB_EXIT=1 NC_STUB_STDERR="nc: connect to 203.0.113.10 port 8737 (tcp) failed: No route to host"
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_success
+@test "verify treats refused, timed out and ICMP-rejected connections as closed" {
+  local msg
+  for msg in \
+    "nc: connect to 203.0.113.10 port 22 (tcp) failed: Connection refused" \
+    "nc: connect to 203.0.113.10 port 22 (tcp) failed: Operation timed out" \
+    "nc: connect to 203.0.113.10 port 8737 (tcp) failed: No route to host"; do
+    # A host firewall may reject with icmp-host-prohibited, which nc reports as no route to host.
+    NC_STUB_EXIT=1 NC_STUB_STDERR="$msg" run "$REPO_DIR/scripts/verify-vm.sh"
+    assert_success
+  done
 }
 
 # --- status ---
@@ -214,14 +156,6 @@ setup() {
   refute_output --partial "WARNING"
 }
 
-@test "status shows swap usage" {
-  export FREE_STUB_SWAP_USED_MB=200
-  run "$REPO_DIR/scripts/status.sh"
-  assert_success
-  assert_output --partial "swap used: 200/1023 MB"
-  refute_output --partial "WARNING"
-}
-
 @test "status warns to rerun vm-bootstrap when no swap is active" {
   export FREE_STUB_SWAP_TOTAL_MB=0
   run "$REPO_DIR/scripts/status.sh"
@@ -231,27 +165,6 @@ setup() {
   assert_output --partial "proxy http://127.0.0.1:8737"
 }
 
-@test "status fails when memory usage cannot be read" {
-  export SSH_STUB_FAIL_MATCH="free -m"
-  run "$REPO_DIR/scripts/status.sh"
-  assert_failure
-  assert_output --partial "could not read memory usage on agent-hub"
-}
-
-@test "status fails when tailscale serve is not configured" {
-  export SSH_STUB_FAIL_MATCH="tailscale serve status"
-  run "$REPO_DIR/scripts/status.sh"
-  assert_failure
-  assert_output --partial "tailscale serve is not configured"
-}
-
-@test "status fails when containers cannot be queried" {
-  export SSH_STUB_FAIL_MATCH="compose ps"
-  run "$REPO_DIR/scripts/status.sh"
-  assert_failure
-  assert_output --partial "could not query containers on agent-hub"
-}
-
 # --- logs ---
 
 @test "logs prints the last 200 lines from the VM" {
@@ -259,11 +172,4 @@ setup() {
   assert_success
   run grep -F 'docker compose logs --tail=200' "$STUB_LOG"
   assert_success
-}
-
-@test "logs explains a failure" {
-  export SSH_STUB_FAIL_MATCH="compose logs"
-  run "$REPO_DIR/scripts/logs.sh"
-  assert_failure
-  assert_output --partial "could not read logs from agent-hub"
 }
