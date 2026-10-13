@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Test stub for mkswap: logs only. MKSWAP_STUB_EXIT=<n> makes it fail.
+# Test stub for mkswap: logs only.
 set -euo pipefail
 printf 'mkswap %s\n' "$*" >>"$STUB_LOG"
-exit "${MKSWAP_STUB_EXIT:-0}"

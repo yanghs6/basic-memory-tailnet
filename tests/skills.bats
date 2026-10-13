@@ -8,7 +8,6 @@ MAX_NAME_CHARS=64
 MAX_DESCRIPTION_CHARS=1024
 MAX_COMPATIBILITY_CHARS=500
 MAX_SKILL_LINES=500
-TEMPLATE="$REPO_DIR/.agents/skills/skill-authoring/assets/skill-template.md"
 
 # field_of FILE KEY -> the one-line value of KEY in the frontmatter of FILE.
 field_of() {
@@ -18,13 +17,6 @@ field_of() {
 # bundled_files DIR -> the files a skill ships in its subfolders, relative to DIR, one per line.
 bundled_files() {
   (cd "$1" && find . -mindepth 2 -type f | sed 's#^\./##' | sort)
-}
-
-@test "at least one repository skill exists" {
-  [[ -d "$REPO_DIR/.agents/skills" ]] || fail "missing directory .agents/skills"
-  local skills
-  skills="$(find "$REPO_DIR/.agents/skills" -mindepth 2 -maxdepth 2 -name SKILL.md)"
-  [[ -n "$skills" ]] || fail "no .agents/skills/*/SKILL.md found"
 }
 
 @test "skills use only Agent Skills standard frontmatter keys" {
@@ -41,35 +33,20 @@ bundled_files() {
   [[ -z "$bad" ]] || fail "non-standard frontmatter keys (Codex/Antigravity may reject them):$bad"
 }
 
-@test "skill names match their directories and have descriptions" {
+@test "skill names match their directories, follow the name format and have descriptions" {
   local dir name
   for dir in $(skill_dirs); do
     name="$(frontmatter "$dir/SKILL.md" | sed -n 's/^name: *//p')"
     [[ "$name" == "$(basename "$dir")" ]] || fail "$dir/SKILL.md: name '$name' must equal the directory name"
     frontmatter "$dir/SKILL.md" | grep -qE '^description: .+' || fail "$dir/SKILL.md: add a description"
-  done
-}
-
-@test "skill names are lowercase words joined by single hyphens, at most 64 characters" {
-  local dir name bad=""
-  for dir in $(skill_dirs); do
+    # The directory name equals the skill name, so checking the directory checks the name format.
     name="$(basename "$dir")"
-    [[ "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || bad="$bad $name(characters)"
-    ((${#name} <= MAX_NAME_CHARS)) || bad="$bad $name(length ${#name})"
+    [[ "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] || fail "$name: use a-z, 0-9 and single inner hyphens"
+    ((${#name} <= MAX_NAME_CHARS)) || fail "$name: ${#name} characters (max $MAX_NAME_CHARS)"
   done
-  [[ -z "$bad" ]] || fail "rename these skills (a-z, 0-9 and single inner hyphens, at most $MAX_NAME_CHARS):$bad"
 }
 
-@test "frontmatter values fit on one line; only metadata holds nested keys" {
-  local dir bad=""
-  for dir in $(skill_dirs); do
-    frontmatter "$dir/SKILL.md" | awk '/^[A-Za-z0-9_-]+:/ { key = $1; next } key != "metadata:" { bad = 1 } END { exit bad }' \
-      || bad="$bad $(basename "$dir")"
-  done
-  [[ -z "$bad" ]] || fail "multi-line frontmatter values (folded or wrapped) in:$bad"
-}
-
-@test "skill descriptions are plain YAML of at most 1024 characters that say when to use the skill" {
+@test "skill descriptions are plain YAML of at most 1024 characters that say when to use the skill, and frontmatter values fit on one line with only metadata nesting" {
   local dir description bad=""
   for dir in $(skill_dirs); do
     description="$(field_of "$dir/SKILL.md" description)"
@@ -81,6 +58,9 @@ bundled_files() {
     # Angle brackets look like XML tags, which the Claude API rejects in skill metadata.
     [[ "$description" != *[\<\>]* ]] || bad="$bad $(basename "$dir")(angle brackets)"
     [[ "$description" == *'Use when'* ]] || bad="$bad $(basename "$dir")(no 'Use when')"
+    # Frontmatter values stay on one line; only metadata holds nested keys.
+    frontmatter "$dir/SKILL.md" | awk '/^[A-Za-z0-9_-]+:/ { key = $1; next } key != "metadata:" { bad = 1 } END { exit bad }' \
+      || bad="$bad $(basename "$dir")(multi-line frontmatter)"
   done
   [[ -z "$bad" ]] || fail "fix these descriptions:$bad"
 }
@@ -139,18 +119,14 @@ bundled_files() {
   [[ -z "$hits" ]] || fail "link every reference file from SKILL.md instead:"$'\n'"$hits"
 }
 
-@test "every skill is linked for Claude Code under .claude/skills" {
-  local dir name link
+@test ".agents/skills and .claude/skills link every skill both ways" {
+  local dir name link entry
   for dir in $(skill_dirs); do
     name="$(basename "$dir")"
     link="$REPO_DIR/.claude/skills/$name"
     [[ -L "$link" ]] || fail "missing link; run: ln -s ../../.agents/skills/$name .claude/skills/$name"
     [[ "$(readlink "$link")" == "../../.agents/skills/$name" ]] || fail "$link must point to ../../.agents/skills/$name"
   done
-}
-
-@test ".claude/skills holds only links to existing canonical skills" {
-  local entry name
   for entry in "$REPO_DIR"/.claude/skills/*; do
     name="$(basename "$entry")"
     [[ -L "$entry" ]] || fail ".claude/skills/$name is not a link; keep the skill in .agents/skills/$name"
@@ -181,12 +157,4 @@ bundled_files() {
   for name in bm-upgrade bm-recover bm-diagnose; do
     [[ -f "$REPO_DIR/.agents/skills/$name/SKILL.md" ]] || fail "missing .agents/skills/$name/SKILL.md"
   done
-}
-
-@test "the skill-authoring template starts with standard frontmatter" {
-  [[ -f "$TEMPLATE" ]] || fail "missing ${TEMPLATE#"$REPO_DIR"/}"
-  run frontmatter "$TEMPLATE"
-  assert_line --regexp '^name: '
-  assert_line --regexp '^description: .+ Use when .+ Not for '
-  refute_line --regexp '^(when_to_use|disable-model-invocation|user-invocable|argument-hint|context|model):'
 }

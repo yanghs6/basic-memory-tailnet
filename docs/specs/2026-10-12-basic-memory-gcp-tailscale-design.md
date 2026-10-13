@@ -203,7 +203,7 @@ OCI 설계와 같고, 기본 저장 위치 `BACKUP_DIR`이 **main 체크아웃�
 
 ## 9. 테스트와 검증
 
-OCI 설계 §9와 같고 다음을 더한다.
+OCI 설계 §9와 같고 다음을 더한다. 다만 OCI §9의 테스트 요구 중 어떤 것이 대체됐는지는 [ADR 0004](../decisions/0004-test-scope.md)를 따른다.
 
 - **스왑 (`tests/bootstrap.bats`):** 활성 스왑이 없으면 파일을 만들고 켜며 fstab에 한 번만 등록한다. 활성 스왑이 있으면 아무것도 하지 않는다. 다시 실행해도 fstab 줄이 늘지 않는다. 스텁: `swapon`, `fallocate`, `mkswap`.
 - **`status` (`tests/vm_ops.bats`):** 메모리·스왑을 출력하고, 스왑이 없으면 경고한다. 유휴 회수 테스트는 지운다.
