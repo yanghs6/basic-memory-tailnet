@@ -11,6 +11,7 @@ MAIN_ROOT := $(if $(GIT_COMMON_DIR),$(abspath $(GIT_COMMON_DIR)/..),$(CURDIR))
 -include $(MAIN_ROOT)/.env
 BM_PORT := $(or $(BM_PORT),8737)
 export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT
+REVIEW_BASE := $(or $(REVIEW_BASE),origin/main)
 export REVIEW_BASE REVIEW_ALLOW_SAME_VENDOR
 
 SHELLCHECK_IMAGE := koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d
@@ -60,8 +61,8 @@ local-verify: ## Verify the local MCP endpoint (plain and *.ts.net Host header)
 	scripts/verify-mcp.sh "http://127.0.0.1:$(BM_PORT)/mcp"
 	scripts/verify-mcp.sh --host-header agent-hub.example.ts.net "http://127.0.0.1:$(BM_PORT)/mcp"
 
-check-git: ## Check the git policy for the current branch (name, commit trailers, worktree config)
-	scripts/check-git.sh
+check-git: ## Check the git policy for the current branch against origin/main (name, commit trailers, worktree config)
+	scripts/check-git.sh origin/main
 
 review: ## Read-only review by another vendor: BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<sha>]
 	scripts/review.sh "$(BRANCH)" "$(REVIEWER)" "$(or $(ROUND),1)"

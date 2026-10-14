@@ -1,6 +1,7 @@
 # 에이전트 기반 Git·리뷰 정책 — 설계
 
 - 상태: 승인됨 (2026-10-07). 구현: 계획 01(`AGENTS.md`의 Git 섹션, `.claude/settings.json`의 attribution, `.gitignore`의 `.review-out/`), 계획 02(`docs/plans/backlog/2026-10-07-02-git-review-tooling.md`), 모든 계획의 Global Constraints와 시작·마무리 절차
+- 부분 대체 (2026-10-13): 3절의 브랜치 기준점, 4절의 병합 트레일러, 5절의 리뷰 기록 위치, 6절 전체는 [GitHub PR 워크플로 스펙](2026-10-13-github-pr-workflow-design.md)이 대체한다.
 - 관련 스펙: [Basic Memory on OCI + Tailscale](2026-10-07-basic-memory-oci-tailscale-design.md)
 - 적용 시점: 계획 01을 시작할 때부터. 그 전에 `main`에 직접 커밋한 설계 문서들(정책 이전)은 예외다.
 

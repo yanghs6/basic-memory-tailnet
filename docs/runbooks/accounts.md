@@ -81,3 +81,7 @@ Settings → **Keys** → **Generate auth key**:
 - Expiration: 1일
 
 키는 어디에도 저장하지 말고, 사용자가 자기 터미널에서 `make vm-bootstrap`의 숨김 프롬프트에 붙여 넣습니다. 채팅에 붙여 넣거나 명령줄 인자로 넘기지 않습니다([부트스트랩 런북](bootstrap.md)).
+
+## 6. GitHub
+
+저장소는 개인 계정 `yanghs6`의 공개 저장소 `basic-memory-tailnet`입니다. 에이전트는 따로 만든 머신 계정 `yanghs6-bot`으로 push하고 PR을 엽니다. 승인과 병합은 개인 계정으로만 합니다. 머신 계정 만들기, 토큰 등록, 저장소 설정은 [GitHub 런북](github.md)에 있습니다.
