@@ -9,14 +9,22 @@ Assisted-by: claude-code claude-opus-5-5
 Plan: 08"
 }
 
-@test "passes a conventional title and a body ending in the trailers, also with GitHub CRLF line ends" {
-  PR_TITLE="feat: add the pull request rules" PR_BODY="$GOOD_BODY" run "$CHECK"
-  assert_success
-  assert_output --partial "OK: PR title and trailers"
-  local crlf_body
+@test "passes a conventional title and a body ending in the trailers, also with CRLF line ends, a horizontal rule above them or only the trailers" {
+  local crlf_body rule_body trailers_only_body body
   crlf_body="$(printf 'Summary.\r\n\r\nAssisted-by: claude-code claude-opus-5-5\r\nAssisted-by: codex gpt-6.1-sol\r\nPlan: none\r\n')"
-  PR_TITLE="docs: two tools worked here" PR_BODY="$crlf_body" run "$CHECK"
-  assert_success
+  rule_body="Summary.
+
+---
+
+Assisted-by: claude-code claude-opus-5-5
+Plan: 08"
+  trailers_only_body="Assisted-by: claude-code claude-opus-5-5
+Plan: 08"
+  for body in "$GOOD_BODY" "$crlf_body" "$rule_body" "$trailers_only_body"; do
+    PR_TITLE="feat: add the pull request rules" PR_BODY="$body" run "$CHECK"
+    assert_success
+    assert_output --partial "OK: PR title and trailers"
+  done
 }
 
 @test "rejects titles that are not '<type>: <description>'" {
@@ -32,7 +40,11 @@ Plan: 08"
   local body
   for body in "" "Summary only." "$GOOD_BODY
 
-Thanks for reviewing."; do
+Thanks for reviewing." "$GOOD_BODY
+
+---
+
+Thanks."; do
     PR_TITLE="feat: x" PR_BODY="$body" run "$CHECK"
     [[ "$status" -eq 1 ]] || fail "expected the body to be rejected; got $status: $output"
     assert_output --partial "missing trailer 'Assisted-by:"

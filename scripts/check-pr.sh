@@ -52,8 +52,10 @@ main() {
   local title="${PR_TITLE:-}" trailers key
   require_cmd git
   [[ -n "$title" ]] || die "PR_TITLE is empty: pass the pull request title and body in PR_TITLE and PR_BODY"
-  # GitHub sends PR bodies with CRLF line ends, which git interpret-trailers does not parse.
-  trailers="$(printf '%s\n' "${PR_BODY:-}" | tr -d '\r' | git interpret-trailers --parse)" \
+  # The squash commit is the PR title, a blank line and the body, and git log reads its trailers without the
+  # '---' divider rule, so parse the same text the same way. GitHub sends bodies with CRLF line ends, which
+  # git interpret-trailers does not parse.
+  trailers="$(printf '%s\n\n%s\n' "$title" "${PR_BODY:-}" | tr -d '\r' | git interpret-trailers --parse --no-divider)" \
     || die "git interpret-trailers could not parse the PR body"
   [[ "$title" =~ $TITLE_PATTERN ]] \
     || add_problem "title '$title' must be '<type>: <description>' with type feat, fix, refactor, docs, test, chore, perf or ci"
