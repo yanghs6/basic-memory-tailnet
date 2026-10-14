@@ -169,7 +169,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
 2. **브랜치 갱신:** 다른 PR이 먼저 병합돼 PR 브랜치가 최신 `main`을 포함하지 않으면, strict 필수 체크 때문에 병합이 막힌다. 이때 작성 에이전트가 다음 순서로 갱신한다. 이력 재작성 금지를 지키기 위해 rebase나 force push는 쓰지 않는다.
    1. `git fetch origin` 후 `git merge origin/main`으로 PR 브랜치에 main을 합친다. 충돌이 나면 해결한다.
    2. `make check`를 통과시키고 push한다. 새 push로 기존 승인은 무효가 되고 CI가 다시 돈다.
-   3. 충돌 해결로 코드가 바뀌었으면 PR 코멘트에 그 내용을 적는다. 다른 벤더 리뷰를 이미 마쳤다면, 변경분(`<직전 head>..HEAD`)만 리뷰를 다시 받는다. 충돌 없이 합쳐졌으면 CI와 사람의 재승인으로 충분하다.
+   3. 충돌 해결로 코드가 바뀌었으면 PR 코멘트에 그 내용을 적는다. 다른 벤더 리뷰를 이미 마쳤다면, 새 `origin/main`을 기준으로 PR 전체의 리뷰를 다시 받는다(`REVIEW_BASE=origin/main`). `<직전 head>..HEAD` 범위로 받으면 `main`에서 들어온 커밋이 섞이기 때문이다. 충돌 없이 합쳐졌으면 CI와 사람의 재승인으로 충분하다.
    4. 사람이 다시 승인한다. 사람은 GitHub의 "Update branch"를 누르지 않는다. 누르면 마지막 push가 사람의 것이 되고, ruleset의 마지막 push 승인 규칙 때문에 그 사람은 PR을 승인할 수 없다.
 
    병합 커밋에는 트레일러가 없지만, `check-git.sh`는 `--no-merges`로 병합 커밋을 검사에서 뺀다.

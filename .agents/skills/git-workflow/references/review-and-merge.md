@@ -17,7 +17,7 @@ The phases after the last task commit, in order. Policy: docs/specs/2026-10-13-g
 
 1. Verify each finding before acting: reproduce it or cite the code. Mark unfounded ones `rejected <evidence>`.
 2. Fix accepted findings one commit each, with `--trailer "Review-Finding: R<round>-F<n>"`, push, and set their status to `fixed <sha>`.
-3. If anything changed, run round 2 on the new commits only: `make review BRANCH=<branch> REVIEWER=<same> ROUND=2 REVIEW_BASE=<reviewed head sha>`, and post it like round 1. After round 2, leave any remaining disagreement to the human.
+3. If anything changed, run round 2 on the new commits only: `make review BRANCH=<branch> REVIEWER=<same> ROUND=2 REVIEW_BASE=<reviewed head sha>`, and post it like round 1. If you merged `origin/main` after the reviewed head, run `git fetch origin` and use `REVIEW_BASE=origin/main` instead, because a range across the merge pulls `main`'s commits into the review. After round 2, leave any remaining disagreement to the human.
 
 ## Keep the branch current
 
@@ -25,7 +25,7 @@ When GitHub says the branch is out of date with `main` (the required checks are 
 
 1. `git fetch origin`, then `git merge origin/main` and resolve any conflicts. Never rebase or force-push.
 2. `make check`, then push. The push dismisses the approval and re-runs CI.
-3. If resolving conflicts changed code after the review, say what changed in a pull request comment and have the other vendor review only the new commits (`REVIEW_BASE=<previous head>`).
+3. If resolving conflicts changed code after the review, say what changed in a pull request comment and have the other vendor review the pull request again against the new `main`: `git fetch origin`, then `make review BRANCH=<branch> REVIEWER=<same> ROUND=<next> REVIEW_BASE=origin/main`. A `<previous head>..` range would include the commits that came in from `main`.
 4. The human never presses Update branch: the last push must come from the machine account, or the human cannot approve it (last-push approval in the ruleset).
 
 ## Hand the pull request to the human
