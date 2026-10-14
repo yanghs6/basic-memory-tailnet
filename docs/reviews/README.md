@@ -5,6 +5,8 @@ The files here are the review records of branches merged before plan 09; keep th
 ## Template
 
 ```markdown
+## Review record
+
 | Round | Reviewer | Base | Reviewed head | Verdict |
 |---|---|---|---|---|
 | R1 | codex <model> | <base sha> | <head sha> | blocked (1 P1) |
