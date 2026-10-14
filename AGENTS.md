@@ -25,12 +25,14 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - `.env` and `backups/` live only in the main checkout: the Makefile and `make backup` use them from any worktree. Never create or copy them in a worktree, and check a worktree's `backups/` before `git worktree remove`.
 - Run `gcloud` only with `--configuration=bm-personal` (except `gcloud config configurations list`, which shows the active configuration); never run `gcloud config configurations activate` or `gcloud auth application-default`. Read-only `describe`/`list` calls need no OK.
 - The user types the Tailscale auth key and the restore `yes` in their own terminal, never in chat or through a pipe.
+- Never write the VM's external or tailnet IP addresses in commits, PRs, PR comments or repo files; use `agent-hub` or a placeholder.
 
-## Git (policy: docs/specs/2026-10-07-git-review-policy-design.md)
-- Work only in your own git worktree on `plan/<NN>-<slug>` or `work/<slug>`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) with `git branch -m` before review; on a detached HEAD (Codex app) run `git switch -c <branch>` first. Per-tool start steps: the `git-workflow` skill.
-- Never commit to `main`, force-push, rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree.
+## Git (policy: docs/specs/2026-10-13-github-pr-workflow-design.md on top of docs/specs/2026-10-07-git-review-policy-design.md)
+- Work only in your own git worktree on `plan/<NN>-<slug>` or `work/<slug>`, branched from `origin/main` after `git fetch origin`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) with `git branch -m` before you push; on a detached HEAD (Codex app) run `git switch -c <branch> origin/main` first. Per-tool steps: the `git-workflow` skill.
+- Never commit or push to `main`, force-push, rebase or rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree.
 - End every commit message with the trailers `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>`, `Plan: <NN|none>` and `Task: <N|review|none>`; add `Review-Finding: R<n>-F<m>` (cross-vendor review) or `SDD-T<task>-F<n>` (in-plan task review) to review fixes. Never add `Co-authored-by` or `Signed-off-by`.
-- A reviewer from another vendor reviews each branch read-only; findings go to `docs/reviews/`; only the human merges, with `git merge --no-ff`.
+- `gh` and `git push` on this Mac run as the machine account. Push your branch and open one draft PR per plan or work branch; the title is `<type>: <description>` and the body ends with the `Assisted-by` and `Plan` trailers, because the squash merge turns them into the commit on `main`. CI (`check`, `pr-rules`) must pass.
+- A reviewer from another vendor reviews each PR read-only and the reports go to PR comments. Only the human approves and squash-merges; agents never approve, merge or press Update branch (keep a branch current with `git merge origin/main`).
 
 ## Notes and language
 - Label repository notes `Verified`, `Command`, `Assumption`, or `Open question`.
@@ -45,6 +47,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - `docs/reviews/` review records (template in its README).
 - `docs/runbooks/` accounts, VM creation, bootstrap, operations (incident log); `docs/decisions/` ADRs.
 - `docs/research/` dated research snapshots (not maintained after their date).
+- `.github/` CI workflows, the `main` ruleset (`rulesets/main.json`) and the PR template; GitHub setup and token rotation: `docs/runbooks/github.md`.
 
 ## Code Review Rules
 Reviewers check only the changes since the base (Codex reads this section; Claude uses the `branch-review` skill):
