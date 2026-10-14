@@ -64,7 +64,7 @@
 - 어느 도구와 모델이 작업했는지는 계정이 아니라 커밋과 PR의 `Assisted-by` 트레일러로 구분한다.
 - 머신 계정의 토큰은 classic PAT이고, 범위는 `public_repo`와 `workflow`, 만료는 90일이다. `workflow`는 `.github/workflows/`를 바꾸는 push에 필요하다. classic PAT 자체는 저장소 단위로 제한되지 않는다. 실제 범위는 머신 계정이 가진 권한으로 정해진다. 그래서 머신 계정에는 이 저장소 말고 다른 저장소 권한을 추가하지 않고, 머신 계정으로 저장소를 만들지도 않는다.
 - 토큰은 사용자가 자기 터미널에서 대화형 `gh auth login`의 토큰 붙여넣기 프롬프트로 등록하고(키체인 보관), git push 인증은 사용자가 이 저장소에만 credential helper `!gh auth git-credential`을 설정해 연결한다(`docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md` 1절). 토큰을 채팅, 파일, 명령 인자, 파이프에 넣지 않는다. Tailscale 인증 키와 같은 규칙이다.
-- 커밋 작성자(`git config user.*`)는 지금처럼 사용자다. push하는 계정과 PR 작성자만 머신 계정이다.
+- 커밋 작성자(`git config user.*`)도 머신 계정이다(사용자 결정 2026-10-14). 사람이 작성한 커밋을 squash 병합하면 GitHub이 `Co-authored-by`를 덧붙이기 때문이다(14절 3번). main 체크아웃의 저장소 설정에 넣어 모든 worktree가 함께 쓴다(`docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md` 1절).
 - 사용자가 관리자 권한으로 `gh`를 써야 하면(ruleset 적용 등) 머신 계정과 섞이지 않도록 별도 설정 디렉터리를 쓴다(`GH_CONFIG_DIR`).
 
 ## 4. 브랜치와 worktree
@@ -152,7 +152,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
   - 지적은 먼저 검증하고, 커밋 하나에 지적 하나씩 고친다.
 - **변경:** `make review`의 `REVIEW_BASE` 기본값을 `origin/main`으로 바꾼다. `scripts/review.sh`의 기본값은 그대로 둔다. 원격 추적 브랜치를 base로 받으면 기존 임시 base 브랜치 로직이 처리한다.
 - **게시 ([review-posting 계획](../plans/plan-2026-10-13-znbc3ase-review-posting.md)):** `scripts/post-review.sh`와 `make review-post PR=<번호>`를 만든다.
-  - `.review-out/`의 diff 리포트와 plan 리포트를 회차·리뷰어마다 PR 코멘트 하나로 올린다. 코멘트 머리에는 리뷰 도구와 모델, base와 head SHA, 회차를 적는다.
+  - `.review-out/`의 diff 리포트와 plan 리포트를 회차·리뷰어마다 PR 코멘트 두 개(change review, plan review)로 올린다. 코멘트 머리에는 리뷰 도구와 모델, base와 head SHA, 회차를 적는다.
 - **지적 기록:** "Review record" 코멘트 하나에 지적 표를 두고, 머신 계정이 상태가 바뀔 때마다 갱신한다.
   - 표의 열: ID(`R1-F3`), 등급, 위치, 요약, 상태
   - 상태: `open`, `fixed <sha>`, `rejected <근거>`, `deferred <사람이 적은 이유>` 중 하나
@@ -252,6 +252,6 @@ git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 
 1. (결정됨, 2026-10-13) 기존 커밋의 작성자 이메일(`yanghs632@gmail.com`)은 그대로 공개한다.
 2. (결정됨, 2026-10-13) VM IP는 감춘다. VM 외부 IP는 어떤 커밋에도 없다. Tailscale IP가 있는 `plan/qtvzskgx-vm-rollout`은 11절의 예외 절차로 공개한다.
-3. GitHub squash 커밋의 작성자가 PR 작성자(머신 계정)인지, 그리고 커밋 작성자(사용자)를 `Co-authored-by`로 자동으로 붙이는지 확인해야 한다. [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)의 첫 PR로 확인한 뒤 `check-pr.sh`의 허용 범위를 정한다.
-4. 공개 저장소에서 GitHub Free로 저장소 단위 secret scanning과 push protection을 켤 수 있는지 [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)에서 확인한다.
+3. (확인됨, 2026-10-14) [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)의 squash 커밋 47ed954의 작성자는 PR 작성자인 머신 계정이고 커미터는 `GitHub`이다. 브랜치 커밋의 작성자가 사람이었으므로 GitHub이 본문 끝에 `Co-authored-by: yanghs6 <...>`를 덧붙였다. 이 줄은 사람이 아니라 GitHub이 붙인 것이므로 정책 위반이 아니다. `check-pr.sh`는 PR 본문만 읽으므로 허용 범위를 바꾸지 않는다. 2026-10-14 사용자 결정으로 커밋 작성자도 머신 계정으로 바꿨다(3절).
+4. (확인됨, 2026-10-14) 이 공개 저장소에서 `secret_scanning`과 `secret_scanning_push_protection`은 enabled이고, `secret_scanning_non_provider_patterns`, `secret_scanning_validity_checks`, `dependabot_security_updates`는 disabled다. 머신 계정 토큰에는 이 필드가 보이지 않아 소유자 계정의 설정 디렉터리(`GH_CONFIG_DIR`)로 읽었다.
 5. (결정됨, 2026-10-14) 머신 계정은 `yanghs6-bot`이다.

@@ -3,6 +3,8 @@
 # (docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md, section 5). Writes two reports:
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-diff.md   bugs introduced since the base
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-plan.md   plan conformance per AGENTS.md Code Review Rules
+# It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs
+# that post-review.sh puts in the comment header.
 # Usage: review.sh BRANCH codex|claude [ROUND]
 #   REVIEW_BASE=<ref>            base for the review (default main; the reviewed head for round 2)
 #   REVIEW_ALLOW_SAME_VENDOR=1   allow a reviewer from the author's vendor (prints a warning)
@@ -146,7 +148,7 @@ run_claude() {
 }
 
 main() {
-  local round slug wt_path diff_out plan_out
+  local round slug wt_path diff_out plan_out base_sha head_sha meta_out
   [[ $# -ge 2 ]] || usage
   # Codex writes its plan report after cd into the review worktree, so a relative path would land there and be deleted.
   [[ "$OUT_DIR" == /* ]] || die "REVIEW_OUT_DIR must be an absolute path (got '$OUT_DIR'); unset it to use $MAIN_ROOT/.review-out"
@@ -170,11 +172,14 @@ main() {
   step "create a read-only review worktree for $BRANCH"
   git worktree add --quiet --detach "$wt_path" "$BRANCH" || die "could not create the review worktree at $wt_path"
   WT="$wt_path"
+  base_sha="$(git rev-parse "$BASE_BRANCH")" || exit 1
+  head_sha="$(git rev-parse "refs/heads/$BRANCH")" || exit 1
 
   diff_out="$OUT_DIR/$slug-r$round-$REVIEWER-diff.md"
   plan_out="$OUT_DIR/$slug-r$round-$REVIEWER-plan.md"
+  meta_out="$OUT_DIR/$slug-r$round-$REVIEWER-meta.txt"
   # A failed run must not leave an earlier run's report next to a new one: drop both, publish both on success.
-  rm -f "$diff_out" "$plan_out" "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
+  rm -f "$diff_out" "$plan_out" "$meta_out" "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
   step "$REVIEWER review of $BRANCH against $BASE_BRANCH (round $round)"
   if [[ "$REVIEWER" == codex ]]; then
     run_codex "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
@@ -183,8 +188,9 @@ main() {
   fi
   mv "$diff_out$PARTIAL_SUFFIX" "$diff_out"
   mv "$plan_out$PARTIAL_SUFFIX" "$plan_out"
+  printf 'base %s\nhead %s\n' "$base_sha" "$head_sha" >"$meta_out"
   log "reviews written: $diff_out and $plan_out"
-  log "Next: verify each finding, then post both reports and the Review record to the PR (git-workflow skill, Review)"
+  log "Next: verify each finding, then make review-post PR=<number> BRANCH=$BRANCH REVIEWER=$REVIEWER ROUND=$round REVIEW_MODEL=<reviewer model> and make review-record PR=<number> FILE=<findings file>"
 }
 
 main "$@"
