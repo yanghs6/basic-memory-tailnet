@@ -10,14 +10,14 @@ The phases after the last task commit, in order. Policy: docs/specs/2026-10-13-g
    - you are Codex, Antigravity or Gemini: `make review BRANCH=<branch> REVIEWER=claude`
    The base is `origin/main`.
 3. `make review` starts `codex` or `claude`, which need network access: run it where they can reach the network, outside the sandbox of the agent that calls it. If your sandbox blocks the network, ask the human to run the command.
-4. Post both raw reports to the pull request, one comment each: `gh pr comment <PR> --body-file <report>` for the `-diff.md` and `-plan.md` files that `make review` logs (in the main checkout's `.review-out/`). Put a first line above each report: `Agent review R<round>: <reviewer tool> <model>, base <sha>, reviewed head <sha>`. Before posting, check both reports for the VM's IP addresses and session ids and mask them, because the pull request is public.
-5. Keep one "Review record" comment on the pull request: a table with the columns ID (`R1-F3`), Sev, Location, Summary and Status, where Status is `open`, `fixed <sha>`, `rejected <evidence>` or `deferred <human's reason>`. Create it with `gh pr comment <PR> --body-file <file>` and edit that comment on GitHub when a status changes.
+4. Post both raw reports to the pull request: `make review-post PR=<PR> BRANCH=<branch> REVIEWER=<reviewer> REVIEW_MODEL=<reviewer model>` (add `ROUND=<n>` from round 2). It posts two comments headed by the round, the reviewer and model, and the base and reviewed head SHAs that `make review` recorded. Before posting, check both reports for the VM's IP addresses and session ids and mask them, because the pull request is public.
+5. Keep the findings table in `.review-out/<branch-slug>-record.md` in the main checkout (or in your own worktree if your tool cannot write outside it; `.review-out/` is git-ignored there too) (format: docs/reviews/README.md) and publish it with `make review-record PR=<PR> FILE=<that file>`. Run it again after every status change: it updates the same "Review record" comment.
 
 ## Fix findings
 
 1. Verify each finding before acting: reproduce it or cite the code. Mark unfounded ones `rejected <evidence>`.
 2. Fix accepted findings one commit each, with `--trailer "Review-Finding: R<round>-F<n>"`, push, and set their status to `fixed <sha>`.
-3. If anything changed, run round 2 on the new commits only: `make review BRANCH=<branch> REVIEWER=<same> ROUND=2 REVIEW_BASE=<reviewed head sha>`, and post it like round 1. If you merged `origin/main` after the reviewed head, run `git fetch origin` and use `REVIEW_BASE=origin/main` instead, because a range across the merge pulls `main`'s commits into the review. After round 2, leave any remaining disagreement to the human.
+3. If anything changed, run round 2 on the new commits only: `make review BRANCH=<branch> REVIEWER=<same> ROUND=2 REVIEW_BASE=<reviewed head sha>`, and post it with `make review-post ... ROUND=2`. If you merged `origin/main` after the reviewed head, run `git fetch origin` and use `REVIEW_BASE=origin/main` instead, because a range across the merge pulls `main`'s commits into the review. After round 2, leave any remaining disagreement to the human.
 
 ## Keep the branch current
 

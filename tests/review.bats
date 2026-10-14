@@ -41,7 +41,11 @@ worktree_count() {
   assert_output 1
   run ls "$REVIEW_OUT_DIR"
   assert_output "plan-02-git-review-tooling-r1-codex-diff.md
+plan-02-git-review-tooling-r1-codex-meta.txt
 plan-02-git-review-tooling-r1-codex-plan.md"
+  run cat "$OUT-r1-codex-meta.txt"
+  assert_line "base $(git rev-parse main)"
+  assert_line "head $(git rev-parse plan/02-git-review-tooling)"
 }
 
 @test "both claude reviews run as the guarded branch-reviewer agent in plan mode" {
@@ -98,6 +102,8 @@ plan-02-git-review-tooling-r1-codex-plan.md"
   assert_success
   run test -f "$OUT-r2-claude-diff.md"
   assert_success
+  run cat "$OUT-r2-claude-meta.txt"
+  assert_line "base $reviewed"
   run git branch --list 'review-base/*'
   assert_output ""
 }
