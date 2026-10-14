@@ -52,7 +52,7 @@ Expected: 인스턴스가 `RUNNING`으로 만들어지고 `EXTERNAL_IP`가 한 �
 
 **Assumption:** 게스트 에이전트의 `ssh-keys` 메타데이터 처리에는 서비스 계정이 필요 없으므로 `--no-service-account --no-scopes`로 VM 안에서 메타데이터 서버 토큰을 받을 수 없게 합니다. 이미 있는 `agent-hub-01`은 기본 서비스 계정을 유지하며, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)이 이를 기록합니다.
 
-**Assumption ([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 확인):** 26.04 Minimal에 `ss`(iproute2)와 `free`(procps)가 기본으로 있고, 메타데이터 키로 만든 `ubuntu`에게 암호 없는 sudo가 있습니다.
+**Verified (2026-10-13, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Step 4):** 26.04 Minimal에 `ss`(iproute2 6.19)와 `free`(procps-ng 4.0.4)가 기본으로 있고, 메타데이터 키로 만든 `ubuntu`에게 암호 없는 sudo가 있습니다(`/etc/sudoers.d/google_sudoers`). `gpg`는 없지만 부트스트랩은 쓰지 않습니다.
 
 ## 3. 방화벽 정리
 
@@ -96,7 +96,7 @@ gcloud compute instances describe "$INSTANCE" --zone="$ZONE" --configuration=bm-
 
 이 값을 main 체크아웃 `.env`의 `BM_VM_PUBLIC_IP`에 적습니다(사용자가 직접 편집). 그다음 [부트스트랩](rbk-2026-10-12-ha5w72pm-bootstrap.md)으로 넘어갑니다.
 
-**Verified (2026-10-12, 실제 프로젝트):** 정지 후 시작하면 ephemeral 외부 IP가 바뀝니다. **Assumption ([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 확인):** 게스트 OS 재부팅으로는 바뀌지 않습니다.
+**Verified (2026-10-12, 실제 프로젝트):** 정지 후 시작하면 ephemeral 외부 IP가 바뀝니다. **Verified (2026-10-13, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Step 13):** 게스트 OS 재부팅(`sudo reboot`)으로는 바뀌지 않습니다.
 
 ```bash
 gcloud compute instances stop "$INSTANCE" --zone="$ZONE" --configuration=bm-personal
