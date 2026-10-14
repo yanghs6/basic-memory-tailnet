@@ -27,7 +27,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 | Tailscale SSH | VM | 부트스트랩 이후의 유일한 관리 경로 |
 | gcloud 명령 | Mac (사람이 실행) | VM 생성, 방화벽, 정지·시작. [VM 런북](runbooks/gcp-vm.md)의 명령. 항상 `--configuration=bm-personal` |
 | `.env`, `backups/` | Mac, main 체크아웃 | 사용자 설정과 `make backup` 결과물 (둘 다 git ignore) |
-| 리뷰·스킬 도구 | Mac | `scripts/check-git.sh`(git 정책 검사), `scripts/review.sh`와 `scripts/review-bash-guard.sh`(다른 벤더의 읽기 전용 리뷰), `.agents/skills/`(에이전트용 스킬; `.claude/skills/`는 링크, 구조 규칙은 `tests/skills.bats`와 [ADR 0003](decisions/0003-skill-structure.md)), `docs/reviews/`(리뷰 기록) |
+| 리뷰·스킬 도구 | Mac | `scripts/check-git.sh`(git 정책 검사), `scripts/review.sh`와 `scripts/review-bash-guard.sh`(다른 벤더의 읽기 전용 리뷰), `.agents/skills/`(에이전트용 스킬; `.claude/skills/`는 링크, 구조 규칙은 `tests/skills.bats`와 [ADR 0003](decisions/0003-skill-structure.md)), `scripts/post-review.sh`·`scripts/review-record.sh`(리뷰 원문과 기록을 PR 코멘트로 게시), `docs/reviews/`(계획 08까지의 리뷰 기록) |
 | GitHub `yanghs6/basic-memory-tailnet` | 원격 (공개) | PR과 squash 병합, CI `check`·`pr-rules`(`.github/workflows/`), ruleset `main`(`.github/rulesets/main.json`). 에이전트는 머신 계정으로 PR을 열고 사람만 승인·병합. [GitHub 런북](runbooks/github.md) |
 
 ## 데이터 경로
