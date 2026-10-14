@@ -5,6 +5,7 @@ Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.m
 | Round | Reviewer | Base | Reviewed head | Verdict |
 |---|---|---|---|---|
 | R1 | codex gpt-6.1-sol (sandbox read-only) | 1b333af (main) | aae9c83 | plan review: mergeable; change review: 2 P2 |
+| R2 | codex gpt-6.1-sol (sandbox read-only) | aae9c83 (R1 head) | 5f66bff | plan review: mergeable; change review: no findings |
 
 ## Findings
 
@@ -19,4 +20,5 @@ Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.m
 - Verified: the raw reports are `.review-out/work-workflow-alignment-r1-codex-diff.md` and `.review-out/work-workflow-alignment-r1-codex-plan.md` ("Verdict: mergeable"). Codex said it ran the git policy check (passed) but neither `make check` nor anything on GitHub.
 - The first `make review` attempt was cut off mid-run (no process left; an empty `-diff.md.partial` and the review worktree stayed behind). The human removed the stale worktree; the second run, started in the background, completed.
 - Test evidence from the author: `make check` exit 0 after every commit on the branch, and `make check-git` "OK: git policy (7 commits since main)" at aae9c83.
+- Verified: R2 ran with `make review BRANCH=work/workflow-alignment REVIEWER=codex ROUND=2 REVIEW_BASE=aae9c83` on the three commits after aae9c83. The raw reports are `.review-out/work-workflow-alignment-r2-codex-diff.md` (no new defects; the author filter and login check for R1-F2 are adequate) and `-r2-codex-plan.md` ("Verdict: mergeable"). Codex ran the git policy check ("OK: git policy (3 commits since review-base/work-workflow-alignment-r2)") and a diff whitespace check, not `make check`.
 - R1-F2 changes the [review-posting plan](../plans/plan-2026-10-13-znbc3ase-review-posting.md) Task 2: `review-record.sh` reads the gh login (`gh api user`) and matches only that account's marker comments, stops when the login is empty, and the stub and tests cover both.
