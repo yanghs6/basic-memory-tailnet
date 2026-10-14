@@ -65,7 +65,7 @@ Base \`$base\`, reviewed head \`$head\`."
   check_size "$change_body" "the change review comment"
   check_size "$plan_body" "the plan review comment"
   gh pr comment "$pr" --body-file "$change_body" || die "gh pr comment failed for the change review of PR #$pr"
-  gh pr comment "$pr" --body-file "$plan_body" || die "gh pr comment failed for the plan review of PR #$pr"
+  gh pr comment "$pr" --body-file "$plan_body" || die "gh pr comment failed for the plan review of PR #$pr; the change review is already posted, so post only the plan review: gh pr comment $pr --body-file $plan_body"
   rm -f "$change_body" "$plan_body"
   log "posted the R$round $reviewer change and plan reviews to PR #$pr"
 }
