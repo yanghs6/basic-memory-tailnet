@@ -152,7 +152,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
   - 지적은 먼저 검증하고, 커밋 하나에 지적 하나씩 고친다.
 - **변경:** `make review`의 `REVIEW_BASE` 기본값을 `origin/main`으로 바꾼다. `scripts/review.sh`의 기본값은 그대로 둔다. 원격 추적 브랜치를 base로 받으면 기존 임시 base 브랜치 로직이 처리한다.
 - **게시 (계획 09):** `scripts/post-review.sh`와 `make review-post PR=<번호>`를 만든다.
-  - `.review-out/`의 diff 리포트와 plan 리포트를 회차·리뷰어마다 PR 코멘트 하나로 올린다. 코멘트 머리에는 리뷰 도구와 모델, base와 head SHA, 회차를 적는다.
+  - `.review-out/`의 diff 리포트와 plan 리포트를 회차·리뷰어마다 PR 코멘트 두 개(change review, plan review)로 올린다. 코멘트 머리에는 리뷰 도구와 모델, base와 head SHA, 회차를 적는다.
 - **지적 기록:** "Review record" 코멘트 하나에 지적 표를 두고, 머신 계정이 상태가 바뀔 때마다 갱신한다.
   - 표의 열: ID(`R1-F3`), 등급, 위치, 요약, 상태
   - 상태: `open`, `fixed <sha>`, `rejected <근거>`, `deferred <사람이 적은 이유>` 중 하나
