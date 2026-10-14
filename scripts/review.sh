@@ -3,6 +3,8 @@
 # (docs/specs/2026-10-07-git-review-policy-design.md, section 5). Writes two reports:
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-diff.md   bugs introduced since the base
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-plan.md   plan conformance per AGENTS.md Code Review Rules
+# It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs
+# that post-review.sh puts in the comment header.
 # Usage: review.sh BRANCH codex|claude [ROUND]
 #   REVIEW_BASE=<ref>            base for the review (default main; the reviewed head for round 2)
 #   REVIEW_ALLOW_SAME_VENDOR=1   allow a reviewer from the author's vendor (prints a warning)
