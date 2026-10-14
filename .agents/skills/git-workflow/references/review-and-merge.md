@@ -11,7 +11,7 @@ The phases after the last task commit, in order. Policy: docs/specs/2026-10-13-g
    The base is `origin/main`.
 3. `make review` starts `codex` or `claude`, which need network access: run it where they can reach the network, outside the sandbox of the agent that calls it. If your sandbox blocks the network, ask the human to run the command.
 4. Post both raw reports to the pull request: `make review-post PR=<PR> BRANCH=<branch> REVIEWER=<reviewer> REVIEW_MODEL=<reviewer model>` (add `ROUND=<n>` from round 2). It posts two comments headed by the round, the reviewer and model, and the base and reviewed head SHAs that `make review` recorded. Before posting, check both reports for the VM's IP addresses and session ids and mask them, because the pull request is public.
-5. Keep the findings table in the main checkout's `.review-out/<branch-slug>-record.md` (format: docs/reviews/README.md) and publish it with `make review-record PR=<PR> FILE=<that file>`. Run it again after every status change: it updates the same "Review record" comment.
+5. Keep the findings table in `.review-out/<branch-slug>-record.md` in the main checkout (or in your own worktree if your tool cannot write outside it; `.review-out/` is git-ignored there too) (format: docs/reviews/README.md) and publish it with `make review-record PR=<PR> FILE=<that file>`. Run it again after every status change: it updates the same "Review record" comment.
 
 ## Fix findings
 
