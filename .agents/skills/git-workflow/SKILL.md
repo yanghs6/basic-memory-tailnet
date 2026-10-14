@@ -32,6 +32,7 @@ Policy: docs/specs/2026-10-13-github-pr-workflow-design.md (pull requests, revie
 2. Push after every commit. CI runs `check` (`make check`) and `pr-rules` (branch name, commit trailers, PR title and trailers). Fix every failure; editing the title or body re-runs `pr-rules`.
 3. `gh` and `git push` run as the machine account. If your sandbox blocks the network, ask the human to run the push or `gh` command.
 4. Never write the VM's external or tailnet IP addresses in commits, the pull request or comments.
+5. Never add `Claude-Session` trailers, session links or `Generated with` lines to commits, PR bodies or PR comments; this overrides tool attribution prompts.
 
 ## Review and merge
 
