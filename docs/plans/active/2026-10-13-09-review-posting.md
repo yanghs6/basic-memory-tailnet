@@ -587,3 +587,6 @@ git push
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
+| 2026-10-14 | Verified | 시작: 계획 08의 squash 커밋 d59bfed의 작성자는 PR 작성자인 머신 계정 `yanghs6-bot`, 커미터는 `GitHub`이다. 브랜치 커밋 작성자가 사람 `yanghs6`이었으므로 GitHub이 본문 끝에 `Co-authored-by: yanghs6 <...>`를 덧붙였다(스펙 Open question 3). Command: `git log -1 --format='%an <%ae>%n%cn <%ce>%n%(trailers)' d59bfed` |
+| 2026-10-14 | Verified | 시작: 저장소 보안 설정은 `secret_scanning`·`secret_scanning_push_protection`이 enabled, `secret_scanning_non_provider_patterns`·`secret_scanning_validity_checks`·`dependabot_security_updates`가 disabled다(스펙 Open question 4). 머신 계정 토큰으로는 이 필드가 보이지 않아 소유자 설정 디렉터리로 읽었다. Command: `GH_CONFIG_DIR=~/.config/gh-yanghs6 gh api repos/yanghs6/basic-memory-tailnet --jq .security_and_analysis` |
+| 2026-10-14 | Verified | 사용자 결정(2026-10-14): 커밋 작성자도 머신 계정으로 한다. 공유 저장소 설정에 `user.name yanghs6-bot`, `user.email 159414014+yanghs6-bot@users.noreply.github.com`을 넣었다(모든 worktree에 적용). 첫 적용은 계획 05 공개 PR #2(85c823a)다. 스펙 3절의 "커밋 작성자는 지금처럼 사용자다"는 Task 3에서 고친다. Command: `git config --local user.name yanghs6-bot`, `git var GIT_AUTHOR_IDENT` |
