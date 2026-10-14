@@ -115,6 +115,7 @@ Plan: 08
   - 본문 마지막 문단에 `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>`이 한 줄 이상 있는가.
   - `Plan: <NN|none>`이 있는가.
   - `Co-authored-by`와 `Signed-off-by`가 없는가. GitHub이 자동으로 붙이는 줄은 예외로 할 수 있다(Open question 3).
+  - Claude Code 세션 링크(`claude.ai/code/session`)가 없는가. squash 병합으로 `main`에 공개되기 때문이다.
   - 입력은 환경변수(`PR_TITLE`, `PR_BODY`)로 받는다. 워크플로는 `${{ }}`를 `run:`에 직접 넣지 않고 `env:`로 넘긴다. 스크립트 주입을 막기 위해서다.
 - 권한은 `permissions: contents: read`만 준다. 비밀값은 쓰지 않는다. `pull_request_target`은 쓰지 않는다. 그래서 fork에서 온 PR도 쓰기 권한이나 비밀값에 닿지 못한다.
 - 외부 Action은 전체 커밋 SHA로 고정한다. 이미지를 digest로 고정하는 불변식과 같은 원칙이다.

@@ -13,6 +13,7 @@ readonly TITLE_PATTERN='^(feat|fix|refactor|docs|test|chore|perf|ci): [^ ]'
 readonly ASSISTED_BY_PATTERN='^(claude-code|codex|antigravity|gemini-cli) [^ ]+$'
 readonly PLAN_PATTERN='^([0-9]{2}|none)$'
 readonly FORBIDDEN_TRAILERS="Co-authored-by Signed-off-by"
+readonly SESSION_LINK_PATTERN='claude.ai/code/session'
 
 PROBLEMS=""
 
@@ -65,6 +66,8 @@ main() {
     [[ -z "$(trailer_values "$key" "$trailers")" ]] \
       || add_problem "the PR body must not carry '$key': the squash commit would carry it"
   done
+  [[ "${PR_BODY:-}" != *"$SESSION_LINK_PATTERN"* ]] \
+    || add_problem "the PR body must not carry a Claude Code session link: the squash commit would publish it"
   if [[ -n "$PROBLEMS" ]]; then
     printf 'PR rule violations:\n%s' "$PROBLEMS" >&2
     exit 1

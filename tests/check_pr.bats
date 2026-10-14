@@ -66,11 +66,13 @@ Plan: 09" run "$CHECK"
   assert_output --partial "trailer 'Plan: 08,09' must be"
 }
 
-@test "rejects Co-authored-by and Signed-off-by in the body because the squash commit would carry them" {
+@test "rejects Co-authored-by, Signed-off-by and Claude Code session links in the body because the squash commit would carry them" {
   PR_TITLE="feat: x" PR_BODY="$GOOD_BODY
 Co-authored-by: Bot <bot@example.com>
-Signed-off-by: Bot <bot@example.com>" run "$CHECK"
+Signed-off-by: Bot <bot@example.com>
+Claude-Session: https://claude.ai/code/session_0123456789" run "$CHECK"
   assert_failure
+  assert_output --partial "must not carry a Claude Code session link"
   assert_output --partial "must not carry 'Co-authored-by'"
   assert_output --partial "must not carry 'Signed-off-by'"
 }
