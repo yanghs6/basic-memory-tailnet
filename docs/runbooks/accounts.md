@@ -84,4 +84,4 @@ Settings → **Keys** → **Generate auth key**:
 
 ## 6. GitHub
 
-저장소는 개인 계정 `yanghs6`의 공개 저장소 `basic-memory-tailnet`입니다. 에이전트는 따로 만든 머신 계정 `yangtestdev`로 push하고 PR을 엽니다. 승인과 병합은 개인 계정으로만 합니다. 머신 계정 만들기, 토큰 등록, 저장소 설정은 [GitHub 런북](github.md)에 있습니다.
+저장소는 개인 계정 `yanghs6`의 공개 저장소 `basic-memory-tailnet`입니다. 에이전트는 따로 만든 머신 계정 `yanghs6-bot`으로 push하고 PR을 엽니다. 승인과 병합은 개인 계정으로만 합니다. 머신 계정 만들기, 토큰 등록, 저장소 설정은 [GitHub 런북](github.md)에 있습니다.

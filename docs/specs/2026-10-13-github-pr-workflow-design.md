@@ -59,11 +59,11 @@
 | 계정 | 하는 일 | 권한 |
 |---|---|---|
 | `yanghs6` (사람) | PR 승인, Squash and merge, 저장소 설정과 ruleset 관리 | 소유자 |
-| 머신 계정 (이름은 Open question 5) | 모든 에이전트가 함께 쓴다. 브랜치 push, 초안 PR 생성, 리뷰 결과 코멘트 | 이 저장소의 Write 협업자 |
+| 머신 계정 `yanghs6-bot` | 모든 에이전트가 함께 쓴다. 브랜치 push, 초안 PR 생성, 리뷰 결과 코멘트 | 이 저장소의 Write 협업자 |
 
 - 어느 도구와 모델이 작업했는지는 계정이 아니라 커밋과 PR의 `Assisted-by` 트레일러로 구분한다.
 - 머신 계정의 토큰은 classic PAT이고, 범위는 `public_repo`와 `workflow`, 만료는 90일이다. `workflow`는 `.github/workflows/`를 바꾸는 push에 필요하다. classic PAT 자체는 저장소 단위로 제한되지 않는다. 실제 범위는 머신 계정이 가진 권한으로 정해진다. 그래서 머신 계정에는 이 저장소 말고 다른 저장소 권한을 추가하지 않고, 머신 계정으로 저장소를 만들지도 않는다.
-- 토큰은 사용자가 자기 터미널에서 대화형 `gh auth login`의 토큰 붙여넣기 프롬프트로 등록하고(키체인 보관), `gh auth setup-git`으로 git push 인증을 연결한다. 토큰을 채팅, 파일, 명령 인자, 파이프에 넣지 않는다. Tailscale 인증 키와 같은 규칙이다.
+- 토큰은 사용자가 자기 터미널에서 대화형 `gh auth login`의 토큰 붙여넣기 프롬프트로 등록하고(키체인 보관), git push 인증은 사용자가 이 저장소에만 credential helper `!gh auth git-credential`을 설정해 연결한다(`docs/runbooks/github.md` 1절). 토큰을 채팅, 파일, 명령 인자, 파이프에 넣지 않는다. Tailscale 인증 키와 같은 규칙이다.
 - 커밋 작성자(`git config user.*`)는 지금처럼 사용자다. push하는 계정과 PR 작성자만 머신 계정이다.
 - 사용자가 관리자 권한으로 `gh`를 써야 하면(ruleset 적용 등) 머신 계정과 섞이지 않도록 별도 설정 디렉터리를 쓴다(`GH_CONFIG_DIR`).
 
@@ -254,4 +254,4 @@ git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 2. (결정됨, 2026-10-13) VM IP는 감춘다. VM 외부 IP는 어떤 커밋에도 없다. Tailscale IP가 있는 `plan/05-vm-rollout`은 11절의 예외 절차로 공개한다.
 3. GitHub squash 커밋의 작성자가 PR 작성자(머신 계정)인지, 그리고 커밋 작성자(사용자)를 `Co-authored-by`로 자동으로 붙이는지 확인해야 한다. 계획 08의 첫 PR로 확인한 뒤 `check-pr.sh`의 허용 범위를 정한다.
 4. 공개 저장소에서 GitHub Free로 저장소 단위 secret scanning과 push protection을 켤 수 있는지 계획 08에서 확인한다.
-5. 머신 계정 이름(예: `yanghs6-bot`)과 연락용 이메일
+5. (결정됨, 2026-10-14) 머신 계정은 `yanghs6-bot`이다.

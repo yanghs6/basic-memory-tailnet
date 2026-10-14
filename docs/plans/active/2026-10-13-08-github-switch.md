@@ -894,3 +894,4 @@ git push
 | 2026-10-14 | Verified | Task 4 Step 1: PR #1의 `check`와 `pr-rules`가 `254b0fc`(1m10s, 4s)와 `a71b574`(58s, 4s)에서 모두 pass다. 외부 앱 GitGuardian의 check도 붙지만 필수 체크는 아니다. |
 | 2026-10-14 | Verified | Task 4 Step 2 (스펙 2절 Assumption 해소): 본문 끝에 `Thanks for reviewing.` 문단을 붙이자 같은 head `a71b574`에서 `pr-rules`가 다시 돌고 실패했다(run 38500200654, `missing trailer` 2건). 원래 본문으로 되돌리자 다시 돌고 pass했다(run 38500240664). `edited`는 본문 수정으로 발생한다. |
 | 2026-10-14 | Verified | Task 4 Step 3: `curl -sS https://api.github.com/repos/yanghs6/basic-memory-tailnet/commits/a71b574.../check-runs`의 결과는 `check 15368 github-actions`, `pr-rules 15368 github-actions`다. `main.json`의 `integration_id`는 그대로 둔다. |
+| 2026-10-14 | Verified | 머신 계정 이름이 `yanghs6-bot`으로 바뀌었다. `gh api user`와 PR #1 작성자가 `yanghs6-bot`이고, `GET /users/yangtestdev`는 404다. 런북 두 곳을 고쳤다. 위 행의 `yangtestdev`는 당시 이름이다. |
