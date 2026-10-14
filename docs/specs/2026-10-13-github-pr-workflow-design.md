@@ -1,6 +1,6 @@
 # GitHub PR 기반 에이전트 Git 워크플로 — 설계
 
-- 상태: 초안 (2026-10-13), 사용자 검토 대기
+- 상태: 승인됨 (2026-10-13). 구현: 계획 08, 09
 - 대체 범위: [에이전트 기반 Git·리뷰 정책](2026-10-07-git-review-policy-design.md)의 3절 중 브랜치 기준점, 4절의 병합 트레일러, 5절의 리뷰 기록 위치, 6절 전체. 나머지(브랜치 이름, worktree, 커밋 트레일러, 리뷰어 배정, 심각도)는 그 문서가 계속 정본이다.
 - 근거 조사: [에이전트 개발 오픈소스의 git 전략](../research/2026-10-13-agent-oss-git-strategies.md)
 - 적용 시점: 계획 08을 병합한 때부터. 그 전에 병합하는 브랜치는 기존 정책을 따른다.
@@ -189,7 +189,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
 | 1 | 사람 | 머신 계정을 만들고 이 저장소에 Write 협업자로 초대한다. classic PAT를 발급해 3절대로 등록한다 |
 | 2 | 사람 | 공개 전 점검(11절) 뒤 main 체크아웃에서 `git remote add origin https://github.com/yanghs6/basic-memory-tailnet.git`, `git fetch origin`, `git merge --allow-unrelated-histories origin/main`, `git push -u origin main`을 실행한다. force push를 쓰지 않으므로 원격의 `LICENSE` 커밋이 보존된다 |
 | 3 | 에이전트 | 계획 08을 GitHub의 첫 PR로 진행한다. 이때 ruleset은 아직 적용하지 않는다 |
-| 4 | 사람 | 계획 08을 병합한 뒤 7절의 저장소 설정과 ruleset을 적용한다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 한다. 그 전에 걸면 어떤 PR도 병합할 수 없다 |
+| 4 | 사람 | 계획 08을 병합하기 전에 7절의 저장소 설정을, 병합한 뒤에 ruleset을 적용한다. 저장소 설정 전의 squash 메시지 기본값은 커밋 메시지 목록이라, 먼저 병합하면 브랜치 커밋 메시지가 `main`에 남는다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 한다. 그 전에 걸면 어떤 PR도 병합할 수 없다 |
 | 5 | 에이전트 | 계획 09를 새 흐름으로 진행한다 |
 
 계획 08은 `plan/06-test-pruning`이 병합된 뒤에 시작한다. 계획 06이 `tests/`를 정리하고 있어서 테스트 파일이 충돌할 수 있었기 때문이다. 계획 06은 2026-10-13에 `c10fb5c`로 병합됐으므로, 이 조건은 이미 충족됐다.

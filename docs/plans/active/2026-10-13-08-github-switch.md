@@ -876,9 +876,10 @@ git push
   - 두 리포트를 PR 코멘트로 게시하고 Review record 코멘트를 만든다.
 - [ ] 지적을 검증하고 고친다. 2회차까지만 돈다.
 - [ ] CI가 통과하고 Review record에 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고, 사용자에게 PR 번호를 알린다.
+- [ ] **사람:** 병합 전에 `docs/runbooks/github.md` 4-1절의 저장소 설정을 적용하고, 확인 명령에서 `PR_TITLE`, `PR_BODY`, `true`, `false`, `false`를 본다.
 - [ ] **사람:** Approve 후 Squash and merge를 누른다.
-- [ ] **사람:** `docs/runbooks/github.md` 4절의 저장소 설정과 ruleset을 적용하고, 공개 API로 규칙 5개를 확인한다. 스펙 Open question 4(secret scanning)의 결과는 계획 09의 첫 커밋에서 Progress log에 적는다.
-- [ ] **사람:** main 체크아웃에서 `git pull --ff-only`를 실행한다. 에이전트는 git-workflow 스킬의 Clean up 절로 worktree를 정리한다.
+- [ ] **사람:** 병합 뒤에 `docs/runbooks/github.md` 4-2절을 따른다. main 체크아웃을 갱신하고, check-run 출력을 확인하고, ruleset을 적용한 뒤 공개 API로 규칙 5개를 확인한다. 스펙 Open question 4(secret scanning)의 결과는 계획 09의 첫 커밋에서 Progress log에 적는다.
+- [ ] 에이전트는 git-workflow 스킬의 Clean up 절로 worktree를 정리한다.
 - [ ] squash 커밋의 작성자와 `Co-authored-by` 자동 추가 여부(스펙 Open question 3)를 확인한다. 명령은 `git log -1 --format='%an <%ae>%n%b' origin/main`이고, 결과는 계획 09의 첫 커밋에서 기록한다.
 
 ## Progress log

@@ -49,23 +49,44 @@ git push -u origin main
 
 ## 4. 저장소 설정과 ruleset
 
-계획 08의 PR이 병합된 **뒤에** 적용합니다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 합니다. 그 전에 걸면 어떤 PR도 병합할 수 없습니다.
+두 번에 나눠 적용합니다. 저장소 설정은 계획 08의 PR을 병합하기 **전에**, ruleset은 병합한 **뒤에** 적용합니다. 저장소 설정 전의 squash 메시지 기본값은 커밋 메시지 목록(`COMMIT_MESSAGES`)이라, 그대로 병합하면 브랜치 커밋 메시지가 `main`에 남습니다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 합니다. 그 전에 걸면 어떤 PR도 병합할 수 없습니다.
+
+### 4-1. 병합 전: 저장소 설정
 
 ```bash
 export GH_CONFIG_DIR="$HOME/.config/gh-yanghs6"
 R=repos/yanghs6/basic-memory-tailnet
 gh api -X PATCH "$R" -F allow_squash_merge=true -F allow_merge_commit=false -F allow_rebase_merge=false \
   -F allow_auto_merge=false -F delete_branch_on_merge=true -f squash_merge_commit_title=PR_TITLE -f squash_merge_commit_message=PR_BODY
+gh api -X PATCH "$R" -f 'security_and_analysis[secret_scanning][status]=enabled' -f 'security_and_analysis[secret_scanning_push_protection][status]=enabled'
 gh api -X PUT "$R/actions/permissions/workflow" -f default_workflow_permissions=read -F can_approve_pull_request_reviews=false
 gh api -X PUT "$R/actions/permissions/fork-pr-contributor-approval" -f approval_policy=all_external_contributors
-gh api -X PATCH "$R" -f 'security_and_analysis[secret_scanning][status]=enabled' -f 'security_and_analysis[secret_scanning_push_protection][status]=enabled'
-gh api "$R/commits/<계획 08 PR의 head SHA>/check-runs" --jq '.check_runs[] | "\(.name) \(.app.id) \(.app.slug)"'
+unset GH_CONFIG_DIR
+```
+
+- secret scanning 명령이 실패하면(플랜이 지원하지 않음) 그 사실을 Progress log에 적습니다. 이때는 계정 단위 push protection(기본 켜짐)에 맡깁니다.
+- 확인은 접근 권한이 있는 누구나 할 수 있습니다.
+
+```bash
+gh api repos/yanghs6/basic-memory-tailnet --jq '{squash_merge_commit_title, squash_merge_commit_message, delete_branch_on_merge, allow_merge_commit, allow_rebase_merge}'
+```
+
+Expected: `PR_TITLE`, `PR_BODY`, `true`, `false`, `false`
+
+### 4-2. 병합 후: ruleset
+
+```bash
+cd <main 체크아웃>
+git pull --ff-only
+export GH_CONFIG_DIR="$HOME/.config/gh-yanghs6"
+R=repos/yanghs6/basic-memory-tailnet
+gh api "$R/commits/<병합 전 PR의 마지막 head SHA>/check-runs" --jq '.check_runs[] | "\(.name) \(.app.id) \(.app.slug)"'
 gh api -X POST "$R/rulesets" --input .github/rulesets/main.json
 unset GH_CONFIG_DIR
 ```
 
+- ruleset 파일(`.github/rulesets/main.json`)은 병합한 뒤에야 main 체크아웃에 들어오므로 먼저 `git pull --ff-only`를 합니다.
 - check-run 명령의 출력은 `check 15368 github-actions`, `pr-rules 15368 github-actions` 형태여야 합니다. 앱 ID가 15368이 아니면 `main.json`의 `integration_id`를 고치는 PR을 먼저 병합합니다.
-- secret scanning 명령이 실패하면(플랜이 지원하지 않음) 그 사실을 Progress log에 적습니다. 이때는 계정 단위 push protection(기본 켜짐)에 맡깁니다.
 - 확인은 로그인 없이 공개 API로 합니다.
 
 ```bash
