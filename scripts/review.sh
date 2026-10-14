@@ -184,7 +184,7 @@ main() {
   mv "$diff_out$PARTIAL_SUFFIX" "$diff_out"
   mv "$plan_out$PARTIAL_SUFFIX" "$plan_out"
   log "reviews written: $diff_out and $plan_out"
-  log "Next: verify each finding, then record them in docs/reviews/$slug.md (format: docs/reviews/README.md)"
+  log "Next: verify each finding, then post both reports and the Review record to the PR (git-workflow skill, Review)"
 }
 
 main "$@"
