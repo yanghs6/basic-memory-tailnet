@@ -73,7 +73,7 @@ VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 �
    `direction`이 `INGRESS`, `disabled`가 `False`이면서 소스가 `10.128.0.0/9`가 아닌 행이 없어야 합니다(`default-allow-ssh`는 부트스트랩이 끝나면 지워져 있어야 함). **Assumption:** 기본 `default` 네트워크 하나만 쓰는 프로젝트입니다.
 2. Tailscale admin console → Access controls의 정책 `nodeAttrs`에 **`"funnel"`이 없는지** 확인합니다.
 
-스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@agent-hub sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다. **Assumption (계획 05에서 확인):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=agent-hub`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다. 또한 **Assumption (계획 05에서 확인):** `serve --bg`가 443의 Funnel 플래그는 지우지만 다른 포트의 것은 지우지 않을 수 있습니다. 그 경우 `ssh ubuntu@agent-hub sudo tailscale serve reset`을 사용자 OK 후에 실행합니다.
+스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@agent-hub sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다. **Verified (2026-10-13, 계획 05 Step 14):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=agent-hub`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 노드가 이미 tailnet에 있으면 키 프롬프트에 아무것도 넣지 않고 Enter만 누릅니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다. 또한 **Verified (2026-10-13, Tailscale v1.104.1 소스 `cmd/tailscale/cli/serve_v2.go`의 `applyFunnel`):** `serve --bg`는 자기가 설정하는 포트(443)의 Funnel만 끄고(`Removing Funnel for ...` 출력) 다른 포트의 Funnel은 그대로 둡니다. 그래서 `tailscale funnel status`에 443 말고 다른 포트의 Funnel이 남아 있으면 `ssh ubuntu@agent-hub sudo tailscale serve reset`을 사용자 OK 후에 실행하고, Serve를 다시 설정합니다.
 
 ## 비용 점검
 
@@ -93,3 +93,4 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다. 외부 IP
 
 | 날짜 | VPC 밖 소스를 허용하는 인바운드 규칙 수 | 정책 funnel 속성 | `make verify` | 점검자 |
 |---|---|---|---|---|
+| 2026-10-13 | 0 (`default-allow-ssh` 삭제 후 `default-allow-internal` `10.128.0.0/9`만 남음) | 없음: 2026-10-12에 사용자가 붙여 준 정책 JSON의 `nodeAttrs`에 없음, 2026-10-13 VM 노드 `CapMap`에 funnel 권한 없음 | 통과 (MCP 왕복, 127.0.0.1 바인딩, Serve tailnet only, 22·80·443·8737 차단) | claude-code, 사용자 |
