@@ -1,38 +1,41 @@
 # Review and merge
 
-The phases after the last task commit, in order. Policy: docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md, sections 5 and 6.
+The phases after the last task commit, in order. Policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, sections 8 and 9.
 
-## Hand off for review
+## Review
 
-1. Move a finished plan to `docs/plans/completed/` (commit with `Task: none`).
+1. Move a finished plan to `docs/plans/completed/` (commit with `Task: none`) and push.
 2. Ask the other vendor to review; never review your own branch:
    - you are Claude Code: `make review BRANCH=<branch> REVIEWER=codex` (runs `codex exec review` with `-c 'sandbox_mode="read-only"'`; never use a writable sandbox)
    - you are Codex, Antigravity or Gemini: `make review BRANCH=<branch> REVIEWER=claude`
+   The base is `origin/main`.
 3. `make review` starts `codex` or `claude`, which need network access: run it where they can reach the network, outside the sandbox of the agent that calls it. If your sandbox blocks the network, ask the human to run the command.
-4. `make review` logs the exact report paths. The raw reviews are in the main checkout's `.review-out/` (`<main checkout>/.review-out/<branch-slug>-r<round>-<reviewer>-diff.md` and `-plan.md`), not in your worktree. Copy the findings into `docs/reviews/<branch-slug>.md` using `docs/reviews/README.md`, and commit with `Task: review`.
+4. Post both raw reports to the pull request, one comment each: `gh pr comment <PR> --body-file <report>` for the `-diff.md` and `-plan.md` files that `make review` logs (in the main checkout's `.review-out/`). Put a first line above each report: `Agent review R<round>: <reviewer tool> <model>, base <sha>, reviewed head <sha>`. Before posting, check both reports for the VM's IP addresses and session ids and mask them, because the pull request is public.
+5. Keep one "Review record" comment on the pull request: a table with the columns ID (`R1-F3`), Sev, Location, Summary and Status, where Status is `open`, `fixed <sha>`, `rejected <evidence>` or `deferred <human's reason>`. Create it with `gh pr comment <PR> --body-file <file>` and edit that comment on GitHub when a status changes.
 
 ## Fix findings
 
 1. Verify each finding before acting: reproduce it or cite the code. Mark unfounded ones `rejected <evidence>`.
-2. Fix accepted findings one commit each, with `--trailer "Review-Finding: R<round>-F<n>"`, and set their status to `fixed <sha>`.
-3. If anything changed, run round 2 on the new commits only: `make review BRANCH=<branch> REVIEWER=<same> ROUND=2 REVIEW_BASE=<reviewed head sha>`. After round 2, leave any remaining disagreement to the human.
+2. Fix accepted findings one commit each, with `--trailer "Review-Finding: R<round>-F<n>"`, push, and set their status to `fixed <sha>`.
+3. If anything changed, run round 2 on the new commits only: `make review BRANCH=<branch> REVIEWER=<same> ROUND=2 REVIEW_BASE=<reviewed head sha>`, and post it like round 1. If you merged `origin/main` after the reviewed head, run `git fetch origin` and use `REVIEW_BASE=origin/main` instead, because a range across the merge pulls `main`'s commits into the review. After round 2, leave any remaining disagreement to the human.
 
-## Prepare the merge (only the human merges)
+## Keep the branch current
 
-Follow the spec, section 6, in this order:
+When GitHub says the branch is out of date with `main` (the required checks are strict):
 
-1. Check the record: no open P0/P1, and every deferred P2 carries the human's reason.
-2. Check the head: `git log --oneline <reviewed head>..<branch>` lists only the recorded fix and review-record commits, where `<reviewed head>` is the head of the last review round. `make check` and `make check-git` pass.
-3. Write the merge message to the main checkout's `.review-out/merge-<branch-slug>.txt`, next to the raw reviews (if your sandbox cannot write there, use another path and give it to the human):
+1. `git fetch origin`, then `git merge origin/main` and resolve any conflicts. Never rebase or force-push.
+2. `make check`, then push. The push dismisses the approval and re-runs CI.
+3. If resolving conflicts changed code after the review, say what changed in a pull request comment and have the other vendor review the pull request again against the new `main`: `git fetch origin`, then `make review BRANCH=<branch> REVIEWER=<same> ROUND=<next> REVIEW_BASE=origin/main`. A `<previous head>..` range would include the commits that came in from `main`.
+4. The human never presses Update branch: the last push must come from the machine account, or the human cannot approve it (last-push approval in the ruleset).
 
-   ```
-   Merge <branch>
+## Hand the pull request to the human
 
-   Reviewed-by: <human>
-   Review-Agent: <reviewer tool> <model>
-   Review-Record: docs/reviews/<branch-slug>.md
-   Reviewed-Head: <head of the last review round>
-   ```
+1. Check: CI passes; the Review record has no open P0/P1; every deferred P2 carries the human's reason.
+2. Run `gh pr ready <PR>` and tell the human the pull request number. The human approves and squash-merges; never merge yourself.
 
-   Ask the human to run, from the main checkout: `git merge --no-ff <branch> -F .review-out/merge-<branch-slug>.txt` (or the path you gave).
-4. After the merge, the human cleans up. `git worktree remove` deletes ignored files such as `backups/` and `.env` without any warning, so first run `ls <your worktree>/backups <your worktree>/.env` and move any archive into the main checkout's `backups/` (never overwrite a file there), then run `git worktree remove <your worktree>` and `git branch -d <branch>`.
+## Clean up
+
+After `gh pr view <PR> --json state` shows `MERGED`:
+
+1. `git worktree remove` deletes ignored files such as `backups/` and `.env` without any warning, so first run `ls <your worktree>/backups <your worktree>/.env` and move any archive into the main checkout's `backups/` (never overwrite a file there), then run `git worktree remove <your worktree>` and `git branch -D <branch>` (`-d` refuses a squash-merged branch). GitHub deletes the remote branch.
+2. The human updates the main checkout with `git pull --ff-only`.

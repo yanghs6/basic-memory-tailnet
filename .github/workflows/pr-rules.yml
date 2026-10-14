@@ -1,0 +1,31 @@
+# Branch name, commit trailers, and the PR title and body that become the squash commit
+# (docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, section 6). Runs again when the title or body is edited.
+name: pr-rules
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  pr-rules:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Branch name and commit trailers
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: git switch --quiet -c "$HEAD_REF" && scripts/check-git.sh origin/main "$HEAD_REF"
+      - name: PR title and trailers
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: scripts/check-pr.sh

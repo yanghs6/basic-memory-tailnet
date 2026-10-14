@@ -12,6 +12,7 @@
 - macOS + Docker Desktop (실행 중이어야 함), `make`
 - `ssh`, `curl`, `nc`, `git` (macOS 기본 포함)와 `jq` (`brew install jq`)
 - 교차 리뷰(`make review`)를 쓸 때만: 리뷰어 CLI인 `codex` 또는 `claude`
+- 에이전트 작업을 PR로 올릴 때: GitHub CLI `gh`(머신 계정으로 로그인, [GitHub 런북](docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md))
 - VM 작업용:
   - Tailscale 앱 설치·로그인과 `tailscale` 명령(`tailscale version`으로 확인, [accounts 런북](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md))
   - Google Cloud SDK(`gcloud`)와 개인 계정용 설정 `bm-personal` ([accounts 1단계](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md)). 스크립트는 gcloud를 쓰지 않고 런북의 사람 작업에만 씁니다.

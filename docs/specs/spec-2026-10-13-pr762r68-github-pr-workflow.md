@@ -1,6 +1,6 @@
 # GitHub PR 기반 에이전트 Git 워크플로 — 설계
 
-- 상태: 초안 (2026-10-13), 사용자 검토 대기
+- 상태: 승인됨 (2026-10-13). 구현: [github-switch](../plans/plan-2026-10-13-k93wjt1a-github-switch.md), [review-posting](../plans/plan-2026-10-13-znbc3ase-review-posting.md) 계획
 - 대체 범위: [에이전트 기반 Git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)의 3절 중 브랜치 기준점, 4절의 병합 트레일러, 5절의 리뷰 기록 위치, 6절 전체. 나머지(브랜치 이름, worktree, 커밋 트레일러, 리뷰어 배정, 심각도)는 그 문서가 계속 정본이다.
 - 근거 조사: [에이전트 개발 오픈소스의 git 전략](../research/rsch-2026-10-13-djx2fzm5-agent-oss-git-strategies.md)
 - 적용 시점: [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)을 병합한 때부터. 그 전에 병합하는 브랜치는 기존 정책을 따른다.
@@ -59,11 +59,11 @@
 | 계정 | 하는 일 | 권한 |
 |---|---|---|
 | `yanghs6` (사람) | PR 승인, Squash and merge, 저장소 설정과 ruleset 관리 | 소유자 |
-| 머신 계정 (이름은 Open question 5) | 모든 에이전트가 함께 쓴다. 브랜치 push, 초안 PR 생성, 리뷰 결과 코멘트 | 이 저장소의 Write 협업자 |
+| 머신 계정 `yanghs6-bot` | 모든 에이전트가 함께 쓴다. 브랜치 push, 초안 PR 생성, 리뷰 결과 코멘트 | 이 저장소의 Write 협업자 |
 
 - 어느 도구와 모델이 작업했는지는 계정이 아니라 커밋과 PR의 `Assisted-by` 트레일러로 구분한다.
 - 머신 계정의 토큰은 classic PAT이고, 범위는 `public_repo`와 `workflow`, 만료는 90일이다. `workflow`는 `.github/workflows/`를 바꾸는 push에 필요하다. classic PAT 자체는 저장소 단위로 제한되지 않는다. 실제 범위는 머신 계정이 가진 권한으로 정해진다. 그래서 머신 계정에는 이 저장소 말고 다른 저장소 권한을 추가하지 않고, 머신 계정으로 저장소를 만들지도 않는다.
-- 토큰은 사용자가 자기 터미널에서 대화형 `gh auth login`의 토큰 붙여넣기 프롬프트로 등록하고(키체인 보관), `gh auth setup-git`으로 git push 인증을 연결한다. 토큰을 채팅, 파일, 명령 인자, 파이프에 넣지 않는다. Tailscale 인증 키와 같은 규칙이다.
+- 토큰은 사용자가 자기 터미널에서 대화형 `gh auth login`의 토큰 붙여넣기 프롬프트로 등록하고(키체인 보관), git push 인증은 사용자가 이 저장소에만 credential helper `!gh auth git-credential`을 설정해 연결한다(`docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md` 1절). 토큰을 채팅, 파일, 명령 인자, 파이프에 넣지 않는다. Tailscale 인증 키와 같은 규칙이다.
 - 커밋 작성자(`git config user.*`)는 지금처럼 사용자다. push하는 계정과 PR 작성자만 머신 계정이다.
 - 사용자가 관리자 권한으로 `gh`를 써야 하면(ruleset 적용 등) 머신 계정과 섞이지 않도록 별도 설정 디렉터리를 쓴다(`GH_CONFIG_DIR`).
 
@@ -115,6 +115,7 @@ Plan: k93wjt1a
   - 본문 마지막 문단에 `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>`이 한 줄 이상 있는가.
   - `Plan: <NN|none>`이 있는가.
   - `Co-authored-by`와 `Signed-off-by`가 없는가. GitHub이 자동으로 붙이는 줄은 예외로 할 수 있다(Open question 3).
+  - Claude Code 세션 링크(`claude.ai/code/session`)가 없는가. squash 병합으로 `main`에 공개되기 때문이다.
   - 입력은 환경변수(`PR_TITLE`, `PR_BODY`)로 받는다. 워크플로는 `${{ }}`를 `run:`에 직접 넣지 않고 `env:`로 넘긴다. 스크립트 주입을 막기 위해서다.
 - 권한은 `permissions: contents: read`만 준다. 비밀값은 쓰지 않는다. `pull_request_target`은 쓰지 않는다. 그래서 fork에서 온 PR도 쓰기 권한이나 비밀값에 닿지 못한다.
 - 외부 Action은 전체 커밋 SHA로 고정한다. 이미지를 digest로 고정하는 불변식과 같은 원칙이다.
@@ -168,7 +169,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
 2. **브랜치 갱신:** 다른 PR이 먼저 병합돼 PR 브랜치가 최신 `main`을 포함하지 않으면, strict 필수 체크 때문에 병합이 막힌다. 이때 작성 에이전트가 다음 순서로 갱신한다. 이력 재작성 금지를 지키기 위해 rebase나 force push는 쓰지 않는다.
    1. `git fetch origin` 후 `git merge origin/main`으로 PR 브랜치에 main을 합친다. 충돌이 나면 해결한다.
    2. `make check`를 통과시키고 push한다. 새 push로 기존 승인은 무효가 되고 CI가 다시 돈다.
-   3. 충돌 해결로 코드가 바뀌었으면 PR 코멘트에 그 내용을 적는다. 다른 벤더 리뷰를 이미 마쳤다면, 변경분(`<직전 head>..HEAD`)만 리뷰를 다시 받는다. 충돌 없이 합쳐졌으면 CI와 사람의 재승인으로 충분하다.
+   3. 충돌 해결로 코드가 바뀌었으면 PR 코멘트에 그 내용을 적는다. 다른 벤더 리뷰를 이미 마쳤다면, 새 `origin/main`을 기준으로 PR 전체의 리뷰를 다시 받는다(`REVIEW_BASE=origin/main`). `<직전 head>..HEAD` 범위로 받으면 `main`에서 들어온 커밋이 섞이기 때문이다. 충돌 없이 합쳐졌으면 CI와 사람의 재승인으로 충분하다.
    4. 사람이 다시 승인한다. 사람은 GitHub의 "Update branch"를 누르지 않는다. 누르면 마지막 push가 사람의 것이 되고, ruleset의 마지막 push 승인 규칙 때문에 그 사람은 PR을 승인할 수 없다.
 
    병합 커밋에는 트레일러가 없지만, `check-git.sh`는 `--no-merges`로 병합 커밋을 검사에서 뺀다.
@@ -188,7 +189,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
 | 1 | 사람 | 머신 계정을 만들고 이 저장소에 Write 협업자로 초대한다. classic PAT를 발급해 3절대로 등록한다 |
 | 2 | 사람 | 공개 전 점검(11절) 뒤 main 체크아웃에서 `git remote add origin https://github.com/yanghs6/basic-memory-tailnet.git`, `git fetch origin`, `git merge --allow-unrelated-histories origin/main`, `git push -u origin main`을 실행한다. force push를 쓰지 않으므로 원격의 `LICENSE` 커밋이 보존된다 |
 | 3 | 에이전트 | [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)을 GitHub의 첫 PR로 진행한다. 이때 ruleset은 아직 적용하지 않는다 |
-| 4 | 사람 | [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)을 병합한 뒤 7절의 저장소 설정과 ruleset을 적용한다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 한다. 그 전에 걸면 어떤 PR도 병합할 수 없다 |
+| 4 | 사람 | [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)을 병합하기 전에 7절의 저장소 설정을, 병합한 뒤에 ruleset을 적용한다. 저장소 설정 전의 squash 메시지 기본값은 커밋 메시지 목록이라, 먼저 병합하면 브랜치 커밋 메시지가 `main`에 남는다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 한다. 그 전에 걸면 어떤 PR도 병합할 수 없다 |
 | 5 | 에이전트 | [review-posting 계획](../plans/plan-2026-10-13-znbc3ase-review-posting.md)을 새 흐름으로 진행한다 |
 
 [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)은 `plan/g57mry4b-test-pruning`이 병합된 뒤에 시작한다. [test-pruning 계획](../plans/plan-2026-10-13-g57mry4b-test-pruning.md)이 `tests/`를 정리하고 있어서 테스트 파일이 충돌할 수 있었기 때문이다. test-pruning 계획은 2026-10-13에 `1b333af`로 병합됐으므로, 이 조건은 이미 충족됐다.
@@ -253,4 +254,4 @@ git log -p <ref> | grep -cF '<실제 VM IP 또는 GCP 프로젝트 ID>'
 2. (결정됨, 2026-10-13) VM IP는 감춘다. VM 외부 IP는 어떤 커밋에도 없다. Tailscale IP가 있는 `plan/qtvzskgx-vm-rollout`은 11절의 예외 절차로 공개한다.
 3. GitHub squash 커밋의 작성자가 PR 작성자(머신 계정)인지, 그리고 커밋 작성자(사용자)를 `Co-authored-by`로 자동으로 붙이는지 확인해야 한다. [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)의 첫 PR로 확인한 뒤 `check-pr.sh`의 허용 범위를 정한다.
 4. 공개 저장소에서 GitHub Free로 저장소 단위 secret scanning과 push protection을 켤 수 있는지 [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)에서 확인한다.
-5. 머신 계정 이름(예: `yanghs6-bot`)과 연락용 이메일
+5. (결정됨, 2026-10-14) 머신 계정은 `yanghs6-bot`이다.
