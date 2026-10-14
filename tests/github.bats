@@ -10,7 +10,11 @@ setup() {
   local file files bad=""
   files="$(find "$WORKFLOWS" -name '*.yml' 2>/dev/null | sort)"
   [[ -n "$files" ]] || fail "no workflows under .github/workflows"
+  [[ -z "$(find "$WORKFLOWS" -name '*.yaml')" ]] || fail "use .yml for workflows: the tests read only *.yml"
   while IFS= read -r file; do
+    ! grep -qE '^    name:' "$file" || bad="$bad $(basename "$file")(job name: it renames the check-run and breaks the required checks)"
+    ! grep -qE '^ +[a-z-]+: write' "$file" || bad="$bad $(basename "$file")(write permission)"
+    ! grep -qE '^    permissions:' "$file" || bad="$bad $(basename "$file")(job-level permissions)"
     grep -qx 'permissions:' "$file" && grep -qx '  contents: read' "$file" || bad="$bad $(basename "$file")(permissions)"
     ! grep -q 'pull_request_target' "$file" || bad="$bad $(basename "$file")(pull_request_target)"
     ! grep -E 'uses: ' "$file" | grep -vqE 'uses: [^@ ]+@[0-9a-f]{40}( |$)' || bad="$bad $(basename "$file")(action not pinned by SHA)"
@@ -27,8 +31,9 @@ setup() {
     and ((["deletion", "non_fast_forward", "required_linear_history", "pull_request", "required_status_checks"] - [.rules[].type]) == [])
     and (.rules[] | select(.type == "pull_request") | .parameters
       | .required_approving_review_count >= 1 and .dismiss_stale_reviews_on_push and .require_last_push_approval
-        and .allowed_merge_methods == ["squash"])
+        and .required_review_thread_resolution and .allowed_merge_methods == ["squash"])
     and (.rules[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy)
+    and (.rules[] | select(.type == "required_status_checks") | .parameters.required_status_checks | all(.integration_id == 15368))
   ' "$RULESET"
   assert_success
   local required jobs
