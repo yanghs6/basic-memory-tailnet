@@ -102,6 +102,8 @@ plan-02-git-review-tooling-r1-codex-plan.md"
   assert_success
   run test -f "$OUT-r2-claude-diff.md"
   assert_success
+  run cat "$OUT-r2-claude-meta.txt"
+  assert_line "base $reviewed"
   run git branch --list 'review-base/*'
   assert_output ""
 }
