@@ -10,7 +10,7 @@ The phases after the last task commit, in order. Policy: docs/specs/2026-10-13-g
    - you are Codex, Antigravity or Gemini: `make review BRANCH=<branch> REVIEWER=claude`
    The base is `origin/main`.
 3. `make review` starts `codex` or `claude`, which need network access: run it where they can reach the network, outside the sandbox of the agent that calls it. If your sandbox blocks the network, ask the human to run the command.
-4. Post both raw reports to the pull request, one comment each: `gh pr comment <PR> --body-file <report>` for the `-diff.md` and `-plan.md` files that `make review` logs (in the main checkout's `.review-out/`). Put a first line above each report: `Agent review R<round>: <reviewer tool> <model>, base <sha>, reviewed head <sha>`.
+4. Post both raw reports to the pull request, one comment each: `gh pr comment <PR> --body-file <report>` for the `-diff.md` and `-plan.md` files that `make review` logs (in the main checkout's `.review-out/`). Put a first line above each report: `Agent review R<round>: <reviewer tool> <model>, base <sha>, reviewed head <sha>`. Before posting, check both reports for the VM's IP addresses and session ids and mask them, because the pull request is public.
 5. Keep one "Review record" comment on the pull request: a table with the columns ID (`R1-F3`), Sev, Location, Summary and Status, where Status is `open`, `fixed <sha>`, `rejected <evidence>` or `deferred <human's reason>`. Create it with `gh pr comment <PR> --body-file <file>` and edit that comment on GitHub when a status changes.
 
 ## Fix findings

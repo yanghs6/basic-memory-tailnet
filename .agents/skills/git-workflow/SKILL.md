@@ -10,11 +10,11 @@ Policy: docs/specs/2026-10-13-github-pr-workflow-design.md (pull requests, revie
 ## Start
 
 1. Your identity is the literal trailer value `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model id>`, for example `Assisted-by: codex gpt-6.1-sol`. Write it out in every commit command: your shell may not keep exported variables between commands, and an empty trailer can only be repaired by rewriting history.
-2. Run `git fetch origin`, then work in your own worktree on your own branch from `origin/main`: one agent per worktree, one worktree per branch, never the main checkout.
+2. Run `git fetch origin` (it needs the network; if your sandbox blocks it, ask the human to run it), then work in your own worktree on your own branch from `origin/main`: one agent per worktree, one worktree per branch, never the main checkout.
    - Claude Code: start with `claude --worktree <slug>` (it creates `.claude/worktrees/<slug>` from `origin/main`), then `git branch -m plan/NN-slug` or `git branch -m work/slug`.
-   - Codex app: the app already runs you in a detached worktree under `$CODEX_HOME/worktrees`; run `git switch -c plan/NN-slug origin/main` (or `work/slug`) there.
+   - Codex app: the app already runs you in a detached worktree under `$CODEX_HOME/worktrees`; run `git switch -c plan/NN-slug --no-track origin/main` (or `work/slug`) there.
    - Codex CLI, Gemini CLI, Antigravity: they can write only inside the directory they were started in. From any directory of this repo, create the worktree next to the main checkout:
-     `git -C "$(git rev-parse --path-format=absolute --git-common-dir)/.." worktree add ../027_agent_share_poc-wt/<slug> -b plan/NN-slug origin/main`
+     `git -C "$(git rev-parse --path-format=absolute --git-common-dir)/.." worktree add --no-track -b plan/NN-slug ../027_agent_share_poc-wt/<slug> origin/main`
      Then end this session and start the tool again inside that directory (`codex -C <dir>`, `cd <dir> && gemini`, or open the folder in Antigravity); `git worktree list` shows its absolute path.
 3. For a plan, make the first commit move the plan file from `docs/plans/backlog/` to `docs/plans/active/`.
 4. For work that belongs to no plan (an upgrade, a fix, a doc change), use a `work/<slug>` branch and write `Plan: none` and `Task: none` in every commit.
