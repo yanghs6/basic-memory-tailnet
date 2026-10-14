@@ -44,6 +44,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - `.agents/skills/` canonical skills (Codex, Gemini CLI, Antigravity; rules in `tests/skills.bats`); `.claude/skills/<name>` symlinks and `.claude/agents/branch-reviewer.md` for Claude Code.
 - `docs/reviews/` review records (template in its README).
 - `docs/runbooks/` accounts, VM creation, bootstrap, operations (incident log); `docs/decisions/` ADRs.
+- `docs/research/` dated research snapshots (not maintained after their date).
 
 ## Code Review Rules
 Reviewers check only the changes since the base (Codex reads this section; Claude uses the `branch-review` skill):
