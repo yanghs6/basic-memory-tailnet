@@ -19,7 +19,7 @@
 | 공개 차단 | OCI Security List | GCP VPC 방화벽 (`default` 네트워크의 기본 공개 규칙 삭제) | 개인 프로젝트에 이 VM만 있음 |
 | 유휴 회수 | 메모리 20% 경고, 크기 조정 | 없음 | GCP 무료 등급에는 회수 정책이 없음 |
 | 메모리 | 4GB | 1GB + 스왑 파일 1GB (부트스트랩이 만듦) | e2-micro 고정 크기 |
-| 비용 확인 | 없음 | Budget 알림 + 다음 날 SKU별 청구 확인 | 외부 IPv4 과금 여부가 Open question |
+| 비용 확인 | 없음 | Budget 알림 + 다음 날 SKU별 청구 확인 | 외부 IPv4는 유료(월 약 $3.65, §3). 계획 07에서 IPv6로 전환 |
 | `.env`·`backups/` 위치 | 실행한 체크아웃 | 항상 main 체크아웃 | worktree에서 만든 백업이 `git worktree remove`로 조용히 사라짐(계획 04 최종 리뷰 C1) |
 
 ## 1. 목표와 완료 조건
@@ -76,7 +76,7 @@
 - **Verified (tailscale.com/docs/features/tailscale-funnel):** Funnel은 기본 비활성이다. `tailscale funnel`을 승인하면 정책 `nodeAttrs`에 `funnel` 속성이 추가된다.
 - **Verified:** 서버용으로는 사전 승인된 태그 인증 키를 권장한다. `tailscale set --ssh`를 켜면 공인 22번 포트를 닫을 수 있다. Tailscale Personal 요금제는 비상업 용도로 한정된다.
 - **Verified (2026-10-07, 로컬 0.23.2 컨테이너):** `Host: bm-node.example.ts.net` 헤더로 보낸 initialize가 200으로 응답했고 write/read/delete 왕복도 성공했다. 컨테이너 메모리는 212~449 MiB였다(`docker stats`, 임베딩 모델 로드 전후). (당시 기기 이름. 2026-10-12에 `agent-hub`로 바꿈)
-- **Open question:** 회사 Mac을 개인 tailnet에 참여시키는 것이 회사 보안 정책과 Tailscale Personal 약관에 맞는지는 사용자가 확인해야 한다.
+- **Verified (2026-10-13, 사용자 확인):** 회사 보안 정책상 회사 Mac의 Tailscale 사용이 허용된다. 다만 사무실 네트워크가 `controlplane.tailscale.com`의 HTTPS(SNI)만 막아 사무실에서는 tailnet에 들어가지 못한다. 사용자가 네트워크 관리자에게 허용을 요청했다(계획 05 Progress log).
 
 **OCI를 포기한 근거 (2026-10-12)**
 
@@ -85,14 +85,18 @@
 **GCP (2026-10-12)**
 
 - **Verified (docs.cloud.google.com/free/docs/free-cloud-features):** 무료 등급은 "1 non-preemptible e2-micro VM instance per month"(us-west1, us-central1, us-east1), "30 GB-months standard persistent disk", "1 GB of outbound data transfer from North America to all region destinations (excluding China and Australia) per month"다. 결제 계정이 필요하다. 따라서 Spot(preemptible) VM과 balanced 디스크는 무료가 아니다.
-- **Open question:** 외부 IPv4 요금(`External IP Charge on a Standard VM`, $0.005/h, 2024-02-01부터)이 무료 등급에 포함되는지는 공식 문서에 없다. 포럼 답변은 엇갈린다. 완료 조건 5로 확인한다.
+- **Verified (2026-10-13, cloud.google.com/vpc/network-pricing):** 외부 IPv4는 무료 등급에 들지 않는다. "Static and ephemeral IP addresses in use on standard VM instances $0.005 / 1 hour", 무료는 "one hour per month per account"뿐이라 월 약 $3.65가 든다. 외부 IPv6는 무료다("You are not charged for … external IPv6 addresses that are assigned to VM instances"). 2026-10-13까지의 청구액은 사용자 확인으로 20원 미만이었다(SKU별 금액은 기록하지 않음). 사용자 결정(2026-10-13): 외부 IPv4를 없애고 IPv6로 전환한다. 계획 07(`docs/plans/backlog/2026-10-13-07-ipv6-egress.md`)에서 설계부터 진행한다.
 - **Verified (docs.cloud.google.com/firewall/docs/firewalls):** 규칙이 없으면 인바운드는 모두 차단되고 아웃바운드는 허용된다(implied rules). `default` 네트워크에는 `default-allow-ssh`(tcp:22), `default-allow-rdp`(tcp:3389), `default-allow-icmp`가 `0.0.0.0/0`으로, `default-allow-internal`이 `10.128.0.0/9`로 미리 들어 있다.
 - **Verified (docs.cloud.google.com/compute/docs/connect/add-ssh-keys):** OS Login을 켜지 않았다면 VM은 메타데이터의 SSH 키를 쓴다. OS Login을 켜면 메타데이터 키는 무시된다.
 - **Verified (2026-10-12, `docker manifest inspect`):** 고정한 Basic Memory 이미지는 linux/amd64와 linux/arm64를 모두 포함한다.
 - **Verified (2026-10-12, HTTP 200):** `download.docker.com/linux/ubuntu/dists/resolute`와 `pkgs.tailscale.com/stable/ubuntu/resolute`가 있다. 부트스트랩은 OS 코드명과 아키텍처를 실행 시점에 읽는다(`UBUNTU_CODENAME`, `dpkg --print-architecture`).
 - **Verified (2026-10-12, 실제 프로젝트):** `gcloud compute instances set-scheduling --provisioning-model=STANDARD`는 Spot VM에서 `preemptionNoticeDuration` 오류로 실패한다. `instances export` → scheduling 수정 → `instances update-from-file`로 바꿀 수 있다. 정지 후 시작하면 ephemeral 외부 IP가 바뀐다.
 - **Verified (2026-10-12, 이 Mac에서 `nc`):** 방화벽이 막은 포트는 연결 시간 초과로 끝난다. `verify-vm.sh`는 timeout을 "닫힘"으로 판정한다.
-- **Assumption (계획 05에서 확인):** 26.04 Minimal에 `ss`(iproute2)와 `free`(procps)가 기본으로 있다. 메타데이터 키로 만든 `ubuntu`에게 암호 없는 sudo가 있다. 게스트 OS 재부팅으로는 외부 IP가 바뀌지 않는다.
+- **Verified (2026-10-13, 계획 05 Step 4):** 26.04 Minimal에 `ss`(`/usr/bin/ss`, iproute2-6.19.0)와 `free`(`/usr/bin/free`, procps-ng 4.0.4)가 기본으로 있다. 메타데이터 키로 만든 `ubuntu`는 암호 없는 sudo(`NOPASSWD`)를 가진다.
+- **Verified (2026-10-13, 계획 05 Step 13):** 게스트 OS 재부팅(`sudo -n systemctl reboot`) 뒤에도 ephemeral 외부 IP가 그대로다.
+- **Verified (2026-10-13, 계획 05 Step 14):** `default-allow-ssh`를 지워 22번이 닫힌 뒤에도 `make vm-bootstrap HOST=agent-hub`가 Tailscale SSH로 업로드·실행되어 `[bootstrap] done`으로 끝났다.
+- **Verified (2026-10-13, 계획 05 항목 30, Tailscale v1.104.1 소스 `cmd/tailscale/cli/serve_v2.go`):** `tailscale serve --bg`는 자기 포트(443)의 Funnel만 끄고 다른 포트의 Funnel은 그대로 둔다. 다른 포트에 남아 있으면 `tailscale serve reset`이 필요하다. 소스를 읽어 확인했고 Funnel을 켜서 시험하지는 않았다.
+- **Verified (2026-10-13, 계획 05 `make verify`):** `https://agent-hub.<tailnet>/mcp`로 MCP 왕복(initialize, tools/list, write_note, read_note, delete_note)이 통과했다.
 
 ## 4. 아키텍처
 
@@ -215,7 +219,7 @@ OCI 설계 §9와 같고 다음을 더한다. 다만 OCI §9의 테스트 요구
 
 | 위험 | 대응 |
 |---|---|
-| 외부 IPv4 과금 | Budget 알림, 다음 날 SKU 확인(완료 조건 5). 과금되면 사용자가 결정 |
+| 외부 IPv4 과금 | Budget 알림, 다음 날 SKU 확인(완료 조건 5). 공식 가격표로 유료임을 확인했고, 사용자가 IPv6 전환을 결정했다(계획 07) |
 | 1GB RAM 부족(OOM) | 스왑 1GB, `status` 경고. 반복되면 ADR 0002에서 재판단 |
 | 무료 아웃바운드 1GB/월 초과 | 노트는 작다. DERP 중계 트래픽도 포함되므로 청구 보고서로 확인 |
 | 정지 후 시작 시 외부 IP 변경 | 런북의 IP 조회와 `.env` 갱신 안내. `verify`가 옛 IP로 검사하지 않도록 `BM_VM_PUBLIC_IP` 필수 유지 |
