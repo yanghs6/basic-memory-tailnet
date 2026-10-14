@@ -885,3 +885,11 @@ git push
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
+| 2026-10-14 | Verified | 전제 1~3 확인. `origin`이 `https://github.com/yanghs6/basic-memory-tailnet.git`이고 로컬 `main` = `origin/main` = `de91861`(원격 `LICENSE` 커밋 `c3f0943`을 병합)이다. GitHub의 브랜치는 `main` 하나다. `gh api user`는 머신 계정 `yangtestdev`이고 이 저장소에 `push: true`, `admin: false`다. credential helper는 이 저장소에만 `!gh auth git-credential`이다. 머신 계정 이름이 정해졌다(스펙 Open question 5). |
+| 2026-10-14 | Verified | 브랜치 이름은 `plan/08-github-switch` 대신 `plan/08-gh-switch`로 했다. 이 세션의 worktree 가드는 한 명령에 `git`이 두 번 나오면 거부한다. 첫 커밋 `21fbb8e`, 초안 PR #1(작성자 `yangtestdev`). |
+| 2026-10-14 | Command | Task 1 (`5cf968f`): `make test`에서 `check_pr.bats` 6개가 먼저 실패했다(exit 127). 스크립트를 넣은 뒤 `make check`는 exit 0이고, `check-pr.sh` 97.30%, 전체 96.97%다. 이 커밋에는 하네스 안내를 따른 `Claude-Session` 트레일러가 더 붙었다. 이력 재작성 금지라서 그대로 둔다. |
+| 2026-10-14 | Command | Task 2 (`254b0fc`): `make test`에서 `github.bats` 2개가 먼저 실패했다. 파일을 넣은 뒤 `make check`는 exit 0이고, 156 ok, 전체 96.97%다. `make check-git`은 `OK: git policy (3 commits since origin/main)`이다. |
+| 2026-10-14 | Command | Task 3 (`a71b574`): `make check`는 exit 0이고 156 ok다. Step 7의 `grep -rnE 'no-ff\|Review-Record\|merge-<branch' ...`는 출력이 없다. `tests/main_checkout.bats:76-79`가 `ls <your worktree>/backups`와 `git worktree remove <your worktree>`를 한 줄에서 찾으므로, review-and-merge.md의 Clean up 1·2항목을 한 항목으로 합쳤다. |
+| 2026-10-14 | Verified | Task 4 Step 1: PR #1의 `check`와 `pr-rules`가 `254b0fc`(1m10s, 4s)와 `a71b574`(58s, 4s)에서 모두 pass다. 외부 앱 GitGuardian의 check도 붙지만 필수 체크는 아니다. |
+| 2026-10-14 | Verified | Task 4 Step 2 (스펙 2절 Assumption 해소): 본문 끝에 `Thanks for reviewing.` 문단을 붙이자 같은 head `a71b574`에서 `pr-rules`가 다시 돌고 실패했다(run 38500200654, `missing trailer` 2건). 원래 본문으로 되돌리자 다시 돌고 pass했다(run 38500240664). `edited`는 본문 수정으로 발생한다. |
+| 2026-10-14 | Verified | Task 4 Step 3: `curl -sS https://api.github.com/repos/yanghs6/basic-memory-tailnet/commits/a71b574.../check-runs`의 결과는 `check 15368 github-actions`, `pr-rules 15368 github-actions`다. `main.json`의 `integration_id`는 그대로 둔다. |
