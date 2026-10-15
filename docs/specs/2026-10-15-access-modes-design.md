@@ -195,6 +195,10 @@ AGENTS.md                    사용자 승인 후 (§12)
    | 터널만 됨 | `ssh` |
    | Tailscale만 됨 | `tailscale` |
    | 둘 다 안 됨 | `neither works here: ask the network admin` |
+   | Tailscale만 됨, 터널은 `BM_ACCESS_CHECK_URL`이 없어 미확인 | `tailscale (the ssh mode was not checked: BM_ACCESS_CHECK_URL is not set)` |
+   | Tailscale 안 됨, 터널 미확인 | `tailscale is blocked here; set BM_ACCESS_CHECK_URL (.env.example) to check the ssh mode` |
+
+   터널 상태는 yes, no, unknown 셋이다. 미확인을 "안 됨"으로 세지 않는다.
 
 3. 첫 줄은 `this network only: run it on every network your clients use`이다.
 4. 종료 코드: `BM_ACCESS`가 `.env`에 명시돼 있고 그 모드가 이 네트워크에서 안 되면 1, 그 밖은 0이다. 모드를 아직 정하지 않은 사람은 실패하지 않고, 정한 사람은 실패를 놓치지 않는다.

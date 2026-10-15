@@ -28,18 +28,21 @@ url_state() {
   esac
 }
 
-# recommendation TAILSCALE_OK TUNNEL_OK -> the mode to choose on this network (each argument is yes or no).
+# recommendation TAILSCALE_OK TUNNEL_OK -> the mode to choose on this network (each argument is yes or no; the tunnel
+# is unknown when BM_ACCESS_CHECK_URL is not set).
 recommendation() {
   case "$1 $2" in
     "yes yes") echo "both work here; choose tailscale unless another network your clients use blocks it" ;;
     "no yes") echo "ssh" ;;
     "yes no") echo "tailscale" ;;
+    "yes unknown") echo "tailscale (the ssh mode was not checked: BM_ACCESS_CHECK_URL is not set)" ;;
+    "no unknown") echo "tailscale is blocked here; set BM_ACCESS_CHECK_URL (.env.example) to check the ssh mode" ;;
     *) echo "neither works here: ask the network admin" ;;
   esac
 }
 
 main() {
-  local mode chosen="${BM_ACCESS:-}" state tailscale_ok=no tunnel_ok=no ssh_ok=no
+  local mode chosen="${BM_ACCESS:-}" state tailscale_ok=no tunnel_ok=unknown ssh_ok=no
   mode="$(access_mode)" || exit 1
   require_cmd curl
   log "this network only: run it on every network your clients use"
@@ -53,6 +56,7 @@ main() {
   if [[ -n "${BM_ACCESS_CHECK_URL:-}" ]]; then
     state="$(url_state "$BM_ACCESS_CHECK_URL")"
     log "tunnel endpoint $BM_ACCESS_CHECK_URL: $state"
+    tunnel_ok=no
     if [[ "$state" == reachable* ]]; then
       tunnel_ok=yes
     fi

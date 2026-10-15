@@ -75,7 +75,7 @@ codex mcp add basic-memory --url <URL>
 1. `make backup` (롤백 지점)
 2. [VM 런북](gcp-vm.md) 8단계 1번의 `allow-iap-ssh` 규칙
 3. `~/.ssh/config`에 별칭을 넣고 대화형 `ssh ubuntu@agent-hub-iap true`. 실패하면 멈추고 2단계 규칙을 지웁니다(Tailscale 경로는 그대로).
-4. `.env`: `BM_ACCESS=ssh`, `BM_VM_HOST=agent-hub-iap`. `make access-check`는 `ok`, `make status`는 Tailscale 로그인 경고(예상)를 냅니다.
+4. `.env`: `BM_ACCESS=ssh`, `BM_VM_HOST=agent-hub-iap`. 계획 12 이전의 `.env`면 `.env.example`의 `BM_ACCESS_CHECK_URL`, `BM_TUNNEL_MCP_PORT`, `BM_TUNNEL_WEB_PORT`도 추가합니다. `make access-check`는 `ok`, `make status`는 Tailscale 로그인 경고(예상)를 냅니다.
 5. `ssh ubuntu@agent-hub-iap 'sudo tailscale serve reset && sudo tailscale logout'`, Tailscale admin console에서 VM 기기 삭제
 6. `make probe verify status`
 7. 기기마다 `claude mcp remove basic-memory -s user`, `codex mcp remove basic-memory` 후 "에이전트 연결"대로 터널 URL로 다시 등록

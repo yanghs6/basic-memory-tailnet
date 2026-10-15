@@ -2,7 +2,7 @@
 
 `make vm-bootstrap`, `make deploy`, `make restore`는 VM을 바꾸므로 에이전트는 사용자의 OK를 받은 뒤에만 실행합니다. 인증 키 프롬프트처럼 터미널 입력이 필요한 명령은 사용자가 자기 터미널에서 직접 실행합니다.
 
-접속 방식(`.env`의 `BM_ACCESS`)을 먼저 정합니다. 클라이언트가 쓸 네트워크(사무실, 집 등)마다 `make access-check`를 실행하고, 어느 한 곳이라도 Tailscale이 막히고 터널 엔드포인트가 열리면 `ssh`, 모두 Tailscale이 되면 `tailscale`(비워 두어도 같음)을 고릅니다. 아래 "순서"와 "완료 조건"은 `tailscale` 모드이고, `ssh` 모드는 "ssh 모드 순서"를 따릅니다.
+접속 방식(`.env`의 `BM_ACCESS`)을 먼저 정합니다. 클라이언트가 쓸 네트워크(사무실, 집 등)마다 `make access-check`를 실행하고, 어느 한 곳이라도 Tailscale이 막히고 터널 엔드포인트가 열리면 `ssh`, 모두 Tailscale이 되면 `tailscale`(비워 두어도 같음)을 고릅니다. 기존 설치의 `.env`에는 `.env.example`의 `BM_ACCESS_CHECK_URL`, `BM_TUNNEL_MCP_PORT`, `BM_TUNNEL_WEB_PORT`를 추가해야 합니다(없으면 `access-check`가 터널을 "미확인"으로 보고합니다). 아래 "순서"와 "완료 조건"은 `tailscale` 모드이고, `ssh` 모드는 "ssh 모드 순서"를 따릅니다.
 
 ## 준비
 

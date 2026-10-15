@@ -26,6 +26,23 @@ setup() {
   assert_failure
 }
 
+@test "access-check asks for BM_ACCESS_CHECK_URL instead of calling the network hopeless when Tailscale is blocked and the tunnel was not checked" {
+  unset BM_ACCESS_CHECK_URL
+  export CURL_STUB_FAIL_MATCH=controlplane.tailscale.com
+  run "$ACCESS_CHECK"
+  assert_success
+  assert_output --partial "tunnel endpoint: not set (BM_ACCESS_CHECK_URL in .env)"
+  assert_output --partial "recommendation for this network: tailscale is blocked here; set BM_ACCESS_CHECK_URL (.env.example) to check the ssh mode"
+  refute_output --partial "neither works here"
+}
+
+@test "access-check recommends tailscale and says the ssh mode was not checked when the tunnel endpoint is not set" {
+  unset BM_ACCESS_CHECK_URL
+  run "$ACCESS_CHECK"
+  assert_success
+  assert_output --partial "recommendation for this network: tailscale (the ssh mode was not checked: BM_ACCESS_CHECK_URL is not set)"
+}
+
 @test "access-check fails only when the mode chosen in BM_ACCESS does not work on this network" {
   export CURL_STUB_FAIL_MATCH=controlplane.tailscale.com CURL_STUB_FAIL_EXIT=6 BM_ACCESS=tailscale
   run "$ACCESS_CHECK"
