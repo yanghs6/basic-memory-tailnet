@@ -2,7 +2,7 @@
 # Test stub for ssh: logs the call, then runs the remote command locally so other stubs on PATH
 # act as the VM. SSH_STUB_FAIL_MATCH=<substring> makes matching remote commands fail with 255.
 # A tunnel (-N) runs no remote command: SSH_STUB_TUNNEL_EXIT=<n> ends it at once with n (forwarding failed);
-# otherwise it records its pid in $STUB_LOG.tunnel-pids and stays up like an open tunnel until it is killed.
+# otherwise it records its pid in $STUB_LOG.tunnel-pids and stays up like an open tunnel until it is killed (with its output closed).
 set -euo pipefail
 printf 'ssh %s\n' "$*" >>"$STUB_LOG"
 for arg in "$@"; do
@@ -11,7 +11,8 @@ for arg in "$@"; do
       exit "$SSH_STUB_TUNNEL_EXIT"
     fi
     echo "$$" >>"$STUB_LOG.tunnel-pids"
-    exec sleep 300
+    # Detached from the caller's pipes, so a leaked tunnel cannot keep a bats `run` waiting.
+    exec sleep 300 </dev/null >/dev/null 2>&1
   fi
 done
 remote_cmd="${*: -1}"

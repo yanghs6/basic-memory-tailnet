@@ -18,6 +18,15 @@ use_ssh_mode() {
   unset BM_TAILNET_DOMAIN
 }
 
+# A failing test must not leave a stub tunnel (sleep) behind.
+teardown() {
+  local pid
+  [[ -f "$STUB_LOG.tunnel-pids" ]] || return 0
+  while read -r pid; do
+    kill "$pid" 2>/dev/null || true
+  done <"$STUB_LOG.tunnel-pids"
+}
+
 # --- deploy ---
 
 @test "deploy uploads compose.yaml, an owner-only VM .env with SB_USER and the space files, then pulls and waits for healthy" {
@@ -237,12 +246,14 @@ use_ssh_mode() {
 }
 
 @test "verify rejects a BM_ACCESS it does not know, also in another case, before it contacts the VM" {
-  export BM_ACCESS=SSH
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_failure
-  assert_output --partial "BM_ACCESS must be tailscale or ssh (got 'SSH')"
-  run grep -F 'ssh ' "$STUB_LOG"
-  assert_failure
+  local value
+  for value in SSH Ssh; do
+    BM_ACCESS=$value run "$REPO_DIR/scripts/verify-vm.sh"
+    assert_failure
+    assert_output --partial "BM_ACCESS must be tailscale or ssh (got '$value')"
+    run grep -E '^(ssh|curl|nc) ' "$STUB_LOG"
+    assert_failure
+  done
 }
 
 @test "verify fails when the public IP still accepts connections" {
