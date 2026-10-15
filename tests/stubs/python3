@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Test stub for python3: `-c ...` (the fontTools import check) fails when PYTHON3_STUB_NO_MODULES is set;
+# `-m fontTools.ttLib.woff2 compress ... -o OUT IN` writes "woff2 <basename of IN>" to OUT.
+set -euo pipefail
+printf 'python3 %s\n' "$*" >>"$STUB_LOG"
+out=""
+in=""
+while (($#)); do
+  case "$1" in
+    -c)
+      if [[ -n "${PYTHON3_STUB_NO_MODULES:-}" ]]; then
+        echo "ModuleNotFoundError: No module named 'fontTools'" >&2
+        exit 1
+      fi
+      exit 0
+      ;;
+    -o)
+      out="$2"
+      shift 2
+      ;;
+    *)
+      in="$1"
+      shift
+      ;;
+  esac
+done
+printf 'woff2 %s\n' "$(basename "$in")" >"$out"
