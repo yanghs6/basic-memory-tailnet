@@ -103,9 +103,12 @@ compose_start_period_seconds() {
     || fail "HEALTH_TIMEOUT_SECONDS=$timeout must exceed start_period ${period}s, or --wait gives up inside the grace period"
 }
 
-@test "compose restarts the container after reboots" {
-  run grep -E '^ +restart: unless-stopped$' "$REPO_DIR/compose.yaml"
-  assert_success
+@test "compose restarts both services after reboots" {
+  local service
+  for service in basic-memory silverbullet; do
+    service_block "$service" | grep -qE '^ +restart: unless-stopped$' \
+      || fail "$service must set restart: unless-stopped, or it stays down after a VM reboot"
+  done
 }
 
 @test "SilverBullet is pinned, needs a login, has no shell or runtime API and shares no network or data beyond the notes" {
