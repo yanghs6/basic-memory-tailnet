@@ -60,6 +60,7 @@ setup() {
   for value in "" "admin" "admin:pa ss" 'admin:pa$ss' "admin:pa#ss" "admin:pa'ss" 'admin:pa"ss' "ad min:secret123"; do
     SB_USER="$value" run "$VERIFY_SB" http://127.0.0.1:3000
     [[ "$status" -ne 0 ]] || fail "expected SB_USER '$value' to be rejected"
+    assert_output --partial "SB_USER"
     if [[ "$value" == *:* ]]; then
       refute_output --partial "${value#*:}"
     fi
