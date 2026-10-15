@@ -1,10 +1,59 @@
 #!/usr/bin/env bash
 # Test stub for tailscale. TS_STUB_STATUS_EXIT sets the `status` exit code (0 = on the tailnet).
 # `up --auth-key=file:PATH` copies the key file to $STUB_LOG.authkey so tests can check it.
-# TS_STUB_FUNNEL=on makes `serve status` report that Funnel is on.
-# TS_STUB_SERVE_EMPTY=1 makes `serve status` print "No serve config" (Serve/HTTPS not enabled on the tailnet).
+# `serve status [--json]` describes 443 -> http://127.0.0.1:8737 and 8443 -> $TS_STUB_SERVE_8443
+# (default http://127.0.0.1:3000; empty = no 8443 mapping), tailnet only.
+# TS_STUB_FUNNEL=on turns Funnel on for https port TS_STUB_FUNNEL_PORT (default 443).
+# TS_STUB_SERVE_EMPTY=1 makes `serve status` report no config (Serve/HTTPS not enabled on the tailnet).
 set -euo pipefail
 printf 'tailscale %s\n' "$*" >>"$STUB_LOG"
+
+readonly HOST=agent-hub.example.ts.net
+SB_TARGET="${TS_STUB_SERVE_8443-http://127.0.0.1:3000}"
+FUNNEL_PORT=""
+if [[ "${TS_STUB_FUNNEL:-off}" == on ]]; then
+  FUNNEL_PORT="${TS_STUB_FUNNEL_PORT:-443}"
+fi
+
+# scope PORT -> the text-mode suffix of https port PORT.
+scope() {
+  if [[ "$1" == "$FUNNEL_PORT" ]]; then
+    echo "(Funnel on)"
+  else
+    echo "(tailnet only)"
+  fi
+}
+
+serve_text() {
+  if [[ -n "${TS_STUB_SERVE_EMPTY:-}" ]]; then
+    echo "No serve config"
+    return
+  fi
+  echo "https://$HOST $(scope 443)"
+  echo "|-- / proxy http://127.0.0.1:8737"
+  if [[ -n "$SB_TARGET" ]]; then
+    echo
+    echo "https://$HOST:8443 $(scope 8443)"
+    echo "|-- / proxy $SB_TARGET"
+  fi
+}
+
+serve_json() {
+  local web funnel=""
+  if [[ -n "${TS_STUB_SERVE_EMPTY:-}" ]]; then
+    echo '{}'
+    return
+  fi
+  web="\"$HOST:443\":{\"Handlers\":{\"/\":{\"Proxy\":\"http://127.0.0.1:8737\"}}}"
+  if [[ -n "$SB_TARGET" ]]; then
+    web="$web,\"$HOST:8443\":{\"Handlers\":{\"/\":{\"Proxy\":\"$SB_TARGET\"}}}"
+  fi
+  if [[ -n "$FUNNEL_PORT" ]]; then
+    funnel=",\"AllowFunnel\":{\"$HOST:$FUNNEL_PORT\":true}"
+  fi
+  printf '{"TCP":{"443":{"HTTPS":true},"8443":{"HTTPS":true}},"Web":{%s}%s}\n' "$web" "$funnel"
+}
+
 case "${1:-}" in
   status) exit "${TS_STUB_STATUS_EXIT:-0}" ;;
   up)
@@ -17,17 +66,10 @@ case "${1:-}" in
     exit "${TS_STUB_UP_EXIT:-0}"
     ;;
   serve)
-    if [[ "${2:-}" == status ]]; then
-      if [[ -n "${TS_STUB_SERVE_EMPTY:-}" ]]; then
-        echo "No serve config"
-        exit 0
-      fi
-      if [[ "${TS_STUB_FUNNEL:-off}" == on ]]; then
-        echo "https://agent-hub.example.ts.net (Funnel on)"
-      else
-        echo "https://agent-hub.example.ts.net (tailnet only)"
-      fi
-      echo "|-- / proxy http://127.0.0.1:8737"
+    if [[ "${2:-}" == status && "${3:-}" == --json ]]; then
+      serve_json
+    elif [[ "${2:-}" == status ]]; then
+      serve_text
     fi
     ;;
 esac
