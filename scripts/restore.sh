@@ -132,7 +132,7 @@ main() {
   confirm "Replace $ROOT, $COMPOSE_FILE and $ENV_FILE on $BM_VM_HOST with $(basename "$archive") and this repo's compose.yaml? Current data moves to $PREV. Type 'yes': "
 
   present="$(remote "if [ -e $ROOT ]; then echo present; fi")" \
-    || die "could not reach $BM_VM_HOST: is it reachable over Tailscale SSH? (ssh $BM_VM_USER@$BM_VM_HOST true)"
+    || die "could not reach $BM_VM_HOST: $(access_hint)"
   if [[ "$present" == present ]]; then
     HAD_PREVIOUS_DATA=1
   fi

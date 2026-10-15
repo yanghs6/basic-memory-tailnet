@@ -195,6 +195,10 @@ AGENTS.md                    사용자 승인 후 (§12)
    | 터널만 됨 | `ssh` |
    | Tailscale만 됨 | `tailscale` |
    | 둘 다 안 됨 | `neither works here: ask the network admin` |
+   | Tailscale만 됨, 터널은 `BM_ACCESS_CHECK_URL`이 없어 미확인 | `tailscale (the ssh mode was not checked: BM_ACCESS_CHECK_URL is not set)` |
+   | Tailscale 안 됨, 터널 미확인 | `tailscale is blocked here; set BM_ACCESS_CHECK_URL (.env.example) to check the ssh mode` |
+
+   터널 상태는 yes, no, unknown 셋이다. 미확인을 "안 됨"으로 세지 않는다.
 
 3. 첫 줄은 `this network only: run it on every network your clients use`이다.
 4. 종료 코드: `BM_ACCESS`가 `.env`에 명시돼 있고 그 모드가 이 네트워크에서 안 되면 1, 그 밖은 0이다. 모드를 아직 정하지 않은 사람은 실패하지 않고, 정한 사람은 실패를 놓치지 않는다.
@@ -227,7 +231,7 @@ AGENTS.md                    사용자 승인 후 (§12)
 [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md) 병합 뒤의 `main`에 모드 분기를 더한다. `tailscale` 모드는 그대로다.
 
 1. **환경값:** `require_env`에서 `BM_TAILNET_DOMAIN`은 `tailscale` 모드에서만 요구한다.
-2. **임시 터널 열기:** `open_verify_tunnel`이 다음을 백그라운드로 띄운다.
+2. **임시 터널 열기:** `open_verify_tunnel`은 28737 또는 23000이 이미 쓰이고 있으면 ssh를 띄우기 전에 `port 28737 is in use on 127.0.0.1: ...`로 거부한다(남은 터널이나 다른 서버로 가는 리스너를 준비 완료로 오인하지 않기 위해서다). 그 뒤 다음을 백그라운드로 띄운다.
    `ssh -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ConnectTimeout=$SSH_CONNECT_TIMEOUT_SECONDS -L <forward_spec 28737 BM_PORT> -L <forward_spec 23000 SB_PORT> USER@HOST`
    - pid를 저장하고 `trap`으로 종료할 때 닫는다.
    - 상수 `TUNNEL_READY_TIMEOUT_SECONDS=20` 동안 1초마다 확인한다. pid가 죽었으면 `verify tunnel exited before it opened: <access_hint>`로 실패한다. `nc -z 127.0.0.1 28737`이 되면 진행한다.

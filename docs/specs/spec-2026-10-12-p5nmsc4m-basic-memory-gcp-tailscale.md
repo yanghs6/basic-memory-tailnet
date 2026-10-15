@@ -1,6 +1,6 @@
 # Basic Memory on GCP Free Tier + Tailscale — 설계
 
-- 상태: 승인됨 (2026-10-12). [OCI 설계](spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md)를 대체한다. 모든 계획은 [git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)을 따른다.
+- 상태: 승인됨 (2026-10-12). [OCI 설계](spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md)를 대체한다. 모든 계획은 [git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)을 따른다. 접속 방식은 [접속 방식 설계](spec-2026-10-15-jr59pvyf-access-modes.md)로 넓혔다(VM마다 Tailscale 또는 SSH 터널).
 - 구현 계획 (진행 중은 `docs/plans/active/`, 대기는 `docs/plans/backlog/`, 완료는 `docs/plans/completed/`):
   1. `plan-2026-10-07-sqzn0teq-local-foundation.md` (완료): 도구 체인, compose, 로컬 MCP 검증, AGENTS.md 기본판
   2. `plan-2026-10-07-qq4h1djv-git-review-tooling.md` (완료): `make check-git`, `make review`, 리뷰어 에이전트, git·리뷰 스킬

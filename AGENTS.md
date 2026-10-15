@@ -1,16 +1,16 @@
 # Agent instructions
 
-This repo deploys a Basic Memory MCP server on a GCP free-tier e2-micro VM that is reachable only inside a Tailscale tailnet.
-Read first: `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`, then `docs/ARCHITECTURE.md`.
+This repo deploys a Basic Memory MCP server on a GCP free-tier e2-micro VM that is reachable through one access mode per VM (`BM_ACCESS`): inside a Tailscale tailnet, or through an SSH tunnel (GCP IAP).
+Read first: `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`, then `docs/ARCHITECTURE.md`. For the access modes, read `docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md`.
 Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`).
 
 ## Commands
 - `make help` lists every target. Do lifecycle work through Make targets only; use raw `docker compose` or `ssh` only to diagnose a failing target, and record why.
 - `make check` (lint + all tests + coverage >= 80%) must pass before every commit. `make fmt` fixes shfmt findings.
-- Local: `make local-up local-verify local-down` (`make sb-fonts LOCAL=1` uploads the web fonts locally). `local-up` uses a fixed container name and port, so run it in one worktree at a time (`make check` is safe to run concurrently). VM changing (ask the user first, see Safety): `make vm-bootstrap deploy restore sb-fonts`. No OK needed: `make probe status logs verify backup` (`verify` writes and deletes a test note; `backup` stops the container briefly).
+- Local: `make local-up local-verify local-down` (`make sb-fonts LOCAL=1` uploads the web fonts locally). `local-up` uses a fixed container name and port, so run it in one worktree at a time (`make check` is safe to run concurrently). VM changing (ask the user first, see Safety): `make vm-bootstrap deploy restore sb-fonts`. No OK needed: `make probe status logs verify backup access-check tunnel` (`verify` writes and deletes a test note; `backup` stops the container briefly).
 
 ## Invariants (enforced by tests/repo.bats; never weaken a test to make it pass)
-- Basic Memory has no auth: publish its port on `127.0.0.1` only, never enable Tailscale Funnel, keep zero public ingress on the VM.
+- Basic Memory has no auth: publish its port on `127.0.0.1` only, never enable Tailscale Funnel, keep zero public ingress on the VM. In ssh mode the only inbound rule from outside the VPC is the tunnel range to port 22, every `ssh -L` binds `127.0.0.1` (`forward_spec`), and a VM never runs both modes.
 - Pin container images by digest; change the pin only after reading the release notes and passing `make check local-up local-verify`. Upgrade Basic Memory only through the `bm-upgrade` skill.
 - Scripts: `#!/usr/bin/env bash` then `set -euo pipefail`; source `scripts/lib/common.sh`; fail with an actionable message via `die`.
 - Scripts must run on macOS bash 3.2: no `mapfile`, associative arrays, `${x,,}`, `inherit_errexit`, or empty array expansion. After `x="$(fn)"` where `fn` can fail, add `|| exit 1`.
@@ -19,7 +19,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 
 ## Safety
 - Never commit secrets, `.env`, Tailscale auth keys, `backups/`, `.local-data/`, or note content.
-- Two secrets: the Tailscale auth key reaches the VM via `TS_AUTHKEY` or the hidden prompt; `SB_USER`, the SilverBullet login, lives only in the main checkout `.env` and the VM `.env` (mode 600), and scripts pass it on over SSH or curl stdin. Neither ever goes in a repo file or a command argument.
+- Two secrets: the Tailscale auth key reaches the VM via `TS_AUTHKEY` or the hidden prompt; `SB_USER`, the SilverBullet login, lives only in the main checkout `.env` and the VM `.env` (mode 600), and scripts pass it on over SSH or curl stdin. Neither ever goes in a repo file or a command argument. The ssh mode adds no secret: access is the user's cloud identity plus their SSH key.
 - Ask the user before anything that changes the VM or cloud resources: `vm-bootstrap`, `deploy`, `restore`, resizing, firewall rules, instance metadata, Tailscale policy.
 - Never delete `backups/` or `/srv/basic-memory.prev-*` directories.
 - `.env` and `backups/` live only in the main checkout: the Makefile and `make backup` use them from any worktree. Never create or copy them in a worktree, and check a worktree's `backups/` before `git worktree remove`.
