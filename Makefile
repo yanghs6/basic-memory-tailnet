@@ -94,7 +94,7 @@ review-post: ## Post a review round's reports to its PR: PR=<number> BRANCH=<bra
 review-record: ## Create or update the PR's Review record comment: PR=<number> FILE=<findings table file>
 	scripts/review-record.sh "$(PR)" "$(FILE)"
 
-vm-bootstrap: ## First-time VM setup over public SSH (HOST=<public-ip>; asks for a Tailscale auth key)
+vm-bootstrap: ## First-time VM setup (HOST=<public-ip>, or the SSH host alias in ssh mode; tailscale mode asks for an auth key)
 	scripts/bootstrap-vm.sh "$(HOST)"
 
 deploy: ## Copy compose.yaml to the VM and start Basic Memory (waits until healthy)

@@ -11,6 +11,8 @@ readonly SB_HTTPS_PORT=8443
 readonly BM_REMOTE_DATA_ROOT="${BM_REMOTE_DATA_ROOT:-/srv/basic-memory}"
 readonly BM_REMOTE_APP_DIR="${BM_REMOTE_APP_DIR:-/opt/basic-memory}"
 readonly ADMIN_USER="${ADMIN_USER:-ubuntu}"
+# tailscale (join the tailnet, Serve) or ssh (reached over an SSH host alias; Tailscale is not installed or touched).
+readonly BM_ACCESS="${BM_ACCESS:-tailscale}"
 readonly CONTAINER_UID=1000
 readonly SWAP_SIZE_MB=1024
 readonly SWAP_FILE_MODE=600
@@ -163,13 +165,23 @@ configure_serve() {
 main() {
   local auth_key=""
   IFS= read -r auth_key || true
+  case "$BM_ACCESS" in
+    tailscale | ssh) ;;
+    *) die "BM_ACCESS must be tailscale or ssh (got '$BM_ACCESS')" ;;
+  esac
   ensure_swap
   install_docker
   ensure_docker_group
-  install_tailscale
+  if [[ "$BM_ACCESS" == tailscale ]]; then
+    install_tailscale
+  fi
   prepare_dirs
-  join_tailnet "$auth_key"
-  configure_serve
+  if [[ "$BM_ACCESS" == tailscale ]]; then
+    join_tailnet "$auth_key"
+    configure_serve
+  else
+    log "access mode ssh: skipping Tailscale"
+  fi
   log "done"
 }
 

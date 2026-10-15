@@ -115,6 +115,19 @@ run_bootstrap_with_key() {
   refute_output --partial "done"
 }
 
+@test "ssh mode skips the Tailscale install, join and Serve but still sets up docker and the data dirs" {
+  export BM_ACCESS=ssh
+  run_bootstrap_with_key ""
+  assert_success
+  assert_output --partial "access mode ssh: skipping Tailscale"
+  run grep -E '^tailscale |tailscale\.com/install\.sh' "$STUB_LOG"
+  assert_failure
+  run grep -F 'docker-ce' "$STUB_LOG"
+  assert_success
+  run stat -c '%u:%g' "$BM_REMOTE_DATA_ROOT/knowledge"
+  assert_output "1000:1000"
+}
+
 @test "bootstrap-vm uploads the script and passes the key on stdin only" {
   export BM_VM_USER=root TS_AUTHKEY=tskey-auth-wrapper123 TS_STUB_STATUS_EXIT=1
   run "$WRAPPER" 203.0.113.10
@@ -162,6 +175,20 @@ run_bootstrap_with_key() {
   assert_failure
   assert_output --partial "unexpected temp path from mktemp"
   run grep -F 'cat > /tmp/x' "$STUB_LOG"
+  assert_failure
+}
+
+@test "bootstrap-vm in ssh mode never asks for a key, passes the mode to the VM and points to make tunnel" {
+  export BM_ACCESS=ssh BM_VM_USER=root
+  unset TS_AUTHKEY
+  run "$WRAPPER" agent-hub-iap </dev/null
+  assert_success
+  refute_output --partial "Tailscale auth key"
+  refute_output --partial "delete the firewall rule that opens port 22"
+  assert_output --partial "make tunnel, then connect the agents"
+  run grep -F 'sudo BM_ACCESS=ssh ' "$STUB_LOG"
+  assert_success
+  run grep -E '^tailscale ' "$STUB_LOG"
   assert_failure
 }
 
