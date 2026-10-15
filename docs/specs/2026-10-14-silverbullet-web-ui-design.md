@@ -109,7 +109,7 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
   - Serve 뒤에서 쿠키에 `Secure`가 붙는다. `make verify`가 `https://…:8443`에서 로그인 쿠키 검사를 통과했다.
   - `sudo -n -u '#1000'`로 노트 폴더에 쓸 수 있다. `make deploy`가 공간 파일과 페이지를 오류 없이 썼다.
   - SilverBullet 컨테이너는 Basic Memory에 닿지 못한다. 컨테이너 안에서 `curl`로 `127.0.0.1:8737`, `silverbullet` 네트워크 게이트웨이의 `:8737`, `basic-memory-server:8000`을 불렀더니 모두 `000`이 나왔다.
-  - amd64 메모리는 SilverBullet 6.6~26.9 MiB, Basic Memory 252~390 MiB이고 OOM은 없다(ADR 0005 "VM 측정").
+  - amd64에서 `docker stats` 상주 메모리(스왑 제외)는 SilverBullet 6.6~26.9 MiB, Basic Memory 252~390 MiB이고 OOM은 없다(ADR 0005 "VM 측정").
   - `tailscale serve --bg --https=8443`은 기존 443 설정을 지우지 않는다(`serve status --json`에 두 포트가 모두 있음).
   - `serve status --json`의 모양은 테스트 스텁과 같다: `Web."<host>:<port>".Handlers["/"].Proxy`이고, Funnel이 꺼져 있으면 `AllowFunnel`이 없다.
   - Mac에서 tailnet 왕복이 300ms쯤이면 새 TLS 연결이 2초를 넘을 수 있다(`/.ping` 2.6초). 그러면 새 기기에서 처음 열 때 클라이언트의 2초 ping이 시간을 넘겨, 상단 막대가 빨갛게(`sb-sync-error`) 되고 글꼴 요청이 503을 받아 기본 글꼴로 보인다. 몇 초 뒤 새로고침하면 둘 다 정상이 된다.
