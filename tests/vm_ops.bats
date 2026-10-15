@@ -11,10 +11,10 @@ setup() {
   export CURL_SB_COOKIE="set-cookie: auth_agent-hub=stub-session-token; Path=/; SameSite=Lax; HttpOnly; Secure"
 }
 
-# use_ssh_mode: the ssh access mode over an SSH alias, with the verify tunnel opening at once and Tailscale on the VM
+# use_ssh_mode: the ssh access mode over an SSH alias, with 127.0.0.1 ports open only once the verify tunnel started and Tailscale on the VM
 # logged out.
 use_ssh_mode() {
-  export BM_ACCESS=ssh BM_VM_HOST=agent-hub-iap NC_STUB_OPEN_MATCH=127.0.0.1 TS_STUB_BACKEND_STATE=NeedsLogin
+  export BM_ACCESS=ssh BM_VM_HOST=agent-hub-iap NC_STUB_OPEN_AFTER_TUNNEL=127.0.0.1 TS_STUB_BACKEND_STATE=NeedsLogin
   unset BM_TAILNET_DOMAIN
 }
 
@@ -209,6 +209,16 @@ teardown() {
   assert_failure
 }
 
+@test "verify in the ssh mode refuses a verify port that is already in use before it starts ssh" {
+  use_ssh_mode
+  export NC_STUB_OPEN_MATCH=28737
+  run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "port 28737 is in use on 127.0.0.1"
+  run grep -F 'ssh -N' "$STUB_LOG"
+  assert_failure
+}
+
 @test "ssh mode: verify closes its tunnel even when a check fails" {
   use_ssh_mode
   export CURL_STUB_EXIT=7
@@ -239,8 +249,9 @@ teardown() {
   assert_failure
   assert_output --partial "sshd on the VM accepts passwords"
 
-  # The failed tunnel also leaves the local port closed, or nc could report it open before the stub exits.
-  SSH_STUB_TUNNEL_EXIT=255 NC_STUB_OPEN_MATCH= run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  # The failed tunnel also leaves the local port closed, or nc could report it open before the stub exits (the runs
+  # above left tunnel pids behind, so the open-after-tunnel mode is off here).
+  SSH_STUB_TUNNEL_EXIT=255 NC_STUB_OPEN_AFTER_TUNNEL= run "$REPO_DIR/scripts/verify-vm.sh" --read-only
   assert_failure
   assert_output --partial "verify tunnel exited before it opened"
 }

@@ -21,6 +21,7 @@ readonly PUBLIC_PROBE_PORTS="22 80 443 $SB_HTTPS_PORT"
 readonly VERIFY_TUNNEL_MCP_PORT=28737
 readonly VERIFY_TUNNEL_WEB_PORT=23000
 readonly TUNNEL_READY_TIMEOUT_SECONDS=20
+readonly VERIFY_TUNNEL_PORT_HINT="another 'make verify' or a leftover verify tunnel? stop it and rerun"
 
 # Global so the EXIT trap can still see it.
 tunnel_pid=""
@@ -70,7 +71,11 @@ close_verify_tunnel() {
 # open_verify_tunnel BM_PORT SB_PORT -> forwards VERIFY_TUNNEL_MCP_PORT and VERIFY_TUNNEL_WEB_PORT on 127.0.0.1 to the
 # VM's loopback ports over the SSH alias, in the background until this script exits.
 open_verify_tunnel() {
-  local waited=0
+  local waited=0 port
+  # A listener already on these ports would pass the readiness check below while ssh is still connecting.
+  for port in "$VERIFY_TUNNEL_MCP_PORT" "$VERIFY_TUNNEL_WEB_PORT"; do
+    require_free_port "verify tunnel port" "$port" "$VERIFY_TUNNEL_PORT_HINT"
+  done
   step "open a verify tunnel to $BM_VM_USER@$BM_VM_HOST on 127.0.0.1:$VERIFY_TUNNEL_MCP_PORT and :$VERIFY_TUNNEL_WEB_PORT"
   ssh -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ConnectTimeout="$SSH_CONNECT_TIMEOUT_SECONDS" \
     -L "$(forward_spec "$VERIFY_TUNNEL_MCP_PORT" "$1")" -L "$(forward_spec "$VERIFY_TUNNEL_WEB_PORT" "$2")" \

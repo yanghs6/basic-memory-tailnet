@@ -110,6 +110,21 @@ access_hint() {
   fi
 }
 
+readonly MIN_LOCAL_PORT=1024
+readonly MAX_LOCAL_PORT=65535
+
+# require_free_port NAME PORT [HINT] -> dies unless PORT is an unprivileged port number that nothing on 127.0.0.1
+# listens on. HINT (default: another 'make tunnel'? or set NAME in .env) says what to do about a port in use.
+require_free_port() {
+  local name="$1" port="$2" hint="${3:-another 'make tunnel'? or set $1 in .env}"
+  if ! [[ "$port" =~ ^[1-9][0-9]*$ ]] || ((port < MIN_LOCAL_PORT || port > MAX_LOCAL_PORT)); then
+    die "$name must be a port number from $MIN_LOCAL_PORT to $MAX_LOCAL_PORT (got '$port')"
+  fi
+  if nc -z 127.0.0.1 "$port" >/dev/null 2>&1; then
+    die "port $port is in use on 127.0.0.1: $hint"
+  fi
+}
+
 # forward_spec LOCAL_PORT REMOTE_PORT -> an ssh -L argument that binds LOCAL_PORT on 127.0.0.1 only and forwards it to
 # REMOTE_PORT on the VM's loopback. Every -L goes through here, so no tunnel listens beyond this machine.
 forward_spec() {

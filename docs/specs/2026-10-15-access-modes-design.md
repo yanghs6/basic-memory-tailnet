@@ -231,7 +231,7 @@ AGENTS.md                    사용자 승인 후 (§12)
 계획 11 병합 뒤의 `main`에 모드 분기를 더한다. `tailscale` 모드는 그대로다.
 
 1. **환경값:** `require_env`에서 `BM_TAILNET_DOMAIN`은 `tailscale` 모드에서만 요구한다.
-2. **임시 터널 열기:** `open_verify_tunnel`이 다음을 백그라운드로 띄운다.
+2. **임시 터널 열기:** `open_verify_tunnel`은 28737 또는 23000이 이미 쓰이고 있으면 ssh를 띄우기 전에 `port 28737 is in use on 127.0.0.1: ...`로 거부한다(남은 터널이나 다른 서버로 가는 리스너를 준비 완료로 오인하지 않기 위해서다). 그 뒤 다음을 백그라운드로 띄운다.
    `ssh -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ConnectTimeout=$SSH_CONNECT_TIMEOUT_SECONDS -L <forward_spec 28737 BM_PORT> -L <forward_spec 23000 SB_PORT> USER@HOST`
    - pid를 저장하고 `trap`으로 종료할 때 닫는다.
    - 상수 `TUNNEL_READY_TIMEOUT_SECONDS=20` 동안 1초마다 확인한다. pid가 죽었으면 `verify tunnel exited before it opened: <access_hint>`로 실패한다. `nc -z 127.0.0.1 28737`이 되면 진행한다.

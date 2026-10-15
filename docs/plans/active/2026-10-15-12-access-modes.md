@@ -1790,7 +1790,6 @@ gh pr create --draft --base main --title "docs: record the move of the VM to the
 - 계획 12 리뷰에서 미룬 작은 개선(최종 리뷰가 병합 후로 분류):
   - `make tunnel`에서 `BM_TUNNEL_MCP_PORT`와 `BM_TUNNEL_WEB_PORT`가 같으면 ssh 오류 대신 원인을 말한다.
   - Ctrl-C로 끝낼 때 `tunnel closed (exit 255) ... check the ProxyCommand`가 나오는지 Task 8 Step 7에서 보고, 그렇다면 INT trap으로 안내를 고친다.
-  - `verify` 임시 터널도 `make tunnel`처럼 띄우기 전에 28737·23000이 비어 있는지 검사한다.
   - `vm_tailscale_logged_in`의 `missing` 분기와 jq 실패 경로 테스트를 더한다.
   - `bm-recover` 체크리스트 4번의 "host keys cleared"를 모드별 문구로 바꾼다.
 

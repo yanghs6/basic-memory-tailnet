@@ -10,21 +10,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 readonly DEFAULT_TUNNEL_MCP_PORT=18737
 readonly DEFAULT_TUNNEL_WEB_PORT=13000
-readonly MIN_LOCAL_PORT=1024
-readonly MAX_LOCAL_PORT=65535
 readonly SERVER_ALIVE_INTERVAL_SECONDS=30
 readonly SERVER_ALIVE_COUNT_MAX=3
-
-# require_free_port NAME PORT -> dies unless PORT is an unprivileged port number that nothing on 127.0.0.1 listens on.
-require_free_port() {
-  local name="$1" port="$2"
-  if ! [[ "$port" =~ ^[1-9][0-9]*$ ]] || ((port < MIN_LOCAL_PORT || port > MAX_LOCAL_PORT)); then
-    die "$name must be a port number from $MIN_LOCAL_PORT to $MAX_LOCAL_PORT (got '$port')"
-  fi
-  if nc -z 127.0.0.1 "$port" >/dev/null 2>&1; then
-    die "port $port is in use on 127.0.0.1: another 'make tunnel'? or set $name in .env"
-  fi
-}
 
 main() {
   local mode status=0
