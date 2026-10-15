@@ -85,10 +85,11 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (`libraries/Library/Std/Widgets/Widgets.md`, `docs/API/view.md:39-58`, 스파이크):** 사용자 뷰는 `view.define`으로 등록하고 `lhs`·`rhs`·`page-top` 등에 둔다. `frame = "minimal"`인 `page-top` 뷰는 제목줄 없이 본문처럼 보이고 내용이 없으면 숨는다. Linked Tasks는 다른 페이지의 작업을 체크·상태 변경이 되는 채로 `page-top`에 보여 주며 기본으로 열려 있다.
 - **Verified (스파이크, 2026-10-14):**
   - 색인 객체의 필드: 페이지 `lastModified`는 `2026-10-14T11:49:06.750`처럼 로컬 시각 문자열이고, 프론트매터의 `permalink`도 들어 있다. 목록 항목은 `text`·`tags`·`ref`(`페이지@위치`), 헤더는 `name`·`ref`다. 관찰 줄은 목록 항목이 아니라 작업(`index.tasks()`, `state`·`name`·`tags`)으로 색인된다.
-  - 문단은 `config.set("index.paragraph.all", true)`가 있어야 색인된다. 이미 색인한 브라우저뿐 아니라 처음 여는 브라우저도 공간 설정보다 색인이 먼저 돌므로, 문단 검색은 브라우저마다 `Space: Reindex`를 한 번 실행한 뒤에 된다.
+  - 문단은 `config.set("index.paragraph.all", true)`가 있어야 색인된다. 이미 색인한 브라우저뿐 아니라 처음 여는 브라우저도 공간 설정보다 색인이 먼저 돌므로, 문단 검색은 브라우저마다 `Space: Reindex`를 한 번 실행한 뒤에 된다. 계획 10(2026-10-15)에서는 관리 페이지가 처음부터 있는 공간을 새 origin(`sb.localhost:3000`)으로 열었을 때 Reindex 없이 문단이 검색됐다. 스파이크의 누락은 설정을 나중에 더한 데서 생긴 것으로 본다(Assumption). 문단이 안 나올 때의 Reindex 안내는 그대로 둔다.
   - Space Lua에서 `query[[…]][1]`처럼 질의 결과를 바로 인덱싱하면 블록 전체가 파싱 오류가 된다. 변수에 담은 뒤 인덱싱한다.
   - `memory://main/projects/agent-hub`를 Basic Memory `build_context`에 넘기면 그 노트와 관찰·관계가 돌아온다.
   - 검색 패널이 트리를 밀어낸 상태에서 Esc로 닫으면 트리가 돌아온다. 검색 패널을 연 채로 새로고침하면 검색이 그 칸의 주인이 되어, 닫으면 칸이 비고 Cmd-O로 트리를 다시 연다.
+  - (계획 10, Verified) 왼쪽 칸의 뷰들은 입력칸 하나를 함께 쓴다. 노트 검색어는 닫은 뒤에도 남아 트리와 Cmd-K 페이지 검색을 거르고, 지우면 원래대로 돌아온다(SilverBullet 내장 동작).
 - **Verified (`obsidianmd/obsidian-releases` 통계, 2026-10-14):** Obsidian 커뮤니티 플러그인 다운로드 상위는 Excalidraw 850만, Templater 590만, Dataview 514만, Tasks 441만, Git 329만, Advanced Tables 328만, Calendar 319만이고, 전체 텍스트 검색 Omnisearch는 200만, Homepage 138만, Recent Files 121만이다. 코어 플러그인에는 Outline, Backlinks, Outgoing links, Search, Word count, Random note, Tags view 등이 있다(obsidian.md/help/plugins).
 - **Verified (VS Code Marketplace 공개 API, 2026-10-14):** 테마 확장 설치 수는 GitHub Theme 20,347,397, One Dark Pro 12,829,109, Dracula 11,049,248, Tokyo Night 2,975,536, Catppuccin 1,449,733, Nord 1,293,571이다. One Dark Pro와 Dracula는 어두운 테마만 있다. GitHub 색값은 `@primer/primitives` 10.7.0(MIT)의 `dist/css/functional/themes/{light,dark}.css`에서 가져왔다.
 - **Verified (스파이크):** 숨김 파일은 SilverBullet API로 읽거나 쓸 수 없다(404).
@@ -96,11 +97,14 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (스파이크, `plugs/index/task.ts:108-117`):** 관찰 카테고리 글자(`[question]`)를 누르면 `[]`로 바뀌어 저장되고, Basic Memory는 그 관찰을 카테고리 `note`로 다시 색인한다. `taskStates`가 비어 있으면 다음 상태가 없어서 빈 값이 들어간다. `.sb-task-state`에 `pointer-events: none`을 줘도 막지 못하고, 순환 코드는 내장 플러그 안에 있다. 같은 문제를 다룬 열린 이슈는 없다.
 - **Verified (스파이크):** SilverBullet은 관찰을 작업 객체로 색인하고 카테고리를 `state`에 둔다(`index.tasks()`의 `state`·`page`·`name`).
 - **Verified (스파이크):** `config.set("journal.enabled", false)`로 저널 명령이 사라진다. Quick Note(`Inbox/<날짜>/<시각>`)에는 끄는 설정이 없다.
-- **Assumption (계획 10에서 확인):**
-  - `Library/` 아래 페이지의 `space-lua`·`space-style`도 루트 페이지처럼 적용된다.
-  - SilverBullet이 `index.md`를 만들기 전에 배포가 먼저 두면 그대로 쓴다.
-  - 대시보드 질의에 쓸 API(`index.pages()`·`index.tasks()`·`index.tags()`의 필드, `table.sort`)가 문서대로 동작한다(`docs/Space Lua/Integrated Query.md`).
-  - curl의 `--data-urlencode "password@-"`가 표준입력의 비밀번호를 그대로 보낸다.
+- **Verified (계획 10, 2026-10-15, 로컬):**
+  - `Library/` 아래 페이지의 `space-lua`·`space-style`도 루트 페이지처럼 적용된다. 대시보드, 정보 줄, 테마(`--root-background-color` 어둡게 `#0d1117`, 밝게 `#ffffff`), 글꼴(`400 loaded, 700 loaded`)이 모두 `Library/agent-hub/agent-hub`에서 왔다.
+  - SilverBullet이 `index.md`를 만들기 전에 배포가 먼저 두면 그대로 쓴다. `make local-up`이 SilverBullet보다 먼저 `wrote the dashboard index.md`를 냈고, `index`가 그 대시보드를 보여 줬다.
+  - 대시보드 질의 API(`index.pages()`·`index.tasks()`·`index.tags()`의 필드, `table.sort`)가 문서대로 동작한다. 시드 노트 셋으로 일곱 절이 기대한 개수(폴더 셋, 결정·위험·질문 각 2개, `#sample (3)`)로 나왔다.
+  - curl의 `--data-urlencode "password@-"`가 표준입력의 비밀번호를 그대로 보낸다. 실제 `SB_USER`로 `make local-verify`의 로그인이 통과했다.
+  - 스파이크 때 쓴 origin(`localhost:3000`)에는 브라우저 캐시(`CONFIG.md` 등)가 남아, 첫 화면이 예전 스크립트로 그려져 `attempt to call a nil value (field 'dashboard')`가 났다. 새로고침한 탭과 새 origin(`sb.localhost:3000`)에서는 오류가 없었다. VM은 새 origin이므로 해당하지 않는다.
+  - 2.12.1의 service worker 뒤에서는 페이지의 `fetch("/.fs/…")`가 파일을 읽고 쓰지 못한다(PUT은 405 `allow: GET,HEAD`, GET은 앱 HTML). 확인용 쓰기·읽기는 `client.space.writePage`·`readPage`로 한다.
+  - Basic Memory `search_notes`의 기본 검색은 글자가 일치하지 않는 노트도 점수를 매겨 돌려준다. 무시 목록 확인은 `search_type: "text"`(0건)와 `list_directory`(노트만 있음)로 한다.
 - **Assumption (계획 11에서 확인):** Serve 뒤에서 쿠키에 `Secure`가 붙는다(위 소스 근거). `sudo -n -u '#1000'`로 노트 폴더에 쓸 수 있다. SilverBullet 컨테이너는 호스트의 `127.0.0.1:8737`에 닿지 못한다. amd64에서의 메모리. `tailscale serve --bg --https=8443`이 기존 443 설정을 지우지 않는다.
 - **Verified (계획 05 진행 로그 2026-10-13 Step 14, `docs/plans/completed/2026-10-07-05-vm-rollout.md:293`):** 22번이 닫힌 뒤에도 `make vm-bootstrap HOST=agent-hub </dev/null`이 Tailscale SSH로 키 없이 다시 실행되고 Serve를 다시 적용한다. 계획 11은 이 경로로 8443을 더한다.
 - **Verified (tailscale `ipn/serve.go:53-76`, `:125-172`, `cmd/tailscale/cli/serve_v2.go:259-264`):** `tailscale serve status --json`은 `Web`(키 `<호스트>:<포트>`, 값의 `Handlers["/"].Proxy`)과 `AllowFunnel`(키 `<호스트>:<포트>`)을 담은 설정을 출력한다. 계획 11의 `verify`가 포트별 대상과 Funnel을 이 JSON으로 검사한다.
@@ -364,7 +368,7 @@ bats 테스트를 먼저 쓴다(AGENTS.md). 스텁은 `tests/stubs/`, 기록된 
 | 관찰 카테고리 클릭으로 카테고리 손실 | 런북 경고와 `Cmd+Z`, 업스트림 이슈. 반복되면 자동 되돌리기 Space Lua를 다시 판단 |
 | 훅이 적용되지 않는 페이지(템플릿으로 만든 페이지)의 frontmatter 경합 | 저널을 끄고 Quick Note는 무시 경로(`Inbox/`)에 둔다. 남는 경우는 줄바꿈 하나 수준 |
 | `.gitignore`보다 먼저 색인된 SilverBullet 페이지가 남음 | 배포가 SilverBullet보다 먼저 `.gitignore`만 두고 Basic Memory를 다시 만든 뒤에 관리 페이지와 `index.md`를 쓴다. 복원은 Basic Memory가 멈춘 동안 공간 파일을 모두 쓴 뒤에 기동한다(§7.3) |
-| SilverBullet이 배포보다 먼저 `index.md`를 만듦 | 배포 순서로 막고 계획 10에서 확인(§3 Assumption) |
+| SilverBullet이 배포보다 먼저 `index.md`를 만듦 | 배포 순서로 막는다(§3, 계획 10에서 확인) |
 | 이미지 기본 healthcheck(`/.instance`)가 인증 예외 목록 밖이라 버전에 따라 401이 될 수 있음 | 목록에 있는 `/.ping`으로 덮어쓰기(§7.1) |
 | 두 번째 비밀값 유출 | `.env`(git 제외)와 VM `.env`(600)에만 둔다. 출력 금지 테스트, `mask`, 비밀번호는 curl 표준입력으로만 |
 | `SB_USER`의 `#`·`$`를 make가 주석·변수로 바꿔 다른 비밀번호가 쓰임 | 허용 문자를 정하고 `require_sb_user`가 형식을 검사하며, make가 바꾼 값은 `SB_ENV_FILE`의 원래 줄과 비교해 잡는다(§8.3). `.env.example`에 적는다 |

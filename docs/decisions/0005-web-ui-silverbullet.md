@@ -27,6 +27,7 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 - 에이전트가 쓴 내용은 5초 안에 열린 페이지에 반영되고, SilverBullet에서 쓴 내용은 Basic Memory `search_notes`에 반영됩니다.
 - 새 페이지 frontmatter를 SilverBullet 훅이 미리 채우면 Basic Memory가 파일을 다시 쓰지 않습니다. 그래서 줄바꿈이 사라지지 않습니다(훅 전 2/2 손실, 훅 뒤 0/2).
 - 인증 없는 SilverBullet은 다른 사이트의 단순 POST로 셸을 실행하고 프록시를 엽니다. `SB_USER`와 `SB_SHELL_BACKEND=off`로 막습니다.
+- 계획 10의 로컬 확인(2026-10-15, 새 브라우저 origin)에서 대시보드 일곱 절, 트리·목차 기본 배치, 테마, 글꼴, 정보 줄, 노트 검색, 그래프가 동작했습니다. 새 페이지의 줄바꿈이 남았고, Basic Memory에는 노트만 색인됐습니다.
 - 계획 10의 로컬 확인 결과는 계획 10 파일(`docs/plans/completed/2026-10-14-10-web-ui-local.md`)의 Progress log에 있습니다.
 
 ## 결과

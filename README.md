@@ -38,7 +38,7 @@ make local-down
 2. `http://127.0.0.1:3000`에서 로그인합니다.
 3. 글꼴은 `make sb-fonts LOCAL=1`로 한 번 올립니다.
 
-트리는 왼쪽(`Cmd-O`), 목차는 오른쪽에 있습니다. 페이지 이름 검색은 `Cmd-K`, 노트 본문 검색은 `Cmd-Shift-F`입니다(본문 문단은 브라우저마다 `Space: Reindex`를 한 번 실행한 뒤 검색됨). 그래프는 명령 팔레트의 `Graph: Explore`로 엽니다.
+트리는 왼쪽(`Cmd-O`), 목차는 오른쪽에 있습니다. 페이지 이름 검색은 `Cmd-K`, 노트 본문 검색은 `Cmd-Shift-F`입니다(본문 문단이 안 나오면 그 브라우저에서 `Space: Reindex`를 한 번 실행). 그래프는 명령 팔레트의 `Graph: Explore`로 엽니다.
 
 **주의:** 노트의 관찰 카테고리 글자(`[decision]`, `[fact]` 등)를 누르면 SilverBullet이 카테고리를 지웁니다. 실수했으면 바로 `Cmd+Z`로 되돌리세요.
 
