@@ -12,6 +12,8 @@ readonly DEFAULT_TUNNEL_MCP_PORT=18737
 readonly DEFAULT_TUNNEL_WEB_PORT=13000
 readonly SERVER_ALIVE_INTERVAL_SECONDS=30
 readonly SERVER_ALIVE_COUNT_MAX=3
+# Exit code when ssh ended with 0: a tunnel that ends is still a failure.
+readonly TUNNEL_ENDED_EXIT=1
 
 main() {
   local mode status=0
@@ -32,7 +34,9 @@ main() {
   log "running: ${cmd[*]}"
   log "MCP: http://127.0.0.1:$mcp_port/mcp  web UI: http://127.0.0.1:$web_port  (Ctrl-C stops the tunnel)"
   "${cmd[@]}" || status=$?
-  die "tunnel closed (exit $status): rerun 'make tunnel'; $(access_hint)"
+  # Not die: the exit code of ssh is the point, so scripts and callers can tell why the tunnel ended.
+  printf "ERROR: tunnel closed (exit %s): rerun 'make tunnel'; %s\n" "$status" "$(access_hint)" >&2
+  exit "$((status == 0 ? TUNNEL_ENDED_EXIT : status))"
 }
 
 main "$@"
