@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Test stub for tailscale. TS_STUB_STATUS_EXIT sets the `status` exit code (0 = on the tailnet).
+# `status --json` prints {"BackendState": "$TS_STUB_BACKEND_STATE"} (default Running) and exits 0, like the real CLI.
 # `up --auth-key=file:PATH` copies the key file to $STUB_LOG.authkey so tests can check it.
 # `serve status [--json]` describes 443 -> http://127.0.0.1:8737 and 8443 -> $TS_STUB_SERVE_8443
 # (default http://127.0.0.1:3000; empty = no 8443 mapping), tailnet only.
@@ -55,7 +56,13 @@ serve_json() {
 }
 
 case "${1:-}" in
-  status) exit "${TS_STUB_STATUS_EXIT:-0}" ;;
+  status)
+    if [[ "${2:-}" == --json ]]; then
+      printf '{"BackendState": "%s"}\n' "${TS_STUB_BACKEND_STATE:-Running}"
+      exit 0
+    fi
+    exit "${TS_STUB_STATUS_EXIT:-0}"
+    ;;
   up)
     for arg in "$@"; do
       if [[ "$arg" == --auth-key=file:* ]]; then

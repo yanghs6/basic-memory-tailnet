@@ -11,7 +11,7 @@ MAIN_ROOT := $(if $(GIT_COMMON_DIR),$(abspath $(GIT_COMMON_DIR)/..),$(CURDIR))
 -include $(MAIN_ROOT)/.env
 BM_PORT := $(or $(BM_PORT),8737)
 SB_PORT := $(or $(SB_PORT),3000)
-export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT SB_PORT
+export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT SB_PORT BM_ACCESS BM_ACCESS_CHECK_URL BM_TUNNEL_MCP_PORT BM_TUNNEL_WEB_PORT
 # Only the targets that hand the SilverBullet login to compose or the VM, or log in to check it, see it; make
 # review's CLIs and the read-only probe do not.
 local-up local-down local-logs local-verify deploy restore verify: export SB_USER := $(SB_USER)
@@ -28,7 +28,7 @@ COVERAGE_MIN := 80
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review review-post review-record vm-bootstrap deploy verify probe status logs sb-fonts backup restore
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review review-post review-record vm-bootstrap deploy verify probe status logs sb-fonts backup restore access-check tunnel
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -76,6 +76,12 @@ local-verify: ## Verify the local MCP endpoint (plain and *.ts.net Host header) 
 	scripts/verify-mcp.sh --host-header agent-hub.example.ts.net "http://127.0.0.1:$(BM_PORT)/mcp"
 	scripts/verify-sb.sh "http://127.0.0.1:$(SB_PORT)"
 
+access-check: ## Report which access path (tailscale or ssh) works on this network; run it on every network you use
+	scripts/access-check.sh
+
+tunnel: ## ssh mode: forward MCP and the web UI to 127.0.0.1:BM_TUNNEL_MCP_PORT and BM_TUNNEL_WEB_PORT (Ctrl-C stops)
+	scripts/tunnel.sh
+
 check-git: ## Check the git policy for the current branch against origin/main (name, commit trailers, worktree config)
 	scripts/check-git.sh origin/main
 
@@ -88,19 +94,19 @@ review-post: ## Post a review round's reports to its PR: PR=<number> BRANCH=<bra
 review-record: ## Create or update the PR's Review record comment: PR=<number> FILE=<findings table file>
 	scripts/review-record.sh "$(PR)" "$(FILE)"
 
-vm-bootstrap: ## First-time VM setup over public SSH (HOST=<public-ip>; asks for a Tailscale auth key)
+vm-bootstrap: ## First-time VM setup (HOST=<public-ip>, or the SSH host alias in ssh mode; tailscale mode asks for an auth key)
 	scripts/bootstrap-vm.sh "$(HOST)"
 
 deploy: ## Copy compose.yaml to the VM and start Basic Memory (waits until healthy)
 	scripts/deploy.sh
 
-verify: ## Full VM check: MCP write/read/delete, SilverBullet login, loopback binding, tailnet-only serve, closed public ports
+verify: ## Full VM check: MCP write/read/delete, SilverBullet login, loopback binding, exposure (Serve in tailscale mode; Tailscale off and sshd key-only in ssh mode), closed public ports
 	scripts/verify-vm.sh
 
 probe: ## Read-only VM check: same as verify but writes no notes and does not log in to SilverBullet
 	scripts/verify-vm.sh --read-only
 
-status: ## Show VM containers, memory and swap use, and tailscale serve
+status: ## Show VM containers, memory and swap use, and tailscale serve (ssh mode: whether Tailscale is off)
 	scripts/status.sh
 
 logs: ## Show the last 200 lines of the VM container logs

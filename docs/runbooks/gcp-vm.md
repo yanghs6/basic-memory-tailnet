@@ -58,6 +58,15 @@ Expected: 인스턴스가 `RUNNING`으로 만들어지고 `EXTERNAL_IP`가 한 �
 
 `default` 네트워크에는 `default-allow-ssh`(tcp:22), `default-allow-rdp`(tcp:3389), `default-allow-icmp`가 `0.0.0.0/0`으로, `default-allow-internal`이 `10.128.0.0/9`로 미리 들어 있습니다(**Verified**, docs.cloud.google.com/firewall/docs/firewalls). 규칙이 없으면 인바운드는 모두 차단됩니다.
 
+접속 방식에 따라 22번 규칙이 다릅니다(`.env`의 `BM_ACCESS`, [부트스트랩 런북](bootstrap.md)).
+
+- `tailscale`: 아래처럼 `default-allow-ssh`를 내 IP/32로 좁혀 부트스트랩에 쓰고, Tailscale SSH를 확인한 뒤 지웁니다.
+- `ssh`: 공인 SSH가 필요 없습니다. rdp·icmp와 함께 `default-allow-ssh`도 지우고(`ssh` 모드 단계, 사용자 OK 후), 8단계의 `allow-iap-ssh`를 만듭니다.
+
+  ```bash
+  gcloud compute firewall-rules delete default-allow-ssh --configuration=bm-personal
+  ```
+
 ```bash
 gcloud compute firewall-rules delete default-allow-rdp default-allow-icmp --configuration=bm-personal
 MY_IP="$(curl -4 -s https://ifconfig.me)"
@@ -137,3 +146,36 @@ gcloud compute instances start "$INSTANCE" --zone="$ZONE" --configuration=bm-per
 ## 7. 재구축할 때의 정리
 
 VM을 다시 만드는 경우 옛 인스턴스와 디스크는 **복원이 검증되기 전에는 지우지 않습니다**. 복원 검증 뒤에 지울 때는 사용자가 직접 인스턴스 삭제 명령을 실행합니다(`--configuration=bm-personal`을 붙이고 `--zone`을 확인). 옛 VM과 디스크가 남아 있는 동안은 무료 등급을 넘을 수 있으므로(정지된 VM의 디스크도 30GB-월에 포함) 지체하지 말고 지운 뒤 [비용 점검](operations.md#비용-점검)으로 청구를 확인합니다. 전체 순서는 [운영 런북](operations.md)의 "VM 재구축 순서"에 있습니다.
+
+## 8. IAP로 접속하기 (`BM_ACCESS=ssh`)
+
+IAP TCP 포워딩은 Google 계정 인증을 거쳐 VM의 22번으로 터널을 엽니다. VM에 외부 IP가 없어도 되고, 컨테이너는 `127.0.0.1`에만 있으므로 SSH 로컬 포워딩(`make tunnel`)으로 들어갑니다(**Verified**, docs.cloud.google.com/iap/docs/using-tcp-forwarding, 2026-10-15).
+
+1. 방화벽 규칙(사용자 OK 후). IAP가 쓰는 대역에서 22번만 엽니다.
+
+   ```bash
+   gcloud compute firewall-rules create allow-iap-ssh --configuration=bm-personal --network=default --direction=INGRESS --allow=tcp:22 --source-ranges=35.235.240.0/20
+   ```
+
+2. 권한. 프로젝트 소유자는 이미 가집니다. 다른 사람에게는 [accounts 7단계](accounts.md)를 따릅니다.
+3. `~/.ssh/config` (macOS·Linux·WSL). `HostName`은 인스턴스 이름입니다. 인스턴스 이름이 바뀌면(VM 재구축) `HostName`도 바꿔야 합니다. 안 바꾸면 별칭이 옛 VM을 가리킵니다.
+
+   ```
+   Host agent-hub-iap
+     HostName agent-hub-01
+     User ubuntu
+     ProxyCommand gcloud --configuration=bm-personal compute start-iap-tunnel %h 22 --listen-on-stdin --zone=us-west1-b --verbosity=warning
+   ```
+
+   Windows(PowerShell, OpenSSH)는 `%USERPROFILE%\.ssh\config`에 같은 블록을 넣고 `ProxyCommand`의 `gcloud`를 `gcloud.cmd`로 바꿉니다(**Assumption**, 검증하지 않음).
+4. 첫 접속은 대화형으로 해서 호스트 키를 수락합니다: `ssh ubuntu@agent-hub-iap true`. 그다음 `.env`에 `BM_ACCESS=ssh`, `BM_VM_HOST=agent-hub-iap`를 넣고 `make access-check`가 `ssh ubuntu@agent-hub-iap: ok`를 출력하는지 봅니다.
+5. 터널이 API나 권한 오류로 열리지 않으면 IAP API를 켭니다(사용자 OK 후). 켜야 하는지는 **Open question**이고, 계획 12의 Task 8에서 확인합니다.
+
+   ```bash
+   gcloud services enable iap.googleapis.com --configuration=bm-personal
+   ```
+
+6. sshd는 키 전용이어야 합니다. `make verify`가 `sshd -T`로 `passwordauthentication no`와 `kbdinteractiveauthentication no`를 확인합니다. 실패하면 `/etc/ssh/sshd_config.d/`에 파일을 만듭니다. sshd는 키워드마다 처음 읽은 값을 쓰고 `sshd_config.d/*.conf`를 이름순으로 읽으므로, 먼저 읽히도록 `/etc/ssh/sshd_config.d/00-keys-only.conf`처럼 이름을 짓고 두 줄 `PasswordAuthentication no`, `KbdInteractiveAuthentication no`를 넣습니다. 그다음 `sudo systemctl reload ssh`를 실행합니다(사용자 OK 후).
+7. 로그인이 만료되면 `ProxyCommand`가 실패하고 스크립트는 `check the ProxyCommand for agent-hub-iap in ~/.ssh/config and its login`을 출력합니다. `gcloud auth login --configuration=bm-personal`로 다시 로그인합니다.
+
+IAP 터널은 대량 전송용이 아니고, 한 시간 동안 활동이 없으면 끊깁니다. `make tunnel`은 30초마다 keepalive를 보내고, 끊기면 종료하므로 다시 실행합니다.

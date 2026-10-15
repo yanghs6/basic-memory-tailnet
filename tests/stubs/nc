@@ -2,8 +2,30 @@
 # Test stub for nc: exits NC_STUB_EXIT (default 1 = connection refused) and prints NC_STUB_STDERR to stderr.
 # open: NC_STUB_EXIT=0; refused: default; timeout: NC_STUB_STDERR="nc: connect to ... port 22 (tcp) timed out";
 # option error: NC_STUB_STDERR="nc: invalid option -- G" (or "usage: nc ...").
+# NC_STUB_OPEN_MATCH=<substring>: calls whose arguments contain it exit 0 (open), e.g. 127.0.0.1 for a local
+# tunnel while the public IP stays closed.
+# NC_STUB_OPEN_AFTER_TUNNEL=<substring>: like NC_STUB_OPEN_MATCH, but only once the ssh stub has recorded a tunnel pid in
+# "$STUB_LOG.tunnel-pids" and that tunnel is still running, so a port counts as free before the tunnel starts (and after
+# it was killed) and open while it runs.
 set -euo pipefail
+
+tunnel_is_running() {
+  local pid
+  [[ -f "$STUB_LOG.tunnel-pids" ]] || return 1
+  while read -r pid; do
+    if kill -0 "$pid" 2>/dev/null; then
+      return 0
+    fi
+  done <"$STUB_LOG.tunnel-pids"
+  return 1
+}
 printf 'nc %s\n' "$*" >>"$STUB_LOG"
+if [[ -n "${NC_STUB_OPEN_MATCH:-}" && "$*" == *"$NC_STUB_OPEN_MATCH"* ]]; then
+  exit 0
+fi
+if [[ -n "${NC_STUB_OPEN_AFTER_TUNNEL:-}" && "$*" == *"$NC_STUB_OPEN_AFTER_TUNNEL"* ]] && tunnel_is_running; then
+  exit 0
+fi
 if [[ -n "${NC_STUB_STDERR:-}" ]]; then
   printf '%s\n' "$NC_STUB_STDERR" >&2
 fi

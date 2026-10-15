@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Test stub for sshd: `sshd -T` prints the effective auth settings. SSHD_STUB_PASSWORD=yes turns password logins on.
+set -euo pipefail
+printf 'sshd %s\n' "$*" >>"$STUB_LOG"
+printf 'passwordauthentication %s\n' "${SSHD_STUB_PASSWORD:-no}"
+printf 'kbdinteractiveauthentication no\n'
+printf 'permitrootlogin without-password\n'
