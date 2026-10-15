@@ -179,11 +179,12 @@ run_bootstrap_with_key() {
 }
 
 @test "bootstrap-vm in ssh mode never asks for a key, passes the mode to the VM and points to make tunnel" {
-  export BM_ACCESS=ssh BM_VM_USER=root
-  unset TS_AUTHKEY
+  export BM_ACCESS=ssh BM_VM_USER=root TS_AUTHKEY=tskey-auth-ssh123
   run "$WRAPPER" agent-hub-iap </dev/null
   assert_success
   refute_output --partial "Tailscale auth key"
+  refute_output --partial "using auth key"
+  refute_output --partial tskey-auth-ssh123
   refute_output --partial "delete the firewall rule that opens port 22"
   assert_output --partial "make tunnel, then connect the agents"
   run grep -F 'sudo BM_ACCESS=ssh ' "$STUB_LOG"
