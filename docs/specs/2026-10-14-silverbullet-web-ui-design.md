@@ -19,7 +19,7 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
    - 3000번 포트가 `127.0.0.1`에만 바인딩됨
    - 공인 IP의 8443·3000번이 닫힘
    - Serve가 443→`127.0.0.1:8737`, 8443→`127.0.0.1:3000`이고 Funnel off
-3. Mac 브라우저에서 로그인한 뒤 다음을 확인해 진행 로그에 기록한다: 3단 레이아웃(트리 왼쪽, 목차 오른쪽, Linked Mentions 아래), 대시보드 네 구역(§7.2), D2Koding 글꼴(Regular·Bold), `Graph: Explore`.
+3. Mac 브라우저에서 로그인한 뒤 다음을 확인해 진행 로그에 기록한다: 3단 레이아웃(트리 왼쪽, 목차 오른쪽, Linked Mentions 아래), Cmd-K 페이지 검색과 Cmd-Shift-F 노트 검색이 왼쪽에 열림, 노트 위 정보 줄, `memory://` 복사 명령, GitHub 테마(밝게·어둡게), 대시보드 네 구역과 유지보수 링크(§7.2), D2Koding 글꼴(Regular·Bold), `Graph: Explore`.
 4. SilverBullet에서 새 페이지를 만들고 첫 줄 → Enter → 3초 대기 → 둘째 줄을 입력해도 줄바꿈이 남고, Basic Memory가 그 파일을 다시 쓰지 않는다. SilverBullet 전용 페이지(`index`, `Library/…`)가 `search_notes`에 나오지 않는다.
 5. `make check`가 통과한다.
 6. VM에서 두 컨테이너가 함께 돌 때의 메모리·스왑 사용량을 `make status`로 재서 ADR 0005에 기록한다. OOM이 나면 ADR 0002를 다시 판단한다.
@@ -46,6 +46,11 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 | 레이아웃 | 내장 3단(트리·목차·Linked Mentions)과 대시보드 `index` | 사용자 선택. 커뮤니티에서 흔한 구성이고 내장 기능만 쓴다 |
 | 대시보드 | 최근 수정 노트, 최상위 폴더, 카테고리별 관찰(`decision`·`risk`·`question`), 태그 | 사용자 선택. SilverBullet이 관찰을 `state`가 카테고리인 작업으로 색인한다(§3) |
 | 글꼴 | `D2KodingLigature Nerd Font` Regular·Bold를 WOFF2로 바꿔 공간에서 `@font-face`로 제공한다 | 사용자 선택(모든 기기에서 같은 글꼴). WOFF2 합계 4.7MB |
+| 테마 | 기본 테마의 색 변수만 GitHub Light Default·Dark Default 색(`@primer/primitives` 10.7.0, MIT)으로 바꾼다. 밝게·어둡게 전환은 SilverBullet 기본 기능 그대로 | 사용자 요청(기본 테마만 조정, 웹 조사 후 반영). VS Code Marketplace에서 설치 수가 가장 많은 테마(2026-10-14 기준 2,035만)이고, 밝은·어두운 공식 변형이 함께 있으며, Markdown을 읽을 때 GitHub에서 보던 색과 같다(§3) |
+| 검색 | 페이지 검색(`std.pages`, Cmd-K)을 왼쪽 칸에 연다. 평소에는 트리가 있고, 검색하는 동안만 같은 칸이 검색으로 바뀌었다가 닫으면 트리로 돌아온다 | 사용자 요청(검색 바를 왼쪽에). 사이드바 칸마다 뷰는 하나만 열린다(§3) |
+| 목차 | 내장 목차(`std.toc`)를 오른쪽에 기본으로 연다. 새 노트 템플릿에 목차를 넣지 않는다 | 사용자 요청(기본으로 목차). 노트 파일은 에이전트와 함께 쓰므로, 템플릿에 SilverBullet 위젯 문법을 넣으면 에이전트에게는 날 문법으로 보인다. 화면에서만 그리면 파일이 깨끗하다. Obsidian Outline, Docusaurus 오른쪽 목차와 같은 배치다 |
+| 읽기·찾기 보조 | 노트 위 정보 줄(수정 시각, 단어 수, 읽기 시간, 백링크 수, `memory://` 주소), 전체 텍스트 검색 `Search: Notes`(Cmd-Shift-F, 왼쪽 칸), 명령 `Basic Memory: Copy memory:// Link`와 `Navigate: Random Note`, 대시보드의 유지보수 링크. 모두 Space Lua이고 노트 파일을 쓰지 않는다 | 사용자 요청(레퍼런스에서 많이 쓰는 요소를 Lua로). Obsidian 코어 플러그인(Search, Word count, Random note, Backlinks)과 다운로드 상위 플러그인(Omnisearch 200만), 문서 사이트의 "마지막 수정"을 근거로 골랐다. SilverBullet 2.12.1에는 전체 텍스트 검색이 없다(§3). 이미 내장된 것(질의, 표 편집, 강조 상자, 태그 목록, 그래프)과 이 저장소에 맞지 않는 것(칸반, 캘린더, 할 일)은 넣지 않는다 |
+| Linked Tasks | 내장 Linked Tasks(`std.linkedTasks`)를 기본으로 닫는다 | Basic Memory 관찰은 SilverBullet에게 작업이다. 이 목록은 다른 페이지의 작업을 상태 클릭이 되는 채로 보여 주므로 카테고리 손실(§3) 위험을 넓힌다 |
 | 관찰 카테고리 클릭 문제 | SilverBullet 업스트림 이슈와 런북 경고 | 근본 원인이 SilverBullet 코드에 있다. 이슈 게시는 사용자가 결정한다 |
 | 계획 분할 | 계획 10(로컬)과 계획 11(VM) | 각 계획을 독립적으로 검증한다 |
 
@@ -72,7 +77,19 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (`server/src/router.rs:349-353`, `:614-616`):** 인증 없이 열리는 경로는 `/.ping`, `/.logout`, `/.auth*`, `robots.txt`, `sitemap.xml`과 클라이언트 번들뿐이다. 그 밖의 경로(`/.instance` 포함)는 로그인 전 401이므로 이미지 기본 healthcheck는 인증을 켜면 실패한다.
 - **Verified (`server/src/handlers/auth.rs:81-137`, `:163-212`):** `POST /.auth`는 성공과 실패 모두 HTTP 200 JSON으로 답한다(`{"status":"ok"}` 또는 `{"status":"error"}`). 성공일 때만 `auth_`로 시작하는 세션 쿠키를 붙인다. `GET /.logout`은 세션을 폐기하고 302로 답한다.
 - **Verified (`server/src/auth/cookie.rs:49-57`, `:84-85`, tailscale `ipn/ipnlocal/serve.go:1088-1091`):** 세션 쿠키의 `Secure`는 요청에 `X-Forwarded-Proto: https`가 있을 때만 붙고, Tailscale Serve가 이 헤더를 붙인다. VM에서의 확인은 계획 11에서 한다.
-- **Verified (`client/navigator/view_defaults.ts`, `client/navigator/builtins.ts:36`, `views/space_tree.ts:164-170`):** 트리 뷰 이름은 `std.spaceTree`이고, `config.set("view.defaults", {["std.spaceTree"] = {dock = "lhs", open = true}})`로 처음부터 왼쪽에 연다. 브라우저에 저장된 사용자 선택이 이 값보다 앞선다.
+- **Verified (`client/navigator/view_defaults.ts`, `client/navigator/builtins.ts:31-41`, `views/space_tree.ts:164-170`, 스파이크):** 트리 뷰 이름은 `std.spaceTree`이고, `config.set("view.defaults", {["std.spaceTree"] = {dock = "lhs", open = true}})`로 처음부터 왼쪽에 연다. 브라우저에 저장된 사용자 선택이 이 값보다 앞선다. 저장된 선택이 없는 새 origin(`localhost:3000`)에서 트리가 왼쪽에 열렸다.
+- **Verified (`client/navigator/panel_lifecycle.ts:361-381`, `views/pages.ts:202-206`, 스파이크):** 사이드바 칸(`lhs`·`rhs`·`bhs`)에는 뷰가 하나만 열린다. 같은 칸에 기본으로 여는 뷰가 둘이면 하나는 경고와 함께 무시된다. 페이지 검색 `std.pages`는 `modal`·`lhs`·`rhs`·`bhs`에 놓일 수 있고, `["std.pages"] = { dock = "lhs" }`로 두면 Cmd-K가 왼쪽 칸에서 열린다. 트리가 열린 상태에서 Cmd-K를 누르면 검색이 트리 자리를 쓰고, Esc로 닫으면 트리가 돌아온다. 목차 `std.toc`는 오른쪽(`rhs`), Linked Mentions는 페이지 아래(`page-bottom`)가 기본이라 겹치지 않는다(`libraries/Library/Std/Widgets/Widgets.md:22-23`).
+- **Verified (`client/styles/theme.scss:5-358`, 스파이크):** 기본 테마는 밝은 색을 `html`에, 어두운 색을 `html[data-theme="dark"]`에 CSS 변수(`--root-background-color`, `--link-color`, `--editor-task-state-color` 등)로 둔다. `space-style`에서 같은 선택자로 덮어쓰면 두 모드 모두 바뀐다.
+- **Verified (`docs/Full Text Search.md`, `plugs/` 목록):** 2.12.1 코어에는 전체 텍스트 검색이 없다. 공식 문서는 커뮤니티 라이브러리(Silversearch, basic-search) 설치를 권한다. 이 설계는 외부 코드를 공간에 들이지 않고 `view.define`의 `search = "source"`(입력할 때마다 `source(ctx)`를 다시 부름, `docs/API/widget.md:225-226`)로 직접 만든다.
+- **Verified (`libraries/Library/Std/Widgets/Widgets.md`, `docs/API/view.md:39-58`, 스파이크):** 사용자 뷰는 `view.define`으로 등록하고 `lhs`·`rhs`·`page-top` 등에 둔다. `frame = "minimal"`인 `page-top` 뷰는 제목줄 없이 본문처럼 보이고 내용이 없으면 숨는다. Linked Tasks는 다른 페이지의 작업을 체크·상태 변경이 되는 채로 `page-top`에 보여 주며 기본으로 열려 있다.
+- **Verified (스파이크, 2026-10-14):**
+  - 색인 객체의 필드: 페이지 `lastModified`는 `2026-10-14T11:49:06.750`처럼 로컬 시각 문자열이고, 프론트매터의 `permalink`도 들어 있다. 목록 항목은 `text`·`tags`·`ref`(`페이지@위치`), 헤더는 `name`·`ref`다. 관찰 줄은 목록 항목이 아니라 작업(`index.tasks()`, `state`·`name`·`tags`)으로 색인된다.
+  - 문단은 `config.set("index.paragraph.all", true)`가 있어야 색인된다. 이미 색인한 브라우저뿐 아니라 처음 여는 브라우저도 공간 설정보다 색인이 먼저 돌므로, 문단 검색은 브라우저마다 `Space: Reindex`를 한 번 실행한 뒤에 된다.
+  - Space Lua에서 `query[[…]][1]`처럼 질의 결과를 바로 인덱싱하면 블록 전체가 파싱 오류가 된다. 변수에 담은 뒤 인덱싱한다.
+  - `memory://main/projects/agent-hub`를 Basic Memory `build_context`에 넘기면 그 노트와 관찰·관계가 돌아온다.
+  - 검색 패널이 트리를 밀어낸 상태에서 Esc로 닫으면 트리가 돌아온다. 검색 패널을 연 채로 새로고침하면 검색이 그 칸의 주인이 되어, 닫으면 칸이 비고 Cmd-O로 트리를 다시 연다.
+- **Verified (`obsidianmd/obsidian-releases` 통계, 2026-10-14):** Obsidian 커뮤니티 플러그인 다운로드 상위는 Excalidraw 850만, Templater 590만, Dataview 514만, Tasks 441만, Git 329만, Advanced Tables 328만, Calendar 319만이고, 전체 텍스트 검색 Omnisearch는 200만, Homepage 138만, Recent Files 121만이다. 코어 플러그인에는 Outline, Backlinks, Outgoing links, Search, Word count, Random note, Tags view 등이 있다(obsidian.md/help/plugins).
+- **Verified (VS Code Marketplace 공개 API, 2026-10-14):** 테마 확장 설치 수는 GitHub Theme 20,347,397, One Dark Pro 12,829,109, Dracula 11,049,248, Tokyo Night 2,975,536, Catppuccin 1,449,733, Nord 1,293,571이다. One Dark Pro와 Dracula는 어두운 테마만 있다. GitHub 색값은 `@primer/primitives` 10.7.0(MIT)의 `dist/css/functional/themes/{light,dark}.css`에서 가져왔다.
 - **Verified (스파이크):** 숨김 파일은 SilverBullet API로 읽거나 쓸 수 없다(404).
 - **Verified (스파이크):** `space-style`로 `--editor-font`·`--ui-font`를 바꾸면 편집기와 UI에 적용된다. 공간의 WOFF2를 `@font-face`로 불러오면 Regular·Bold가 `loaded`가 되고, 두 번째 로드부터 동기화 캐시에서 읽는다. `python3 -m fontTools.ttLib.woff2 compress`로 Regular 6.3MB→2.3MB, Bold 6.5MB→2.4MB.
 - **Verified (스파이크, `plugs/index/task.ts:108-117`):** 관찰 카테고리 글자(`[question]`)를 누르면 `[]`로 바뀌어 저장되고, Basic Memory는 그 관찰을 카테고리 `note`로 다시 색인한다. `taskStates`가 비어 있으면 다음 상태가 없어서 빈 값이 들어간다. `.sb-task-state`에 `pointer-events: none`을 줘도 막지 못하고, 순환 코드는 내장 플러그 안에 있다. 같은 문제를 다룬 열린 이슈는 없다.
@@ -208,7 +225,14 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
   2. 최상위 폴더 바로가기
   3. 카테고리별 관찰 `decision`·`risk`·`question` (각 최대 10개, 페이지 링크 포함)
   4. 태그 목록
-- **레이아웃 1:** 트리를 왼쪽에 기본으로 연다(`view.defaults`). 목차(오른쪽)와 Linked Mentions(아래)는 내장 기본값을 쓴다.
+- **레이아웃 1:** 트리를 왼쪽에 기본으로 열고, 페이지 검색(`std.pages`)과 노트 검색(`agentHub.search`)도 왼쪽 칸에 둔다. 목차(`std.toc`)는 오른쪽에 기본으로 열고, Linked Mentions(아래)는 내장 기본값, Linked Tasks는 기본으로 닫는다(`view.defaults`).
+- **읽기·찾기 보조 (노트 파일은 쓰지 않음):**
+  - 정보 줄 `agentHub.pageInfo`(`page-top`, `frame = "minimal"`, 흐린 작은 글씨): `Updated <수정 시각> · <단어 수> words · ~<분> min read · <백링크 수> backlinks · memory://<permalink>`. Basic Memory 노트가 아닌 페이지에는 그리지 않는다. 읽기 시간은 분당 200단어로 셈한다.
+  - 노트 검색 `Search: Notes`(Cmd-Shift-F, Ctrl-Shift-F): 헤더, 관찰(`[카테고리] 내용 #태그`), 목록 항목(태그 포함), 문단에서 대소문자를 무시한 부분 문자열로 찾는다. 2바이트 이상부터, 최대 100건. 결과를 고르면 그 줄로 이동한다. 문단 색인을 위해 `index.paragraph.all`을 켠다.
+  - 명령 `Basic Memory: Copy memory:// Link`: 현재 노트의 `memory://<permalink>`를 클립보드에 복사한다(HTTPS·localhost에서만 동작). 에이전트에게 노트를 가리킬 때 쓴다.
+  - 명령 `Navigate: Random Note`: Basic Memory 노트 중 하나를 연다.
+  - 대시보드 끝에 SilverBullet 내장 유지보수 페이지(`Library/Std/Pages/Maintenance`, 끊긴 링크·모호한 링크) 링크.
+- **테마:** `space-style`로 `html`(밝게)과 `html[data-theme="dark"]`(어둡게)의 색 변수를 GitHub Light Default·Dark Default 색으로 바꾼다. 배경·패널·테두리·글자·링크·태그·인용·표·코드·검색 안내·관찰 카테고리(`--editor-task-state-color`, 밝게 `#9a6700`, 어둡게 `#d29922`)가 대상이다. 글꼴 변수는 위의 글꼴 설정을 그대로 쓴다.
 
 **`index.md`:** 제목 한 줄과 `${agentHub.dashboard()}`만 둔다. 대시보드를 고칠 때는 관리 페이지만 바꾸면 되고, 사용자가 `index.md`에 더한 내용은 배포가 지우지 않는다.
 
@@ -282,7 +306,8 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 
 **`operations.md`에 더할 내용**
 
-- 웹 UI: `https://agent-hub.<tailnet>.ts.net:8443`, 로그인. 트리는 `Cmd-O`, 그래프는 `Graph: Explore`.
+- 웹 UI: `https://agent-hub.<tailnet>.ts.net:8443`, 로그인. 트리는 `Cmd-O`, 페이지 검색은 `Cmd-K`, 노트 본문 검색은 `Cmd-Shift-F`, 그래프는 `Graph: Explore`. 에이전트에게 노트를 알려 줄 때는 `Basic Memory: Copy memory:// Link`.
+- 노트 검색에 본문 문단이 안 나오면 그 브라우저에서 `Space: Reindex`를 한 번 실행한다. 왼쪽에 트리가 안 보이면 `Cmd-O`.
 - **관찰 카테고리 경고:** `[fact]`·`[decision]` 같은 카테고리 글자를 누르면 카테고리가 지워진다. 실수하면 바로 `Cmd+Z`. 업스트림 이슈 링크(게시한 경우).
 - 비밀번호 교체: main 체크아웃 `.env`의 `SB_USER`를 바꾸고 `make deploy`. `.env`가 바뀌면 compose가 SilverBullet을 다시 만든다.
 - 글꼴: 새 VM이거나 글꼴을 바꿀 때 `make sb-fonts`. 복원하면 백업의 글꼴이 돌아온다.
@@ -332,6 +357,8 @@ bats 테스트를 먼저 쓴다(AGENTS.md). 스텁은 `tests/stubs/`, 기록된 
 | `SB_USER`가 없으면 compose 파일을 읽는 모든 명령(`local-down`, `status`, `backup`의 stop·start)이 실패 | 의도한 동작이다(인증 없는 SilverBullet 방지). 오류 메시지가 main 체크아웃 `.env`를 가리키게 하고, 런북과 `.env.example`에 적는다 |
 | 로그인 사용자의 `/.proxy`로 메타데이터 접근 | 셸 끄기와 네트워크 분리. 서비스 계정 제거 권장(§8.6) |
 | 1GB RAM 부족 | SilverBullet 서버는 수 MiB(§3). 계획 11에서 실측하고 ADR 0005에 기록 |
+| 노트가 많아지면 노트 검색이 느려짐 | 검색은 브라우저 색인을 입력마다 훑는다(입력 지연 처리, 2바이트 이상, 최대 100건). 수천 노트에서 느려지면 커뮤니티 검색 라이브러리(Silversearch)를 검토한다(**Assumption**: 수백 노트까지는 충분) |
+| 노트 검색의 문단 누락 | 브라우저마다 `Space: Reindex` 한 번(§3). 검색 패널 안내문과 런북에 적는다 |
 | 글꼴로 인한 아웃바운드 증가 | 기기당 처음 한 번 약 4.7MB (무료 1GB/월) |
 | SilverBullet의 빠른 릴리스 주기 | digest 고정. 올릴 때 릴리스 노트를 읽고 `make check local-up local-verify` |
 | 계획 05·08과의 스크립트 충돌 | 계획 11은 두 계획 병합 뒤 시작 |
