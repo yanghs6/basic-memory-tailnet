@@ -61,7 +61,7 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (`services/note_preparation.py:208-214`):** frontmatter의 `permalink`가 다른 파일과 겹치지 않으면 그 값을 그대로 쓴다. Basic Memory의 생성 규칙과 같을 필요가 없다.
 - **Verified (`indexing/batch_indexer.py:397-422`):** frontmatter가 없으면 `title`·`type`·`permalink`를 써 넣고, frontmatter가 있으면 `permalink`가 다를 때만 그 줄을 고친다.
 - **Verified (`utils.py:123-129`, 스파이크):** 한글은 Basic Memory의 CJK 범위에 없어 에이전트가 만든 노트의 permalink는 `unidecode`로 로마자가 된다. 훅이 만든 한글 permalink(`main/research/한글-테스트`)도 `read_note`와 `search_notes`로 조회된다.
-- **Verified (`ignore_utils.py:188-221`, `:240-276`):** 노트 폴더(프로젝트 루트)의 `.gitignore` 패턴을 기본 무시 목록(`.*` 포함)에 더한다. `/`로 시작하는 패턴은 루트 기준이고, 그렇지 않은 패턴은 경로의 어느 부분과도 맞춘다.
+- **Verified (`ignore_utils.py:21-23`, `:188-221`, `:240-276`):** 노트 폴더(프로젝트 루트)의 `.gitignore` 패턴을 기본 무시 목록(`.*` 포함, 그래서 점 파일은 기본으로 색인하지 않음)에 더한다. `/`로 시작하는 패턴은 루트 기준이고, 그렇지 않은 패턴은 경로의 어느 부분과도 맞춘다.
 - **Verified (스파이크, `index/watch_service.py:129-133`):** 감시 프로세스가 무시 패턴을 캐시하므로 `.gitignore` 변경은 재시작 뒤에 적용된다. 이미 색인된 항목은 재시작해도 남는다.
 
 **SilverBullet 2.12.1-slim**
@@ -142,7 +142,7 @@ scripts/sb-fonts.sh              TTF → WOFF2 변환과 업로드 (--local 또�
 scripts/verify-sb.sh             SilverBullet 검사, URL 인자 (§7.5)
 scripts/deploy.sh  restore.sh  lib/common.sh   (§7.3, §8.3) — 계획 10
 scripts/verify-vm.sh  bootstrap-vm.sh  remote/bootstrap.sh   (§7.6, §7.7) — 계획 11
-Makefile                         sb-fonts 추가, local-up·local-verify 변경, SB_USER·SB_PORT export
+Makefile                         sb-fonts 추가, local-up·local-verify 변경, SB_PORT export, SB_USER는 여섯 타깃에만 export (§8.3)
 .env.example                     SB_PORT=3000, 빈 SB_USER= ("main 체크아웃 .env에만 적고 커밋 금지" 주석)
 tests/*.bats, tests/stubs/       §10 (curl·sudo·tailscale 스텁 확장, python3 스텁 추가)
 docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/operations.md  README.md  AGENTS.md
@@ -242,11 +242,14 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 
 `scripts/sb-space.sh`가 로컬(`.local-data/knowledge/basic-memory/`)과 VM(`/srv/basic-memory/knowledge/basic-memory/`)에 같은 규칙으로 쓴다. VM에서는 컨테이너 UID(`sudo -n -u '#1000'`)로 쓴다.
 
+실행 중인 Basic Memory는 재시작 전까지 예전 무시 패턴을 쓰고, 이미 색인한 항목은 재시작 뒤에도 지우지 않는다(§3). 그래서 `.gitignore`가 바뀌는 실행은 두 단계로 나눈다. 먼저 `.gitignore`만 쓰고, 호출자가 Basic Memory를 다시 만든 뒤 다시 실행해서 페이지를 쓴다.
+
 1. 노트 폴더가 없으면 만든다.
 2. `.gitignore`의 기존 내용을 읽는다. 원본과 다르면 표시 파일 `.gitignore.pending`을 먼저 만든 뒤 원본으로 덮어쓴다. 점 파일이라 Basic Memory(기본 무시 패턴 `.*`)와 SilverBullet 모두 보지 않는다.
-3. 관리 라이브러리 페이지를 쓴다.
-4. `index.md`가 없을 때만 쓴다. 있는지 확인하지 못하면 쓰지 않고 실패한다.
-5. 표시 파일이 있으면 표준출력에 `changed`, 없으면 `unchanged`를 쓴다. 표시 파일은 호출자가 Basic Memory를 다시 만든 뒤에만 지우므로, pull이나 재생성이 실패한 실행을 다시 돌려도 `changed`가 나온다.
+3. 표시 파일이 있으면 표준출력에 `changed`를 쓰고 여기서 끝낸다. 관리 페이지와 `index.md`는 쓰지 않는다. 표시 파일은 호출자가 Basic Memory를 다시 만든 뒤에만 지우므로, pull이나 재생성이 실패한 실행을 다시 돌려도 `changed`가 나오고 페이지는 계속 기다린다.
+4. 표시 파일이 없으면 관리 라이브러리 페이지를 쓴다.
+5. `index.md`가 없을 때만 쓴다. 있는지 확인하지 못하면 쓰지 않고 실패한다.
+6. 표준출력에 `unchanged`를 쓴다.
 
 `deploy.sh` 순서:
 
@@ -255,10 +258,10 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 3. VM `.env`를 쓴다. 내용은 `vm_env`의 기존 세 줄에 `SB_PORT`·`SB_USER`를 더한 것이다. `umask`는 새 파일에만 적용되므로, 이미 있는 `.env`(권한 664)를 위해 `chmod 600`을 내용보다 먼저 한다.
 4. `sb-space.sh`(VM)를 실행한다.
 5. `pull -q`
-6. `sb-space.sh`가 `changed`를 냈으면 `up -d --wait --force-recreate basic-memory`로 Basic Memory만 먼저 다시 만들고, 성공하면 표시 파일을 지운다. VM 콜드 스타트는 161~192초다. 첫 반영 때와 무시 목록을 바꿀 때(그 배포를 다시 시도할 때 포함)만 일어난다.
+6. `sb-space.sh`가 `changed`를 냈으면 `up -d --wait --force-recreate basic-memory`로 Basic Memory만 먼저 다시 만들고, 성공하면 표시 파일을 지운 뒤 `sb-space.sh`를 다시 실행해 관리 페이지와 `index.md`를 쓴다. 두 번째 실행이 `unchanged`를 내지 않으면 멈춘다. VM 콜드 스타트는 161~192초다. 첫 반영 때와 무시 목록을 바꿀 때(그 배포를 다시 시도할 때 포함)만 일어난다.
 7. `up -d --wait`로 SilverBullet까지 올린다.
 
-`local-up`도 같은 순서를 로컬에서 따른다(1·3·5 단계 제외).
+`local-up`도 같은 순서를 로컬에서 따른다(1·3·5 단계 제외). `sb-space.sh --local`이 `changed`를 내면 Basic Memory를 다시 만들고 표시 파일을 지운 뒤 `sb-space.sh --local`을 다시 실행하며, 어느 단계든 실패하거나 두 번째 실행이 `unchanged`가 아니면 SilverBullet을 올리기 전에 멈춘다. macOS의 GNU make 3.81은 `.SHELLFLAGS`를 적용하지 않아 레시피가 `-e` 없이 돌므로, 레시피 줄이 `|| exit 1`과 `&&`로 실패를 직접 전한다.
 
 ### 7.4 `sb-fonts.sh`
 
@@ -293,7 +296,7 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 3. **`SB_USER`(`user:password`)의 흐름:**
    - 사용자가 main 체크아웃의 `.env`에 직접 적는다. 채팅이나 명령 인자로는 다루지 않는다.
    - 문자는 영문자, 숫자, `._~+/=-`만 쓴다(사용자 이름은 `._-`까지). make는 `.env`를 그대로 읽어 `#`을 주석으로, `$`를 변수로 해석하고, docker compose `.env`도 `$`를 해석하기 때문이다. `require_sb_user`가 형식을 검사한다. 비밀번호 예: `openssl rand -base64 24`.
-   - Makefile의 export 목록(`Makefile:13`)에 `SB_USER`·`SB_PORT`를 더한다.
+   - Makefile의 export 목록(`Makefile:13`)에는 `SB_PORT`만 더한다. `SB_USER`는 compose나 VM에 로그인을 넘기는 여섯 타깃(`local-up`, `local-down`, `local-logs`, `local-verify`, `deploy`, `restore`)에만 타깃별로 export한다(`<타깃들>: export SB_USER := $(SB_USER)`). 전역 export는 모든 레시피 환경에 들어가, `make review`가 실행하는 다른 벤더 CLI(`codex exec`, `claude -p`, `scripts/review.sh:129-141`)도 비밀값을 보게 되기 때문이다. GNU make 3.81(macOS 기본)에서 타깃별 export는 이름을 적은 타깃에만 닿는다(계획 10 사전 점검에서 확인). 레시피 인자로 넘기면 make가 명령을 출력하므로 쓰지 않는다.
    - VM `.env`는 배포·복원 때마다 `vm_env`가 새로 쓰므로(`scripts/lib/common.sh:65-69`, `scripts/deploy.sh:19`, `scripts/restore.sh:142`) 여기에 넣는다. 전송은 지금처럼 ssh 표준입력이다. 파일 권한은 `600`이다(배포는 내용보다 `chmod`를 먼저, 복원은 `umask 077`).
    - 컨테이너 재시작에는 필요 없다(Docker가 저장된 설정으로 다시 띄운다). 그래도 VM `.env`에 남겨 두는 이유는 `backup`의 stop·start, `status`, `logs`가 VM에서 compose 파일을 읽을 때 `${SB_USER:?}`가 값을 요구하기 때문이다.
    - 스크립트는 값을 출력하지 않고, 필요하면 `mask`를 쓴다. 로그인 확인(§7.5)은 비밀번호를 명령 인자가 아니라 curl 표준입력으로 넘긴다.
@@ -334,8 +337,8 @@ bats 테스트를 먼저 쓴다(AGENTS.md). 스텁은 `tests/stubs/`, 기록된 
   - 모든 `ports`가 `127.0.0.1`이다(기존 테스트가 그대로 적용).
   - `start_period` 테스트(`tests/repo.bats:79-97`)는 Basic Memory 서비스로 범위를 좁힌다. 두 번째 서비스의 healthcheck 때문에 실패하지 않게 하는 것이고, Basic Memory에 대한 검증 내용은 그대로 둔다.
   - 부트스트랩에 8443 Serve 매핑이 있고 Funnel이 없다.
-- **`sb-space.sh`:** `.gitignore`는 덮어쓰고, 내용이 같으면 "바뀜"을 알리지 않는다. 관리 페이지는 덮어쓰고 `index.md`는 있으면 건드리지 않는다. `index.md`가 있는지 확인하지 못하면 쓰지 않고 실패한다. VM에서는 컨테이너 UID로 쓴다.
-- **`deploy.sh`:** `.gitignore`가 바뀔 때만 Basic Memory를 다시 만든다. VM `.env`에 `SB_USER`가 들어가고, 이미 있던 `.env`도 권한이 600이 된다. 출력에 `SB_USER` 값이 없다. `SB_USER`가 없으면 VM을 건드리지 않는다.
+- **`sb-space.sh`:** `.gitignore`는 덮어쓰고, 내용이 같으면 "바뀜"을 알리지 않는다. "바뀜"인 동안에는 페이지를 쓰지 않는다. 관리 페이지는 덮어쓰고 `index.md`는 있으면 건드리지 않는다. `index.md`가 있는지 확인하지 못하면 쓰지 않고 실패한다. VM에서는 컨테이너 UID로 쓴다.
+- **`deploy.sh`:** `.gitignore`가 바뀔 때만 Basic Memory를 다시 만들고, 관리 페이지는 그 뒤에 쓴다. VM `.env`에 `SB_USER`가 들어가고, 이미 있던 `.env`도 권한이 600이 된다. 출력에 `SB_USER` 값이 없다. `SB_USER`가 없으면 VM을 건드리지 않는다.
 - **`restore.sh`:** `SB_USER`가 없으면 확인 질문 전에 멈춘다. 복원한 VM `.env`는 권한 600이고 `SB_USER`를 담는다.
 - **`sb-fonts.sh`:** 글꼴·`fontTools`가 없으면 아무것도 올리지 않고 멈춘다. 변환 결과를 올바른 경로에 올린다.
 - **`verify-sb.sh`:** 꺼진 서버, 로그인 없이 열린 서버, 거절된 로그인(HTTP 200 + `status: error`), 쿠키 속성 누락, https에서 `Secure` 누락, 셸 405가 아님을 모두 실패로 본다. `--read-only`는 로그인하지 않고 `SB_USER`도 요구하지 않는다. 비밀번호는 명령 인자에 없고, `SB_USER`와 쿠키 값을 출력하지 않는다. make·compose가 바꿀 문자가 든 `SB_USER`는 서버에 접속하기 전에 거부한다.
@@ -349,7 +352,7 @@ bats 테스트를 먼저 쓴다(AGENTS.md). 스텁은 `tests/stubs/`, 기록된 
 |---|---|
 | 관찰 카테고리 클릭으로 카테고리 손실 | 런북 경고와 `Cmd+Z`, 업스트림 이슈. 반복되면 자동 되돌리기 Space Lua를 다시 판단 |
 | 훅이 적용되지 않는 페이지(템플릿으로 만든 페이지)의 frontmatter 경합 | 저널을 끄고 Quick Note는 무시 경로(`Inbox/`)에 둔다. 남는 경우는 줄바꿈 하나 수준 |
-| `.gitignore`보다 먼저 색인된 SilverBullet 페이지가 남음 | 배포가 SilverBullet보다 먼저 `.gitignore`를 두고 Basic Memory를 다시 만든다(§7.3) |
+| `.gitignore`보다 먼저 색인된 SilverBullet 페이지가 남음 | 배포가 SilverBullet보다 먼저 `.gitignore`만 두고 Basic Memory를 다시 만든 뒤에 관리 페이지와 `index.md`를 쓴다(§7.3) |
 | SilverBullet이 배포보다 먼저 `index.md`를 만듦 | 배포 순서로 막고 계획 10에서 확인(§3 Assumption) |
 | 인증 켠 뒤 이미지 기본 healthcheck 실패 | `/.ping`으로 덮어쓰기(§7.1) |
 | 두 번째 비밀값 유출 | `.env`(git 제외)와 VM `.env`(600)에만 둔다. 출력 금지 테스트, `mask`, 비밀번호는 curl 표준입력으로만 |
