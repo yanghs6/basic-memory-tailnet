@@ -57,9 +57,27 @@ readonly SB_USER_PATTERN='^[A-Za-z0-9._-]+:[A-Za-z0-9._~+/=-]+$'
 
 # require_sb_user -> dies unless SB_USER is set and looks like <user>:<password>. Never prints the value.
 require_sb_user() {
+  require_sb_user_matches_env_file
   require_env SB_USER
   [[ "$SB_USER" =~ $SB_USER_PATTERN ]] \
     || die "SB_USER must be <user>:<password> made of letters, digits and ._~+/=- (make and docker compose change other characters): fix it in .env in the main checkout"
+}
+
+# require_sb_user_matches_env_file -> when SB_ENV_FILE names an existing file, dies unless SB_USER equals the value of its
+# last SB_USER= line (without a trailing CR). make reads .env as makefile text: # starts a comment and $x expands, so a
+# value it cut short can still match SB_USER_PATTERN. The Make targets that pass SB_USER on also export SB_ENV_FILE (a
+# path only); direct script runs leave it unset and skip this check. Never prints either value.
+require_sb_user_matches_env_file() {
+  local line raw=""
+  [[ -n "${SB_ENV_FILE:-}" && -f "$SB_ENV_FILE" ]] || return 0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    case "$line" in
+      SB_USER=*) raw="${line#SB_USER=}" ;;
+    esac
+  done <"$SB_ENV_FILE" || die "could not read $SB_ENV_FILE: check that you can read it"
+  raw="${raw%$'\r'}"
+  [[ "$raw" == "${SB_USER:-}" ]] \
+    || die "SB_USER in $SB_ENV_FILE holds characters that make changes when it reads .env (#, \$, spaces or quotes), so the scripts got a different value: write it as SB_USER=<user>:<password> with only letters, digits and ._~+/=- in the password"
 }
 
 # mask VALUE -> first 4 characters + ****, or **** for short values. Use before printing secrets or ids.

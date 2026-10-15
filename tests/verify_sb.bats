@@ -68,3 +68,23 @@ setup() {
   run grep -c '^curl ' "$STUB_LOG"
   assert_output 0
 }
+
+@test "rejects an SB_USER that make changed while reading the env file, naming the file but neither value" {
+  local env_file="$BATS_TEST_TMPDIR/main.env" pair raw passed
+  # Each pair: the raw .env value | what GNU make passes on (# starts a comment, $o expands to nothing).
+  for pair in 'admin:Tr4mp#oline|admin:Tr4mp' 'admin:Tr4mp$oline|admin:Tr4mpline'; do
+    IFS='|' read -r raw passed <<<"$pair"
+    printf 'BM_PORT=8737\nSB_USER=%s\n' "$raw" >"$env_file"
+    SB_ENV_FILE="$env_file" SB_USER="$passed" run "$VERIFY_SB" http://127.0.0.1:3000
+    assert_failure
+    assert_output --partial "SB_USER in $env_file"
+    refute_output --partial "Tr4mp"
+  done
+  run grep -c '^curl ' "$STUB_LOG"
+  assert_output 0
+
+  # The last SB_USER line wins, and a CRLF line ending is not part of the value.
+  printf 'SB_USER=admin:old-password\nSB_USER=admin:test-password\r\n' >"$env_file"
+  SB_ENV_FILE="$env_file" run "$VERIFY_SB" http://127.0.0.1:3000
+  assert_success
+}

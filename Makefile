@@ -14,6 +14,9 @@ SB_PORT := $(or $(SB_PORT),3000)
 export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT SB_PORT
 # Only the targets that hand the SilverBullet login to compose or the VM see it; make review's CLIs do not.
 local-up local-down local-logs local-verify deploy restore: export SB_USER := $(SB_USER)
+# make reads .env as makefile text (# starts a comment, $ expands), so the same targets also get the path of that file
+# (never the value) and require_sb_user in scripts/lib/common.sh compares SB_USER with its raw line.
+local-up local-down local-logs local-verify deploy restore: export SB_ENV_FILE := $(MAIN_ROOT)/.env
 REVIEW_BASE := $(or $(REVIEW_BASE),origin/main)
 export REVIEW_BASE REVIEW_ALLOW_SAME_VENDOR REVIEW_MODEL
 
@@ -53,6 +56,7 @@ LOCAL_DATA_DIRS := .local-data/knowledge .local-data/config
 SB_LOCAL_PENDING := .local-data/knowledge/basic-memory/.gitignore.pending
 
 local-up: ## Start Basic Memory and SilverBullet locally (127.0.0.1:BM_PORT, SB_PORT) and wait until healthy
+	. scripts/lib/common.sh && require_sb_user
 	mkdir -p $(LOCAL_DATA_DIRS)
 	gitignore_state="$$(scripts/sb-space.sh --local)" || exit 1; \
 	  if [[ "$$gitignore_state" == changed ]]; then \

@@ -261,7 +261,7 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 6. `sb-space.sh`가 `changed`를 냈으면 `up -d --wait --force-recreate basic-memory`로 Basic Memory만 먼저 다시 만들고, 성공하면 표시 파일을 지운 뒤 `sb-space.sh`를 다시 실행해 관리 페이지와 `index.md`를 쓴다. 두 번째 실행이 `unchanged`를 내지 않으면 멈춘다. VM 콜드 스타트는 161~192초다. 첫 반영 때와 무시 목록을 바꿀 때(그 배포를 다시 시도할 때 포함)만 일어난다.
 7. `up -d --wait`로 SilverBullet까지 올린다.
 
-`local-up`도 같은 순서를 로컬에서 따른다(1·3·5 단계 제외). `sb-space.sh --local`이 `changed`를 내면 Basic Memory를 다시 만들고 표시 파일을 지운 뒤 `sb-space.sh --local`을 다시 실행하며, 어느 단계든 실패하거나 두 번째 실행이 `unchanged`가 아니면 SilverBullet을 올리기 전에 멈춘다. macOS의 GNU make 3.81은 `.SHELLFLAGS`를 적용하지 않아 레시피가 `-e` 없이 돌므로, 레시피 줄이 `|| exit 1`과 `&&`로 실패를 직접 전한다.
+`local-up`도 같은 순서를 로컬에서 따른다(2·3·5 단계 제외. 1단계 `SB_USER` 검사는 첫 레시피 줄이 한다). `sb-space.sh --local`이 `changed`를 내면 Basic Memory를 다시 만들고 표시 파일을 지운 뒤 `sb-space.sh --local`을 다시 실행하며, 어느 단계든 실패하거나 두 번째 실행이 `unchanged`가 아니면 SilverBullet을 올리기 전에 멈춘다. macOS의 GNU make 3.81은 `.SHELLFLAGS`를 적용하지 않아 레시피가 `-e` 없이 돌므로, 레시피 줄이 `|| exit 1`과 `&&`로 실패를 직접 전한다.
 
 `restore.sh` 순서(정지·압축 해제·manifest 대조·`compose.yaml`과 VM `.env` 적용 다음):
 
@@ -304,6 +304,7 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 3. **`SB_USER`(`user:password`)의 흐름:**
    - 사용자가 main 체크아웃의 `.env`에 직접 적는다. 채팅이나 명령 인자로는 다루지 않는다.
    - 문자는 영문자, 숫자, `._~+/=-`만 쓴다(사용자 이름은 `._-`까지). make는 `.env`를 그대로 읽어 `#`을 주석으로, `$`를 변수로 해석하고, docker compose `.env`도 `$`를 해석하기 때문이다. `require_sb_user`가 형식을 검사한다. 비밀번호 예: `openssl rand -base64 24`.
+   - make가 이미 바꾼 값은 형식 검사를 통과할 수 있다(예: `admin:abc#def`는 `admin:abc`로 잘리고, `$s`는 빈 값으로 펼쳐진다). 그래서 `SB_USER`를 받는 여섯 타깃은 값이 아닌 경로 `SB_ENV_FILE`(main 체크아웃 `.env`)도 타깃별로 export하고, `require_sb_user`는 그 파일의 마지막 `SB_USER=` 줄을 그대로 읽어(접두어와 줄 끝 CR만 뗀다) 받은 값과 비교한다. 다르면 두 값을 출력하지 않고 파일 경로와 허용 문자를 알리며 멈춘다. `SB_ENV_FILE`이 없으면(스크립트를 직접 실행할 때) 비교를 건너뛴다. `local-up`은 compose를 부르기 전 첫 레시피 줄에서 `scripts/lib/common.sh`를 읽어 `require_sb_user`를 실행한다.
    - Makefile의 export 목록(`Makefile:13`)에는 `SB_PORT`만 더한다. `SB_USER`는 compose나 VM에 로그인을 넘기는 여섯 타깃(`local-up`, `local-down`, `local-logs`, `local-verify`, `deploy`, `restore`)에만 타깃별로 export한다(`<타깃들>: export SB_USER := $(SB_USER)`). 전역 export는 모든 레시피 환경에 들어가, `make review`가 실행하는 다른 벤더 CLI(`codex exec`, `claude -p`, `scripts/review.sh:129-141`)도 비밀값을 보게 되기 때문이다. GNU make 3.81(macOS 기본)에서 타깃별 export는 이름을 적은 타깃에만 닿는다(계획 10 사전 점검에서 확인). 레시피 인자로 넘기면 make가 명령을 출력하므로 쓰지 않는다.
    - VM `.env`는 배포·복원 때마다 `vm_env`가 새로 쓰므로(`scripts/lib/common.sh:65-69`, `scripts/deploy.sh:19`, `scripts/restore.sh:142`) 여기에 넣는다. 전송은 지금처럼 ssh 표준입력이다. 파일 권한은 `600`이다(배포는 내용보다 `chmod`를 먼저, 복원은 `umask 077`).
    - 컨테이너 재시작에는 필요 없다(Docker가 저장된 설정으로 다시 띄운다). 그래도 VM `.env`에 남겨 두는 이유는 `backup`의 stop·start, `status`, `logs`가 VM에서 compose 파일을 읽을 때 `${SB_USER:?}`가 값을 요구하기 때문이다.
@@ -349,7 +350,8 @@ bats 테스트를 먼저 쓴다(AGENTS.md). 스텁은 `tests/stubs/`, 기록된 
 - **`deploy.sh`:** `.gitignore`가 바뀔 때만 Basic Memory를 다시 만들고, 관리 페이지는 그 뒤에 쓴다. VM `.env`에 `SB_USER`가 들어가고, 이미 있던 `.env`도 권한이 600이 된다. 출력에 `SB_USER` 값이 없다. `SB_USER`가 없으면 VM을 건드리지 않는다.
 - **`restore.sh`:** `SB_USER`가 없으면 확인 질문 전에 멈춘다. 복원한 VM `.env`는 권한 600이고 `SB_USER`를 담는다. 공간 파일을 정지 뒤·첫 기동 전에 쓰고 표시 파일을 남기지 않으며, 백업에 있던 `index.md`는 그대로 둔다. 공간 파일 쓰기가 실패하면 복원한 데이터로 컨테이너를 올리지 않고 롤백한다.
 - **`sb-fonts.sh`:** 글꼴·`fontTools`가 없으면 아무것도 올리지 않고 멈춘다. 변환 결과를 올바른 경로에 올린다.
-- **`verify-sb.sh`:** 꺼진 서버, 로그인 없이 열린 서버, 거절된 로그인(HTTP 200 + `status: error`), 쿠키 속성 누락, https에서 `Secure` 누락, 셸 405가 아님을 모두 실패로 본다. `--read-only`는 로그인하지 않고 `SB_USER`도 요구하지 않는다. 비밀번호는 명령 인자에 없고, `SB_USER`와 쿠키 값을 출력하지 않는다. make·compose가 바꿀 문자가 든 `SB_USER`는 서버에 접속하기 전에 거부한다.
+- **`verify-sb.sh`:** 꺼진 서버, 로그인 없이 열린 서버, 거절된 로그인(HTTP 200 + `status: error`), 쿠키 속성 누락, https에서 `Secure` 누락, 셸 405가 아님을 모두 실패로 본다. `--read-only`는 로그인하지 않고 `SB_USER`도 요구하지 않는다. 비밀번호는 명령 인자에 없고, `SB_USER`와 쿠키 값을 출력하지 않는다. make·compose가 바꿀 문자가 든 `SB_USER`는 서버에 접속하기 전에 거부한다. `SB_ENV_FILE`의 원래 줄과 다른 값(make가 `#`에서 자르거나 `$`를 펼친 값)도 두 값을 출력하지 않고 거부한다.
+- **`make local-up`:** make가 main 체크아웃 `.env`의 `SB_USER`를 바꿨으면 compose를 부르기 전에 멈추고, 맞는 값이면 끝까지 진행한다(`tests/main_checkout.bats`).
 - **`verify-vm.sh`:** 3000 바인딩, 8443·3000 공인 포트, Serve 포트별 대상과 포트별 Funnel 검사(JSON). `probe`는 로그인하지 않는다.
 - **클라우드 중립 (`tests/cloud_neutral.bats`):** 새 스크립트에도 적용된다.
 - **E2E (수동):** 로컬은 계획 10에서 완료 조건 1·3·4를, VM은 계획 11에서 완료 조건 2·3·4·6을 확인해 진행 로그에 기록한다.
@@ -364,7 +366,7 @@ bats 테스트를 먼저 쓴다(AGENTS.md). 스텁은 `tests/stubs/`, 기록된 
 | SilverBullet이 배포보다 먼저 `index.md`를 만듦 | 배포 순서로 막고 계획 10에서 확인(§3 Assumption) |
 | 인증 켠 뒤 이미지 기본 healthcheck 실패 | `/.ping`으로 덮어쓰기(§7.1) |
 | 두 번째 비밀값 유출 | `.env`(git 제외)와 VM `.env`(600)에만 둔다. 출력 금지 테스트, `mask`, 비밀번호는 curl 표준입력으로만 |
-| `SB_USER`의 `#`·`$`를 make가 주석·변수로 바꿔 다른 비밀번호가 쓰임 | 허용 문자를 정하고 `require_sb_user`가 검사한다(§8.3). `.env.example`에 적는다 |
+| `SB_USER`의 `#`·`$`를 make가 주석·변수로 바꿔 다른 비밀번호가 쓰임 | 허용 문자를 정하고 `require_sb_user`가 형식을 검사하며, make가 바꾼 값은 `SB_ENV_FILE`의 원래 줄과 비교해 잡는다(§8.3). `.env.example`에 적는다 |
 | `SB_USER`가 없으면 compose 파일을 읽는 모든 명령(`local-down`, `status`, `backup`의 stop·start)이 실패 | 의도한 동작이다(인증 없는 SilverBullet 방지). 오류 메시지가 main 체크아웃 `.env`를 가리키게 하고, 런북과 `.env.example`에 적는다 |
 | 로그인 사용자의 `/.proxy`로 메타데이터 접근 | 셸 끄기와 네트워크 분리. 서비스 계정 제거 권장(§8.6) |
 | 1GB RAM 부족 | SilverBullet 서버는 수 MiB(§3). 계획 11에서 실측하고 ADR 0005에 기록 |

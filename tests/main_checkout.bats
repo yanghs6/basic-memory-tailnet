@@ -37,6 +37,31 @@ use_backup_env() {
   assert_output "[]"
 }
 
+# make_in DIR TARGET -> run make TARGET in DIR (same kcov workaround as make_host).
+make_in() {
+  cd "$1"
+  env -u SHELLOPTS -u PS4 -u BASH_ENV make --no-print-directory "$2"
+}
+
+@test "make local-up stops before any compose call when make cut SB_USER short while reading the main checkout .env" {
+  setup_stubs docker
+  cp -R "$REPO_DIR/scripts" "$REPO_DIR/silverbullet" "$LINKED_WT/"
+  printf 'SB_USER=admin:Tr4mp#oline\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" local-up
+  assert_failure
+  assert_output --partial "SB_USER in $MAIN_REPO/.env"
+  refute_output --partial "Tr4mp"
+  run grep -c '^docker ' "$STUB_LOG"
+  assert_output 0
+
+  printf 'SB_USER=admin:Tr4mpoline\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" local-up
+  assert_success
+  refute_output --partial "Tr4mp"
+  run grep -c '^docker compose -f compose.yaml up -d --wait$' "$STUB_LOG"
+  assert_output 1
+}
+
 # --- backup ---
 
 @test "backup from a linked worktree saves into the main checkout's backups/" {
