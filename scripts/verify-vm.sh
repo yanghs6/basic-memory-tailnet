@@ -95,7 +95,7 @@ check_tailscale_off() {
   if vm_tailscale_logged_in; then
     die "Tailscale is logged in on the VM but BM_ACCESS=ssh: log it out (docs/runbooks/operations.md, Access mode change)"
   fi
-  log "OK: Tailscale does not expose the VM (missing, logged out or stopped)"
+  log "OK: Tailscale does not expose the VM (not installed, logged out or down)"
 }
 
 check_sshd_auth() {

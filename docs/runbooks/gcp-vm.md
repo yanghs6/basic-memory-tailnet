@@ -61,7 +61,11 @@ Expected: 인스턴스가 `RUNNING`으로 만들어지고 `EXTERNAL_IP`가 한 �
 접속 방식에 따라 22번 규칙이 다릅니다(`.env`의 `BM_ACCESS`, [부트스트랩 런북](bootstrap.md)).
 
 - `tailscale`: 아래처럼 `default-allow-ssh`를 내 IP/32로 좁혀 부트스트랩에 쓰고, Tailscale SSH를 확인한 뒤 지웁니다.
-- `ssh`: 공인 SSH가 필요 없습니다. rdp·icmp와 함께 `default-allow-ssh`도 지우고, 8단계의 `allow-iap-ssh`를 만듭니다.
+- `ssh`: 공인 SSH가 필요 없습니다. rdp·icmp와 함께 `default-allow-ssh`도 지우고(`ssh` 모드 단계, 사용자 OK 후), 8단계의 `allow-iap-ssh`를 만듭니다.
+
+  ```bash
+  gcloud compute firewall-rules delete default-allow-ssh --configuration=bm-personal
+  ```
 
 ```bash
 gcloud compute firewall-rules delete default-allow-rdp default-allow-icmp --configuration=bm-personal
@@ -171,7 +175,7 @@ IAP TCP 포워딩은 Google 계정 인증을 거쳐 VM의 22번으로 터널을 
    gcloud services enable iap.googleapis.com --configuration=bm-personal
    ```
 
-6. sshd는 키 전용이어야 합니다. `make verify`가 `sshd -T`로 `passwordauthentication no`와 `kbdinteractiveauthentication no`를 확인합니다. 실패하면 `/etc/ssh/sshd_config.d/`에 두 설정을 `no`로 둔 파일을 만들고 `sudo systemctl reload ssh`를 실행합니다(사용자 OK 후).
+6. sshd는 키 전용이어야 합니다. `make verify`가 `sshd -T`로 `passwordauthentication no`와 `kbdinteractiveauthentication no`를 확인합니다. 실패하면 `/etc/ssh/sshd_config.d/`에 파일을 만듭니다. sshd는 키워드마다 처음 읽은 값을 쓰고 `sshd_config.d/*.conf`를 이름순으로 읽으므로, 먼저 읽히도록 `/etc/ssh/sshd_config.d/00-keys-only.conf`처럼 이름을 짓고 두 줄 `PasswordAuthentication no`, `KbdInteractiveAuthentication no`를 넣습니다. 그다음 `sudo systemctl reload ssh`를 실행합니다(사용자 OK 후).
 7. 로그인이 만료되면 `ProxyCommand`가 실패하고 스크립트는 `check the ProxyCommand for agent-hub-iap in ~/.ssh/config and its login`을 출력합니다. `gcloud auth login --configuration=bm-personal`로 다시 로그인합니다.
 
 IAP 터널은 대량 전송용이 아니고, 한 시간 동안 활동이 없으면 끊깁니다. `make tunnel`은 30초마다 keepalive를 보내고, 끊기면 종료하므로 다시 실행합니다.

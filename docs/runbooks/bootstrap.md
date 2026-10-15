@@ -6,9 +6,9 @@
 
 ## 준비
 
-- `.env`는 main 체크아웃에 있습니다([accounts 3단계](accounts.md)). `BM_TAILNET_DOMAIN`과 `BM_VM_PUBLIC_IP`가 채워져 있는지 사용자가 확인합니다(에이전트는 읽을 수 없음). 없으면 main 체크아웃에서 `cp .env.example .env` 후 채웁니다.
+- `.env`는 main 체크아웃에 있습니다([accounts 3단계](accounts.md)). `BM_TAILNET_DOMAIN`(`tailscale` 모드만)과 `BM_VM_PUBLIC_IP`가 채워져 있는지 사용자가 확인합니다(에이전트는 읽을 수 없음). 없으면 main 체크아웃에서 `cp .env.example .env` 후 채웁니다.
 - 사람은 VM 대상 Make 타깃을 main 체크아웃에서 실행합니다. 에이전트는 자기 worktree에서 실행해도 되며, 그때도 `.env`와 `backups/`는 main 체크아웃의 것을 씁니다. 에이전트가 worktree에서 `deploy`·`restore`를 할 때는 먼저 `git diff main -- compose.yaml`이 아무것도 출력하지 않는지 확인합니다(bm-upgrade의 사용자 승인 배포는 예외).
-- [accounts 런북 5단계](accounts.md)대로 1회용 인증 키를 **지금** 발급합니다(만료 1일).
+- `tailscale` 모드만: [accounts 런북 5단계](accounts.md)대로 1회용 인증 키를 **지금** 발급합니다(만료 1일).
 
 ## 순서
 

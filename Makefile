@@ -100,7 +100,7 @@ vm-bootstrap: ## First-time VM setup (HOST=<public-ip>, or the SSH host alias in
 deploy: ## Copy compose.yaml to the VM and start Basic Memory (waits until healthy)
 	scripts/deploy.sh
 
-verify: ## Full VM check: MCP write/read/delete, SilverBullet login, loopback binding, tailnet-only serve, closed public ports
+verify: ## Full VM check: MCP write/read/delete, SilverBullet login, loopback binding, exposure (Serve in tailscale mode; Tailscale off and sshd key-only in ssh mode), closed public ports
 	scripts/verify-vm.sh
 
 probe: ## Read-only VM check: same as verify but writes no notes and does not log in to SilverBullet

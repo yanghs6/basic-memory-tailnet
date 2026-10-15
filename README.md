@@ -47,9 +47,9 @@ make local-down
 VM이나 클라우드 자원을 바꾸는 명령(`vm-bootstrap`, `deploy`, `restore`, gcloud 명령)은 사람이 승인한 뒤에만 실행합니다. `.env`와 `backups/`는 main 체크아웃에만 둡니다(`git worktree remove`가 worktree 안의 git ignore 파일을 경고 없이 지우기 때문입니다).
 
 0. 접속 방식 정하기: 클라이언트가 쓸 네트워크마다 `make access-check`, 결과에 따라 `.env`의 `BM_ACCESS`([부트스트랩 런북](docs/runbooks/bootstrap.md))
-1. [계정 준비](docs/runbooks/accounts.md): GCP 프로젝트·Budget 알림·gcloud `bm-personal`, Tailscale, 정책. Tailscale 인증 키는 부트스트랩 직전에 발급합니다(accounts 5단계, 만료 1일).
+1. [계정 준비](docs/runbooks/accounts.md): GCP 프로젝트·Budget 알림·gcloud `bm-personal`, Tailscale, 정책. `tailscale` 모드면 Tailscale 계정·정책이 필요하고 인증 키는 부트스트랩 직전에 발급합니다(accounts 5단계, 만료 1일). `ssh` 모드는 인증 키가 필요 없습니다.
 2. [VM 만들기](docs/runbooks/gcp-vm.md): e2-micro, us-west1-b, Ubuntu 26.04 Minimal, pd-standard 30GB, 방화벽 정리, `default-allow-ssh`를 내 IP/32로 제한
-3. [부트스트랩](docs/runbooks/bootstrap.md): `make vm-bootstrap` → `ssh ubuntu@agent-hub true` 확인 → `default-allow-ssh` 삭제 → `make deploy sb-fonts verify status`
+3. [부트스트랩](docs/runbooks/bootstrap.md): (`tailscale` 모드) `make vm-bootstrap` → `ssh ubuntu@agent-hub true` 확인 → `default-allow-ssh` 삭제 → `make deploy sb-fonts verify status`. `ssh` 모드는 같은 문서의 "ssh 모드 순서"를 따릅니다.
 4. [운영](docs/runbooks/operations.md): 백업, 복원, 업그레이드, 정지된 VM 시작, 비용 점검
 
 ## 에이전트용 스킬
