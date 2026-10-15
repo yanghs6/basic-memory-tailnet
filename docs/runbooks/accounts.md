@@ -1,5 +1,7 @@
 # 계정 준비: GCP와 Tailscale
 
+2~5단계(Tailscale)는 `BM_ACCESS=tailscale`일 때만 합니다. `BM_ACCESS=ssh`는 Tailscale 계정이 필요 없고, 7단계의 IAP 권한을 씁니다.
+
 ## 1. GCP 가입과 gcloud 설정
 
 1. **개인** Google 계정으로 https://console.cloud.google.com 에 가입하고 결제 계정을 만듭니다. 무료 등급(e2-micro 1대 등)도 결제 계정이 필요합니다(**Verified**, docs.cloud.google.com/free/docs/free-cloud-features). 회사 Google 계정과 회사 프로젝트는 쓰지 않습니다.
@@ -85,3 +87,7 @@ Settings → **Keys** → **Generate auth key**:
 ## 6. GitHub
 
 저장소는 개인 계정 `yanghs6`의 공개 저장소 `basic-memory-tailnet`입니다. 에이전트는 따로 만든 머신 계정 `yanghs6-bot`으로 push하고 PR을 엽니다. 승인과 병합은 개인 계정으로만 합니다. 머신 계정 만들기, 토큰 등록, 저장소 설정은 [GitHub 런북](github.md)에 있습니다.
+
+## 7. IAP 터널 권한 (`BM_ACCESS=ssh`)
+
+프로젝트 소유자는 IAP 터널 권한을 이미 가집니다. 다른 사람이 같은 VM에 붙어야 하면 그 Google 계정에 `roles/iap.tunnelResourceAccessor`를 주고, 그 사람의 공개키를 인스턴스 메타데이터 `ssh-keys`에 더합니다(둘 다 클라우드 변경이므로 사용자 OK 후). 최소 권한 조합은 **Open question**입니다. 터널 설정은 [VM 런북](gcp-vm.md) 8단계에 있습니다.

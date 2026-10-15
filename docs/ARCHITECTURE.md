@@ -17,6 +17,18 @@
                                 /srv/basic-memory/knowledge/basic-memory → /data (노트 폴더만)
 ```
 
+`BM_ACCESS=ssh`일 때(VM 안은 같음):
+
+```
+[개인/회사 Mac] ── make tunnel: ssh -N -L 127.0.0.1:18737, :13000 ──┐
+  에이전트 → http://127.0.0.1:18737/mcp                               │ ~/.ssh/config Host agent-hub-iap
+  브라우저 → http://127.0.0.1:13000                                   │ ProxyCommand: IAP 터널 (Google 계정 인증)
+  make deploy/verify/backup → ssh ubuntu@agent-hub-iap ─────────────┤
+                                                                     ▼
+                        GCP e2-micro sshd :22 (인바운드: VPC 내부 + IAP 35.235.240.0/20의 22번)
+                          └ 127.0.0.1:8737 Basic Memory, 127.0.0.1:3000 SilverBullet
+```
+
 GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-hub`)은 서로 다를 수 있습니다. 스크립트는 Tailscale 이름만 씁니다.
 
 ## 구성 요소
@@ -27,6 +39,8 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 | `scripts/remote/bootstrap.sh` | VM (root) | 스왑 파일 1GB, Docker·Tailscale 설치, 데이터 디렉터리, Serve 설정 |
 | `compose.yaml` | Mac(로컬 검증)·VM | Basic Memory와 SilverBullet(웹 UI) 컨테이너 정의 (같은 파일) |
 | `silverbullet/` + `scripts/sb-space.sh`·`sb-fonts.sh`·`verify-sb.sh` | Mac → 노트 폴더 | SilverBullet 공간 파일(노트 `.gitignore`, 관리 페이지 `Library/agent-hub/agent-hub.md`, 대시보드 `index.md`)과 글꼴을 쓰고, 로그인·셸 꺼짐을 검사. [ADR 0005](decisions/0005-web-ui-silverbullet.md) |
+| `make access-check` | Mac | 지금 네트워크에서 Tailscale 조정 서버·터널 엔드포인트·SSH 별칭이 되는지 보고하고 모드를 추천 (`scripts/access-check.sh`) |
+| `make tunnel` | Mac | `ssh` 모드에서 MCP(18737)·웹 UI(13000)를 `127.0.0.1`로 포워딩 (`scripts/tunnel.sh`) |
 | Tailscale Serve | VM | tailnet HTTPS 443 → `http://127.0.0.1:8737`(Basic Memory), 8443 → `http://127.0.0.1:3000`(SilverBullet) |
 | Tailscale SSH | VM | 부트스트랩 이후의 유일한 관리 경로 |
 | gcloud 명령 | Mac (사람이 실행) | VM 생성, 방화벽, 정지·시작. [VM 런북](runbooks/gcp-vm.md)의 명령. 항상 `--configuration=bm-personal` |
@@ -53,6 +67,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 
 - Basic Memory에는 인증이 없습니다(**Verified**). 접근 제어는 전적으로 Tailscale의 기기 인증과 정책에 맡깁니다.
 - 컨테이너 포트는 `127.0.0.1`에만 바인딩하고, Serve는 tailnet 전용(Funnel off)이며, GCP 방화벽에는 VPC 밖의 소스를 허용하는 인바운드 규칙이 없습니다. `default-allow-rdp`·`default-allow-icmp`는 지우고, `default-allow-ssh`는 Tailscale SSH를 확인한 뒤 지웁니다. `default-allow-internal`은 VPC 내부(`10.128.0.0/9`) 전용이라 둡니다.
+- `ssh` 모드는 Tailscale을 쓰지 않습니다. VPC 밖 인바운드는 IAP 대역의 22번 하나이고, 인증은 Google 계정 IAM과 SSH 키입니다. 모든 터널은 기기의 `127.0.0.1`에만 열리고, `verify`가 VM의 Tailscale 꺼짐과 sshd 키 전용을 검사합니다. 한 VM에서 두 모드를 함께 쓰지 않습니다([ADR 0006](decisions/0006-access-modes.md)).
 - 자동 검증 범위: `tests/repo.bats`(설정 파일)와 `make verify`/`make probe`(8737·3000 바인딩, Serve 포트별 대상과 Funnel, SilverBullet 로그인·셸 꺼짐, 공인 IP의 22·80·443·8443·8737·3000). 방화벽 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/operations.md)의 Exposure audit으로 수동 점검합니다.
 - SilverBullet은 로그인(`SB_USER`)이 있어야 열리고, 셸 명령은 꺼져 있으며(`SB_SHELL_BACKEND=off`), Basic Memory와 다른 Docker 네트워크에 있습니다. 노트 폴더만 마운트해서 Basic Memory DB와 설정을 보지 못합니다.
 - 비밀값은 두 가지입니다. Tailscale 인증 키는 저장소와 디스크에 남지 않습니다. SilverBullet 로그인 `SB_USER`는 main 체크아웃 `.env`(git ignore)와 VM `/opt/basic-memory/.env`(권한 600)에만 있고, 스크립트는 ssh·curl 표준입력으로만 넘깁니다.
