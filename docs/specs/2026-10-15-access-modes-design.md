@@ -134,6 +134,8 @@ scripts/verify-vm.sh         ssh 모드: 임시 터널, Tailscale 꺼짐, sshd �
 scripts/deploy.sh, restore.sh  오류 안내를 access_hint로
 tests/stubs/ssh              -N 터널 흉내
 tests/stubs/nc               NC_STUB_OPEN_MATCH
+tests/stubs/curl             CURL_STUB_FAIL_MATCH, CURL_STUB_HTTP_CODE
+tests/stubs/sshd             새 파일 (sshd -T)
 tests/access.bats            새 파일 (access-check, tunnel)
 tests/bootstrap.bats, tests/vm_ops.bats  ssh 모드 사례
 docs/decisions/0006-access-modes.md  새 파일
@@ -175,6 +177,7 @@ AGENTS.md                    사용자 승인 후 (§12)
   - `tailscale`: `is <host> reachable over Tailscale SSH? (ssh <user>@<host> true)`
   - `ssh`: `check the ProxyCommand for <host> in ~/.ssh/config and its login (docs/runbooks/gcp-vm.md)`
 - `forward_spec LOCAL_PORT REMOTE_PORT`: `127.0.0.1:LOCAL:127.0.0.1:REMOTE`를 출력한다. 모든 `-L`이 이 함수를 거치므로 로컬 바인딩 불변식이 한 곳에 있다.
+- `vm_tailscale_logged_in`: VM에서 `command -v tailscale && sudo -n tailscale status`를 실행해, 로그인 상태면 0, 없거나 로그아웃·정지면 1로 끝난다. ssh 자체가 실패하면(`SSH_FAILURE_EXIT=255`) `die`. `verify`와 `status`가 함께 쓴다.
 - `remote()`의 주석을 "over SSH (Tailscale SSH or the ssh mode host alias)"로 바꾼다. 동작은 그대로다.
 
 ### 8.2 `access-check.sh`
@@ -232,9 +235,7 @@ AGENTS.md                    사용자 승인 후 (§12)
 3. **MCP 검사:** `verify-mcp.sh [--read-only] http://127.0.0.1:28737/mcp`
 4. **웹 UI 검사:** `verify-sb.sh [--read-only] http://127.0.0.1:23000`. http URL에서는 쿠키 `Secure`를 요구하지 않는다(계획 10의 `verify-sb.sh` 동작. 계획 12 시작 때 확인).
 5. **바인딩 검사:** `check_loopback_binding` 8737·3000은 그대로다.
-6. **`check_tailscale_off`:** `remote "command -v tailscale >/dev/null 2>&1 || exit 3; sudo -n tailscale status >/dev/null 2>&1"`로 본다.
-   - 3(없음)이나 0이 아닌 값(로그아웃·정지)이면 통과하고, 0(로그인 상태)이면 실패한다: `Tailscale is logged in on the VM but BM_ACCESS=ssh: log it out (docs/runbooks/operations.md, 접속 방식 바꾸기)`.
-   - 원격 접속 실패(255)는 실패로 다룬다.
+6. **`check_tailscale_off`:** `vm_tailscale_logged_in`(§8.1)이 1이면 통과하고, 0(로그인 상태)이면 실패한다: `Tailscale is logged in on the VM but BM_ACCESS=ssh: log it out (docs/runbooks/operations.md, Access mode change)`. VM에 닿지 못하면 그 함수가 실패시킨다.
 7. **`check_sshd_auth`:** `remote "sudo -n sshd -T"`에서 `passwordauthentication no`와 `kbdinteractiveauthentication no`를 확인한다. 없으면 실패한다.
 8. **공인 포트 검사:** `check_public_closed`는 그대로다.
 9. **마지막 줄:** `OK: automated VM checks passed (access: ssh); audit firewall rules by hand (docs/runbooks/operations.md, Exposure audit)`
@@ -242,7 +243,7 @@ AGENTS.md                    사용자 승인 후 (§12)
 ### 8.6 `status.sh` (`ssh` 모드)
 
 - 마지막 단계 `tailscale serve`를 `access: ssh`로 바꾼다.
-- VM의 Tailscale이 로그인 상태면 `WARNING: Tailscale is still logged in on the VM; BM_ACCESS=ssh expects it off (docs/runbooks/operations.md, 접속 방식 바꾸기)`를 출력한다. `status`는 진단 도구이므로 실패시키지 않는다. 판정은 `verify`가 한다.
+- VM의 Tailscale이 로그인 상태면(`vm_tailscale_logged_in`) `WARNING: Tailscale is still logged in on the VM; BM_ACCESS=ssh expects it off (docs/runbooks/operations.md, Access mode change)`를 출력한다. `status`는 진단 도구이므로 실패시키지 않는다. 판정은 `verify`가 한다.
 - 로그인 상태가 아니면 `tailscale: not installed or logged out`을 출력한다.
 
 ### 8.7 테스트 스텁
@@ -251,6 +252,8 @@ AGENTS.md                    사용자 승인 후 (§12)
   - `SSH_STUB_TUNNEL_EXIT=<n>`이면 바로 n으로 끝난다(터널 실패).
   - 없으면 자기 pid를 `$STUB_LOG.tunnel-pids`에 적고 `exec sleep 300`으로 열린 터널을 흉내 낸다.
 - **`tests/stubs/nc`:** `NC_STUB_OPEN_MATCH=<부분 문자열>`이 인자에 있으면 0(열림)으로 끝난다. 공인 IP 검사는 닫힘 그대로 두면서 로컬 터널만 열린 것으로 만들 수 있다.
+- **`tests/stubs/curl`:** `CURL_STUB_FAIL_MATCH=<부분 문자열>`이 인자에 있으면 `CURL_STUB_FAIL_EXIT`(기본 28)로 실패한다. 다운로드 모드에서 `-w '%{http_code}'`가 있으면 `CURL_STUB_HTTP_CODE`(기본 200)를 출력한다.
+- **`tests/stubs/sshd`:** `sshd -T`가 인증 설정을 출력한다. `SSHD_STUB_PASSWORD=yes`면 암호 로그인이 켜진 것으로 보인다.
 
 ## 9. 보안
 
@@ -295,7 +298,7 @@ AGENTS.md                    사용자 승인 후 (§12)
 
 ### 10.3 접속 방식 바꾸기 (`tailscale` → `ssh`)
 
-operations 런북에 절로 둔다. 계획 13이 이 순서를 지금 VM에 적용한다. VM·클라우드를 바꾸는 단계는 OK를 받는다.
+operations 런북에 "접속 방식 바꾸기 (Access mode change)" 절로 둔다. 스크립트 메시지는 영어 이름 `Access mode change`로 이 절을 가리킨다. 계획 13이 이 순서를 지금 VM에 적용한다. VM·클라우드를 바꾸는 단계는 OK를 받는다.
 
 1. **백업:** `make backup`으로 롤백 지점을 만든다.
 2. **IAP 규칙:** `allow-iap-ssh` 방화벽 규칙을 만든다.
