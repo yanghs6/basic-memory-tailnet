@@ -2,8 +2,9 @@
 # Restore a backup made by `make backup` onto the VM, together with this repo's compose.yaml and the VM .env
 # (image, config and data move as a set, so an older image never runs on data a newer one migrated).
 # The archive is extracted into a staging dir and checked against its manifest before anything live is
-# touched. Current data is moved aside, never deleted. Any failure after the stop puts the previous data,
-# compose.yaml and .env back and restarts the container.
+# touched. Current data is moved aside, never deleted. This repo's SilverBullet space files are written into the
+# restored notes folder while the containers are stopped, so Basic Memory starts with the current notes .gitignore.
+# Any failure after the stop puts the previous data, compose.yaml and .env back and restarts the container.
 # Usage: restore.sh backups/bm-<stamp>.tgz   (asks the user to type yes)
 set -euo pipefail
 
@@ -101,6 +102,22 @@ upload_vm_file() {
   remote "umask 077 && mkdir -p $BM_REMOTE_APP_DIR && { if [ -e $target ]; then cp $target $prev.partial && mv $prev.partial $prev; fi && cat > $tmp && mv $tmp $target; } || { rm -f $tmp $prev.partial; exit 1; }"
 }
 
+# write_space_files ARCHIVE: write the SilverBullet space files into the restored notes folder while Basic Memory is
+# stopped. It reads the notes .gitignore when it starts, so a changed .gitignore needs no recreate here: the marker is
+# removed at once and sb-space.sh runs again to write the pages. A failure here rolls back like the other steps.
+write_space_files() {
+  local archive="$1" state
+  state="$("$SCRIPT_DIR/sb-space.sh")" \
+    || die "could not write the SilverBullet space files into the restored notes folder: fix the error above, then rerun 'make restore BACKUP=$archive'"
+  [[ "$state" == changed ]] || return 0
+  in_notes_dir "" "rm -f $SB_GITIGNORE_PENDING" </dev/null \
+    || die "could not remove $SB_GITIGNORE_PENDING from the restored notes folder: rerun 'make restore BACKUP=$archive'"
+  state="$("$SCRIPT_DIR/sb-space.sh")" \
+    || die "could not write the SilverBullet pages into the restored notes folder: fix the error above, then rerun 'make restore BACKUP=$archive'"
+  [[ "$state" == unchanged ]] \
+    || die "the notes .gitignore changed again during the restore, so the SilverBullet pages were not written: rerun 'make restore BACKUP=$archive'"
+}
+
 main() {
   local archive="${1:-}" actual expected present
   [[ -n "$archive" ]] || die "usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz"
@@ -146,6 +163,9 @@ main() {
   step "swap in the restored data (previous data -> $PREV)"
   remote "if [ -e $ROOT ]; then sudo -n mv $ROOT $PREV; fi" || die "could not move the current data aside"
   remote "sudo -n mv $STAGE/$NAME $ROOT && sudo -n rmdir $STAGE" || die "could not swap the restored data into place"
+
+  step "write the SilverBullet space files while Basic Memory is stopped"
+  write_space_files "$archive"
 
   step "start container"
   remote_compose "up -d --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS" \

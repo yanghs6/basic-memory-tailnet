@@ -263,6 +263,14 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 
 `local-up`도 같은 순서를 로컬에서 따른다(1·3·5 단계 제외). `sb-space.sh --local`이 `changed`를 내면 Basic Memory를 다시 만들고 표시 파일을 지운 뒤 `sb-space.sh --local`을 다시 실행하며, 어느 단계든 실패하거나 두 번째 실행이 `unchanged`가 아니면 SilverBullet을 올리기 전에 멈춘다. macOS의 GNU make 3.81은 `.SHELLFLAGS`를 적용하지 않아 레시피가 `-e` 없이 돌므로, 레시피 줄이 `|| exit 1`과 `&&`로 실패를 직접 전한다.
 
+`restore.sh` 순서(정지·압축 해제·manifest 대조·`compose.yaml`과 VM `.env` 적용 다음):
+
+1. 데이터를 교체한다(기존 데이터는 `.prev-*`). 두 컨테이너는 멈춰 있다.
+2. Basic Memory가 멈춘 동안 `sb-space.sh`(VM)를 실행한다. 멈춘 Basic Memory는 기동할 때 `.gitignore`를 읽으므로 다시 만들 필요가 없다. `changed`가 나오면 표시 파일을 바로 지우고 `sb-space.sh`를 다시 실행해 관리 페이지와 `index.md`를 쓴다. 두 번째 실행이 `unchanged`를 내지 않으면 멈춘다.
+3. `up -d --wait`로 두 컨테이너를 올린다.
+
+2단계가 실패하면 교체 뒤의 다른 실패처럼 이전 데이터·`compose.yaml`·`.env`로 롤백하므로, 반쯤 쓴 공간으로 컨테이너가 뜨지 않는다. 그래서 계획 10 이전의 백업(노트 `.gitignore`와 관리 페이지가 없음)을 복원해도 Basic Memory가 SilverBullet 전용 페이지를 색인하지 않는다(완료 조건 4). 공간 파일이 기동 전에 모두 있으므로 SilverBullet이 `index.md`를 먼저 만드는 경합도 없다.
+
 ### 7.4 `sb-fonts.sh`
 
 - 입력: `${SB_FONT_DIR:-$HOME/Library/Fonts}/D2KodingLigatureNerdFont-{Regular,Bold}.ttf`. 없으면 Nerd Fonts 릴리스에서 설치하라고 안내하고 멈춘다.
@@ -339,7 +347,7 @@ bats 테스트를 먼저 쓴다(AGENTS.md). 스텁은 `tests/stubs/`, 기록된 
   - 부트스트랩에 8443 Serve 매핑이 있고 Funnel이 없다.
 - **`sb-space.sh`:** `.gitignore`는 덮어쓰고, 내용이 같으면 "바뀜"을 알리지 않는다. "바뀜"인 동안에는 페이지를 쓰지 않는다. 관리 페이지는 덮어쓰고 `index.md`는 있으면 건드리지 않는다. `index.md`가 있는지 확인하지 못하면 쓰지 않고 실패한다. VM에서는 컨테이너 UID로 쓴다.
 - **`deploy.sh`:** `.gitignore`가 바뀔 때만 Basic Memory를 다시 만들고, 관리 페이지는 그 뒤에 쓴다. VM `.env`에 `SB_USER`가 들어가고, 이미 있던 `.env`도 권한이 600이 된다. 출력에 `SB_USER` 값이 없다. `SB_USER`가 없으면 VM을 건드리지 않는다.
-- **`restore.sh`:** `SB_USER`가 없으면 확인 질문 전에 멈춘다. 복원한 VM `.env`는 권한 600이고 `SB_USER`를 담는다.
+- **`restore.sh`:** `SB_USER`가 없으면 확인 질문 전에 멈춘다. 복원한 VM `.env`는 권한 600이고 `SB_USER`를 담는다. 공간 파일을 정지 뒤·첫 기동 전에 쓰고 표시 파일을 남기지 않으며, 백업에 있던 `index.md`는 그대로 둔다. 공간 파일 쓰기가 실패하면 복원한 데이터로 컨테이너를 올리지 않고 롤백한다.
 - **`sb-fonts.sh`:** 글꼴·`fontTools`가 없으면 아무것도 올리지 않고 멈춘다. 변환 결과를 올바른 경로에 올린다.
 - **`verify-sb.sh`:** 꺼진 서버, 로그인 없이 열린 서버, 거절된 로그인(HTTP 200 + `status: error`), 쿠키 속성 누락, https에서 `Secure` 누락, 셸 405가 아님을 모두 실패로 본다. `--read-only`는 로그인하지 않고 `SB_USER`도 요구하지 않는다. 비밀번호는 명령 인자에 없고, `SB_USER`와 쿠키 값을 출력하지 않는다. make·compose가 바꿀 문자가 든 `SB_USER`는 서버에 접속하기 전에 거부한다.
 - **`verify-vm.sh`:** 3000 바인딩, 8443·3000 공인 포트, Serve 포트별 대상과 포트별 Funnel 검사(JSON). `probe`는 로그인하지 않는다.
@@ -352,7 +360,7 @@ bats 테스트를 먼저 쓴다(AGENTS.md). 스텁은 `tests/stubs/`, 기록된 
 |---|---|
 | 관찰 카테고리 클릭으로 카테고리 손실 | 런북 경고와 `Cmd+Z`, 업스트림 이슈. 반복되면 자동 되돌리기 Space Lua를 다시 판단 |
 | 훅이 적용되지 않는 페이지(템플릿으로 만든 페이지)의 frontmatter 경합 | 저널을 끄고 Quick Note는 무시 경로(`Inbox/`)에 둔다. 남는 경우는 줄바꿈 하나 수준 |
-| `.gitignore`보다 먼저 색인된 SilverBullet 페이지가 남음 | 배포가 SilverBullet보다 먼저 `.gitignore`만 두고 Basic Memory를 다시 만든 뒤에 관리 페이지와 `index.md`를 쓴다(§7.3) |
+| `.gitignore`보다 먼저 색인된 SilverBullet 페이지가 남음 | 배포가 SilverBullet보다 먼저 `.gitignore`만 두고 Basic Memory를 다시 만든 뒤에 관리 페이지와 `index.md`를 쓴다. 복원은 Basic Memory가 멈춘 동안 공간 파일을 모두 쓴 뒤에 기동한다(§7.3) |
 | SilverBullet이 배포보다 먼저 `index.md`를 만듦 | 배포 순서로 막고 계획 10에서 확인(§3 Assumption) |
 | 인증 켠 뒤 이미지 기본 healthcheck 실패 | `/.ping`으로 덮어쓰기(§7.1) |
 | 두 번째 비밀값 유출 | `.env`(git 제외)와 VM `.env`(600)에만 둔다. 출력 금지 테스트, `mask`, 비밀번호는 curl 표준입력으로만 |
