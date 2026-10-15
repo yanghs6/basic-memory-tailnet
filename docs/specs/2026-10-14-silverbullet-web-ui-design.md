@@ -243,10 +243,10 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 `scripts/sb-space.sh`가 로컬(`.local-data/knowledge/basic-memory/`)과 VM(`/srv/basic-memory/knowledge/basic-memory/`)에 같은 규칙으로 쓴다. VM에서는 컨테이너 UID(`sudo -n -u '#1000'`)로 쓴다.
 
 1. 노트 폴더가 없으면 만든다.
-2. `.gitignore`의 기존 내용을 읽어 둔 뒤 원본으로 덮어쓴다.
+2. `.gitignore`의 기존 내용을 읽는다. 원본과 다르면 표시 파일 `.gitignore.pending`을 먼저 만든 뒤 원본으로 덮어쓴다. 점 파일이라 Basic Memory(기본 무시 패턴 `.*`)와 SilverBullet 모두 보지 않는다.
 3. 관리 라이브러리 페이지를 쓴다.
 4. `index.md`가 없을 때만 쓴다. 있는지 확인하지 못하면 쓰지 않고 실패한다.
-5. 2의 내용이 원본과 달랐으면 표준출력에 `changed`, 같았으면 `unchanged`를 쓴다.
+5. 표시 파일이 있으면 표준출력에 `changed`, 없으면 `unchanged`를 쓴다. 표시 파일은 호출자가 Basic Memory를 다시 만든 뒤에만 지우므로, pull이나 재생성이 실패한 실행을 다시 돌려도 `changed`가 나온다.
 
 `deploy.sh` 순서:
 
@@ -255,7 +255,7 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 3. VM `.env`를 쓴다. 내용은 `vm_env`의 기존 세 줄에 `SB_PORT`·`SB_USER`를 더한 것이다. `umask`는 새 파일에만 적용되므로, 이미 있는 `.env`(권한 664)를 위해 `chmod 600`을 내용보다 먼저 한다.
 4. `sb-space.sh`(VM)를 실행한다.
 5. `pull -q`
-6. `.gitignore`가 바뀌었으면 `up -d --wait --force-recreate basic-memory`로 Basic Memory만 먼저 다시 만든다. VM 콜드 스타트는 161~192초다. 첫 반영 때와 무시 목록을 바꿀 때만 일어난다.
+6. `sb-space.sh`가 `changed`를 냈으면 `up -d --wait --force-recreate basic-memory`로 Basic Memory만 먼저 다시 만들고, 성공하면 표시 파일을 지운다. VM 콜드 스타트는 161~192초다. 첫 반영 때와 무시 목록을 바꿀 때(그 배포를 다시 시도할 때 포함)만 일어난다.
 7. `up -d --wait`로 SilverBullet까지 올린다.
 
 `local-up`도 같은 순서를 로컬에서 따른다(1·3·5 단계 제외).
