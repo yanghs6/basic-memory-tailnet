@@ -12,7 +12,7 @@ for arg in "$@"; do
     fi
     echo "$$" >>"$STUB_LOG.tunnel-pids"
     # Detached from the caller's pipes, so a leaked tunnel cannot keep a bats `run` waiting.
-    exec sleep 300 </dev/null >/dev/null 2>&1
+    exec sleep 300 >/dev/null 2>&1
   fi
 done
 remote_cmd="${*: -1}"
