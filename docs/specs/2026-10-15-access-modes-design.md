@@ -178,7 +178,7 @@ AGENTS.md                    사용자 승인 후 (§12)
   - `ssh`: `check the ProxyCommand for <host> in ~/.ssh/config and its login (docs/runbooks/gcp-vm.md)`
 - `forward_spec LOCAL_PORT REMOTE_PORT`: `127.0.0.1:LOCAL:127.0.0.1:REMOTE`를 출력한다. 모든 `-L`이 이 함수를 거치므로 로컬 바인딩 불변식이 한 곳에 있다.
 - `vm_tailscale_logged_in`: VM에서 `command -v tailscale && sudo -n tailscale status`를 실행해, 로그인 상태면 0, 없거나 로그아웃·정지면 1로 끝난다. ssh 자체가 실패하면(`SSH_FAILURE_EXIT=255`) `die`. `verify`와 `status`가 함께 쓴다.
-- `remote()`의 주석을 "over SSH (Tailscale SSH or the ssh mode host alias)"로 바꾼다. 동작은 그대로다.
+- `remote()`의 주석을 "over SSH (Tailscale SSH or the ssh mode host alias)"로 바꾸고, `ssh`를 부르기 전에 `access_mode`를 부른다. 모드를 직접 읽지 않는 VM 타깃(`deploy`, `restore`, `backup`, `logs`, `sb-fonts`)도 모두 `remote`로 VM에 닿으므로, `BM_ACCESS`가 잘못되면 VM에 닿기 전에 멈춘다(§6). 그 밖의 동작은 그대로다.
 
 ### 8.2 `access-check.sh`
 

@@ -32,7 +32,7 @@
 
 - 스크립트와 스킬에 `oci|oracle|gcp|gcloud`를 쓰지 않는다(`tests/cloud_neutral.bats`). 클라우드 쪽 안내는 `docs/runbooks/gcp-vm.md`를 가리킨다.
 - 런북·README·ARCHITECTURE·스킬의 모든 `gcloud <명령>` 줄에 `--configuration=bm-personal`을 쓴다(`tests/repo.bats`).
-- 모드 값은 `tailscale` 또는 `ssh`뿐이다. 비어 있으면 `tailscale`. 그 밖의 값(대소문자 다름 포함)은 VM에 닿기 전에 `die`한다.
+- 모드 값은 `tailscale` 또는 `ssh`뿐이다. 비어 있으면 `tailscale`. 그 밖의 값(대소문자 다름 포함)은 VM에 닿기 전에 `die`한다. 모드를 쓰는 스크립트는 처음에, 나머지 VM 타깃은 `remote`가 `ssh` 전에 검사한다.
 - 로컬 포트: `make tunnel` 18737(MCP)·13000(웹 UI), `verify` 임시 터널 28737·23000. 모든 `-L`은 `forward_spec`을 거쳐 `127.0.0.1:LOCAL:127.0.0.1:REMOTE` 모양이다.
 - `ssh` 모드에서 `make tunnel`은 다시 붙지 않는다. ssh가 끝나면 종료 코드를 알리고 실패한다.
 - AGENTS.md 스크립트 규칙: `#!/usr/bin/env bash` 다음 `set -euo pipefail`, `common.sh` source, `die`, macOS bash 3.2(연관 배열·`mapfile`·빈 배열 확장 금지), 이름 붙인 상수, `x="$(fn)" || exit 1`. 코드·주석·스크립트 메시지는 영어, 런북·ADR·README·ARCHITECTURE는 한국어.
@@ -94,11 +94,12 @@ gh pr create --draft --base main --title "feat: choose Tailscale or an SSH tunne
 
 **Files:**
 - Create: `scripts/access-check.sh`(실행 권한), `tests/access.bats`
-- Modify: `scripts/lib/common.sh`(`access_mode`, `access_hint`), `tests/stubs/curl`(실패 흉내, 상태 코드), `.env.example`, `Makefile`(export, `access-check` 타깃, `.PHONY`)
+- Modify: `scripts/lib/common.sh`(`access_mode`, `access_hint`, `remote`), `tests/common.bats`, `tests/stubs/curl`(실패 흉내, 상태 코드), `.env.example`, `Makefile`(export, `access-check` 타깃, `.PHONY`)
 
 **Interfaces:**
 - Produces (`common.sh`):
   - `access_mode` → stdout `tailscale` 또는 `ssh`. 다른 값이면 `die "BM_ACCESS must be tailscale or ssh (got '<값>'): ..."`. 호출은 `mode="$(access_mode)" || exit 1`.
+  - `remote`는 `ssh` 전에 `access_mode`를 부른다. 그래서 모드를 직접 읽지 않는 VM 타깃(`deploy`, `restore`, `backup`, `logs`, `sb-fonts`)도 `BM_ACCESS`가 잘못되면 VM에 닿기 전에 멈춘다(스펙 §6).
   - `access_hint` → stdout 한 줄. `ssh` 모드: `check the ProxyCommand for <host> in ~/.ssh/config and its login (docs/runbooks/gcp-vm.md)`. 그 밖: `is <host> reachable over Tailscale SSH? (ssh <user>@<host> true)`.
 - Produces (curl 스텁): `CURL_STUB_FAIL_MATCH=<부분 문자열>`(인자에 있으면 `CURL_STUB_FAIL_EXIT`, 기본 28로 실패), 다운로드 모드에서 `-w '%{http_code}'`가 있으면 `CURL_STUB_HTTP_CODE`(기본 200)를 출력한다.
 - Produces: `make access-check`, `.env`의 `BM_ACCESS`, `BM_ACCESS_CHECK_URL`, `BM_TUNNEL_MCP_PORT`, `BM_TUNNEL_WEB_PORT`(Makefile이 export).
@@ -151,12 +152,38 @@ setup() {
   assert_failure
   assert_output --partial "ssh ubuntu@agent-hub-iap: failed: check the ProxyCommand for agent-hub-iap in ~/.ssh/config"
 }
+
+# --- every VM target ---
+
+@test "a VM target that never reads the mode still stops on a BM_ACCESS it does not know before it runs ssh" {
+  export BM_ACCESS=Ssh
+  run "$REPO_DIR/scripts/logs.sh"
+  assert_failure
+  assert_output --partial "BM_ACCESS must be tailscale or ssh (got 'Ssh')"
+  run grep -F 'ssh ' "$STUB_LOG"
+  assert_failure
+}
+```
+
+`tests/common.bats`의 "remote runs ssh in batch mode against BM_VM_USER@BM_VM_HOST" 다음에 넣는다.
+
+```bash
+@test "remote checks BM_ACCESS before it runs ssh, so no VM target reaches the VM with a typo there" {
+  BM_ACCESS=SSH run remote true
+  assert_failure
+  assert_output --partial "BM_ACCESS must be tailscale or ssh (got 'SSH')"
+  run grep -F 'ssh ' "$STUB_LOG"
+  assert_failure
+  BM_ACCESS=ssh run remote "echo hi"
+  assert_success
+  assert_output "hi"
+}
 ```
 
 - [ ] **Step 2: 실패 확인**
 
 Run: `make test`
-Expected: `access.bats`의 두 테스트가 `scripts/access-check.sh: No such file or directory`로 실패한다. 나머지는 PASS.
+Expected: `access.bats`의 access-check 두 테스트가 `scripts/access-check.sh: No such file or directory`로 실패한다. `logs.sh` 테스트와 `common.bats`의 새 테스트는 `remote`가 아직 모드를 보지 않아 ssh 호출이 남으므로 실패한다. 나머지는 PASS.
 
 - [ ] **Step 3: `tests/stubs/curl`**
 
@@ -224,10 +251,15 @@ access_hint() {
 }
 ```
 
-`remote()` 위 주석을 바꾼다.
+`remote()`를 바꾼다. 주석을 고치고 `ssh` 앞에 모드 검사를 넣는다. `die`는 스크립트를 끝내므로, `$(...)` 밖에서 부른 `remote`는 그 자리에서 멈춘다. `$(...)`나 파이프 안에서 부른 경우에도 ssh는 부르지 않고 실패를 돌려준다.
 
 ```bash
-# remote CMD -> run CMD on the VM over SSH: Tailscale SSH, or the ssh access mode's host alias.
+# remote CMD -> run CMD on the VM over SSH: Tailscale SSH, or the ssh access mode's host alias. It checks BM_ACCESS
+# first, so a typo there stops every VM target before it reaches the VM, also the ones that never read the mode.
+remote() {
+  access_mode >/dev/null
+  ssh -o BatchMode=yes -o ConnectTimeout="$SSH_CONNECT_TIMEOUT_SECONDS" "${BM_VM_USER}@${BM_VM_HOST}" "$@"
+}
 ```
 
 - [ ] **Step 5: `scripts/access-check.sh` (새 파일, `chmod +x`)**
@@ -352,12 +384,12 @@ access-check: ## Report which access path (tailscale or ssh) works on this netwo
 - [ ] **Step 7: 통과 확인**
 
 Run: `make check`
-Expected: exit 0. `access.bats` 두 테스트가 ok다. `repo.bats`의 ".PHONY와 ## 설명" 검사와 `cloud_neutral.bats`가 통과한다. 기존 `bootstrap.bats`의 tailscale 설치 테스트(curl 다운로드 모드)도 그대로 통과한다.
+Expected: exit 0. `access.bats` 세 테스트와 `common.bats`의 새 테스트가 ok다. 기존 `vm_ops.bats`·`backup_restore.bats`는 `BM_ACCESS`가 없어 그대로 통과한다. `repo.bats`의 ".PHONY와 ## 설명" 검사와 `cloud_neutral.bats`가 통과한다. 기존 `bootstrap.bats`의 tailscale 설치 테스트(curl 다운로드 모드)도 그대로 통과한다.
 
 - [ ] **Step 8: 커밋과 push**
 
 ```bash
-git add scripts/access-check.sh scripts/lib/common.sh tests/access.bats tests/stubs/curl .env.example Makefile
+git add scripts/access-check.sh scripts/lib/common.sh tests/access.bats tests/common.bats tests/stubs/curl .env.example Makefile
 git commit -m "feat: add BM_ACCESS and make access-check" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 12" --trailer "Task: 1"
 git push
 ```
@@ -539,7 +571,7 @@ tunnel: ## ssh mode: forward MCP and the web UI to 127.0.0.1:BM_TUNNEL_MCP_PORT 
 - [ ] **Step 7: 통과 확인**
 
 Run: `make check`
-Expected: exit 0. `access.bats` 네 테스트가 ok다. `vm_ops.bats`의 공인 IP 검사 테스트(nc 스텁 기본값)도 그대로 통과한다.
+Expected: exit 0. `access.bats` 다섯 테스트가 ok다. `vm_ops.bats`의 공인 IP 검사 테스트(nc 스텁 기본값)도 그대로 통과한다.
 
 - [ ] **Step 8: 커밋과 push**
 
