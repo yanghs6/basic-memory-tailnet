@@ -12,7 +12,7 @@ MAIN_ROOT := $(if $(GIT_COMMON_DIR),$(abspath $(GIT_COMMON_DIR)/..),$(CURDIR))
 BM_PORT := $(or $(BM_PORT),8737)
 export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT
 REVIEW_BASE := $(or $(REVIEW_BASE),origin/main)
-export REVIEW_BASE REVIEW_ALLOW_SAME_VENDOR
+export REVIEW_BASE REVIEW_ALLOW_SAME_VENDOR REVIEW_MODEL
 
 SHELLCHECK_IMAGE := koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d
 SHFMT_IMAGE := mvdan/shfmt:v3.12.0@sha256:307d265ffd25ce832899ae17c93ed5062fc3375c514bba8f52cbf52792735c4d
@@ -21,7 +21,7 @@ COVERAGE_MIN := 80
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review vm-bootstrap deploy verify probe status logs backup restore
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review review-post review-record vm-bootstrap deploy verify probe status logs backup restore
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -66,6 +66,12 @@ check-git: ## Check the git policy for the current branch against origin/main (n
 
 review: ## Read-only review by another vendor: BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<sha>]
 	scripts/review.sh "$(BRANCH)" "$(REVIEWER)" "$(or $(ROUND),1)"
+
+review-post: ## Post a review round's reports to its PR: PR=<number> BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_MODEL=<model>]
+	scripts/post-review.sh "$(PR)" "$(BRANCH)" "$(REVIEWER)" "$(or $(ROUND),1)"
+
+review-record: ## Create or update the PR's Review record comment: PR=<number> FILE=<findings table file>
+	scripts/review-record.sh "$(PR)" "$(FILE)"
 
 vm-bootstrap: ## First-time VM setup over public SSH (HOST=<public-ip>; asks for a Tailscale auth key)
 	scripts/bootstrap-vm.sh "$(HOST)"

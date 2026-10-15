@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Test stub for gh: logs "gh <args>" to $STUB_LOG and appends the text of every --body-file FILE and
+# -F body=@FILE to $STUB_LOG.body. "gh api user" prints $GH_STUB_LOGIN (default agent-bot; set it empty for no
+# login). Any other call with --jq prints $GH_STUB_JQ_OUTPUT (default: nothing), standing in for the filtered
+# API result. GH_STUB_EXIT=<n> makes every call fail.
+set -euo pipefail
+printf 'gh %s\n' "$*" >>"$STUB_LOG"
+if [[ -n "${GH_STUB_EXIT:-}" ]]; then
+  echo "gh stub: simulated failure" >&2
+  exit "$GH_STUB_EXIT"
+fi
+if [[ "${1:-}" == api && "${2:-}" == user ]]; then
+  printf '%s\n' "${GH_STUB_LOGIN-agent-bot}"
+  exit 0
+fi
+jq_call=""
+while (($#)); do
+  case "$1" in
+    --body-file)
+      cat "$2" >>"$STUB_LOG.body"
+      shift 2
+      ;;
+    -F)
+      if [[ "$2" == body=@* ]]; then
+        cat "${2#body=@}" >>"$STUB_LOG.body"
+      fi
+      shift 2
+      ;;
+    --jq)
+      jq_call=1
+      shift 2
+      ;;
+    *) shift ;;
+  esac
+done
+if [[ -n "$jq_call" ]]; then
+  printf '%s' "${GH_STUB_JQ_OUTPUT:-}"
+fi

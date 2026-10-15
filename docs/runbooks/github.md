@@ -15,9 +15,12 @@ gh auth status           # 머신 계정이 보여야 합니다
 cd <main 체크아웃>
 git config --local credential.https://github.com.helper ''
 git config --local --add credential.https://github.com.helper '!gh auth git-credential'
+git config --local user.name yanghs6-bot
+git config --local user.email 159414014+yanghs6-bot@users.noreply.github.com
 ```
 
 - credential 설정은 이 저장소에만 적용됩니다. 모든 worktree가 main 체크아웃의 설정을 공유합니다.
+- 커밋 작성자도 머신 계정입니다. 이메일은 머신 계정의 noreply 주소(앞의 숫자는 계정 id)입니다. 사람 이름으로 커밋하면 squash 병합 때 GitHub이 `Co-authored-by`를 덧붙입니다.
 - 기본 `gh`는 머신 계정입니다. 사용자가 관리자 작업을 할 때는 개인 계정용 설정 디렉터리를 따로 씁니다. 처음 한 번 `GH_CONFIG_DIR="$HOME/.config/gh-yanghs6" gh auth login`으로 로그인합니다.
 
 ## 2. 공개 전 점검
