@@ -7,7 +7,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 ## Commands
 - `make help` lists every target. Do lifecycle work through Make targets only; use raw `docker compose` or `ssh` only to diagnose a failing target, and record why.
 - `make check` (lint + all tests + coverage >= 80%) must pass before every commit. `make fmt` fixes shfmt findings.
-- Local: `make local-up local-verify local-down`. `local-up` uses a fixed container name and port, so run it in one worktree at a time (`make check` is safe to run concurrently). VM changing (ask the user first, see Safety): `make vm-bootstrap deploy restore`. No OK needed: `make probe status logs verify backup` (`verify` writes and deletes a test note; `backup` stops the container briefly).
+- Local: `make local-up local-verify local-down` (`make sb-fonts LOCAL=1` uploads the web fonts locally). `local-up` uses a fixed container name and port, so run it in one worktree at a time (`make check` is safe to run concurrently). VM changing (ask the user first, see Safety): `make vm-bootstrap deploy restore sb-fonts`. No OK needed: `make probe status logs verify backup` (`verify` writes and deletes a test note; `backup` stops the container briefly).
 
 ## Invariants (enforced by tests/repo.bats; never weaken a test to make it pass)
 - Basic Memory has no auth: publish its port on `127.0.0.1` only, never enable Tailscale Funnel, keep zero public ingress on the VM.
@@ -19,7 +19,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 
 ## Safety
 - Never commit secrets, `.env`, Tailscale auth keys, `backups/`, `.local-data/`, or note content.
-- The only secret is the Tailscale auth key. It reaches the VM via `TS_AUTHKEY` or the hidden prompt, never via a file in the repo or a command argument.
+- Two secrets: the Tailscale auth key reaches the VM via `TS_AUTHKEY` or the hidden prompt; `SB_USER`, the SilverBullet login, lives only in the main checkout `.env` and the VM `.env` (mode 600), and scripts pass it on over SSH or curl stdin. Neither ever goes in a repo file or a command argument.
 - Ask the user before anything that changes the VM or cloud resources: `vm-bootstrap`, `deploy`, `restore`, resizing, firewall rules, instance metadata, Tailscale policy.
 - Never delete `backups/` or `/srv/basic-memory.prev-*` directories.
 - `.env` and `backups/` live only in the main checkout: the Makefile and `make backup` use them from any worktree. Never create or copy them in a worktree, and check a worktree's `backups/` before `git worktree remove`.

@@ -156,6 +156,7 @@ OCI 설계 §7과 같고 다음만 다르다.
 - VM용 값(`/srv/basic-memory/...`)은 `deploy.sh`가 원격 `/opt/basic-memory/.env`로 생성한다.
 - 사용자별 값(`BM_VM_HOST`, `BM_VM_USER`, `BM_TAILNET_DOMAIN`, `BM_VM_PUBLIC_IP`)은 git ignore 대상인 `.env`에 둔다. **`.env`는 main 체크아웃에만 둔다.** Makefile은 어느 체크아웃에서 실행하든 main 체크아웃(`git rev-parse --path-format=absolute --git-common-dir`의 상위)의 `.env`를 include한다. worktree에 있는 `.env`는 읽지 않는다. `review.sh`가 `$MAIN_ROOT/.review-out`을 쓰는 것과 같은 방식이다.
 - 유일한 비밀값은 Tailscale 인증 키다. 저장소에는 어떤 형태로도 두지 않는다.
+- 2026-10-14 갱신: [SilverBullet 웹 UI 설계](spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md)가 두 번째 비밀값 `SB_USER`를 더한다(§8.3).
 
 ### 7.4 `bootstrap-vm.sh HOST`
 

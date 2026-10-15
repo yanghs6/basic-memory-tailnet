@@ -189,6 +189,7 @@ fix_backup_stamp() {
 
 @test "restore replaces the data, keeps the previous copy and fixes ownership" {
   make_archive "from backup"
+  install -m 644 /dev/null "$BM_REMOTE_APP_DIR/.env"
   restore_with_answer yes
   assert_success
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
@@ -205,6 +206,49 @@ fix_backup_stamp() {
   assert_success
   run bash -c 'ls -d "$0".restore-* "$1"/compose.yaml.prev-* 2>/dev/null' "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_APP_DIR"
   assert_failure
+  run cat "$BM_REMOTE_APP_DIR/.env"
+  assert_line "SB_USER=admin:test-password"
+  run stat -c '%a' "$BM_REMOTE_APP_DIR/.env"
+  assert_output "600"
+}
+
+@test "restore writes the SilverBullet space files into the restored notes folder while stopped, keeping its index.md" {
+  local notes="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory"
+  make_archive "from backup"
+  # An archive from before the web UI: a notes folder with an index.md but no .gitignore and no library page.
+  mkdir -p "$SRC/basic-memory/knowledge/basic-memory"
+  echo "my dashboard" >"$SRC/basic-memory/knowledge/basic-memory/index.md"
+  pack_archive basic-memory
+  local_manifest "$SRC/basic-memory" >"$ARCHIVE.manifest"
+  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+  restore_with_answer yes
+  assert_success
+  run diff "$REPO_DIR/silverbullet/notes.gitignore" "$notes/.gitignore"
+  assert_success
+  run diff "$REPO_DIR/silverbullet/agent-hub.md" "$notes/Library/agent-hub/agent-hub.md"
+  assert_success
+  run cat "$notes/index.md"
+  assert_output "my dashboard"
+  [[ ! -e "$notes/.gitignore.pending" ]] \
+    || fail "the marker must be removed: the stopped Basic Memory loads the new .gitignore when it starts"
+  # Every space file write (as the container user) comes after the stop and before the first start.
+  run awk '/^docker compose stop$/ { s = NR } /^sudo -n -u #1000 / { if (!f) f = NR; w = NR } /^docker compose up/ && !u { u = NR } END { exit !(s && f && u && s < f && w < u) }' "$STUB_LOG"
+  assert_success
+}
+
+@test "restore rolls back without starting the restored data when the SilverBullet pages cannot be written" {
+  make_archive "restored"
+  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+  export SSH_STUB_FAIL_MATCH="Library/agent-hub"
+  restore_with_answer yes
+  assert_failure
+  assert_output --partial "could not write the SilverBullet pages"
+  assert_output --partial "rolled back: the previous data is live again"
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
+  # Only the rollback starts the containers (on the previous data); the half-written space never runs.
+  run grep -E '^docker compose up -d --wait' "$STUB_LOG"
+  assert_failure
 }
 
 @test "restore aborts without touching the VM unless the user types yes" {
@@ -212,6 +256,17 @@ fix_backup_stamp() {
   restore_with_answer no
   assert_failure
   assert_output --partial "aborted: you must type 'yes'"
+  run grep -F 'ssh' "$STUB_LOG"
+  assert_failure
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
+}
+
+@test "restore stops before the confirmation without a valid SB_USER, so the VM .env never loses the login" {
+  make_archive "x"
+  unset SB_USER
+  restore_with_answer yes
+  assert_failure
   run grep -F 'ssh' "$STUB_LOG"
   assert_failure
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
@@ -410,6 +465,12 @@ compose.yaml"
 # --- round trip (spec completion criterion 3) ---
 
 @test "a backup made by backup.sh restores with restore.sh and matches its manifest" {
+  # A deployed VM already holds the current space files, which the restore writes again unchanged.
+  local notes="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory"
+  mkdir -p "$notes/Library/agent-hub"
+  cp "$REPO_DIR/silverbullet/notes.gitignore" "$notes/.gitignore"
+  cp "$REPO_DIR/silverbullet/agent-hub.md" "$notes/Library/agent-hub/agent-hub.md"
+  cp "$REPO_DIR/silverbullet/index.md" "$notes/index.md"
   run "$BACKUP"
   assert_success
   ARCHIVE="$(ls "$BACKUP_DIR"/bm-*.tgz)"

@@ -655,7 +655,8 @@ Expected:
 사용자가 Mac 브라우저에서 `https://agent-hub.<tailnet>.ts.net:8443`을 열어 로그인한다. 에이전트는 [web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md) Task 6 Step 4·5의 목록으로 함께 확인한다.
 - 3단 레이아웃, 대시보드, 글꼴 Regular·Bold, `Graph: Explore`
 - 새 페이지 줄바꿈
-- `search_notes`에 SilverBullet 전용 페이지가 나오지 않음. `search_notes`는 tailnet URL의 MCP로 부른다([web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md) Task 6의 일회용 스크립트에서 `URL`만 `https://agent-hub.<tailnet>.ts.net/mcp`로 바꿈).
+- `search_notes`에 SilverBullet 전용 페이지가 나오지 않음. `search_notes`는 tailnet URL의 MCP로 부른다([web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md) Task 6의 일회용 스크립트에서 `URL`만 `https://agent-hub.<tailnet>.ts.net/mcp`로 바꿈). 기본 검색은 글자가 맞지 않는 노트도 돌려주므로 `{"query":"agentHub","search_type":"text"}`(0건)와 `list_directory`(노트만 있음)로 본다(web-ui-local 계획 Progress log).
+- 브라우저의 `fetch("/.fs/…")`는 service worker 뒤에서 파일을 읽고 쓰지 못한다([web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md)). 확인용 읽기는 `client.space.readPage`나 Basic Memory `read_note`로 한다.
 
 VM에는 시드 노트를 넣지 않고 실제 노트로 확인한다. 줄바꿈 확인용 페이지(`research/Newline Check`)는 확인 뒤 지울지 사용자에게 묻는다.
 

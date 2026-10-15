@@ -1,0 +1,3 @@
+# Agent Hub
+
+${agentHub.dashboard()}

@@ -4,7 +4,7 @@
 
 - 설계: [docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md](docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)
 - 구조: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 결정 기록: [basic-memory-on-gcp-tailscale ADR](docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md), [vm-sizing ADR](docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)
+- 결정 기록: [basic-memory-on-gcp-tailscale ADR](docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md), [vm-sizing ADR](docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md), [web-ui-silverbullet ADR](docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md)
 - 에이전트 지침: [AGENTS.md](AGENTS.md)
 
 ## 사전 요구사항 (Prerequisites)
@@ -12,6 +12,7 @@
 - macOS + Docker Desktop (실행 중이어야 함), `make`
 - `ssh`, `curl`, `nc`, `git` (macOS 기본 포함)와 `jq` (`brew install jq`)
 - 교차 리뷰(`make review`)를 쓸 때만: 리뷰어 CLI인 `codex` 또는 `claude`
+- 웹 UI 글꼴을 올릴 때만(`make sb-fonts`): `python3`와 `python3 -m pip install --user fonttools brotli`, D2Coding Nerd Font(`D2KodingLigatureNerdFont-Regular.ttf`·`-Bold.ttf`가 `~/Library/Fonts`에 있어야 함)
 - 에이전트 작업을 PR로 올릴 때: GitHub CLI `gh`(머신 계정으로 로그인, [GitHub 런북](docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md))
 - VM 작업용:
   - Tailscale 앱 설치·로그인과 `tailscale` 명령(`tailscale version`으로 확인, [accounts 런북](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md))
@@ -29,6 +30,17 @@ make local-down
 `local-up`은 고정된 컨테이너 이름과 포트를 쓰므로 한 번에 한 작업 트리에서만 실행합니다.
 
 테스트는 불변식, 데이터 안전, 대표 성공 경로, 조용한 실패, Git 정책을 지키는 것만 둡니다. 기준은 [test-scope ADR](docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md)에 있습니다.
+
+### 웹 UI (SilverBullet)
+
+`make local-up`은 Basic Memory 옆에 SilverBullet을 같이 띄웁니다.
+1. main 체크아웃 `.env`에 `SB_USER=<사용자>:<비밀번호>`를 적습니다(`.env.example` 참고, 비밀번호는 `openssl rand -base64 24`).
+2. `http://127.0.0.1:3000`에서 로그인합니다.
+3. 글꼴은 `make sb-fonts LOCAL=1`로 한 번 올립니다.
+
+트리는 왼쪽(`Cmd-O`), 목차는 오른쪽에 있습니다. 페이지 이름 검색은 `Cmd-K`, 노트 본문 검색은 `Cmd-Shift-F`입니다(본문 문단이 안 나오면 그 브라우저에서 `Space: Reindex`를 한 번 실행). 그래프는 명령 팔레트의 `Graph: Explore`로 엽니다.
+
+**주의:** 노트의 관찰 카테고리 글자(`[decision]`, `[fact]` 등)를 누르면 SilverBullet이 카테고리를 지웁니다. 실수했으면 바로 `Cmd+Z`로 되돌리세요.
 
 ## VM 구축 순서
 
