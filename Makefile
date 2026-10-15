@@ -10,7 +10,13 @@ GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir 
 MAIN_ROOT := $(if $(GIT_COMMON_DIR),$(abspath $(GIT_COMMON_DIR)/..),$(CURDIR))
 -include $(MAIN_ROOT)/.env
 BM_PORT := $(or $(BM_PORT),8737)
-export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT
+SB_PORT := $(or $(SB_PORT),3000)
+export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT SB_PORT
+# Only the targets that hand the SilverBullet login to compose or the VM see it; make review's CLIs do not.
+local-up local-down local-logs local-verify deploy restore: export SB_USER := $(SB_USER)
+# make reads .env as makefile text (# starts a comment, $ expands), so the same targets also get the path of that file
+# (never the value) and require_sb_user in scripts/lib/common.sh compares SB_USER with its raw line.
+local-up local-down local-logs local-verify deploy restore: export SB_ENV_FILE := $(MAIN_ROOT)/.env
 REVIEW_BASE := $(or $(REVIEW_BASE),origin/main)
 export REVIEW_BASE REVIEW_ALLOW_SAME_VENDOR REVIEW_MODEL
 
@@ -21,7 +27,7 @@ COVERAGE_MIN := 80
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review review-post review-record vm-bootstrap deploy verify probe status logs backup restore
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review review-post review-record vm-bootstrap deploy verify probe status logs sb-fonts backup restore
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -46,20 +52,28 @@ check: lint coverage ## Lint + all tests + coverage gate (run before every commi
 
 COMPOSE := docker compose -f compose.yaml
 LOCAL_DATA_DIRS := .local-data/knowledge .local-data/config
+# SB_LOCAL_NOTES_DIR/SB_GITIGNORE_PENDING in scripts/lib/common.sh: removed only after Basic Memory was recreated.
+SB_LOCAL_PENDING := .local-data/knowledge/basic-memory/.gitignore.pending
 
-local-up: ## Start Basic Memory locally on 127.0.0.1:BM_PORT and wait until healthy
+local-up: ## Start Basic Memory and SilverBullet locally (127.0.0.1:BM_PORT, SB_PORT) and wait until healthy
+	. scripts/lib/common.sh && require_sb_user
 	mkdir -p $(LOCAL_DATA_DIRS)
+	gitignore_state="$$(scripts/sb-space.sh --local)" || exit 1; \
+	  if [[ "$$gitignore_state" == changed ]]; then \
+	    $(COMPOSE) up -d --wait --force-recreate basic-memory && rm -f $(SB_LOCAL_PENDING) \
+	      && gitignore_state="$$(scripts/sb-space.sh --local)" && [[ "$$gitignore_state" == unchanged ]]; fi
 	$(COMPOSE) up -d --wait
 
-local-down: ## Stop the local container (data in .local-data/ is kept)
+local-down: ## Stop the local containers (data in .local-data/ is kept)
 	$(COMPOSE) down
 
 local-logs: ## Show recent local container logs
 	$(COMPOSE) logs --tail=200
 
-local-verify: ## Verify the local MCP endpoint (plain and *.ts.net Host header)
+local-verify: ## Verify the local MCP endpoint (plain and *.ts.net Host header) and the local SilverBullet login
 	scripts/verify-mcp.sh "http://127.0.0.1:$(BM_PORT)/mcp"
 	scripts/verify-mcp.sh --host-header agent-hub.example.ts.net "http://127.0.0.1:$(BM_PORT)/mcp"
+	scripts/verify-sb.sh "http://127.0.0.1:$(SB_PORT)"
 
 check-git: ## Check the git policy for the current branch against origin/main (name, commit trailers, worktree config)
 	scripts/check-git.sh origin/main
@@ -90,6 +104,9 @@ status: ## Show VM containers, memory and swap use, and tailscale serve
 
 logs: ## Show the last 200 lines of the VM container logs
 	scripts/logs.sh
+
+sb-fonts: ## Convert the D2Koding Nerd Font to WOFF2 and upload it to the VM notes folder (LOCAL=1: the local stack)
+	scripts/sb-fonts.sh $(if $(LOCAL),--local)
 
 backup: ## Download a consistent backup of VM data into the main checkout's backups/ (brief container stop)
 	scripts/backup.sh

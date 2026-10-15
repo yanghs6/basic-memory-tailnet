@@ -3,6 +3,8 @@
 # MCP mode (CURL_FIXTURES set): answers JSON-RPC requests from fixture files named after the method:
 #   initialize, notifications_initialized, tools_list, call_<tool> (.body and optional .status).
 #   Request payloads are appended to $STUB_LOG.requests. CURL_STUB_EXIT=<n> simulates a transport error.
+# SilverBullet mode (URL path /.ping, /.fs/..., /.auth, /.shell or /.logout): answers like a server with a login and
+#   the shell off; see sb_response for the overrides.
 # Download mode: writes "stub" to the -o file, or prints $CURL_STUB_SCRIPT (default "true") for `curl | sh`.
 set -euo pipefail
 printf 'curl %s\n' "$*" >>"$STUB_LOG"
@@ -10,8 +12,51 @@ printf 'curl %s\n' "$*" >>"$STUB_LOG"
 headers_file=""
 body_file=""
 data=""
+cookie_jar=""
+url=""
+
+# sb_response -> print the status code and write the headers and body of a SilverBullet answer. Overrides:
+# CURL_SB_{PING,FS,FONT,AUTH,SHELL}_STATUS, CURL_SB_AUTH_BODY and CURL_SB_COOKIE (the login's Set-Cookie line, empty for
+# none). The login's stdin (the password) is appended to $STUB_LOG.stdin.
+sb_response() {
+  local status=200 body="" headers=""
+  local ok_body='{"status":"ok","redirect":"/"}'
+  local cookie_line='set-cookie: auth_agent-hub=stub-session-token; Path=/; Max-Age=604800; SameSite=Lax; HttpOnly'
+  case "$url" in
+    */.ping) status="${CURL_SB_PING_STATUS:-200}" ;;
+    */.fs/Library/agent-hub/fonts/*) status="${CURL_SB_FONT_STATUS:-200}" ;;
+    */.fs/*) status="${CURL_SB_FS_STATUS:-401}" ;;
+    */.shell) status="${CURL_SB_SHELL_STATUS:-405}" ;;
+    */.logout) status=302 ;;
+    */.auth)
+      cat >>"$STUB_LOG.stdin"
+      status="${CURL_SB_AUTH_STATUS:-200}"
+      body="${CURL_SB_AUTH_BODY-$ok_body}"
+      headers="${CURL_SB_COOKIE-$cookie_line}"
+      if [[ -n "$headers" && -n "$cookie_jar" ]]; then
+        echo "stub-jar" >"$cookie_jar"
+      fi
+      ;;
+  esac
+  if [[ -n "$headers_file" ]]; then
+    printf 'HTTP/1.1 %s\r\n%s\r\n\r\n' "$status" "$headers" >"$headers_file"
+  fi
+  if [[ -n "$body_file" ]]; then
+    printf '%s' "$body" >"$body_file"
+  fi
+  printf '%s' "$status"
+}
+
 while (($#)); do
   case "$1" in
+    -c)
+      cookie_jar="$2"
+      shift 2
+      ;;
+    http://* | https://*)
+      url="$1"
+      shift
+      ;;
     -D)
       headers_file="$2"
       shift 2
@@ -27,6 +72,13 @@ while (($#)); do
     *) shift ;;
   esac
 done
+
+case "$url" in
+  */.ping | */.fs/* | */.auth | */.shell | */.logout)
+    sb_response
+    exit 0
+    ;;
+esac
 
 if [[ -z "${CURL_FIXTURES:-}" ]]; then
   if [[ -n "$body_file" ]]; then

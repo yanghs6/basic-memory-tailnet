@@ -61,7 +61,7 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (`services/note_preparation.py:208-214`):** frontmatter의 `permalink`가 다른 파일과 겹치지 않으면 그 값을 그대로 쓴다. Basic Memory의 생성 규칙과 같을 필요가 없다.
 - **Verified (`indexing/batch_indexer.py:397-422`):** frontmatter가 없으면 `title`·`type`·`permalink`를 써 넣고, frontmatter가 있으면 `permalink`가 다를 때만 그 줄을 고친다.
 - **Verified (`utils.py:123-129`, 스파이크):** 한글은 Basic Memory의 CJK 범위에 없어 에이전트가 만든 노트의 permalink는 `unidecode`로 로마자가 된다. 훅이 만든 한글 permalink(`main/research/한글-테스트`)도 `read_note`와 `search_notes`로 조회된다.
-- **Verified (`ignore_utils.py:188-221`, `:240-276`):** 노트 폴더(프로젝트 루트)의 `.gitignore` 패턴을 기본 무시 목록(`.*` 포함)에 더한다. `/`로 시작하는 패턴은 루트 기준이고, 그렇지 않은 패턴은 경로의 어느 부분과도 맞춘다.
+- **Verified (`ignore_utils.py:21-23`, `:188-221`, `:240-276`):** 노트 폴더(프로젝트 루트)의 `.gitignore` 패턴을 기본 무시 목록(`.*` 포함, 그래서 점 파일은 기본으로 색인하지 않음)에 더한다. `/`로 시작하는 패턴은 루트 기준이고, 그렇지 않은 패턴은 경로의 어느 부분과도 맞춘다.
 - **Verified (스파이크, `index/watch_service.py:129-133`):** 감시 프로세스가 무시 패턴을 캐시하므로 `.gitignore` 변경은 재시작 뒤에 적용된다. 이미 색인된 항목은 재시작해도 남는다.
 
 **SilverBullet 2.12.1-slim**
@@ -74,7 +74,8 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (스파이크):** 인증이 없으면 다른 origin의 `text/plain` POST로 `/.shell`이 명령을 실행하고(`{"stdout":"shell-probe\n"}`), `/.proxy/<host>`가 요청을 대신 보낸다. `/.fs`는 CORS 허용 헤더가 없어 다른 사이트가 읽거나 PUT할 수 없다(preflight 405).
 - **Verified (스파이크, `server/src/shell.rs:1-23`):** `SB_SHELL_BACKEND`가 `local`이 아니면 셸이 꺼지고 `/.shell`이 405 `Shell commands are disabled`를 낸다(로그인 상태 포함).
 - **Verified (스파이크, `server/src/handlers/auth.rs:122`):** `SB_USER`를 주면 로그인 전 `/.fs`·`/.shell`·`/.proxy`가 401이다. 세션 쿠키는 `SameSite=Lax; HttpOnly`다. 세션은 공간 루트의 `.silverbullet.browser-sessions.json`에 저장된다(`server/src/auth/browser_sessions.rs:10`).
-- **Verified (`server/src/router.rs:349-353`, `:614-616`):** 인증 없이 열리는 경로는 `/.ping`, `/.logout`, `/.auth*`, `robots.txt`, `sitemap.xml`과 클라이언트 번들뿐이다. 그 밖의 경로(`/.instance` 포함)는 로그인 전 401이므로 이미지 기본 healthcheck는 인증을 켜면 실패한다.
+- **Verified (`server/src/router.rs:349-353`, `:614-616`):** 인증 없이 열리는 경로 목록은 `/.ping`, `/.logout`, `/.auth*`, `robots.txt`, `sitemap.xml`과 클라이언트 번들이다. healthcheck는 이 목록에 있는 `/.ping`을 쓴다.
+- **Verified (계획 10, 2026-10-15, 로컬 2.12.1-slim, `curl`):** 로그인 전 `/.fs/index.md`는 401이지만, 목록에 없는 `/.instance`는 200과 `{"instance":"<uuid>","version":"2.12.1-…"}`를 돌려준다. 그러니 이미지 기본 healthcheck도 지금 버전에서는 인증을 켜도 통과할 것으로 본다(추정, 직접 돌려 보지는 않음). 목록 밖 경로에 기대지 않으려고 `/.ping`으로 덮어쓴다.
 - **Verified (`server/src/handlers/auth.rs:81-137`, `:163-212`):** `POST /.auth`는 성공과 실패 모두 HTTP 200 JSON으로 답한다(`{"status":"ok"}` 또는 `{"status":"error"}`). 성공일 때만 `auth_`로 시작하는 세션 쿠키를 붙인다. `GET /.logout`은 세션을 폐기하고 302로 답한다.
 - **Verified (`server/src/auth/cookie.rs:49-57`, `:84-85`, tailscale `ipn/ipnlocal/serve.go:1088-1091`):** 세션 쿠키의 `Secure`는 요청에 `X-Forwarded-Proto: https`가 있을 때만 붙고, Tailscale Serve가 이 헤더를 붙인다. VM에서의 확인은 계획 11에서 한다.
 - **Verified (`client/navigator/view_defaults.ts`, `client/navigator/builtins.ts:31-41`, `views/space_tree.ts:164-170`, 스파이크):** 트리 뷰 이름은 `std.spaceTree`이고, `config.set("view.defaults", {["std.spaceTree"] = {dock = "lhs", open = true}})`로 처음부터 왼쪽에 연다. 브라우저에 저장된 사용자 선택이 이 값보다 앞선다. 저장된 선택이 없는 새 origin(`localhost:3000`)에서 트리가 왼쪽에 열렸다.
@@ -84,10 +85,11 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (`libraries/Library/Std/Widgets/Widgets.md`, `docs/API/view.md:39-58`, 스파이크):** 사용자 뷰는 `view.define`으로 등록하고 `lhs`·`rhs`·`page-top` 등에 둔다. `frame = "minimal"`인 `page-top` 뷰는 제목줄 없이 본문처럼 보이고 내용이 없으면 숨는다. Linked Tasks는 다른 페이지의 작업을 체크·상태 변경이 되는 채로 `page-top`에 보여 주며 기본으로 열려 있다.
 - **Verified (스파이크, 2026-10-14):**
   - 색인 객체의 필드: 페이지 `lastModified`는 `2026-10-14T11:49:06.750`처럼 로컬 시각 문자열이고, 프론트매터의 `permalink`도 들어 있다. 목록 항목은 `text`·`tags`·`ref`(`페이지@위치`), 헤더는 `name`·`ref`다. 관찰 줄은 목록 항목이 아니라 작업(`index.tasks()`, `state`·`name`·`tags`)으로 색인된다.
-  - 문단은 `config.set("index.paragraph.all", true)`가 있어야 색인된다. 이미 색인한 브라우저뿐 아니라 처음 여는 브라우저도 공간 설정보다 색인이 먼저 돌므로, 문단 검색은 브라우저마다 `Space: Reindex`를 한 번 실행한 뒤에 된다.
+  - 문단은 `config.set("index.paragraph.all", true)`가 있어야 색인된다. 스파이크에서는 이미 색인한 브라우저와 처음 연 브라우저 모두 `Space: Reindex`를 한 번 실행한 뒤에야 문단이 검색됐다. 계획 10(2026-10-15)에서는 관리 페이지가 처음부터 있는 공간을 새 origin(`sb.localhost:3000`)으로 열었을 때 Reindex 없이 문단이 검색됐다. 스파이크의 누락은 설정을 나중에 더한 데서 생긴 것으로 본다(Assumption). 문단이 안 나올 때의 Reindex 안내는 그대로 둔다.
   - Space Lua에서 `query[[…]][1]`처럼 질의 결과를 바로 인덱싱하면 블록 전체가 파싱 오류가 된다. 변수에 담은 뒤 인덱싱한다.
   - `memory://main/projects/agent-hub`를 Basic Memory `build_context`에 넘기면 그 노트와 관찰·관계가 돌아온다.
   - 검색 패널이 트리를 밀어낸 상태에서 Esc로 닫으면 트리가 돌아온다. 검색 패널을 연 채로 새로고침하면 검색이 그 칸의 주인이 되어, 닫으면 칸이 비고 Cmd-O로 트리를 다시 연다.
+  - (계획 10, Verified) 왼쪽 칸의 뷰들은 입력칸 하나를 함께 쓴다. 노트 검색어는 닫은 뒤에도 남아 트리와 Cmd-K 페이지 검색을 거르고, 지우면 원래대로 돌아온다(SilverBullet 내장 동작).
 - **Verified (`obsidianmd/obsidian-releases` 통계, 2026-10-14):** Obsidian 커뮤니티 플러그인 다운로드 상위는 Excalidraw 850만, Templater 590만, Dataview 514만, Tasks 441만, Git 329만, Advanced Tables 328만, Calendar 319만이고, 전체 텍스트 검색 Omnisearch는 200만, Homepage 138만, Recent Files 121만이다. 코어 플러그인에는 Outline, Backlinks, Outgoing links, Search, Word count, Random note, Tags view 등이 있다(obsidian.md/help/plugins).
 - **Verified (VS Code Marketplace 공개 API, 2026-10-14):** 테마 확장 설치 수는 GitHub Theme 20,347,397, One Dark Pro 12,829,109, Dracula 11,049,248, Tokyo Night 2,975,536, Catppuccin 1,449,733, Nord 1,293,571이다. One Dark Pro와 Dracula는 어두운 테마만 있다. GitHub 색값은 `@primer/primitives` 10.7.0(MIT)의 `dist/css/functional/themes/{light,dark}.css`에서 가져왔다.
 - **Verified (스파이크):** 숨김 파일은 SilverBullet API로 읽거나 쓸 수 없다(404).
@@ -95,11 +97,14 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (스파이크, `plugs/index/task.ts:108-117`):** 관찰 카테고리 글자(`[question]`)를 누르면 `[]`로 바뀌어 저장되고, Basic Memory는 그 관찰을 카테고리 `note`로 다시 색인한다. `taskStates`가 비어 있으면 다음 상태가 없어서 빈 값이 들어간다. `.sb-task-state`에 `pointer-events: none`을 줘도 막지 못하고, 순환 코드는 내장 플러그 안에 있다. 같은 문제를 다룬 열린 이슈는 없다.
 - **Verified (스파이크):** SilverBullet은 관찰을 작업 객체로 색인하고 카테고리를 `state`에 둔다(`index.tasks()`의 `state`·`page`·`name`).
 - **Verified (스파이크):** `config.set("journal.enabled", false)`로 저널 명령이 사라진다. Quick Note(`Inbox/<날짜>/<시각>`)에는 끄는 설정이 없다.
-- **Assumption (계획 10에서 확인):**
-  - `Library/` 아래 페이지의 `space-lua`·`space-style`도 루트 페이지처럼 적용된다.
-  - SilverBullet이 `index.md`를 만들기 전에 배포가 먼저 두면 그대로 쓴다.
-  - 대시보드 질의에 쓸 API(`index.pages()`·`index.tasks()`·`index.tags()`의 필드, `table.sort`)가 문서대로 동작한다(`docs/Space Lua/Integrated Query.md`).
-  - curl의 `--data-urlencode "password@-"`가 표준입력의 비밀번호를 그대로 보낸다.
+- **Verified (계획 10, 2026-10-15, 로컬):**
+  - `Library/` 아래 페이지의 `space-lua`·`space-style`도 루트 페이지처럼 적용된다. 대시보드, 정보 줄, 테마(`--root-background-color` 어둡게 `#0d1117`, 밝게 `#ffffff`), 글꼴(`400 loaded, 700 loaded`)이 모두 `Library/agent-hub/agent-hub`에서 왔다.
+  - SilverBullet이 `index.md`를 만들기 전에 배포가 먼저 두면 그대로 쓴다. `make local-up`이 SilverBullet보다 먼저 `wrote the dashboard index.md`를 냈고, `index`가 그 대시보드를 보여 줬다.
+  - 대시보드 질의 API(`index.pages()`·`index.tasks()`·`index.tags()`의 필드, `table.sort`)가 문서대로 동작한다. 시드 노트 셋으로 일곱 절이 기대한 개수(폴더 셋, 결정·위험·질문 각 2개, `#sample (3)`)로 나왔다.
+  - curl의 `--data-urlencode "password@-"`가 표준입력의 비밀번호를 그대로 보낸다. 실제 `SB_USER`로 `make local-verify`의 로그인이 통과했다.
+  - 스파이크 때 쓴 origin(`localhost:3000`)에는 브라우저 캐시(`CONFIG.md` 등)가 남아, 첫 화면이 예전 스크립트로 그려져 `attempt to call a nil value (field 'dashboard')`가 났다. 새로고침한 탭과 새 origin(`sb.localhost:3000`)에서는 오류가 없었다. VM은 새 origin이므로 해당하지 않는다.
+  - 2.12.1의 service worker 뒤에서는 페이지의 `fetch("/.fs/…")`가 파일을 읽고 쓰지 못한다(PUT은 405 `allow: GET,HEAD`, GET은 앱 HTML). 확인용 쓰기·읽기는 `client.space.writePage`·`readPage`로 한다.
+  - Basic Memory `search_notes`의 기본 검색은 글자가 일치하지 않는 노트도 점수를 매겨 돌려준다. 무시 목록 확인은 `search_type: "text"`(0건)와 `list_directory`(노트만 있음)로 한다.
 - **Assumption (계획 11에서 확인):** Serve 뒤에서 쿠키에 `Secure`가 붙는다(위 소스 근거). `sudo -n -u '#1000'`로 노트 폴더에 쓸 수 있다. SilverBullet 컨테이너는 호스트의 `127.0.0.1:8737`에 닿지 못한다. amd64에서의 메모리. `tailscale serve --bg --https=8443`이 기존 443 설정을 지우지 않는다.
 - **Verified (계획 05 진행 로그 2026-10-13 Step 14, `docs/plans/completed/2026-10-07-05-vm-rollout.md:293`):** 22번이 닫힌 뒤에도 `make vm-bootstrap HOST=agent-hub </dev/null`이 Tailscale SSH로 키 없이 다시 실행되고 Serve를 다시 적용한다. 계획 11은 이 경로로 8443을 더한다.
 - **Verified (tailscale `ipn/serve.go:53-76`, `:125-172`, `cmd/tailscale/cli/serve_v2.go:259-264`):** `tailscale serve status --json`은 `Web`(키 `<호스트>:<포트>`, 값의 `Handlers["/"].Proxy`)과 `AllowFunnel`(키 `<호스트>:<포트>`)을 담은 설정을 출력한다. 계획 11의 `verify`가 포트별 대상과 Funnel을 이 JSON으로 검사한다.
@@ -142,7 +147,7 @@ scripts/sb-fonts.sh              TTF → WOFF2 변환과 업로드 (--local 또�
 scripts/verify-sb.sh             SilverBullet 검사, URL 인자 (§7.5)
 scripts/deploy.sh  restore.sh  lib/common.sh   (§7.3, §8.3) — 계획 10
 scripts/verify-vm.sh  bootstrap-vm.sh  remote/bootstrap.sh   (§7.6, §7.7) — 계획 11
-Makefile                         sb-fonts 추가, local-up·local-verify 변경, SB_USER·SB_PORT export
+Makefile                         sb-fonts 추가, local-up·local-verify 변경, SB_PORT export, SB_USER는 여섯 타깃에만 export (§8.3)
 .env.example                     SB_PORT=3000, 빈 SB_USER= ("main 체크아웃 .env에만 적고 커밋 금지" 주석)
 tests/*.bats, tests/stubs/       §10 (curl·sudo·tailscale 스텁 확장, python3 스텁 추가)
 docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/operations.md  README.md  AGENTS.md
@@ -242,11 +247,14 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 
 `scripts/sb-space.sh`가 로컬(`.local-data/knowledge/basic-memory/`)과 VM(`/srv/basic-memory/knowledge/basic-memory/`)에 같은 규칙으로 쓴다. VM에서는 컨테이너 UID(`sudo -n -u '#1000'`)로 쓴다.
 
+실행 중인 Basic Memory는 재시작 전까지 예전 무시 패턴을 쓰고, 이미 색인한 항목은 재시작 뒤에도 지우지 않는다(§3). 그래서 `.gitignore`가 바뀌는 실행은 두 단계로 나눈다. 먼저 `.gitignore`만 쓰고, 호출자가 Basic Memory를 다시 만든 뒤 다시 실행해서 페이지를 쓴다.
+
 1. 노트 폴더가 없으면 만든다.
 2. `.gitignore`의 기존 내용을 읽는다. 원본과 다르면 표시 파일 `.gitignore.pending`을 먼저 만든 뒤 원본으로 덮어쓴다. 점 파일이라 Basic Memory(기본 무시 패턴 `.*`)와 SilverBullet 모두 보지 않는다.
-3. 관리 라이브러리 페이지를 쓴다.
-4. `index.md`가 없을 때만 쓴다. 있는지 확인하지 못하면 쓰지 않고 실패한다.
-5. 표시 파일이 있으면 표준출력에 `changed`, 없으면 `unchanged`를 쓴다. 표시 파일은 호출자가 Basic Memory를 다시 만든 뒤에만 지우므로, pull이나 재생성이 실패한 실행을 다시 돌려도 `changed`가 나온다.
+3. 표시 파일이 있으면 표준출력에 `changed`를 쓰고 여기서 끝낸다. 관리 페이지와 `index.md`는 쓰지 않는다. 표시 파일은 호출자가 Basic Memory를 다시 만든 뒤에만 지우므로, pull이나 재생성이 실패한 실행을 다시 돌려도 `changed`가 나오고 페이지는 계속 기다린다.
+4. 표시 파일이 없으면 관리 라이브러리 페이지를 쓴다.
+5. `index.md`가 없을 때만 쓴다. 있는지 확인하지 못하면 쓰지 않고 실패한다.
+6. 표준출력에 `unchanged`를 쓴다.
 
 `deploy.sh` 순서:
 
@@ -255,10 +263,18 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 3. VM `.env`를 쓴다. 내용은 `vm_env`의 기존 세 줄에 `SB_PORT`·`SB_USER`를 더한 것이다. `umask`는 새 파일에만 적용되므로, 이미 있는 `.env`(권한 664)를 위해 `chmod 600`을 내용보다 먼저 한다.
 4. `sb-space.sh`(VM)를 실행한다.
 5. `pull -q`
-6. `sb-space.sh`가 `changed`를 냈으면 `up -d --wait --force-recreate basic-memory`로 Basic Memory만 먼저 다시 만들고, 성공하면 표시 파일을 지운다. VM 콜드 스타트는 161~192초다. 첫 반영 때와 무시 목록을 바꿀 때(그 배포를 다시 시도할 때 포함)만 일어난다.
+6. `sb-space.sh`가 `changed`를 냈으면 `up -d --wait --force-recreate basic-memory`로 Basic Memory만 먼저 다시 만들고, 성공하면 표시 파일을 지운 뒤 `sb-space.sh`를 다시 실행해 관리 페이지와 `index.md`를 쓴다. 두 번째 실행이 `unchanged`를 내지 않으면 멈춘다. VM 콜드 스타트는 161~192초다. 첫 반영 때와 무시 목록을 바꿀 때(그 배포를 다시 시도할 때 포함)만 일어난다.
 7. `up -d --wait`로 SilverBullet까지 올린다.
 
-`local-up`도 같은 순서를 로컬에서 따른다(1·3·5 단계 제외).
+`local-up`도 같은 순서를 로컬에서 따른다(2·3·5 단계 제외. 1단계 `SB_USER` 검사는 첫 레시피 줄이 한다). `sb-space.sh --local`이 `changed`를 내면 Basic Memory를 다시 만들고 표시 파일을 지운 뒤 `sb-space.sh --local`을 다시 실행하며, 어느 단계든 실패하거나 두 번째 실행이 `unchanged`가 아니면 SilverBullet을 올리기 전에 멈춘다. macOS의 GNU make 3.81은 `.SHELLFLAGS`를 적용하지 않아 레시피가 `-e` 없이 돌므로, 레시피 줄이 `|| exit 1`과 `&&`로 실패를 직접 전한다.
+
+`restore.sh` 순서(정지·압축 해제·manifest 대조·`compose.yaml`과 VM `.env` 적용 다음):
+
+1. 데이터를 교체한다(기존 데이터는 `.prev-*`). 두 컨테이너는 멈춰 있다.
+2. Basic Memory가 멈춘 동안 `sb-space.sh`(VM)를 실행한다. 멈춘 Basic Memory는 기동할 때 `.gitignore`를 읽으므로 다시 만들 필요가 없다. `changed`가 나오면 표시 파일을 바로 지우고 `sb-space.sh`를 다시 실행해 관리 페이지와 `index.md`를 쓴다. 두 번째 실행이 `unchanged`를 내지 않으면 멈춘다.
+3. `up -d --wait`로 두 컨테이너를 올린다.
+
+2단계가 실패하면 교체 뒤의 다른 실패처럼 이전 데이터·`compose.yaml`·`.env`로 롤백하므로, 반쯤 쓴 공간으로 컨테이너가 뜨지 않는다. 그래서 계획 10 이전의 백업(노트 `.gitignore`와 관리 페이지가 없음)을 복원해도 Basic Memory가 SilverBullet 전용 페이지를 색인하지 않는다(완료 조건 4). 공간 파일이 기동 전에 모두 있으므로 SilverBullet이 `index.md`를 먼저 만드는 경합도 없다.
 
 ### 7.4 `sb-fonts.sh`
 
@@ -293,7 +309,8 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 3. **`SB_USER`(`user:password`)의 흐름:**
    - 사용자가 main 체크아웃의 `.env`에 직접 적는다. 채팅이나 명령 인자로는 다루지 않는다.
    - 문자는 영문자, 숫자, `._~+/=-`만 쓴다(사용자 이름은 `._-`까지). make는 `.env`를 그대로 읽어 `#`을 주석으로, `$`를 변수로 해석하고, docker compose `.env`도 `$`를 해석하기 때문이다. `require_sb_user`가 형식을 검사한다. 비밀번호 예: `openssl rand -base64 24`.
-   - Makefile의 export 목록(`Makefile:13`)에 `SB_USER`·`SB_PORT`를 더한다.
+   - make가 이미 바꾼 값은 형식 검사를 통과할 수 있다(예: `admin:abc#def`는 `admin:abc`로 잘리고, `$s`는 빈 값으로 펼쳐진다). 그래서 `SB_USER`를 받는 여섯 타깃은 값이 아닌 경로 `SB_ENV_FILE`(main 체크아웃 `.env`)도 타깃별로 export하고, `require_sb_user`는 그 파일의 마지막 `SB_USER=` 줄을 그대로 읽어(접두어와 줄 끝 CR만 뗀다) 받은 값과 비교한다. 다르면 두 값을 출력하지 않고 파일 경로와 허용 문자를 알리며 멈춘다. `SB_ENV_FILE`이 없으면(스크립트를 직접 실행할 때) 비교를 건너뛴다. `local-up`은 compose를 부르기 전 첫 레시피 줄에서 `scripts/lib/common.sh`를 읽어 `require_sb_user`를 실행한다.
+   - Makefile의 export 목록(`Makefile:13`)에는 `SB_PORT`만 더한다. `SB_USER`는 compose나 VM에 로그인을 넘기는 여섯 타깃(`local-up`, `local-down`, `local-logs`, `local-verify`, `deploy`, `restore`)에만 타깃별로 export한다(`<타깃들>: export SB_USER := $(SB_USER)`). 전역 export는 모든 레시피 환경에 들어가, `make review`가 실행하는 다른 벤더 CLI(`codex exec`, `claude -p`, `scripts/review.sh:129-141`)도 비밀값을 보게 되기 때문이다. GNU make 3.81(macOS 기본)에서 타깃별 export는 이름을 적은 타깃에만 닿는다(계획 10 사전 점검에서 확인). 레시피 인자로 넘기면 make가 명령을 출력하므로 쓰지 않는다.
    - VM `.env`는 배포·복원 때마다 `vm_env`가 새로 쓰므로(`scripts/lib/common.sh:65-69`, `scripts/deploy.sh:19`, `scripts/restore.sh:142`) 여기에 넣는다. 전송은 지금처럼 ssh 표준입력이다. 파일 권한은 `600`이다(배포는 내용보다 `chmod`를 먼저, 복원은 `umask 077`).
    - 컨테이너 재시작에는 필요 없다(Docker가 저장된 설정으로 다시 띄운다). 그래도 VM `.env`에 남겨 두는 이유는 `backup`의 stop·start, `status`, `logs`가 VM에서 compose 파일을 읽을 때 `${SB_USER:?}`가 값을 요구하기 때문이다.
    - 스크립트는 값을 출력하지 않고, 필요하면 `mask`를 쓴다. 로그인 확인(§7.5)은 비밀번호를 명령 인자가 아니라 curl 표준입력으로 넘긴다.
@@ -334,11 +351,12 @@ bats 테스트를 먼저 쓴다(AGENTS.md). 스텁은 `tests/stubs/`, 기록된 
   - 모든 `ports`가 `127.0.0.1`이다(기존 테스트가 그대로 적용).
   - `start_period` 테스트(`tests/repo.bats:79-97`)는 Basic Memory 서비스로 범위를 좁힌다. 두 번째 서비스의 healthcheck 때문에 실패하지 않게 하는 것이고, Basic Memory에 대한 검증 내용은 그대로 둔다.
   - 부트스트랩에 8443 Serve 매핑이 있고 Funnel이 없다.
-- **`sb-space.sh`:** `.gitignore`는 덮어쓰고, 내용이 같으면 "바뀜"을 알리지 않는다. 관리 페이지는 덮어쓰고 `index.md`는 있으면 건드리지 않는다. `index.md`가 있는지 확인하지 못하면 쓰지 않고 실패한다. VM에서는 컨테이너 UID로 쓴다.
-- **`deploy.sh`:** `.gitignore`가 바뀔 때만 Basic Memory를 다시 만든다. VM `.env`에 `SB_USER`가 들어가고, 이미 있던 `.env`도 권한이 600이 된다. 출력에 `SB_USER` 값이 없다. `SB_USER`가 없으면 VM을 건드리지 않는다.
-- **`restore.sh`:** `SB_USER`가 없으면 확인 질문 전에 멈춘다. 복원한 VM `.env`는 권한 600이고 `SB_USER`를 담는다.
+- **`sb-space.sh`:** `.gitignore`는 덮어쓰고, 내용이 같으면 "바뀜"을 알리지 않는다. "바뀜"인 동안에는 페이지를 쓰지 않는다. 관리 페이지는 덮어쓰고 `index.md`는 있으면 건드리지 않는다. `index.md`가 있는지 확인하지 못하면 쓰지 않고 실패한다. VM에서는 컨테이너 UID로 쓴다.
+- **`deploy.sh`:** `.gitignore`가 바뀔 때만 Basic Memory를 다시 만들고, 관리 페이지는 그 뒤에 쓴다. VM `.env`에 `SB_USER`가 들어가고, 이미 있던 `.env`도 권한이 600이 된다. 출력에 `SB_USER` 값이 없다. `SB_USER`가 없으면 VM을 건드리지 않는다.
+- **`restore.sh`:** `SB_USER`가 없으면 확인 질문 전에 멈춘다. 복원한 VM `.env`는 권한 600이고 `SB_USER`를 담는다. 공간 파일을 정지 뒤·첫 기동 전에 쓰고 표시 파일을 남기지 않으며, 백업에 있던 `index.md`는 그대로 둔다. 공간 파일 쓰기가 실패하면 복원한 데이터로 컨테이너를 올리지 않고 롤백한다.
 - **`sb-fonts.sh`:** 글꼴·`fontTools`가 없으면 아무것도 올리지 않고 멈춘다. 변환 결과를 올바른 경로에 올린다.
-- **`verify-sb.sh`:** 꺼진 서버, 로그인 없이 열린 서버, 거절된 로그인(HTTP 200 + `status: error`), 쿠키 속성 누락, https에서 `Secure` 누락, 셸 405가 아님을 모두 실패로 본다. `--read-only`는 로그인하지 않고 `SB_USER`도 요구하지 않는다. 비밀번호는 명령 인자에 없고, `SB_USER`와 쿠키 값을 출력하지 않는다. make·compose가 바꿀 문자가 든 `SB_USER`는 서버에 접속하기 전에 거부한다.
+- **`verify-sb.sh`:** 꺼진 서버, 로그인 없이 열린 서버, 거절된 로그인(HTTP 200 + `status: error`), 쿠키 속성 누락, https에서 `Secure` 누락, 셸 405가 아님을 모두 실패로 본다. `--read-only`는 로그인하지 않고 `SB_USER`도 요구하지 않는다. 비밀번호는 명령 인자에 없고, `SB_USER`와 쿠키 값을 출력하지 않는다. make·compose가 바꿀 문자가 든 `SB_USER`는 서버에 접속하기 전에 거부한다. `SB_ENV_FILE`의 원래 줄과 다른 값(make가 `#`에서 자르거나 `$`를 펼친 값)도 두 값을 출력하지 않고 거부한다.
+- **`make local-up`:** make가 main 체크아웃 `.env`의 `SB_USER`를 바꿨으면 compose를 부르기 전에 멈추고, 맞는 값이면 끝까지 진행한다(`tests/main_checkout.bats`).
 - **`verify-vm.sh`:** 3000 바인딩, 8443·3000 공인 포트, Serve 포트별 대상과 포트별 Funnel 검사(JSON). `probe`는 로그인하지 않는다.
 - **클라우드 중립 (`tests/cloud_neutral.bats`):** 새 스크립트에도 적용된다.
 - **E2E (수동):** 로컬은 계획 10에서 완료 조건 1·3·4를, VM은 계획 11에서 완료 조건 2·3·4·6을 확인해 진행 로그에 기록한다.
@@ -349,11 +367,11 @@ bats 테스트를 먼저 쓴다(AGENTS.md). 스텁은 `tests/stubs/`, 기록된 
 |---|---|
 | 관찰 카테고리 클릭으로 카테고리 손실 | 런북 경고와 `Cmd+Z`, 업스트림 이슈. 반복되면 자동 되돌리기 Space Lua를 다시 판단 |
 | 훅이 적용되지 않는 페이지(템플릿으로 만든 페이지)의 frontmatter 경합 | 저널을 끄고 Quick Note는 무시 경로(`Inbox/`)에 둔다. 남는 경우는 줄바꿈 하나 수준 |
-| `.gitignore`보다 먼저 색인된 SilverBullet 페이지가 남음 | 배포가 SilverBullet보다 먼저 `.gitignore`를 두고 Basic Memory를 다시 만든다(§7.3) |
-| SilverBullet이 배포보다 먼저 `index.md`를 만듦 | 배포 순서로 막고 계획 10에서 확인(§3 Assumption) |
-| 인증 켠 뒤 이미지 기본 healthcheck 실패 | `/.ping`으로 덮어쓰기(§7.1) |
+| `.gitignore`보다 먼저 색인된 SilverBullet 페이지가 남음 | 배포가 SilverBullet보다 먼저 `.gitignore`만 두고 Basic Memory를 다시 만든 뒤에 관리 페이지와 `index.md`를 쓴다. 복원은 Basic Memory가 멈춘 동안 공간 파일을 모두 쓴 뒤에 기동한다(§7.3) |
+| SilverBullet이 배포보다 먼저 `index.md`를 만듦 | 배포 순서로 막는다(§3, 계획 10에서 확인) |
+| 이미지 기본 healthcheck(`/.instance`)가 인증 예외 목록 밖이라 버전에 따라 401이 될 수 있음 | 목록에 있는 `/.ping`으로 덮어쓰기(§7.1) |
 | 두 번째 비밀값 유출 | `.env`(git 제외)와 VM `.env`(600)에만 둔다. 출력 금지 테스트, `mask`, 비밀번호는 curl 표준입력으로만 |
-| `SB_USER`의 `#`·`$`를 make가 주석·변수로 바꿔 다른 비밀번호가 쓰임 | 허용 문자를 정하고 `require_sb_user`가 검사한다(§8.3). `.env.example`에 적는다 |
+| `SB_USER`의 `#`·`$`를 make가 주석·변수로 바꿔 다른 비밀번호가 쓰임 | 허용 문자를 정하고 `require_sb_user`가 형식을 검사하며, make가 바꾼 값은 `SB_ENV_FILE`의 원래 줄과 비교해 잡는다(§8.3). `.env.example`에 적는다 |
 | `SB_USER`가 없으면 compose 파일을 읽는 모든 명령(`local-down`, `status`, `backup`의 stop·start)이 실패 | 의도한 동작이다(인증 없는 SilverBullet 방지). 오류 메시지가 main 체크아웃 `.env`를 가리키게 하고, 런북과 `.env.example`에 적는다 |
 | 로그인 사용자의 `/.proxy`로 메타데이터 접근 | 셸 끄기와 네트워크 분리. 서비스 계정 제거 권장(§8.6) |
 | 1GB RAM 부족 | SilverBullet 서버는 수 MiB(§3). 계획 11에서 실측하고 ADR 0005에 기록 |
