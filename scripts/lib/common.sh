@@ -128,6 +128,22 @@ remote_compose() {
   remote "cd $BM_REMOTE_APP_DIR && docker compose $*"
 }
 
+# vm_tailscale_logged_in -> exit 0 when Tailscale on the VM is logged in (BackendState Running), 1 when it is not
+# installed or its BackendState is NeedsLogin, NeedsMachineAuth, Stopped or NoState. Dies when the state cannot be
+# read (no SSH, no passwordless sudo, tailscaled down) or is unknown, so the ssh mode's checks never pass on an error.
+vm_tailscale_logged_in() {
+  local out state
+  out="$(remote "if command -v tailscale >/dev/null 2>&1; then sudo -n tailscale status --json; else echo missing; fi")" \
+    || die "could not read the Tailscale state on $BM_VM_HOST: $(access_hint); on the VM 'sudo -n tailscale status --json' must work"
+  [[ "$out" != missing ]] || return 1
+  state="$(jq -r '.BackendState // empty' <<<"$out" 2>/dev/null)" || state=""
+  case "$state" in
+    Running) return 0 ;;
+    NeedsLogin | NeedsMachineAuth | Stopped | NoState) return 1 ;;
+    *) die "unexpected Tailscale state on $BM_VM_HOST: '$state' (expected Running, NeedsLogin, NeedsMachineAuth, Stopped or NoState)" ;;
+  esac
+}
+
 # vm_env -> the .env content for the VM: loopback ports, absolute data paths and the SilverBullet login (shared by
 # deploy and restore; both run require_sb_user first).
 vm_env() {

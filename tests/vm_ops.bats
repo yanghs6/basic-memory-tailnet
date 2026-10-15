@@ -2,13 +2,20 @@
 load helpers
 
 setup() {
-  setup_stubs ssh docker curl sudo tailscale ss free nc uname
+  setup_stubs ssh docker curl sudo tailscale ss free nc uname sshd
   use_vm_env
   export BM_VM_PUBLIC_IP=203.0.113.10
   export VERIFY_ID=test1
   cp -R "$REPO_DIR/tests/fixtures/mcp-sse" "$BATS_TEST_TMPDIR/fixtures"
   export CURL_FIXTURES="$BATS_TEST_TMPDIR/fixtures"
   export CURL_SB_COOKIE="set-cookie: auth_agent-hub=stub-session-token; Path=/; SameSite=Lax; HttpOnly; Secure"
+}
+
+# use_ssh_mode: the ssh access mode over an SSH alias, with the verify tunnel opening at once and Tailscale on the VM
+# logged out.
+use_ssh_mode() {
+  export BM_ACCESS=ssh BM_VM_HOST=agent-hub-iap NC_STUB_OPEN_MATCH=127.0.0.1 TS_STUB_BACKEND_STATE=NeedsLogin
+  unset BM_TAILNET_DOMAIN
 }
 
 # --- deploy ---
@@ -173,6 +180,68 @@ setup() {
   run grep -F '"method":"tools/call"' "$STUB_LOG.requests"
   assert_failure
   run grep -F '/.auth' "$STUB_LOG"
+  assert_failure
+}
+
+@test "ssh mode: probe checks through a verify tunnel on 127.0.0.1 and leaves no tunnel behind" {
+  use_ssh_mode
+  run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_success
+  assert_output --partial "OK: MCP read-only probe passed"
+  assert_output --partial "OK: Tailscale does not expose the VM"
+  assert_output --partial "OK: sshd accepts keys only"
+  assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8443 8737 3000"
+  assert_output --partial "OK: automated VM checks passed (access: ssh)"
+  run grep -Fx 'ssh -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ConnectTimeout=10 -L 127.0.0.1:28737:127.0.0.1:8737 -L 127.0.0.1:23000:127.0.0.1:3000 ubuntu@agent-hub-iap' "$STUB_LOG"
+  assert_success
+  run grep -F 'tailscale serve' "$STUB_LOG"
+  assert_failure
+  run kill -0 "$(cat "$STUB_LOG.tunnel-pids")"
+  assert_failure
+}
+
+@test "ssh mode: verify closes its tunnel even when a check fails" {
+  use_ssh_mode
+  export CURL_STUB_EXIT=7
+  run "$REPO_DIR/scripts/verify-vm.sh"
+  assert_failure
+  assert_output --partial "verify tunnel is open"
+  [[ -s "$STUB_LOG.tunnel-pids" ]] || fail "the verify tunnel never started"
+  run kill -0 "$(cat "$STUB_LOG.tunnel-pids")"
+  assert_failure
+}
+
+@test "ssh mode: verify fails while Tailscale is logged in or unreadable on the VM, sshd takes passwords or the tunnel does not open" {
+  use_ssh_mode
+  TS_STUB_BACKEND_STATE=Running run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "Tailscale is logged in on the VM but BM_ACCESS=ssh"
+
+  # A state it cannot read or does not know never counts as off.
+  TS_STUB_BACKEND_STATE=Starting run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "unexpected Tailscale state on agent-hub-iap: 'Starting'"
+
+  SSH_STUB_FAIL_MATCH="tailscale status" run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "could not read the Tailscale state on agent-hub-iap"
+
+  SSHD_STUB_PASSWORD=yes run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "sshd on the VM accepts passwords"
+
+  # The failed tunnel also leaves the local port closed, or nc could report it open before the stub exits.
+  SSH_STUB_TUNNEL_EXIT=255 NC_STUB_OPEN_MATCH= run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "verify tunnel exited before it opened"
+}
+
+@test "verify rejects a BM_ACCESS it does not know, also in another case, before it contacts the VM" {
+  export BM_ACCESS=SSH
+  run "$REPO_DIR/scripts/verify-vm.sh"
+  assert_failure
+  assert_output --partial "BM_ACCESS must be tailscale or ssh (got 'SSH')"
+  run grep -F 'ssh ' "$STUB_LOG"
   assert_failure
 }
 
