@@ -110,6 +110,12 @@ access_hint() {
   fi
 }
 
+# forward_spec LOCAL_PORT REMOTE_PORT -> an ssh -L argument that binds LOCAL_PORT on 127.0.0.1 only and forwards it to
+# REMOTE_PORT on the VM's loopback. Every -L goes through here, so no tunnel listens beyond this machine.
+forward_spec() {
+  printf '127.0.0.1:%s:127.0.0.1:%s\n' "$1" "$2"
+}
+
 # remote CMD -> run CMD on the VM over SSH: Tailscale SSH, or the ssh access mode's host alias. It checks BM_ACCESS
 # first, so a typo there stops every VM target before it reaches the VM, also the ones that never read the mode.
 remote() {
