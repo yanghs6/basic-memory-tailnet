@@ -18,6 +18,17 @@ readonly SSH_CONNECT_TIMEOUT_SECONDS=10
 # Longer than the compose healthcheck start_period (300s) so `up --wait` can use the whole grace period.
 readonly HEALTH_TIMEOUT_SECONDS=360
 
+# SilverBullet space = the Basic Memory notes folder of project main. The local path is overridable only for tests.
+SB_LOCAL_NOTES_DIR="${SB_LOCAL_NOTES_DIR:-$(dirname "$(dirname "$COMMON_LIB_DIR")")/.local-data/knowledge/basic-memory}"
+readonly SB_LOCAL_NOTES_DIR
+readonly SB_REMOTE_NOTES_DIR="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory"
+# Where the managed library page (silverbullet/agent-hub.md) loads the WOFF2 fonts from.
+readonly SB_FONTS_REL_DIR="Library/agent-hub/fonts"
+# Marker in the notes folder: Basic Memory has not loaded the current .gitignore yet (it reads it only at start).
+# sb-space.sh creates it before changing .gitignore and writes no pages while it exists; callers remove it only after
+# recreating Basic Memory. Basic Memory skips dotfiles (default pattern .*) and SilverBullet cannot read them.
+readonly SB_GITIGNORE_PENDING=".gitignore.pending"
+
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*" >&2; }
 
 step() { log "==> $*"; }
@@ -41,6 +52,34 @@ require_env() {
   done
 }
 
+# Characters that make (it includes .env literally), docker compose .env files and form encoding all keep as they are.
+readonly SB_USER_PATTERN='^[A-Za-z0-9._-]+:[A-Za-z0-9._~+/=-]+$'
+
+# require_sb_user -> dies unless SB_USER is set and looks like <user>:<password>. Never prints the value.
+require_sb_user() {
+  require_sb_user_matches_env_file
+  require_env SB_USER
+  [[ "$SB_USER" =~ $SB_USER_PATTERN ]] \
+    || die "SB_USER must be <user>:<password> made of letters, digits and ._~+/=- (make and docker compose change other characters): fix it in .env in the main checkout"
+}
+
+# require_sb_user_matches_env_file -> when SB_ENV_FILE names an existing file, dies unless SB_USER equals the value of its
+# last SB_USER= line (without a trailing CR). make reads .env as makefile text: # starts a comment and $x expands, so a
+# value it cut short can still match SB_USER_PATTERN. The Make targets that pass SB_USER on also export SB_ENV_FILE (a
+# path only); direct script runs leave it unset and skip this check. Never prints either value.
+require_sb_user_matches_env_file() {
+  local line raw=""
+  [[ -n "${SB_ENV_FILE:-}" && -f "$SB_ENV_FILE" ]] || return 0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    case "$line" in
+      SB_USER=*) raw="${line#SB_USER=}" ;;
+    esac
+  done <"$SB_ENV_FILE" || die "could not read $SB_ENV_FILE: check that you can read it"
+  raw="${raw%$'\r'}"
+  [[ "$raw" == "${SB_USER:-}" ]] \
+    || die "SB_USER in $SB_ENV_FILE holds characters that make changes when it reads .env (#, \$, spaces or quotes), so the scripts got a different value: write it as SB_USER=<user>:<password> with only letters, digits and ._~+/=- in the password"
+}
+
 # mask VALUE -> first 4 characters + ****, or **** for short values. Use before printing secrets or ids.
 mask() {
   local value="$1"
@@ -61,11 +100,43 @@ remote_compose() {
   remote "cd $BM_REMOTE_APP_DIR && docker compose $*"
 }
 
-# vm_env -> the .env content for the VM: loopback port plus absolute data paths (shared by deploy and restore).
+# vm_env -> the .env content for the VM: loopback ports, absolute data paths and the SilverBullet login (shared by
+# deploy and restore; both run require_sb_user first).
 vm_env() {
   printf 'BM_PORT=%s\n' "${BM_PORT:-8737}"
   printf 'BM_KNOWLEDGE_DIR=%s/knowledge\n' "$BM_REMOTE_DATA_ROOT"
   printf 'BM_CONFIG_DIR=%s/config\n' "$BM_REMOTE_DATA_ROOT"
+  printf 'SB_PORT=%s\n' "${SB_PORT:-3000}"
+  printf 'SB_USER=%s\n' "$SB_USER"
+}
+
+# notes_dir_arg [--local] -> the local notes folder for --local; nothing (meaning the VM) without an argument, after
+# checking the VM settings. Any other argument dies with the usage. Use: local_dir="$(notes_dir_arg "$@")" || exit 1
+notes_dir_arg() {
+  case "${1:-}" in
+    "")
+      require_cmd ssh
+      require_env BM_VM_HOST BM_VM_USER
+      ;;
+    --local) printf '%s' "$SB_LOCAL_NOTES_DIR" ;;
+    *) die "usage: $(basename "$0") [--local]" ;;
+  esac
+}
+
+# in_notes_dir LOCAL_DIR CMD -> run the sh command CMD inside the notes folder, creating it first: LOCAL_DIR when set,
+# else the VM folder as the container user, so Basic Memory and SilverBullet can rewrite the files. stdin reaches CMD.
+# CMD must not contain single quotes.
+in_notes_dir() {
+  if [[ -n "$1" ]]; then
+    mkdir -p "$1" && (cd "$1" && sh -c "$2")
+  else
+    remote "sudo -n -u '#$BM_CONTAINER_UID' sh -c 'mkdir -p $SB_REMOTE_NOTES_DIR && cd $SB_REMOTE_NOTES_DIR && $2'"
+  fi
+}
+
+# write_notes_file LOCAL_DIR PATH -> replace PATH (relative to the notes folder, without spaces) with stdin.
+write_notes_file() {
+  in_notes_dir "$1" "mkdir -p $(dirname "$2") && cat > $2"
 }
 
 # manifest_cmd DIR -> a shell command (run it with `remote`) that prints "<sha256>  ./<path>" for every file
