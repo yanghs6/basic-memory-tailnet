@@ -1,5 +1,6 @@
-# Basic Memory MCP server. The same file runs locally (make local-up) and on the VM (make deploy).
-# Defaults are the local values; on the VM, scripts/deploy.sh writes absolute paths into .env.
+# Basic Memory MCP server and the SilverBullet web UI on the same notes folder. The same file runs locally
+# (make local-up) and on the VM (make deploy). Defaults are the local values; on the VM, scripts/deploy.sh writes
+# absolute paths and SB_USER into .env.
 name: basic-memory
 services:
   basic-memory:
@@ -28,4 +29,36 @@ services:
       # marks it healthy within seconds of listening.
       start_period: 300s
       start_interval: 2s
+    networks: [basic-memory]
     restart: unless-stopped
+  silverbullet:
+    # Web UI for the notes. It mounts only the notes folder, never the Basic Memory database or config.
+    image: ghcr.io/silverbulletmd/silverbullet:2.12.1-slim@sha256:7e24c16d31a3f4b4a4832ed64ec585e605a1e275b7c35917d385176f0b40415c
+    container_name: silverbullet-server
+    # Loopback only: Tailscale Serve publishes it inside the tailnet on https port 8443.
+    ports:
+      - "127.0.0.1:${SB_PORT:-3000}:3000"
+    volumes:
+      - "${BM_KNOWLEDGE_DIR:-./.local-data/knowledge}/basic-memory:/data"
+    environment:
+      # Without a login, any web page the browser opens could run shell commands and use the proxy through this port.
+      SB_USER: ${SB_USER:?set SB_USER in the main checkout .env, see .env.example}
+      SB_SHELL_BACKEND: "off"
+      SB_RUNTIME_API: "0"
+    # Basic Memory creates the notes folder and reads the notes .gitignore before SilverBullet writes anything.
+    depends_on:
+      basic-memory:
+        condition: service_healthy
+    healthcheck:
+      # The image checks /.instance, which needs a login once SB_USER is set; /.ping stays open.
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:3000/.ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 2s
+    networks: [silverbullet]
+    restart: unless-stopped
+networks:
+  basic-memory:
+  silverbullet:
