@@ -82,11 +82,14 @@ remote_compose() {
   remote "cd $BM_REMOTE_APP_DIR && docker compose $*"
 }
 
-# vm_env -> the .env content for the VM: loopback port plus absolute data paths (shared by deploy and restore).
+# vm_env -> the .env content for the VM: loopback ports, absolute data paths and the SilverBullet login (shared by
+# deploy and restore; both run require_sb_user first).
 vm_env() {
   printf 'BM_PORT=%s\n' "${BM_PORT:-8737}"
   printf 'BM_KNOWLEDGE_DIR=%s/knowledge\n' "$BM_REMOTE_DATA_ROOT"
   printf 'BM_CONFIG_DIR=%s/config\n' "$BM_REMOTE_DATA_ROOT"
+  printf 'SB_PORT=%s\n' "${SB_PORT:-3000}"
+  printf 'SB_USER=%s\n' "$SB_USER"
 }
 
 # notes_dir_arg [--local] -> the local notes folder for --local; nothing (meaning the VM) without an argument, after

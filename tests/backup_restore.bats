@@ -189,6 +189,7 @@ fix_backup_stamp() {
 
 @test "restore replaces the data, keeps the previous copy and fixes ownership" {
   make_archive "from backup"
+  install -m 644 /dev/null "$BM_REMOTE_APP_DIR/.env"
   restore_with_answer yes
   assert_success
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
@@ -205,6 +206,10 @@ fix_backup_stamp() {
   assert_success
   run bash -c 'ls -d "$0".restore-* "$1"/compose.yaml.prev-* 2>/dev/null' "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_APP_DIR"
   assert_failure
+  run cat "$BM_REMOTE_APP_DIR/.env"
+  assert_line "SB_USER=admin:test-password"
+  run stat -c '%a' "$BM_REMOTE_APP_DIR/.env"
+  assert_output "600"
 }
 
 @test "restore aborts without touching the VM unless the user types yes" {
@@ -212,6 +217,17 @@ fix_backup_stamp() {
   restore_with_answer no
   assert_failure
   assert_output --partial "aborted: you must type 'yes'"
+  run grep -F 'ssh' "$STUB_LOG"
+  assert_failure
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
+}
+
+@test "restore stops before the confirmation without a valid SB_USER, so the VM .env never loses the login" {
+  make_archive "x"
+  unset SB_USER
+  restore_with_answer yes
+  assert_failure
   run grep -F 'ssh' "$STUB_LOG"
   assert_failure
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"

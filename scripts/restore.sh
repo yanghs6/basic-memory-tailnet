@@ -94,10 +94,11 @@ report_no_previous_data() {
 
 # upload_vm_file TARGET PREV: keep a copy of TARGET at PREV, then replace TARGET with stdin. Both writes go to
 # a temp name first and are moved into place only when complete, so a partial copy never replaces a good file
-# or becomes the rollback source; on failure the temp files are removed.
+# or becomes the rollback source; on failure the temp files are removed. Files are written owner-only, because
+# the VM .env holds SB_USER.
 upload_vm_file() {
   local target="$1" prev="$2" tmp="$1.upload-$STAMP"
-  remote "mkdir -p $BM_REMOTE_APP_DIR && { if [ -e $target ]; then cp $target $prev.partial && mv $prev.partial $prev; fi && cat > $tmp && mv $tmp $target; } || { rm -f $tmp $prev.partial; exit 1; }"
+  remote "umask 077 && mkdir -p $BM_REMOTE_APP_DIR && { if [ -e $target ]; then cp $target $prev.partial && mv $prev.partial $prev; fi && cat > $tmp && mv $tmp $target; } || { rm -f $tmp $prev.partial; exit 1; }"
 }
 
 main() {
@@ -108,6 +109,7 @@ main() {
   [[ -f "$archive.manifest" ]] || die "manifest missing: $archive.manifest (restore only archives made by 'make backup')"
   require_cmd ssh
   require_env BM_VM_HOST BM_VM_USER
+  require_sb_user
   verify_checksum "$archive"
   check_archive_entries "$archive"
   confirm "Replace $ROOT, $COMPOSE_FILE and $ENV_FILE on $BM_VM_HOST with $(basename "$archive") and this repo's compose.yaml? Current data moves to $PREV. Type 'yes': "

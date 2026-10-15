@@ -12,20 +12,72 @@ setup() {
 
 # --- deploy ---
 
-@test "deploy uploads compose.yaml and a VM .env, then pulls and waits for healthy" {
+@test "deploy uploads compose.yaml, an owner-only VM .env with SB_USER and the space files, then pulls and waits for healthy" {
+  install -m 644 /dev/null "$BM_REMOTE_APP_DIR/.env"
   run "$REPO_DIR/scripts/deploy.sh"
   assert_success
   assert_output --partial "deployed. Next: make verify"
+  refute_output --partial "test-password"
   run diff "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
   assert_success
   run cat "$BM_REMOTE_APP_DIR/.env"
   assert_line "BM_PORT=8737"
   assert_line "BM_KNOWLEDGE_DIR=$BM_REMOTE_DATA_ROOT/knowledge"
   assert_line "BM_CONFIG_DIR=$BM_REMOTE_DATA_ROOT/config"
+  assert_line "SB_PORT=3000"
+  assert_line "SB_USER=admin:test-password"
+  run stat -c '%a' "$BM_REMOTE_APP_DIR/.env"
+  assert_output "600"
+  run diff "$REPO_DIR/silverbullet/notes.gitignore" "$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/.gitignore"
+  assert_success
+  run diff "$REPO_DIR/silverbullet/agent-hub.md" "$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/Library/agent-hub/agent-hub.md"
+  assert_success
   run grep -F 'docker compose pull -q' "$STUB_LOG"
   assert_success
   run grep -F 'docker compose up -d --wait --wait-timeout 360' "$STUB_LOG"
   assert_success
+}
+
+@test "deploy recreates Basic Memory before starting SilverBullet only when the notes .gitignore changed, and writes the pages after the recreate" {
+  run "$REPO_DIR/scripts/deploy.sh"
+  assert_success
+  run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
+  assert_output "1"
+  run awk '/^docker compose .*--force-recreate basic-memory$/ { r = NR } /^docker compose up -d --wait --wait-timeout 360$/ { u = NR } END { exit !(r && u && r < u) }' "$STUB_LOG"
+  assert_success
+  # The first write of the library page comes after the recreate, so the old Basic Memory never indexes it.
+  run awk '/^docker compose .*--force-recreate basic-memory$/ { r = NR } /^sudo .*Library\/agent-hub\/agent-hub\.md/ && !p { p = NR } END { exit !(r && p && r < p) }' "$STUB_LOG"
+  assert_success
+  run "$REPO_DIR/scripts/deploy.sh"
+  assert_success
+  run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
+  assert_output "1"
+}
+
+@test "deploy still recreates Basic Memory on the retry after the image pull failed behind a new notes .gitignore" {
+  local page="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/Library/agent-hub/agent-hub.md"
+  export DOCKER_STUB_FAIL_MATCH="pull -q"
+  run "$REPO_DIR/scripts/deploy.sh"
+  assert_failure
+  run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
+  assert_output "0"
+  [[ ! -e "$page" ]] || fail "the pages must wait until Basic Memory was recreated"
+  unset DOCKER_STUB_FAIL_MATCH
+  run "$REPO_DIR/scripts/deploy.sh"
+  assert_success
+  run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
+  assert_output "1"
+  [[ ! -e "$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/.gitignore.pending" ]] \
+    || fail "the marker must be removed once Basic Memory was recreated"
+  [[ -e "$page" ]] || fail "the retry must write the pages after the recreate"
+}
+
+@test "deploy leaves the VM untouched without a valid SB_USER" {
+  unset SB_USER
+  run "$REPO_DIR/scripts/deploy.sh"
+  assert_failure
+  run grep -c '^ssh ' "$STUB_LOG"
+  assert_output "0"
 }
 
 @test "deploy reports an unhealthy container" {
