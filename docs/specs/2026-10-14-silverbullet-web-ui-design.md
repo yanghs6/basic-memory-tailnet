@@ -74,7 +74,8 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (스파이크):** 인증이 없으면 다른 origin의 `text/plain` POST로 `/.shell`이 명령을 실행하고(`{"stdout":"shell-probe\n"}`), `/.proxy/<host>`가 요청을 대신 보낸다. `/.fs`는 CORS 허용 헤더가 없어 다른 사이트가 읽거나 PUT할 수 없다(preflight 405).
 - **Verified (스파이크, `server/src/shell.rs:1-23`):** `SB_SHELL_BACKEND`가 `local`이 아니면 셸이 꺼지고 `/.shell`이 405 `Shell commands are disabled`를 낸다(로그인 상태 포함).
 - **Verified (스파이크, `server/src/handlers/auth.rs:122`):** `SB_USER`를 주면 로그인 전 `/.fs`·`/.shell`·`/.proxy`가 401이다. 세션 쿠키는 `SameSite=Lax; HttpOnly`다. 세션은 공간 루트의 `.silverbullet.browser-sessions.json`에 저장된다(`server/src/auth/browser_sessions.rs:10`).
-- **Verified (`server/src/router.rs:349-353`, `:614-616`):** 인증 없이 열리는 경로는 `/.ping`, `/.logout`, `/.auth*`, `robots.txt`, `sitemap.xml`과 클라이언트 번들뿐이다. 그 밖의 경로(`/.instance` 포함)는 로그인 전 401이므로 이미지 기본 healthcheck는 인증을 켜면 실패한다.
+- **Verified (`server/src/router.rs:349-353`, `:614-616`):** 인증 없이 열리는 경로 목록은 `/.ping`, `/.logout`, `/.auth*`, `robots.txt`, `sitemap.xml`과 클라이언트 번들이다. healthcheck는 이 목록에 있는 `/.ping`을 쓴다.
+- **Verified (계획 10, 2026-10-15, 로컬 2.12.1-slim, `curl`):** 로그인 전 `/.fs/index.md`는 401이지만, 목록에 없는 `/.instance`는 200과 `{"instance":"<uuid>","version":"2.12.1-…"}`를 돌려준다. 이미지 기본 healthcheck는 지금 버전에서는 인증을 켜도 통과하지만, 목록 밖 경로에 기대지 않으려고 `/.ping`으로 덮어쓴다.
 - **Verified (`server/src/handlers/auth.rs:81-137`, `:163-212`):** `POST /.auth`는 성공과 실패 모두 HTTP 200 JSON으로 답한다(`{"status":"ok"}` 또는 `{"status":"error"}`). 성공일 때만 `auth_`로 시작하는 세션 쿠키를 붙인다. `GET /.logout`은 세션을 폐기하고 302로 답한다.
 - **Verified (`server/src/auth/cookie.rs:49-57`, `:84-85`, tailscale `ipn/ipnlocal/serve.go:1088-1091`):** 세션 쿠키의 `Secure`는 요청에 `X-Forwarded-Proto: https`가 있을 때만 붙고, Tailscale Serve가 이 헤더를 붙인다. VM에서의 확인은 계획 11에서 한다.
 - **Verified (`client/navigator/view_defaults.ts`, `client/navigator/builtins.ts:31-41`, `views/space_tree.ts:164-170`, 스파이크):** 트리 뷰 이름은 `std.spaceTree`이고, `config.set("view.defaults", {["std.spaceTree"] = {dock = "lhs", open = true}})`로 처음부터 왼쪽에 연다. 브라우저에 저장된 사용자 선택이 이 값보다 앞선다. 저장된 선택이 없는 새 origin(`localhost:3000`)에서 트리가 왼쪽에 열렸다.
@@ -364,7 +365,7 @@ bats 테스트를 먼저 쓴다(AGENTS.md). 스텁은 `tests/stubs/`, 기록된 
 | 훅이 적용되지 않는 페이지(템플릿으로 만든 페이지)의 frontmatter 경합 | 저널을 끄고 Quick Note는 무시 경로(`Inbox/`)에 둔다. 남는 경우는 줄바꿈 하나 수준 |
 | `.gitignore`보다 먼저 색인된 SilverBullet 페이지가 남음 | 배포가 SilverBullet보다 먼저 `.gitignore`만 두고 Basic Memory를 다시 만든 뒤에 관리 페이지와 `index.md`를 쓴다. 복원은 Basic Memory가 멈춘 동안 공간 파일을 모두 쓴 뒤에 기동한다(§7.3) |
 | SilverBullet이 배포보다 먼저 `index.md`를 만듦 | 배포 순서로 막고 계획 10에서 확인(§3 Assumption) |
-| 인증 켠 뒤 이미지 기본 healthcheck 실패 | `/.ping`으로 덮어쓰기(§7.1) |
+| 이미지 기본 healthcheck(`/.instance`)가 인증 예외 목록 밖이라 버전에 따라 401이 될 수 있음 | 목록에 있는 `/.ping`으로 덮어쓰기(§7.1) |
 | 두 번째 비밀값 유출 | `.env`(git 제외)와 VM `.env`(600)에만 둔다. 출력 금지 테스트, `mask`, 비밀번호는 curl 표준입력으로만 |
 | `SB_USER`의 `#`·`$`를 make가 주석·변수로 바꿔 다른 비밀번호가 쓰임 | 허용 문자를 정하고 `require_sb_user`가 형식을 검사하며, make가 바꾼 값은 `SB_ENV_FILE`의 원래 줄과 비교해 잡는다(§8.3). `.env.example`에 적는다 |
 | `SB_USER`가 없으면 compose 파일을 읽는 모든 명령(`local-down`, `status`, `backup`의 stop·start)이 실패 | 의도한 동작이다(인증 없는 SilverBullet 방지). 오류 메시지가 main 체크아웃 `.env`를 가리키게 하고, 런북과 `.env.example`에 적는다 |

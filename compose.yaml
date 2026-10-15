@@ -50,7 +50,7 @@ services:
       basic-memory:
         condition: service_healthy
     healthcheck:
-      # The image checks /.instance, which needs a login once SB_USER is set; /.ping stays open.
+      # /.ping is on SilverBullet's list of paths open without a login; the image default /.instance is not on it.
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:3000/.ping"]
       interval: 30s
       timeout: 5s
