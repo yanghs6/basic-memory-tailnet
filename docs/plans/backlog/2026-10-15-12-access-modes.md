@@ -15,8 +15,15 @@
 **Spec:** `docs/specs/2026-10-15-access-modes-design.md` (특히 §2, §6, §8, §11)
 
 **Sequence:** 계획 12. 다음을 모두 만족한 뒤 시작한다.
+- 이 계획과 스펙(`work/access-modes`의 문서 PR)이 `main`에 병합됐다. 시작 절의 `git mv`가 `main`의 계획 파일을 옮긴다.
 - 계획 10과 계획 11이 `main`에 병합됐다(`docs/plans/completed/`에 두 계획 파일이 있다).
 - 이 계획의 코드 조각은 계획 10·11이 쓴 `verify-vm.sh`·`deploy.sh`·`tests/stubs/curl`·`tests/helpers.bash`를 전제로 한다. 시작 절의 확인이 다르게 나오면 그 Step을 실제 코드에 맞춰 고치고 Progress log에 적는다.
+
+**Execution:** 사용자 결정(2026-10-15)에 따라 subagent-driven으로 실행하고, 쓰는 파일이 겹치지 않는 태스크는 각자의 worktree에서 병렬로 실행한다. 병렬 브랜치는 `plan/12-access-modes`에 `git merge`로 합치고, 합친 뒤 `make check`를 돌린다.
+1. Task 1 ∥ Task 6 ∥ Task 7. Task 7은 스킬만 하고, `AGENTS.md`는 사용자 승인 뒤에 한다. Task 6·7은 스크립트 출력 문구를 이 계획 본문에서 가져오므로 코드 태스크를 기다리지 않는다.
+2. Task 2 ∥ Task 3. 둘 다 Task 1의 `access_mode`만 쓰고, 겹치는 파일은 `Makefile`의 서로 다른 줄뿐이다.
+3. Task 4. Task 2의 `forward_spec`와 ssh·nc 스텁 동작을 쓴다.
+4. Task 5. Task 4의 `use_ssh_mode`와 `vm_tailscale_logged_in`을 쓴다.
 
 ## Global Constraints
 
@@ -765,18 +772,26 @@ use_ssh_mode() {
   export CURL_STUB_EXIT=7
   run "$REPO_DIR/scripts/verify-vm.sh"
   assert_failure
+  assert_output --partial "verify tunnel is open"
+  [[ -s "$STUB_LOG.tunnel-pids" ]] || fail "the verify tunnel never started"
   run kill -0 "$(cat "$STUB_LOG.tunnel-pids")"
   assert_failure
 }
 
 @test "ssh mode: verify fails while Tailscale is logged in on the VM, sshd takes passwords or the tunnel does not open" {
   use_ssh_mode
-  local case
+  TS_STUB_STATUS_EXIT=0 run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "Tailscale is logged in on the VM but BM_ACCESS=ssh"
+
+  SSHD_STUB_PASSWORD=yes run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "sshd on the VM accepts passwords"
+
   # The failed tunnel also leaves the local port closed, or nc could report it open before the stub exits.
-  for case in "TS_STUB_STATUS_EXIT=0" "SSHD_STUB_PASSWORD=yes" "SSH_STUB_TUNNEL_EXIT=255 NC_STUB_OPEN_MATCH="; do
-    run env $case "$REPO_DIR/scripts/verify-vm.sh" --read-only
-    [[ "$status" -ne 0 ]] || fail "expected a failure with $case; got: $output"
-  done
+  SSH_STUB_TUNNEL_EXIT=255 NC_STUB_OPEN_MATCH= run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "verify tunnel exited before it opened"
 }
 
 @test "verify rejects a BM_ACCESS it does not know, also in another case, before it contacts the VM" {
@@ -792,7 +807,7 @@ use_ssh_mode() {
 - [ ] **Step 2: 실패 확인**
 
 Run: `make test`
-Expected: 새 네 테스트가 실패한다(sshd 스텁 없음, `ssh` 모드 분기 없음, `BM_ACCESS` 검사 없음). 기존 테스트는 PASS.
+Expected: 새 네 테스트가 실패한다(sshd 스텁 없음, `ssh` 모드 분기 없음, `BM_ACCESS` 검사 없음). 지금 코드는 `use_ssh_mode`가 지운 `BM_TAILNET_DOMAIN` 때문에도 실패하므로, 둘째·셋째 테스트는 종료 코드가 아니라 출력 문구로 실패해야 한다. 기존 테스트는 PASS.
 
 - [ ] **Step 3: `tests/stubs/sshd` (새 파일, `chmod +x`)**
 
@@ -1080,7 +1095,7 @@ Run: `make check`
 Expected: exit 0. 새 테스트와 기존 `status`·`deploy`·`restore` 테스트가 ok다.
 
 Run: `grep -rn 'over Tailscale SSH' scripts`
-Expected: `scripts/lib/common.sh`의 `access_hint` 한 줄만 나온다.
+Expected: 두 줄만 나온다. `scripts/lib/common.sh`의 `access_hint`와 `scripts/bootstrap-vm.sh`의 `print_next_steps`(`tailscale` 모드에서만 출력하는 `# must succeed over Tailscale SSH`)다.
 
 - [ ] **Step 6: 커밋과 push**
 
