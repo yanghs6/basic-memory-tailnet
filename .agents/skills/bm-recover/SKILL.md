@@ -21,11 +21,12 @@ Copy this into your reply and tick each item:
 
 - [ ] 1. Stopped (start it and stop here) or gone
 - [ ] 2. Newest backup in the main checkout, with `.sha256` and `.manifest`
-- [ ] 3. Ask first: new VM created, old Tailscale machine removed
-- [ ] 4. Ask first: host keys cleared, VM bootstrapped
-- [ ] 5. Ask first: Tailscale SSH works, then port 22 rule deleted
+- [ ] 3. Ask first: new VM created (tailscale mode: old Tailscale machine removed; ssh mode: the tunnel rule exists)
+- [ ] 4. Ask first: host keys cleared, VM bootstrapped (ssh mode: the alias's `HostName` points at the new instance)
+- [ ] 5. Ask first (tailscale mode): Tailscale SSH works, then port 22 rule deleted. In ssh mode skip it.
 - [ ] 6. Ask first: image checked, deployed, restored
 - [ ] 7. Status and probe pass, audit and incident log recorded
+- [ ] 8. ssh mode: `make verify` prints `OK: Tailscale does not expose the VM` and `OK: sshd accepts keys only`, and the only rule from outside the VPC is the tunnel rule
 
 ## Steps
 
@@ -51,4 +52,4 @@ Copy this into your reply and tick each item:
    - Backups skip the model cache (`config/fastembed_cache/`); Basic Memory downloads it again on first use after the restore, so the first search can be slow.
 7. Run `make status` and `make probe`. The firewall was created again, so ask the user to redo the "Exposure audit" in `docs/runbooks/operations.md` and add a row to its "점검 기록" table. Add a row to "Incident log" in the same file (date, cause, backup used, data loss window) and commit it through the `git-workflow` skill.
 
-If the Serve configuration is wrong afterwards, do not edit it by hand; ask the user first. When "Funnel is on for this node" appears, the user turns Funnel off (removes the `funnel` attribute in the Tailscale policy, see "Exposure audit" in `docs/runbooks/operations.md`) before anything else. Then the user runs `make vm-bootstrap HOST=agent-hub` in their own terminal, because it prompts for the auth key. Verified in plan 05 (2026-10-13): once the public port 22 is closed, `HOST=agent-hub` works over Tailscale SSH; while the VM is still on the tailnet, leave the key prompt empty. `make status` prints a different hint, `make vm-bootstrap HOST=<public-ip>` (scripts/status.sh), which needs the port 22 rule again; prefer `HOST=agent-hub` and say why. Deleting `/srv/basic-memory.prev-*` is for the human only.
+In tailscale mode, if the Serve configuration is wrong afterwards, do not edit it by hand; ask the user first. When "Funnel is on for this node" appears, the user turns Funnel off (removes the `funnel` attribute in the Tailscale policy, see "Exposure audit" in `docs/runbooks/operations.md`) before anything else. Then the user runs `make vm-bootstrap HOST=agent-hub` in their own terminal, because it prompts for the auth key. Verified in plan 05 (2026-10-13): once the public port 22 is closed, `HOST=agent-hub` works over Tailscale SSH; while the VM is still on the tailnet, leave the key prompt empty. `make status` prints a different hint, `make vm-bootstrap HOST=<public-ip>` (scripts/status.sh), which needs the port 22 rule again; prefer `HOST=agent-hub` and say why. Deleting `/srv/basic-memory.prev-*` is for the human only.

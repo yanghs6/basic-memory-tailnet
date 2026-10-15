@@ -22,10 +22,10 @@ Work top-down and stop at the first layer that fails. Look up every error messag
 
 1. Path to the VM.
    - tailscale mode: `tailscale status | grep agent-hub` on this machine. Missing or offline means the VM is stopped, deleted or logged out: ask the user to check the instance state with the command in "정지된 VM" in docs/runbooks/operations.md. When this machine itself shows `offline` with a coordination server warning, the network blocks Tailscale: run `make access-check` and report it.
-   - ssh mode: `make access-check` and `ssh ubuntu@agent-hub-iap true` (the alias is `BM_VM_HOST`). A failure points to the alias, its login or the firewall rule for the tunnel range: docs/runbooks/gcp-vm.md, section 8.
+   - ssh mode: `make access-check` and `ssh ubuntu@agent-hub-iap true` (the alias is `BM_VM_HOST`). A failure points to the alias, its login or the firewall rule for the tunnel range: docs/runbooks/gcp-vm.md, section 8. A stopped VM looks like a tunnel or IAP error here, so also ask the user to check the instance state with the command in "정지된 VM" in docs/runbooks/operations.md.
    - `TERMINATED` (stopped): the user starts it and updates `BM_VM_PUBLIC_IP` (same section). Do not rebuild.
    - Deleted or unusable: use `bm-recover`.
-2. SSH: `ssh ubuntu@agent-hub true`. Failing while the tailnet is fine: check the Tailscale policy `ssh` rule for `tag:agent-hub` (docs/runbooks/accounts.md).
+2. SSH (tailscale mode only; in ssh mode Layer 1 already ran the SSH check against the alias): `ssh ubuntu@agent-hub true`. Failing while the tailnet is fine: check the Tailscale policy `ssh` rule for `tag:agent-hub` (docs/runbooks/accounts.md).
 3. Container: `make status`. Not `(healthy)`: run `make logs` and quote the first error.
 4. Memory: `make status` prints the memory and swap use.
 5. Serve: `make status` ends with `tailscale serve status`; it must show `proxy http://127.0.0.1:8737` (`BM_PORT`).
