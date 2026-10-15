@@ -1,9 +1,9 @@
 # VM 접속 방식 선택 (Tailscale 또는 SSH 터널) — 설계
 
 - 상태: 초안 (2026-10-15). [GCP 설계](2026-10-12-basic-memory-gcp-tailscale-design.md)의 "tailnet 안에서만 접근" 전제를 "VM마다 접속 방식 하나"로 넓히고, [웹 UI 설계](2026-10-14-silverbullet-web-ui-design.md)의 노출 방식을 그 위에 맞춘다. 모든 계획은 [GitHub PR 워크플로](2026-10-13-github-pr-workflow-design.md)와 [git·리뷰 정책](2026-10-07-git-review-policy-design.md)을 따른다.
-- 구현 계획 (대기는 `docs/plans/backlog/`):
-  1. `2026-10-15-12-access-modes.md`: `BM_ACCESS` 설정, `make access-check`·`make tunnel`, 모드별 부트스트랩·`status`·`verify`, 런북·ADR 0006. VM에서는 아무것도 실행하지 않고 스텁으로 검증한다.
-  2. `2026-10-15-13-access-mode-migration.md`: 지금 VM(`agent-hub-01`)을 `ssh` 모드로 옮기고 사무실·집 네트워크에서 확인한다(사용자와 함께, 단계마다 OK).
+- 구현 계획: `docs/plans/backlog/2026-10-15-12-access-modes.md` 하나에 배포까지 담는다.
+  - Task 1~7: `BM_ACCESS` 설정, `make access-check`·`make tunnel`, 모드별 부트스트랩·`status`·`verify`, 런북·ADR 0006. VM에서는 아무것도 실행하지 않고 스텁으로 검증한다. 코드 PR로 병합한다.
+  - Task 8: 코드 PR이 병합된 뒤 지금 VM(`agent-hub-01`)을 `ssh` 모드로 옮기고 사무실·집 네트워크에서 확인한다(사용자와 함께, 단계마다 OK). 결과는 결과 PR로 남긴다(계획 05의 결과 PR #2와 같은 방식).
 - 순서: 계획 11(웹 UI VM 배포)이 병합된 뒤 계획 12를 시작한다. 계획 12의 코드는 계획 10·11이 바꾼 `verify-vm.sh`·`deploy.sh`·부트스트랩 위에 얹는다.
 - 출처: 2026-10-14~15 사용자와의 브레인스토밍, 같은 기간의 네트워크 측정(§3), IAP 공식 문서, 저장소 코드(`945fd57`).
 
@@ -20,7 +20,7 @@
 2. `BM_ACCESS`가 없거나 `tailscale`이면 모든 Make 타깃의 동작이 계획 11 병합 시점과 같고, 기존 `vm_ops.bats`·`bootstrap.bats` 테스트가 고치지 않고 통과한다. 바뀌는 것은 원격 접속 실패 안내 문구뿐이다.
 3. `make access-check`가 현재 네트워크에서 Tailscale 조정 서버와 터널 엔드포인트에 닿는지, `ssh` 모드면 SSH 별칭이 되는지 보고하고 추천을 출력한다.
 4. `ssh` 모드에서 `make verify`가 임시 터널로 MCP 왕복과 웹 UI 검사를 통과하고, 바인딩·sshd 설정·Tailscale 꺼짐·공인 포트 차단을 검사한다.
-5. 계획 13에서 지금 VM을 `ssh` 모드로 옮긴 뒤, 사무실과 집 네트워크 각각에서 `make tunnel`을 띄우고 Claude Code와 Codex가 `list_memory_projects`를 호출한다. GCP 방화벽에서 VPC 밖 소스를 허용하는 규칙은 IAP 대역의 22번 하나뿐이다.
+5. 계획 12 Task 8에서 지금 VM을 `ssh` 모드로 옮긴 뒤, 사무실과 집 네트워크 각각에서 `make tunnel`을 띄우고 Claude Code와 Codex가 `list_memory_projects`를 호출한다. GCP 방화벽에서 VPC 밖 소스를 허용하는 규칙은 IAP 대역의 22번 하나뿐이다.
 
 **범위 밖**
 
@@ -41,7 +41,7 @@
 | 로컬 포트 | `make tunnel`은 18737(MCP)·13000(웹 UI), `verify`의 임시 터널은 28737·23000 | 로컬 컨테이너(8737·3000, `bm-local`)와 서로 겹치지 않는다 |
 | MCP 이름 | 클라이언트마다 `basic-memory` 하나. URL만 모드에 따라 다르다 | VM마다 모드가 하나이므로 이름도 하나다 |
 | Windows | WSL2에서 Make 타깃, PowerShell에서 터널 명령 한 줄. 미검증(Assumption) | 스크립트를 두 벌로 만들지 않는다. 이 저장소의 사람이 Windows 기기로 확인하지 못했다 |
-| 지금 VM | 계획 13에서 `ssh` 모드로 옮기고 VM의 Tailscale은 로그아웃한다 | 사무실에서 쓰는 것이 이번 작업의 출발점이다. 모드 하나 원칙대로 tailnet 경로를 닫는다 |
+| 지금 VM | 계획 12 Task 8에서 `ssh` 모드로 옮기고 VM의 Tailscale은 로그아웃한다 | 사무실에서 쓰는 것이 이번 작업의 출발점이다. 모드 하나 원칙대로 tailnet 경로를 닫는다 |
 | 이전 자동화 | 하지 않는다. 런북 명령으로 한 번 한다 | 부트스트랩이 Tailscale을 자동으로 끄면, Tailscale SSH로 실행하던 중에 연결이 끊긴다 |
 | `ssh` 모드의 sshd | `verify`가 `sshd -T`로 암호 로그인과 키보드 대화형 인증이 꺼져 있는지 본다 | `ssh` 모드에서는 sshd가 정문이다 |
 
@@ -74,7 +74,7 @@ IAP TCP 포워딩 (공식 문서, 2026-10-15 조회):
 - **Verified:** `Makefile:13`은 `.env`의 변수 중 이름을 적은 것만 스크립트로 내보낸다. 새 변수는 여기에 더해야 한다.
 - **Verified:** `tests/stubs/ssh`는 마지막 인자를 원격 명령으로 보고 로컬에서 실행한다. `-N` 터널은 다루지 않는다.
 
-**Assumption (계획 13에서 확인):**
+**Assumption (계획 12 Task 8에서 확인):**
 
 - IAP 터널에 `iap.googleapis.com`을 켜야 하는지. 문서에는 언급이 없다.
 - `ServerAliveInterval` 신호가 IAP의 "활동"으로 인정돼 한 시간 무활동 끊김을 막는지.
@@ -260,8 +260,8 @@ AGENTS.md                    사용자 승인 후 (§12)
 1. **불변식 유지:** 공인 인터넷 인그레스 0, 컨테이너 `127.0.0.1` 바인딩, Funnel 금지는 그대로다. `ssh` 모드는 IAP 대역의 22번 하나만 더한다.
 2. **로컬 바인딩:** 모든 `-L`은 `forward_spec`을 거쳐 로컬 `127.0.0.1`에만 바인딩한다. 같은 네트워크의 다른 기기는 터널 포트에 닿지 못한다.
 3. **sshd:** `ssh` 모드의 정문이다. `verify`가 암호·키보드 대화형 인증이 꺼져 있는지 매번 본다. 키는 메타데이터 `ssh-keys`로만 넣고, `gcloud compute ssh`처럼 키를 자동으로 메타데이터에 올리는 명령은 런북에서 쓰지 않는다.
-4. **IAM:** 터널을 쓰는 사람은 프로젝트에서 `roles/iap.tunnelResourceAccessor`가 있어야 한다. 프로젝트 소유자는 이미 가진다. 다른 사람에게 줄 때의 최소 권한은 계획 13 뒤 런북에 적는다(**Open question**).
-5. **두 경로 겹침:** 이전하는 동안 IAP 규칙을 더한 시점부터 VM의 Tailscale을 로그아웃할 때까지 두 경로가 함께 열린다. 계획 13은 이 구간을 한 세션 안에서 끝내고 Exposure audit을 다시 한다.
+4. **IAM:** 터널을 쓰는 사람은 프로젝트에서 `roles/iap.tunnelResourceAccessor`가 있어야 한다. 프로젝트 소유자는 이미 가진다. 다른 사람에게 줄 때의 최소 권한은 계획 12 Task 8 뒤 런북에 적는다(**Open question**).
+5. **두 경로 겹침:** 이전하는 동안 IAP 규칙을 더한 시점부터 VM의 Tailscale을 로그아웃할 때까지 두 경로가 함께 열린다. 계획 12 Task 8은 이 구간을 한 세션 안에서 끝내고 Exposure audit을 다시 한다.
 6. **출력:** 스크립트와 기록에 공인 IP, tailnet 이름, 프로젝트 id를 쓰지 않는다. `access-check`는 URL과 결과만 출력한다.
 
 ## 10. 운영 흐름 (런북)
@@ -298,7 +298,7 @@ AGENTS.md                    사용자 승인 후 (§12)
 
 ### 10.3 접속 방식 바꾸기 (`tailscale` → `ssh`)
 
-operations 런북에 "접속 방식 바꾸기 (Access mode change)" 절로 둔다. 스크립트 메시지는 영어 이름 `Access mode change`로 이 절을 가리킨다. 계획 13이 이 순서를 지금 VM에 적용한다. VM·클라우드를 바꾸는 단계는 OK를 받는다.
+operations 런북에 "접속 방식 바꾸기 (Access mode change)" 절로 둔다. 스크립트 메시지는 영어 이름 `Access mode change`로 이 절을 가리킨다. 계획 12 Task 8이 이 순서를 지금 VM에 적용한다. VM·클라우드를 바꾸는 단계는 OK를 받는다.
 
 1. **백업:** `make backup`으로 롤백 지점을 만든다.
 2. **IAP 규칙:** `allow-iap-ssh` 방화벽 규칙을 만든다.
@@ -336,7 +336,7 @@ operations 런북에 "접속 방식 바꾸기 (Access mode change)" 절로 둔�
 | 대표 성공 | `ssh` 모드 `probe`가 임시 터널을 거쳐 통과하고 끝난 뒤 터널 프로세스가 남지 않는다. `access-check`가 reachable과 timeout을 구분하고 추천을 낸다. `tunnel`이 출력한 명령으로 ssh를 부른다 |
 | 조용한 실패 | 잘못된 `BM_ACCESS` 값은 모든 VM 타깃에서 실패한다. `ssh` 모드에서 VM의 Tailscale이 로그인 상태면 `verify`가 실패한다. sshd 암호 로그인이 켜져 있으면 `verify`가 실패한다. 임시 터널이 열리지 않으면 `verify`가 실패한다. 터널 포트가 이미 쓰이면 `tunnel`이 실패한다. `BM_ACCESS`를 정했는데 이 네트워크에서 그 모드가 안 되면 `access-check`가 1로 끝난다 |
 | 호환 | `BM_ACCESS`가 없을 때 기존 `vm_ops.bats`·`bootstrap.bats` 테스트가 고치지 않고 통과한다 |
-| 수동 (계획 13) | 사무실·집에서 `access-check`, `make tunnel`, 두 클라이언트의 도구 호출, 웹 UI 로그인. 터널을 한 시간 넘게 쉬게 둔 뒤 도구 호출. §3의 Assumption 확인 |
+| 수동 (계획 12 Task 8) | 사무실·집에서 `access-check`, `make tunnel`, 두 클라이언트의 도구 호출, 웹 UI 로그인. 터널을 한 시간 넘게 쉬게 둔 뒤 도구 호출. §3의 Assumption 확인 |
 
 ## 12. 문서 갱신
 
@@ -357,8 +357,8 @@ operations 런북에 "접속 방식 바꾸기 (Access mode change)" 절로 둔�
 
 | 위험 | 대응 |
 |---|---|
-| IAP 터널이 한 시간 무활동으로 끊김 | `ServerAliveInterval=30`. 끊기면 `make tunnel`이 종료 코드와 함께 끝나므로 다시 띄운다. 계획 13에서 확인하고 런북에 적는다 |
-| `backup`·`restore`가 IAP로 느림 | 노트는 수십 MB 수준이다. 계획 13에서 `make backup` 시간을 재고, 문제면 후속 판단 |
+| IAP 터널이 한 시간 무활동으로 끊김 | `ServerAliveInterval=30`. 끊기면 `make tunnel`이 종료 코드와 함께 끝나므로 다시 띄운다. 계획 12 Task 8에서 확인하고 런북에 적는다 |
+| `backup`·`restore`가 IAP로 느림 | 노트는 수십 MB 수준이다. 계획 12 Task 8에서 `make backup` 시간을 재고, 문제면 후속 판단 |
 | 회사망이 `tunnel.cloudproxy.app`도 막음 | `access-check`가 보여 준다. 둘 다 막힌 네트워크에서는 쓸 수 없다고 안내한다 |
 | `gcloud` 로그인 만료 | `ProxyCommand`가 실패하고 ssh가 255로 끝난다. `access_hint`가 런북의 IAP 절을 가리킨다 |
 | 계획 10·11과 충돌 | 계획 12는 계획 11 병합 뒤 시작하고, 시작할 때 고칠 파일의 현재 모양을 다시 읽는다 |
@@ -366,8 +366,8 @@ operations 런북에 "접속 방식 바꾸기 (Access mode change)" 절로 둔�
 
 ## 14. Open questions
 
-1. IAP 터널에 `iap.googleapis.com`을 켜야 하는가(계획 13 Step에서 시험).
+1. IAP 터널에 `iap.googleapis.com`을 켜야 하는가(계획 12 Task 8에서 시험).
 2. 터널 트래픽이 무료 송신 한도에 포함되는가(이전 다음 달 청구서).
-3. VM에서 Tailscale 패키지를 지울지, 로그아웃만 할지(계획 13, 사용자 결정).
+3. VM에서 Tailscale 패키지를 지울지, 로그아웃만 할지(계획 12 Task 8, 사용자 결정).
 4. 다른 사람에게 줄 최소 IAM 권한(`roles/iap.tunnelResourceAccessor` 외에 `gcloud`가 인스턴스를 찾는 데 필요한 권한).
 5. Windows 동작(기기가 생기면 확인).

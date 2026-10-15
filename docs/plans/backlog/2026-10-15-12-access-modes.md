@@ -1,29 +1,32 @@
 # 12 Access Modes Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Nothing in this plan touches the VM or cloud resources. Task 7 edits `AGENTS.md` only after the user approves the wording. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement Tasks 1-7 task-by-task. Tasks 1-7 touch nothing on the VM or cloud resources, and Task 7 edits `AGENTS.md` only after the user approves the wording. Task 8 changes the VM and cloud resources: run it after the code PR merges, in the main session with the user (superpowers:executing-plans), never in a subagent. Get the user's OK before each step marked "사용자 OK", and let the user run every cloud command and every interactive SSH command in their own terminal. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `.env`의 `BM_ACCESS=tailscale|ssh`로 VM마다 접속 방식 하나를 고르게 하고, `make access-check`·`make tunnel`과 모드별 부트스트랩·`status`·`verify`, 런북·ADR 0006을 더한다. 모두 스텁으로 검증한다.
+**Goal:** `.env`의 `BM_ACCESS=tailscale|ssh`로 VM마다 접속 방식 하나를 고르게 하고, `make access-check`·`make tunnel`과 모드별 부트스트랩·`status`·`verify`, 런북·ADR 0006을 더한다(Task 1~7, 스텁으로 검증, 코드 PR). 코드 PR이 병합되면 지금 VM(`agent-hub-01`)을 `ssh` 모드로 옮기고 사무실과 다른 네트워크에서 Claude Code·Codex·웹 UI가 동작하는 것을 증거와 함께 확인한다(Task 8, 결과 PR).
 
 **Architecture:**
 - `scripts/lib/common.sh`에 `access_mode`·`access_hint`·`forward_spec`·`vm_tailscale_logged_in`을 둔다.
 - `ssh` 모드에서 스크립트가 아는 것은 `BM_VM_USER@BM_VM_HOST`로 닿는 SSH뿐이다. 별칭이 IAP를 쓰는지는 사용자의 `~/.ssh/config`가 정하고, GCP 런북이 그 설정을 안내한다. 그래서 스크립트에는 클라우드 이름이 들어가지 않는다.
 - `verify-vm.sh`는 `ssh` 모드에서 임시 `ssh -N -L`(127.0.0.1:28737, 23000)을 띄워 MCP·웹 UI를 검사하고, Serve 검사 대신 "VM의 Tailscale 꺼짐"과 "sshd 키 전용"을 본다.
 - `tailscale` 모드(또는 `BM_ACCESS` 없음)의 동작은 계획 11 병합 시점과 같다.
+- Task 8은 Task 1~7이 만든 타깃과 런북의 "접속 방식 바꾸기 (Access mode change)" 순서를 실제 VM에 적용한다. IAP 경로를 먼저 열고 확인한 뒤에만 VM의 Tailscale을 로그아웃하고, 두 경로가 함께 열린 구간은 한 세션 안에서 끝낸다. Task 8의 커밋은 기록뿐이다(Progress log, ADR 0006 "이전 결과", 스펙 §3, 운영 런북 점검 기록).
 
-**Tech Stack:** bash 3.2 호환 셸, bats-core + bats-assert, OpenSSH 로컬 포워딩(`-N -L`, `ExitOnForwardFailure`, `ServerAliveInterval`), curl, nc, 계획 10·11의 스크립트
+**Tech Stack:** bash 3.2 호환 셸, bats-core + bats-assert, OpenSSH 로컬 포워딩(`-N -L`, `ExitOnForwardFailure`, `ServerAliveInterval`), curl, nc, 계획 10·11의 스크립트. Task 8: `gcloud compute start-iap-tunnel`(사용자의 `~/.ssh/config`), GCP 방화벽, Tailscale admin console, Claude Code·Codex CLI
 
-**Spec:** `docs/specs/2026-10-15-access-modes-design.md` (특히 §2, §6, §8, §11)
+**Spec:** `docs/specs/2026-10-15-access-modes-design.md` (Task 1~7은 특히 §2, §6, §8, §11, Task 8은 §1, §3, §9.5, §10.3, §14)
 
 **Sequence:** 계획 12. 다음을 모두 만족한 뒤 시작한다.
 - 이 계획과 스펙(`work/access-modes`의 문서 PR)이 `main`에 병합됐다. 시작 절의 `git mv`가 `main`의 계획 파일을 옮긴다.
 - 계획 10과 계획 11이 `main`에 병합됐다(`docs/plans/completed/`에 두 계획 파일이 있다).
 - 이 계획의 코드 조각은 계획 10·11이 쓴 `verify-vm.sh`·`deploy.sh`·`tests/stubs/curl`·`tests/helpers.bash`를 전제로 한다. 시작 절의 확인이 다르게 나오면 그 Step을 실제 코드에 맞춰 고치고 Progress log에 적는다.
+- Task 8은 Task 1~7의 코드 PR이 `main`에 병합된 뒤 새 브랜치에서 시작한다. 나머지 조건은 Task 8의 "시작 조건"에 있다.
 
 **Execution:** 사용자 결정(2026-10-15)에 따라 subagent-driven으로 실행하고, 쓰는 파일이 겹치지 않는 태스크는 각자의 worktree에서 병렬로 실행한다. 병렬 브랜치는 `plan/12-access-modes`에 `git merge`로 합치고, 합친 뒤 `make check`를 돌린다.
 1. Task 1 ∥ Task 6 ∥ Task 7. Task 7은 스킬만 하고, `AGENTS.md`는 사용자 승인 뒤에 한다. Task 6·7은 스크립트 출력 문구를 이 계획 본문에서 가져오므로 코드 태스크를 기다리지 않는다.
 2. Task 2 ∥ Task 3. 둘 다 Task 1의 `access_mode`만 쓰고, 겹치는 파일은 `Makefile`의 서로 다른 줄뿐이다.
 3. Task 4. Task 2의 `forward_spec`와 ssh·nc 스텁 동작을 쓴다.
 4. Task 5. Task 4의 `use_ssh_mode`와 `vm_tailscale_logged_in`을 쓴다.
+5. 코드 PR 마무리와 병합(사람). 그 뒤 Task 8을 메인 세션에서 사용자와 함께 하고, 결과 PR로 마친다(계획 05의 결과 PR #2와 같은 방식).
 
 ## Global Constraints
 
@@ -35,9 +38,13 @@
 - AGENTS.md 스크립트 규칙: `#!/usr/bin/env bash` 다음 `set -euo pipefail`, `common.sh` source, `die`, macOS bash 3.2(연관 배열·`mapfile`·빈 배열 확장 금지), 이름 붙인 상수, `x="$(fn)" || exit 1`. 코드·주석·스크립트 메시지는 영어, 런북·ADR·README·ARCHITECTURE는 한국어.
 - 테스트 먼저(RED → GREEN), ADR 0004 범위. 기존 assertion을 약하게 바꾸지 않는다. 기존 `vm_ops.bats`·`bootstrap.bats` 테스트는 고치지 않고 통과해야 한다(스펙 §1 완료 조건 2).
 - 테스트는 `make test`/`make check`로만 돌린다.
-- 공인 IP, tailnet 이름, 프로젝트 id를 커밋·PR·문서에 쓰지 않는다. 테스트는 `203.0.113.10`, `example.ts.net`, `tunnel.example.test`를 쓴다.
+- 공인 IP, tailnet 이름·IP, 프로젝트 id를 커밋·PR·코멘트·문서에 쓰지 않는다. 테스트는 `203.0.113.10`, `example.ts.net`, `tunnel.example.test`를 쓰고, Task 8의 기록은 `<공인 IP>`, `<tailnet>`, `<프로젝트>`로 가린다.
 - 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: 12`, `Task: <N|review|none>`. `Co-authored-by`, `Signed-off-by`, `Claude-Session`, 세션 링크, `Generated with`는 넣지 않는다.
-- PR: 머신 계정으로 push하고 초안 PR 하나. 제목 `feat: choose Tailscale or an SSH tunnel per VM (BM_ACCESS)`, 본문 마지막 문단은 `Assisted-by`와 `Plan: 12`.
+- PR 두 개. 둘 다 머신 계정으로 push하고 초안으로 열며, 본문 마지막 문단은 `Assisted-by`와 `Plan: 12`다.
+  - 코드 PR(Task 1~7): 브랜치 `plan/12-access-modes`, 제목 `feat: choose Tailscale or an SSH tunnel per VM (BM_ACCESS)`. 본문에 "Task 8(VM 이전)은 병합 뒤 결과 PR에서 한다"고 적는다. 계획 파일은 `active/`에 둔 채 병합한다.
+  - 결과 PR(Task 8): 브랜치 `plan/12-access-mode-migration`, 제목 `docs: record the move of the VM to the ssh access mode`. 계획 파일을 `completed/`로 옮긴다.
+- Task 8에서 사용자 OK 없이 하지 않는 일: 방화벽 규칙 추가·삭제, API 켜기, VM에서의 `sudo` 변경(`tailscale serve reset`, `tailscale logout`, sshd 설정), Tailscale admin console 변경, `make vm-bootstrap`·`deploy`·`restore`. OK가 필요 없는 일: `make access-check probe status logs verify backup tunnel`, 읽기 전용 `gcloud … list/describe`(`--configuration=bm-personal`). VM을 정지하지 않는다(외부 IP가 바뀜).
+- Task 8에서 에이전트는 `.env`를 읽거나 고치지 않는다. 사용자가 고치고, 에이전트는 `make access-check` 출력으로 확인한다. 사용자의 `~/.ssh/config`도 사용자가 고치고, 에이전트는 넣을 블록을 보여 준다.
 
 ## Review Focus
 
@@ -335,7 +342,7 @@ BM_TUNNEL_MCP_PORT=18737
 BM_TUNNEL_WEB_PORT=13000
 ```
 
-`Makefile`의 `export BM_VM_HOST …` 줄(계획 10이 `SB_USER SB_PORT`를 더한 줄) 끝에 `BM_ACCESS BM_ACCESS_CHECK_URL BM_TUNNEL_MCP_PORT BM_TUNNEL_WEB_PORT`를 더한다. `.PHONY`에 `access-check`를 더하고, `check-git` 타깃 앞에 넣는다.
+`Makefile`의 `export BM_VM_HOST …` 줄(계획 10이 `SB_PORT`를 더한 줄. `SB_USER`는 같은 파일에서 타깃별로 export한다) 끝에 `BM_ACCESS BM_ACCESS_CHECK_URL BM_TUNNEL_MCP_PORT BM_TUNNEL_WEB_PORT`를 더한다. `.PHONY`에 `access-check`를 더하고, `check-git` 타깃 앞에 넣는다.
 
 ```make
 access-check: ## Report which access path (tailscale or ssh) works on this network; run it on every network you use
@@ -1136,18 +1143,18 @@ git push
 3. 스크립트는 `ssh` 모드에서 SSH 별칭만 압니다. GCP에서 그 별칭을 IAP로 만드는 방법은 [VM 런북](../runbooks/gcp-vm.md) 8단계에 있습니다. 스크립트에는 클라우드 이름이 들어가지 않습니다.
 4. `make tunnel`은 앞단에서 돌고, 끊기면 다시 붙지 않고 실패합니다. 로컬 포트는 18737(MCP)·13000(웹 UI)이고 `127.0.0.1`에만 바인딩합니다.
 5. `ssh` 모드의 `verify`는 VM의 Tailscale이 로그인 상태가 아닌지와 sshd가 키 전용인지 검사합니다.
-6. 지금 VM은 계획 13에서 `ssh` 모드로 옮깁니다.
+6. 지금 VM은 계획 12의 Task 8에서 `ssh` 모드로 옮깁니다.
 
 ## 결과
 
 - `ssh` 모드에서 VPC 밖 인바운드는 IAP 대역(`35.235.240.0/20`)의 22번 하나입니다. 인증은 Google 계정 IAM과 SSH 키 두 겹이고, 새 비밀값은 없습니다.
 - `ssh` 모드에서는 MCP를 쓰는 동안 각 기기가 `make tunnel`을 띄워 둬야 합니다. IAP는 한 시간 동안 활동이 없으면 연결을 끊습니다.
 - Windows는 WSL2에서 Make 타깃을, PowerShell에서 터널 명령 한 줄을 씁니다. 검증하지 않았습니다(Assumption).
-- 계획 13의 확인 결과(IAP API 필요 여부, 무활동 끊김, 백업 시간)는 이 ADR의 "이전 결과" 절에 적습니다.
+- 계획 12 Task 8의 확인 결과(IAP API 필요 여부, 무활동 끊김, 백업 시간)는 이 ADR의 "이전 결과" 절에 적습니다.
 
 ## 이전 결과
 
-계획 13에서 채웁니다.
+계획 12의 Task 8에서 채웁니다.
 ```
 
 - [ ] **Step 2: `docs/runbooks/gcp-vm.md`**
@@ -1186,7 +1193,7 @@ IAP TCP 포워딩은 Google 계정 인증을 거쳐 VM의 22번으로 터널을 
 
    Windows(PowerShell, OpenSSH)는 `%USERPROFILE%\.ssh\config`에 같은 블록을 넣고 `ProxyCommand`의 `gcloud`를 `gcloud.cmd`로 바꿉니다(**Assumption**, 검증하지 않음).
 4. 첫 접속은 대화형으로 해서 호스트 키를 수락합니다: `ssh ubuntu@agent-hub-iap true`. 그다음 `.env`에 `BM_ACCESS=ssh`, `BM_VM_HOST=agent-hub-iap`를 넣고 `make access-check`가 `ssh ubuntu@agent-hub-iap: ok`를 출력하는지 봅니다.
-5. 터널이 API나 권한 오류로 열리지 않으면 IAP API를 켭니다(사용자 OK 후). 켜야 하는지는 **Open question**이고, 계획 13에서 확인합니다.
+5. 터널이 API나 권한 오류로 열리지 않으면 IAP API를 켭니다(사용자 OK 후). 켜야 하는지는 **Open question**이고, 계획 12의 Task 8에서 확인합니다.
 
    ```bash
    gcloud services enable iap.googleapis.com --configuration=bm-personal
@@ -1485,18 +1492,241 @@ git push
 
 ---
 
-### 마무리: 리뷰, 넘기기 (git-workflow 스킬의 Review and merge)
+### 코드 PR 마무리: 리뷰, 넘기기 (git-workflow 스킬의 Review and merge)
 
-- [ ] Progress log에 그날 `make check`의 테스트 수와 커버리지 %를 `Verified`로 적고, 계획 파일을 `docs/plans/completed/`로 옮겨 커밋·push한다(`Task: none`).
-- [ ] 다른 벤더의 읽기 전용 리뷰(`make review BRANCH=plan/12-access-modes REVIEWER=<다른 벤더>`)는 사용자 승인 후 실행한다. PR 코멘트 게시도 승인 후 한다.
+- [ ] Progress log에 그날 `make check`의 테스트 수와 커버리지 %를 `Verified`로 적고 커밋·push한다(`Task: none`). Task 8이 남았으므로 계획 파일은 `active/`에 둔다.
+- [ ] 다른 벤더의 읽기 전용 리뷰(`make review BRANCH=plan/12-access-modes REVIEWER=<다른 벤더>`)는 사용자 승인 후 실행한다. PR 코멘트 게시도 승인 후 한다. 리뷰 범위는 Task 1~7이고, Task 8은 결과 PR에서 한다고 리뷰어에게 알린다.
 - [ ] 지적을 검증하고 하나당 커밋 하나로 고친다. 2회차까지만 돈다.
 - [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
-- [ ] 병합 뒤 Clean up 절로 worktree를 정리한다.
+- [ ] 병합 뒤 Clean up 절로 worktree를 정리하고 Task 8로 간다.
+
+---
+
+### Task 8: VM 이전 (코드 PR 병합 뒤, 사용자와 함께, 단계마다 OK)
+
+**Files:**
+- Modify: 이 계획 파일(Progress log, 끝에 `completed/`로 이동), `docs/decisions/0006-access-modes.md`("이전 결과"), `docs/specs/2026-10-15-access-modes-design.md`(§3 Assumption, §14), `docs/runbooks/operations.md`(점검 기록 행, 확인된 사실로 고칠 문장), 필요하면 `docs/runbooks/gcp-vm.md`
+
+**Interfaces:**
+- Consumes: Task 1~7의 `make access-check`·`make tunnel`·`ssh` 모드 `verify`·`status`, 런북의 "접속 방식 바꾸기 (Access mode change)"와 gcp-vm 8단계
+- Produces: 스펙 §1 완료 조건 5의 증거, §3 Assumption의 판정
+
+**시작 조건:**
+- `gh pr view <코드 PR 번호> --json state`가 `MERGED`다.
+- 사용자가 사무실 네트워크와 다른 네트워크(집 또는 핫스폿)를 같은 날 오갈 수 있다(Step 8).
+- 시작할 때 이 Mac은 Tailscale이 되는 네트워크에 있다. Step 1~4는 기존 경로로 롤백할 수 있어야 하기 때문이다.
+
+**안전 장치:**
+1. **IAP 경로를 확인하기 전에 Tailscale을 로그아웃함.** 두 경로가 모두 닫혀 직렬 콘솔이나 공인 SSH 규칙 없이는 들어갈 수 없다. → Step 5는 Step 3의 대화형 `ssh ubuntu@agent-hub-iap true`와 Step 4의 `make access-check`(`ssh ... ok`)가 성공한 뒤에만 진행한다.
+2. **`.env`의 `BM_VM_HOST`가 아직 `agent-hub`인 채 `BM_ACCESS=ssh`로 바꿈.** 스크립트가 Tailscale 이름으로 SSH를 시도하고, 사무실에서 실패한다. → Step 4의 `make access-check`가 `ssh ubuntu@agent-hub-iap: ok`(별칭 이름 포함)를 출력해야 한다.
+3. **클라이언트 한 대를 옛 tailnet URL로 남겨 둠.** 그 기기의 에이전트 세션에서 도구가 조용히 사라진다. → Step 7·8에서 기기마다 `claude mcp get basic-memory`의 URL과 도구 호출 결과를 기록한다.
+4. **터널이 한 시간 무활동으로 끊긴 것을 모름.** 에이전트가 MCP 오류를 낸다. → Step 9의 70분 무활동 시험.
+5. **이전 중 노트가 바뀜.** 롤백 지점이 낡는다. → Step 1의 `make backup`과 Step 6의 `make verify`(쓰기·읽기·삭제) 사이에는 에이전트가 노트를 쓰지 않는다. 사용자에게 이 구간에 다른 에이전트 세션을 쓰지 말라고 알린다.
+
+**실제 VM에서만 확인할 수 있는 항목.** 해당 Step에서 Progress log에 `Verified`(명령 포함)로 적고, 확인하지 못하면 `Assumption`으로 남긴다.
+1. IAP 터널에 `iap.googleapis.com`을 켜야 하는가. (Step 3)
+2. `ConnectTimeout=10`이 IAP 터널을 여는 시간보다 길다. (Step 4, 6)
+3. `tailscale status`가 로그인 상태에서 0, 로그아웃 상태에서 0이 아닌 값이다. (Step 4, 5)
+4. Ubuntu 26.04 Minimal의 `sshd -T`가 `passwordauthentication no`, `kbdinteractiveauthentication no`를 출력한다. (Step 6)
+5. `make backup`이 IAP 경로에서 걸리는 시간. (Step 6)
+6. 사무실 네트워크에서 `make tunnel`과 도구 호출이 된다. (Step 8)
+7. `ServerAliveInterval=30`이 IAP 한 시간 무활동 끊김을 막는다. (Step 9)
+
+- [ ] **Step 0: 브랜치와 worktree (에이전트)**
+
+`git fetch origin` 후 `origin/main`에서 worktree와 `plan/12-access-mode-migration` 브랜치를 만든다(git-workflow 스킬의 Start). 계획 파일은 `docs/plans/active/2026-10-15-12-access-modes.md`에 있다. 첫 커밋(Step 12) 뒤에 push하고 초안 PR을 연다.
+
+- [ ] **Step 1: 사전 점검과 롤백 지점 (OK 불필요)**
+
+```bash
+make status
+grep 'image:' compose.yaml
+time make backup
+make access-check
+```
+
+Expected:
+- `make status`의 이미지가 `compose.yaml`과 같다. 다르면 멈추고 사용자에게 묻는다.
+- `make backup`이 `backup saved: <main>/backups/bm-<stamp>.tgz`로 끝난다. 경로와 걸린 시간(Tailscale 경로 기준값)을 Progress log에 적는다.
+- `make access-check`가 이 네트워크의 두 경로를 보고한다(`BM_ACCESS`가 비어 있으면 0으로 끝난다).
+- 사용자에게 Step 6까지 다른 에이전트 세션에서 노트를 쓰지 말라고 알린다(안전 장치 5).
+
+- [ ] **Step 2: IAP 방화벽 규칙 (사용자 OK, 사용자가 실행)**
+
+사용자가 [VM 런북](../../runbooks/gcp-vm.md) 8단계 1번 명령을 실행한다. 그다음 에이전트가 읽기 전용으로 확인한다.
+
+```bash
+gcloud compute firewall-rules list --configuration=bm-personal --format='table(name,direction,disabled,sourceRanges.list(),allowed[].map().firewall_rule().list())'
+```
+
+Expected: `default-allow-internal`(`10.128.0.0/9`)과 `allow-iap-ssh`(`35.235.240.0/20`, `tcp:22`) 두 행만 있다. 이 시점부터 Step 5까지 두 경로가 함께 열려 있다.
+
+- [ ] **Step 3: SSH 별칭과 첫 접속 (사용자, 항목 1)**
+
+에이전트가 gcp-vm 8단계 3번의 `Host agent-hub-iap` 블록을 보여 주고, 사용자가 `~/.ssh/config`에 넣는다. 사용자가 자기 터미널에서 실행한다.
+
+```bash
+ssh ubuntu@agent-hub-iap true
+```
+
+Expected: 호스트 키를 묻고, 수락하면 0으로 끝난다.
+- API나 권한 오류로 실패하면 gcp-vm 8단계 5번(`gcloud services enable iap.googleapis.com --configuration=bm-personal`, 사용자 OK)을 실행하고 다시 시도한다. 켜야 했는지를 항목 1로 기록한다.
+- 계속 실패하면 멈춘다. Step 2의 규칙을 지울지 사용자와 정한다(롤백). Tailscale 경로는 그대로다.
+
+- [ ] **Step 4: `.env` 전환 (사용자, 항목 2·3)**
+
+사용자가 main 체크아웃의 `.env`에서 `BM_ACCESS=ssh`, `BM_VM_HOST=agent-hub-iap`로 바꾸고 `BM_ACCESS_CHECK_URL`, `BM_TUNNEL_MCP_PORT`, `BM_TUNNEL_WEB_PORT`를 `.env.example`대로 넣는다. `BM_TAILNET_DOMAIN`은 남겨 둬도 된다(롤백용).
+
+```bash
+time make access-check
+make status
+```
+
+Expected:
+- `make access-check`가 `ssh ubuntu@agent-hub-iap: ok`를 출력하고 0으로 끝난다(안전 장치 2). 걸린 시간을 적는다(IAP 연결 시간이 `ConnectTimeout=10`보다 짧은지, 항목 2).
+- `make status`가 `access: ssh`와 `WARNING: Tailscale is still logged in on the VM`을 출력한다. 로그인 상태에서 `tailscale status`가 0이라는 증거다(항목 3 앞부분).
+
+- [ ] **Step 5: VM의 Tailscale 정리 (사용자 OK, 항목 3)**
+
+Step 3과 Step 4가 모두 성공했을 때만 진행한다(안전 장치 1). 사용자가 자기 터미널에서 실행한다.
+
+```bash
+ssh ubuntu@agent-hub-iap 'sudo tailscale serve reset && sudo tailscale logout'
+make status
+```
+
+Expected: `make status`가 `tailscale: not installed or logged out`을 출력한다(항목 3 뒷부분).
+
+이어서 사용자가 Tailscale admin console에서 `agent-hub` 기기를 지운다. 정책의 `tag:agent-hub` 관련 항목은 남아도 해가 없다. 지울지는 사용자가 정한다.
+
+패키지를 지울지 사용자에게 묻는다(스펙 §14의 3).
+- A) 로그아웃만 한다(추천). 롤백할 때 새 인증 키로 `make vm-bootstrap`만 다시 하면 된다. `verify`는 로그아웃 상태를 통과로 본다.
+- B) `sudo apt-get purge -y tailscale`로 지운다. 공격면이 조금 줄지만, 롤백하면 부트스트랩이 다시 설치한다.
+
+결정을 Progress log에 적는다.
+
+- [ ] **Step 6: 종단 검증과 백업 시간 (OK 불필요, 항목 2·4·5)**
+
+```bash
+make probe
+make verify
+make status
+time make backup
+```
+
+Expected:
+- `make verify`가 다음을 출력한다(공인 IP는 `<공인 IP>`로 가려 기록).
+  - `verify tunnel is open`
+  - `OK: MCP round trip passed`
+  - `OK: SilverBullet checks passed for http://127.0.0.1:23000`
+  - `OK: Tailscale does not expose the VM`
+  - `OK: sshd accepts keys only`
+  - `refuses ports 22 80 443 8443 8737 3000`
+  - `OK: automated VM checks passed (access: ssh)`
+- `OK: sshd accepts keys only`가 나오지 않으면 멈추고 gcp-vm 8단계 6번의 sshd 설정(사용자 OK)을 한 뒤 다시 실행한다. 실제 `sshd -T` 줄을 기록한다(항목 4).
+- `make backup` 시간을 Step 1의 값과 비교해 적는다(항목 5). 두 배를 넘게 느리면 Follow-up으로 남긴다.
+
+- [ ] **Step 7: 이 Mac의 클라이언트 전환 (사용자와 에이전트)**
+
+사용자가 다른 터미널에서 `make tunnel`을 띄운다. 출력의 `MCP: http://127.0.0.1:18737/mcp  web UI: http://127.0.0.1:13000`을 확인한다.
+
+```bash
+claude mcp remove basic-memory -s user
+claude mcp add --transport http -s user basic-memory http://127.0.0.1:18737/mcp
+codex mcp remove basic-memory
+codex mcp add basic-memory --url http://127.0.0.1:18737/mcp
+claude mcp get basic-memory
+```
+
+Expected: `claude mcp get`이 `URL: http://127.0.0.1:18737/mcp`와 `Connected`를 보인다.
+
+도구 호출로 확인한다(scratchpad 같은 빈 디렉터리에서 실행).
+
+```bash
+claude -p "Call the basic-memory MCP tool list_memory_projects once. Reply with only the project names it returns, comma-separated, or the exact error." --allowedTools "mcp__basic-memory__list_memory_projects" --model haiku
+codex exec --skip-git-repo-check -s read-only "Call the basic-memory MCP tool list_memory_projects once. Reply with only the project names it returns, comma-separated, or the exact error."
+```
+
+Expected: 두 명령 모두 `main`을 출력한다. `codex exec`의 사용량을 기록한다.
+
+사용자가 브라우저에서 `http://127.0.0.1:13000`을 열어 로그인하고 대시보드가 보이는지 확인한다.
+
+- [ ] **Step 8: 사무실 네트워크와 다른 기기 (사용자와 에이전트, 항목 6)**
+
+사용자가 이 Mac을 사무실 네트워크로 옮긴다. `make tunnel`이 끊겼으면 다시 띄운다.
+
+```bash
+make access-check
+```
+
+Expected:
+- `tailscale control plane: blocked (...)`
+- `tunnel endpoint https://tunnel.cloudproxy.app/: reachable (HTTP 404)`
+- `ssh ubuntu@agent-hub-iap: ok`
+- 0으로 끝난다.
+
+Step 7의 두 도구 호출을 다시 하고 `main`을 확인한다. 웹 UI도 한 번 연다.
+
+사용자가 쓰는 다른 기기가 있으면 그 기기에서 gcp-vm 8단계 3번(별칭)과 운영 런북 "에이전트 연결"을 따른다. 기기마다 `claude mcp get basic-memory`의 URL과 도구 호출 결과를 기록한다(안전 장치 3). 다른 기기가 없으면 "없음"이라고 적는다.
+
+- [ ] **Step 9: 무활동 시험 (항목 7)**
+
+`make tunnel`을 띄운 채 70분 동안 MCP를 쓰지 않는다. 그다음 Step 7의 `claude -p` 호출을 한 번 한다.
+
+Expected: `main`이 나오고, `make tunnel` 터미널에 `tunnel closed`가 없다. 끊겼으면 시각과 메시지를 기록하고, Step 11에서 운영 런북 "에이전트 연결"에 "한 시간 넘게 쉬면 터널이 끊길 수 있으니 다시 실행"을 더한다.
+
+- [ ] **Step 10: Exposure audit (사용자와 에이전트)**
+
+```bash
+gcloud compute firewall-rules list --configuration=bm-personal --format='table(name,direction,disabled,sourceRanges.list(),allowed[].map().firewall_rule().list())'
+```
+
+Expected: VPC 밖 소스는 `allow-iap-ssh`(`35.235.240.0/20`, `tcp:22`) 하나뿐이다. 사용자가 Tailscale admin console에서 `agent-hub` 기기가 없는지 확인한다.
+
+운영 런북 "점검 기록" 표에 행을 더한다: 날짜, VPC 밖 규칙(`allow-iap-ssh` 하나), Funnel 항목은 "해당 없음(ssh 모드)", 자동 검사 결과(`make verify` 통과), 점검자.
+
+- [ ] **Step 11: 기록**
+
+- ADR 0006 "이전 결과"에 Step 1~9의 결과를 `Verified`(명령 포함)로 적는다: IAP API 필요 여부, 접속 시간, `tailscale status` 종료 코드, `sshd -T` 줄, 백업 시간 비교, 사무실 결과, 무활동 결과, 패키지 결정(A/B).
+- 스펙 §3의 "Assumption (계획 12 Task 8에서 확인)" 중 확인한 것을 `Verified (계획 12 Task 8, <날짜>)`로 바꾸고, §14에서 풀린 질문을 표시한다.
+- 확인된 사실이 런북 문장과 다르면 그 문장을 고친다(예: gcp-vm 8단계 5번의 IAP API 문장, Step 9의 끊김 안내).
+- Progress log에 Step 1~10의 증거를 적는다.
+
+- [ ] **Step 12: 커밋, push, 초안 결과 PR**
+
+```bash
+make check
+git add docs/plans/active/2026-10-15-12-access-modes.md docs/decisions/0006-access-modes.md docs/specs/2026-10-15-access-modes-design.md docs/runbooks
+git commit -m "docs: record the move of the VM to the ssh access mode" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 12" --trailer "Task: 8"
+git push -u origin plan/12-access-mode-migration
+gh pr create --draft --base main --title "docs: record the move of the VM to the ssh access mode" --body-file "$TMPDIR/pr-12-migration.md"
+```
+
+**롤백 (사용자 OK 후):**
+- **Step 5 전:**
+  1. 사용자가 `.env`를 `BM_ACCESS=`(또는 `tailscale`), `BM_VM_HOST=agent-hub`로 되돌린다.
+  2. 사용자가 `gcloud compute firewall-rules delete allow-iap-ssh --configuration=bm-personal`로 IAP 규칙을 지운다.
+  3. `make probe`로 Tailscale 경로를 확인한다.
+- **Step 5 뒤 IAP가 안 될 때:**
+  1. bootstrap 런북 문제 해결의 "22번을 지운 뒤 접속 불가" 행대로 내 IP/32 규칙을 만든다.
+  2. 사용자가 `.env`를 `BM_ACCESS=tailscale`, `BM_VM_HOST=agent-hub`로 되돌리고, 새 인증 키로 `make vm-bootstrap HOST=<공인 IP>`를 자기 터미널에서 실행한다.
+  3. 임시 규칙을 지우고 `make verify`를 실행한다.
+- **노트가 상했을 때:** Step 1의 백업으로 `make restore BACKUP=<그 파일>`을 실행한다. 사용자가 `yes`를 입력한다.
+
+---
+
+### 결과 PR 마무리: 리뷰, 넘기기 (git-workflow 스킬의 Review and merge)
+
+- [ ] Progress log에 그날 `make check` 결과를 `Verified`로 적고, 계획 파일을 `docs/plans/completed/`로 옮겨 커밋·push한다(`Task: none`).
+- [ ] 다른 벤더의 읽기 전용 리뷰는 사용자 승인 후 실행한다. 게시 전에 IP·tailnet 이름·프로젝트 id를 가린다.
+- [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
+- [ ] 병합 뒤 worktree를 정리한다(`backups/`·`.env` 확인 먼저).
 
 ## Follow-ups (이 계획 밖)
 
-- 계획 13: 지금 VM을 `ssh` 모드로 옮기고 실제 네트워크에서 확인한다.
-- 터널 자동 실행(launchd)·자동 재연결은 써 본 뒤 판단한다(스펙 범위 밖).
+- 이전한 다음 달 SKU별 청구에서 IAP 터널 트래픽과 송신량을 확인한다(운영 런북 "비용 점검", 스펙 §14의 2).
+- 터널 자동 실행(launchd)·자동 재연결(autossh 등)은 써 본 뒤 판단한다(스펙 범위 밖). Task 8 Step 9에서 끊김이 잦으면 새 작업으로 올린다.
+- 다른 사람에게 줄 최소 IAM 권한을 확인해 accounts 7단계에 적는다(스펙 §14의 4).
 - Windows 확인(기기가 생기면).
 
 ## Progress log
