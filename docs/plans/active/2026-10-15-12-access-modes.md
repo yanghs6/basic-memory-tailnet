@@ -1792,3 +1792,6 @@ gh pr create --draft --base main --title "docs: record the move of the VM to the
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
+| 2026-10-15 | Command | 시작: `plan/12-access-modes`를 `origin/main` `4a184f1`(PR #7 병합)에서 만들고 계획을 `active/`로 옮김. 실행 방식은 사용자 결정대로 subagent-driven이고, 쓰는 파일이 겹치지 않는 태스크는 별도 worktree에서 병렬로 실행한다(Execution 절의 묶음). |
+| 2026-10-15 | Verified | 시작 절 확인(`4a184f1`): 완료 계획 10·11 있음. `scripts/verify-vm.sh`의 `SB_HTTPS_PORT`:15, `serve_proxy`:31, `check_serve`:36, `check_public_closed`:96. `Makefile`:14 export에 `SB_PORT`, `tests/helpers.bash`:25 `SB_PORT`. `scripts/verify-sb.sh`:57 `https://*`. `tests/stubs/curl`:16 `url=""`. `over Tailscale SSH`: `bootstrap-vm.sh`:64, `deploy.sh`:21, `restore.sh`:135, `common.sh`:93. 계획 본문과 다른 점 없음. |
+| 2026-10-15 | Verified | 사용자가 Task 7 Step 3의 `AGENTS.md` 문구 다섯 곳을 승인함(2026-10-15, 대상은 `3b87fa5` 기준 3·4·10·13·22행). `4a184f1`에서도 그 다섯 줄은 바뀌지 않았다(`git diff 3b87fa5 origin/main -- AGENTS.md` 출력 없음). Task 7 직전에 `main`의 `AGENTS.md`를 다시 확인한다. |
