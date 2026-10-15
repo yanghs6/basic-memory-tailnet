@@ -52,6 +52,16 @@ require_env() {
   done
 }
 
+# Characters that make (it includes .env literally), docker compose .env files and form encoding all keep as they are.
+readonly SB_USER_PATTERN='^[A-Za-z0-9._-]+:[A-Za-z0-9._~+/=-]+$'
+
+# require_sb_user -> dies unless SB_USER is set and looks like <user>:<password>. Never prints the value.
+require_sb_user() {
+  require_env SB_USER
+  [[ "$SB_USER" =~ $SB_USER_PATTERN ]] \
+    || die "SB_USER must be <user>:<password> made of letters, digits and ._~+/=- (make and docker compose change other characters): fix it in .env in the main checkout"
+}
+
 # mask VALUE -> first 4 characters + ****, or **** for short values. Use before printing secrets or ids.
 mask() {
   local value="$1"

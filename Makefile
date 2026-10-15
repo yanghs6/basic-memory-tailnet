@@ -66,9 +66,10 @@ local-down: ## Stop the local containers (data in .local-data/ is kept)
 local-logs: ## Show recent local container logs
 	$(COMPOSE) logs --tail=200
 
-local-verify: ## Verify the local MCP endpoint (plain and *.ts.net Host header)
+local-verify: ## Verify the local MCP endpoint (plain and *.ts.net Host header) and the local SilverBullet login
 	scripts/verify-mcp.sh "http://127.0.0.1:$(BM_PORT)/mcp"
 	scripts/verify-mcp.sh --host-header agent-hub.example.ts.net "http://127.0.0.1:$(BM_PORT)/mcp"
+	scripts/verify-sb.sh "http://127.0.0.1:$(SB_PORT)"
 
 check-git: ## Check the git policy for the current branch against origin/main (name, commit trailers, worktree config)
 	scripts/check-git.sh origin/main
