@@ -40,3 +40,14 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 ## VM 측정
 
 계획 11에서 두 컨테이너를 함께 띄운 뒤의 메모리·스왑 사용량을 여기에 기록합니다. OOM이 나면 [ADR 0002](0002-vm-sizing.md)를 다시 판단합니다.
+
+**Verified (계획 11, 2026-10-15, `agent-hub-01` e2-micro amd64):**
+
+| 시점 | 명령 | SilverBullet | Basic Memory | 메모리 사용 | 스왑 사용 | OOM |
+|---|---|---|---|---|---|---|
+| 배포 전 | `make status` | - | - | 56% | 490/1023 MB | - |
+| 배포 직후 | `docker stats`, `free -m`, `dmesg` | 26.85 MiB | 252.4 MiB | 594/952 MB | 109/1023 MB | 없음 |
+| 브라우저 확인 뒤 | 같음 | 6.6 MiB | 390.3 MiB | 695/952 MB | 402/1023 MB | 없음 |
+
+- `make deploy`는 91초 걸렸습니다. Basic Memory를 다시 만들고 healthy가 되기까지 54초였습니다. 이미지가 캐시돼 있어서, 처음부터 받는 콜드 스타트(161~192초)보다 짧았습니다.
+- SilverBullet은 수 MiB에서 수십 MiB를 씁니다. 메모리 부담은 대부분 Basic Memory에서 옵니다. 스왑 사용량은 배포 전 수준을 넘지 않았습니다.

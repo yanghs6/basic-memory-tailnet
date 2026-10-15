@@ -105,7 +105,14 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
   - 스파이크 때 쓴 origin(`localhost:3000`)에는 브라우저 캐시(`CONFIG.md` 등)가 남아, 첫 화면이 예전 스크립트로 그려져 `attempt to call a nil value (field 'dashboard')`가 났다. 새로고침한 탭과 새 origin(`sb.localhost:3000`)에서는 오류가 없었다. VM은 새 origin이므로 해당하지 않는다.
   - 2.12.1의 service worker 뒤에서는 페이지의 `fetch("/.fs/…")`가 파일을 읽고 쓰지 못한다(PUT은 405 `allow: GET,HEAD`, GET은 앱 HTML). 확인용 쓰기·읽기는 `client.space.writePage`·`readPage`로 한다.
   - Basic Memory `search_notes`의 기본 검색은 글자가 일치하지 않는 노트도 점수를 매겨 돌려준다. 무시 목록 확인은 `search_type: "text"`(0건)와 `list_directory`(노트만 있음)로 한다.
-- **Assumption (계획 11에서 확인):** Serve 뒤에서 쿠키에 `Secure`가 붙는다(위 소스 근거). `sudo -n -u '#1000'`로 노트 폴더에 쓸 수 있다. SilverBullet 컨테이너는 호스트의 `127.0.0.1:8737`에 닿지 못한다. amd64에서의 메모리. `tailscale serve --bg --https=8443`이 기존 443 설정을 지우지 않는다.
+- **Verified (계획 11, 2026-10-15, `agent-hub-01`):**
+  - Serve 뒤에서 쿠키에 `Secure`가 붙는다. `make verify`가 `https://…:8443`에서 로그인 쿠키 검사를 통과했다.
+  - `sudo -n -u '#1000'`로 노트 폴더에 쓸 수 있다. `make deploy`가 공간 파일과 페이지를 오류 없이 썼다.
+  - SilverBullet 컨테이너는 Basic Memory에 닿지 못한다. 컨테이너 안에서 `curl`로 `127.0.0.1:8737`, `silverbullet` 네트워크 게이트웨이의 `:8737`, `basic-memory-server:8000`을 불렀더니 모두 `000`이 나왔다.
+  - amd64 메모리는 SilverBullet 6.6~26.9 MiB, Basic Memory 252~390 MiB이고 OOM은 없다(ADR 0005 "VM 측정").
+  - `tailscale serve --bg --https=8443`은 기존 443 설정을 지우지 않는다(`serve status --json`에 두 포트가 모두 있음).
+  - `serve status --json`의 모양은 테스트 스텁과 같다: `Web."<host>:<port>".Handlers["/"].Proxy`이고, Funnel이 꺼져 있으면 `AllowFunnel`이 없다.
+  - Mac에서 tailnet 왕복이 300ms쯤이면 새 TLS 연결이 2초를 넘을 수 있다(`/.ping` 2.6초). 그러면 새 기기에서 처음 열 때 클라이언트의 2초 ping이 시간을 넘겨, 상단 막대가 빨갛게(`sb-sync-error`) 되고 글꼴 요청이 503을 받아 기본 글꼴로 보인다. 몇 초 뒤 새로고침하면 둘 다 정상이 된다.
 - **Verified (계획 05 진행 로그 2026-10-13 Step 14, `docs/plans/completed/2026-10-07-05-vm-rollout.md:293`):** 22번이 닫힌 뒤에도 `make vm-bootstrap HOST=agent-hub </dev/null`이 Tailscale SSH로 키 없이 다시 실행되고 Serve를 다시 적용한다. 계획 11은 이 경로로 8443을 더한다.
 - **Verified (tailscale `ipn/serve.go:53-76`, `:125-172`, `cmd/tailscale/cli/serve_v2.go:259-264`):** `tailscale serve status --json`은 `Web`(키 `<호스트>:<포트>`, 값의 `Handlers["/"].Proxy`)과 `AllowFunnel`(키 `<호스트>:<포트>`)을 담은 설정을 출력한다. 계획 11의 `verify`가 포트별 대상과 Funnel을 이 JSON으로 검사한다.
 

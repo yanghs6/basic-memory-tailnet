@@ -40,6 +40,7 @@
 
 - 주소는 `https://agent-hub.<tailnet>.ts.net:8443`이고 tailnet 안에서만 열립니다. main 체크아웃 `.env`의 `SB_USER`로 로그인합니다. 트리는 `Cmd-O`, 페이지 검색은 `Cmd-K`, 노트 본문 검색은 `Cmd-Shift-F`, 그래프는 명령 팔레트의 `Graph: Explore`입니다. 에이전트에게 노트를 알려 줄 때는 `Basic Memory: Copy memory:// Link`로 주소를 복사합니다.
 - 노트 검색에 본문 문단이 안 나오면 그 브라우저에서 `Space: Reindex`를 한 번 실행합니다. 왼쪽에 트리가 안 보이면 `Cmd-O`를 누릅니다.
+- 새 기기에서 처음 열 때 상단 막대가 빨갛거나(동기화 오류) 글꼴이 기본 글꼴로 보이면 몇 초 뒤 새로고침합니다. 첫 연결이 느려 클라이언트가 서버를 잠깐 오프라인으로 본 것입니다.
 - **관찰 카테고리 경고:** `[fact]`·`[decision]` 같은 카테고리 글자를 누르면 SilverBullet이 카테고리를 지웁니다(`[]`가 되고 Basic Memory는 그 관찰을 `note`로 다시 색인). 실수했으면 바로 `Cmd+Z`로 되돌립니다.
 - **비밀번호 교체:** main 체크아웃 `.env`의 `SB_USER`를 바꾸고 `make deploy`(사용자 OK)를 실행합니다. VM `.env`가 바뀌면 compose가 SilverBullet을 다시 만들고, 열린 브라우저는 다시 로그인해야 합니다.
 - **글꼴:** 새 VM이거나 글꼴을 바꿀 때 `make sb-fonts`(사용자 OK). 복원하면 백업에 든 글꼴이 돌아오므로 다시 올릴 필요가 없습니다.
