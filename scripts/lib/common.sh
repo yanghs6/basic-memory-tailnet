@@ -18,6 +18,17 @@ readonly SSH_CONNECT_TIMEOUT_SECONDS=10
 # Longer than the compose healthcheck start_period (300s) so `up --wait` can use the whole grace period.
 readonly HEALTH_TIMEOUT_SECONDS=360
 
+# SilverBullet space = the Basic Memory notes folder of project main. The local path is overridable only for tests.
+SB_LOCAL_NOTES_DIR="${SB_LOCAL_NOTES_DIR:-$(dirname "$(dirname "$COMMON_LIB_DIR")")/.local-data/knowledge/basic-memory}"
+readonly SB_LOCAL_NOTES_DIR
+readonly SB_REMOTE_NOTES_DIR="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory"
+# Where the managed library page (silverbullet/agent-hub.md) loads the WOFF2 fonts from.
+readonly SB_FONTS_REL_DIR="Library/agent-hub/fonts"
+# Marker in the notes folder: Basic Memory has not loaded the current .gitignore yet (it reads it only at start).
+# sb-space.sh creates it before changing .gitignore and writes no pages while it exists; callers remove it only after
+# recreating Basic Memory. Basic Memory skips dotfiles (default pattern .*) and SilverBullet cannot read them.
+readonly SB_GITIGNORE_PENDING=".gitignore.pending"
+
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*" >&2; }
 
 step() { log "==> $*"; }
@@ -66,6 +77,35 @@ vm_env() {
   printf 'BM_PORT=%s\n' "${BM_PORT:-8737}"
   printf 'BM_KNOWLEDGE_DIR=%s/knowledge\n' "$BM_REMOTE_DATA_ROOT"
   printf 'BM_CONFIG_DIR=%s/config\n' "$BM_REMOTE_DATA_ROOT"
+}
+
+# notes_dir_arg [--local] -> the local notes folder for --local; nothing (meaning the VM) without an argument, after
+# checking the VM settings. Any other argument dies with the usage. Use: local_dir="$(notes_dir_arg "$@")" || exit 1
+notes_dir_arg() {
+  case "${1:-}" in
+    "")
+      require_cmd ssh
+      require_env BM_VM_HOST BM_VM_USER
+      ;;
+    --local) printf '%s' "$SB_LOCAL_NOTES_DIR" ;;
+    *) die "usage: $(basename "$0") [--local]" ;;
+  esac
+}
+
+# in_notes_dir LOCAL_DIR CMD -> run the sh command CMD inside the notes folder, creating it first: LOCAL_DIR when set,
+# else the VM folder as the container user, so Basic Memory and SilverBullet can rewrite the files. stdin reaches CMD.
+# CMD must not contain single quotes.
+in_notes_dir() {
+  if [[ -n "$1" ]]; then
+    mkdir -p "$1" && (cd "$1" && sh -c "$2")
+  else
+    remote "sudo -n -u '#$BM_CONTAINER_UID' sh -c 'mkdir -p $SB_REMOTE_NOTES_DIR && cd $SB_REMOTE_NOTES_DIR && $2'"
+  fi
+}
+
+# write_notes_file LOCAL_DIR PATH -> replace PATH (relative to the notes folder, without spaces) with stdin.
+write_notes_file() {
+  in_notes_dir "$1" "mkdir -p $(dirname "$2") && cat > $2"
 }
 
 # manifest_cmd DIR -> a shell command (run it with `remote`) that prints "<sha256>  ./<path>" for every file
