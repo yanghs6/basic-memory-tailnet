@@ -5,9 +5,20 @@
 #   Request payloads are appended to $STUB_LOG.requests. CURL_STUB_EXIT=<n> simulates a transport error.
 # SilverBullet mode (URL path /.ping, /.fs/..., /.auth, /.shell or /.logout): answers like a server with a login and
 #   the shell off; see sb_response for the overrides.
-# Download mode: writes "stub" to the -o file, or prints $CURL_STUB_SCRIPT (default "true") for `curl | sh`.
+# Download mode: writes "stub" to the -o file, or prints $CURL_STUB_SCRIPT (default "true") for `curl | sh`; with
+#   -w '%{http_code}' it also prints CURL_STUB_HTTP_CODE (default 200), like a reachability probe.
+# CURL_STUB_FAIL_MATCH=<substring>: calls whose arguments contain it fail with CURL_STUB_FAIL_EXIT (default 28 =
+#   timeout; 6 = DNS), like a network that blocks that host.
 set -euo pipefail
 printf 'curl %s\n' "$*" >>"$STUB_LOG"
+if [[ -n "${CURL_STUB_FAIL_MATCH:-}" && "$*" == *"$CURL_STUB_FAIL_MATCH"* ]]; then
+  echo "curl: (${CURL_STUB_FAIL_EXIT:-28}) simulated failure (stub)" >&2
+  exit "${CURL_STUB_FAIL_EXIT:-28}"
+fi
+wants_code=""
+if [[ "$*" == *'%{http_code}'* ]]; then
+  wants_code=1
+fi
 
 headers_file=""
 body_file=""
@@ -83,6 +94,9 @@ esac
 if [[ -z "${CURL_FIXTURES:-}" ]]; then
   if [[ -n "$body_file" ]]; then
     echo stub >"$body_file"
+    if [[ -n "$wants_code" ]]; then
+      printf '%s' "${CURL_STUB_HTTP_CODE:-200}"
+    fi
   else
     printf '%s\n' "${CURL_STUB_SCRIPT:-true}"
   fi

@@ -90,8 +90,30 @@ mask() {
   fi
 }
 
-# remote CMD -> run CMD on the VM over Tailscale SSH.
+# access_mode -> tailscale or ssh: BM_ACCESS, or tailscale when it is unset (.env files from before the ssh mode).
+# Any other value, another case included, stops here so no script falls back to the wrong path.
+# Call it as mode="$(access_mode)" || exit 1.
+access_mode() {
+  local mode="${BM_ACCESS:-tailscale}"
+  case "$mode" in
+    tailscale | ssh) printf '%s\n' "$mode" ;;
+    *) die "BM_ACCESS must be tailscale or ssh (got '$mode'): set it in .env in the main checkout (docs/runbooks/bootstrap.md)" ;;
+  esac
+}
+
+# access_hint -> what to check when SSH to the VM fails, for the current access mode.
+access_hint() {
+  if [[ "${BM_ACCESS:-tailscale}" == ssh ]]; then
+    printf 'check the ProxyCommand for %s in ~/.ssh/config and its login (docs/runbooks/gcp-vm.md)\n' "$BM_VM_HOST"
+  else
+    printf 'is %s reachable over Tailscale SSH? (ssh %s@%s true)\n' "$BM_VM_HOST" "$BM_VM_USER" "$BM_VM_HOST"
+  fi
+}
+
+# remote CMD -> run CMD on the VM over SSH: Tailscale SSH, or the ssh access mode's host alias. It checks BM_ACCESS
+# first, so a typo there stops every VM target before it reaches the VM, also the ones that never read the mode.
 remote() {
+  access_mode >/dev/null
   ssh -o BatchMode=yes -o ConnectTimeout="$SSH_CONNECT_TIMEOUT_SECONDS" "${BM_VM_USER}@${BM_VM_HOST}" "$@"
 }
 

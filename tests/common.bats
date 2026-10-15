@@ -23,6 +23,17 @@ setup() {
   assert_output "ssh -o BatchMode=yes -o ConnectTimeout=10 ubuntu@agent-hub echo hi"
 }
 
+@test "remote checks BM_ACCESS before it runs ssh, so no VM target reaches the VM with a typo there" {
+  BM_ACCESS=SSH run remote true
+  assert_failure
+  assert_output --partial "BM_ACCESS must be tailscale or ssh (got 'SSH')"
+  run grep -F 'ssh ' "$STUB_LOG"
+  assert_failure
+  BM_ACCESS=ssh run remote "echo hi"
+  assert_success
+  assert_output "hi"
+}
+
 @test "manifest_cmd lists every file's sha256 sorted by path" {
   setup_stubs sudo
   mkdir -p "$BATS_TEST_TMPDIR/d/b"
