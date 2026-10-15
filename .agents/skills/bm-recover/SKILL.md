@@ -13,6 +13,7 @@ description: Recovers the Basic Memory VM and its notes. Use when the VM is stop
 - The user runs every cloud command, exactly as the runbook section named in each step writes it.
 - Never delete the old instance or its disk before the restore is verified.
 - `agent-hub` and `ubuntu` below are the defaults of `BM_VM_HOST` and `BM_VM_USER` (`.env.example`).
+- In ssh mode (`make status` printed `access: ssh` before, or the user says so) there is no Tailscale node, auth key or Serve: follow "ssh 모드 순서" in docs/runbooks/bootstrap.md for steps 3 to 5.
 
 ## Checklist
 
@@ -37,8 +38,11 @@ Copy this into your reply and tick each item:
    - Instances cannot be renamed, so the user creates the new VM under a different `INSTANCE` name and stops the old one if it still exists.
    - While the old VM or its disk exists the free tier can be exceeded, so after the restore is verified the user removes them soon (docs/runbooks/gcp-vm.md, section 7) and checks billing (the "비용 점검" section of docs/runbooks/operations.md).
    - The user then sets the new public IP as `BM_VM_PUBLIC_IP` in `.env` (the user's file; you neither edit nor read it).
+   In ssh mode the user deletes `default-allow-ssh` and creates the tunnel rule instead (docs/runbooks/gcp-vm.md, sections 3 and 8), and there is no Tailscale machine to remove.
 4. Ask first. The user creates a new one-off auth key (`docs/runbooks/accounts.md`). Before bootstrapping, the user follows step 1 of `docs/runbooks/bootstrap.md` (old Tailscale node, `ssh-keygen -R agent-hub` and `ssh-keygen -R <new-public-ip>`; the latter is harmless when no entry exists, and a stale host key for a reused public IP makes the bootstrap fail with "upload failed"). The user runs `make vm-bootstrap HOST=<new-public-ip>` in their own terminal and pastes the key at the hidden prompt, or runs `read -rs TS_AUTHKEY && export TS_AUTHKEY` first and `unset TS_AUTHKEY` afterwards. It is safe to repeat if it fails.
+   In ssh mode the user clears the alias's old host key (`ssh-keygen -R agent-hub-iap`), accepts the new one with an interactive `ssh ubuntu@agent-hub-iap true`, and runs `make vm-bootstrap HOST=agent-hub-iap` without a key.
 5. Ask first. First Tailscale SSH to the new VM: ask the user to run an interactive `ssh ubuntu@agent-hub true` and accept the new key. Only when that succeeds, ask the user to delete the firewall rule that opens port 22 (`default-allow-ssh`, with the command in docs/runbooks/bootstrap.md step 4).
+   In ssh mode skip this step: there is no Tailscale SSH, and port 22 is open only to the tunnel range.
 6. Ask first. Before deploying, run `make status`.
    - It shows a Basic Memory container: compare its image with `grep 'image:' compose.yaml`; when they differ, stop and ask the user (an unmerged upgrade may be live, see `bm-upgrade`).
    - Nothing is deployed yet: `make status` ends with `could not query containers`. That is expected, so skip the comparison.
