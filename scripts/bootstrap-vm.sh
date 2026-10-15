@@ -51,7 +51,7 @@ main() {
     }
 
   step "run bootstrap on the VM (docker, tailscale, data dirs, serve)"
-  remote_env="BM_PORT=${BM_PORT:-8737} BM_REMOTE_DATA_ROOT=$BM_REMOTE_DATA_ROOT BM_REMOTE_APP_DIR=$BM_REMOTE_APP_DIR"
+  remote_env="BM_PORT=${BM_PORT:-8737} SB_PORT=${SB_PORT:-3000} BM_REMOTE_DATA_ROOT=$BM_REMOTE_DATA_ROOT BM_REMOTE_APP_DIR=$BM_REMOTE_APP_DIR"
   remote_env="$remote_env ADMIN_USER=$user TS_HOSTNAME=$TS_HOSTNAME"
   printf '%s\n' "$key" | ssh_public "$user@$host" "sudo $remote_env bash $remote_script" \
     || {

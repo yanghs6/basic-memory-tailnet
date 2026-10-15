@@ -11,10 +11,11 @@
 | 종단 검증 (테스트 노트를 쓰고 지움) | `make verify` |
 | 로그 | `make logs` |
 | 배포 (compose 변경 후) | `make deploy verify` |
+| 웹 UI 글꼴 (새 VM이나 글꼴을 바꿀 때) | `make sb-fonts` |
 | 백업 (주 1회 + 업그레이드 전) | `make backup` |
 | 복원 | `make restore BACKUP=<백업 파일의 절대 경로>` (사용자가 자기 터미널에서 `yes` 입력. 저장소의 compose.yaml도 함께 적용하고, 실패하면 이전 상태로 자동 롤백, 끝나면 verify 실행) |
 
-에이전트는 `vm-bootstrap`, `deploy`, `restore` 전에 사용자의 OK를 받습니다. `probe`, `status`, `logs`, `verify`, `backup`은 OK 없이 실행할 수 있습니다(`verify`는 테스트 노트를 쓰고 지우며, `backup`은 컨테이너를 잠깐 멈춥니다).
+에이전트는 `vm-bootstrap`, `deploy`, `restore`, `sb-fonts` 전에 사용자의 OK를 받습니다. `probe`, `status`, `logs`, `verify`, `backup`은 OK 없이 실행할 수 있습니다(`verify`는 테스트 노트를 쓰고 지우며 SilverBullet에 로그인했다가 로그아웃하고, `backup`은 컨테이너를 잠깐 멈춥니다).
 
 **배포·복원 전 이미지 점검:** `make status`의 컨테이너 이미지와 `grep 'image:' compose.yaml`이 같은지 확인합니다. 다르면 멈추고 사용자에게 묻습니다. 업그레이드 리뷰 중에는 VM이 main이 고정하지 않은 이미지로 돌 수 있고, 이때 옛 이미지를 새 버전이 손댄 데이터 위에 배포하면 안 되기 때문입니다([bm-upgrade 스킬](../../.agents/skills/bm-upgrade/SKILL.md)). 새로 만든 VM처럼 아직 아무것도 배포하지 않았다면 `make status`가 `could not query containers`로 끝납니다. 정상이므로 이미지 비교는 건너뜁니다. 이때 에이전트는 `git diff main -- compose.yaml`이 아무것도 출력하지 않는지만 확인하고, 사람은 main 체크아웃에서 실행하는지 확인합니다.
 
@@ -34,6 +35,17 @@
 - 업그레이드: `bm-upgrade`
 - VM이 삭제됐거나 쓸 수 없을 때(정지만 된 VM은 아래 "정지된 VM"): `bm-recover`
 - 연결·MCP 문제: `bm-diagnose` (읽기 전용)
+
+## 웹 UI (SilverBullet)
+
+- 주소는 `https://agent-hub.<tailnet>.ts.net:8443`이고 tailnet 안에서만 열립니다. main 체크아웃 `.env`의 `SB_USER`로 로그인합니다. 트리는 `Cmd-O`, 페이지 검색은 `Cmd-K`, 노트 본문 검색은 `Cmd-Shift-F`, 그래프는 명령 팔레트의 `Graph: Explore`입니다. 에이전트에게 노트를 알려 줄 때는 `Basic Memory: Copy memory:// Link`로 주소를 복사합니다.
+- 노트 검색에 본문 문단이 안 나오면 그 브라우저에서 `Space: Reindex`를 한 번 실행합니다. 왼쪽에 트리가 안 보이면 `Cmd-O`를 누릅니다.
+- 새 기기에서 처음 열 때 상단 막대가 빨갛거나(동기화 오류) 글꼴이 기본 글꼴로 보이면 몇 초 뒤 새로고침합니다. 첫 연결이 느려 클라이언트가 서버를 잠깐 오프라인으로 본 것입니다.
+- **관찰 카테고리 경고:** `[fact]`·`[decision]` 같은 카테고리 글자를 누르면 SilverBullet이 카테고리를 지웁니다(`[]`가 되고 Basic Memory는 그 관찰을 `note`로 다시 색인). 실수했으면 바로 `Cmd+Z`로 되돌립니다.
+- **비밀번호 교체:** main 체크아웃 `.env`의 `SB_USER`를 바꾸고 `make deploy`(사용자 OK)를 실행합니다. VM `.env`가 바뀌면 compose가 SilverBullet을 다시 만들고, 열린 브라우저는 다시 로그인해야 합니다.
+- **글꼴:** 새 VM이거나 글꼴을 바꿀 때 `make sb-fonts`(사용자 OK). 복원하면 백업에 든 글꼴이 돌아오므로 다시 올릴 필요가 없습니다.
+- **무시 목록:** 저장소의 `silverbullet/notes.gitignore`를 고치고 `make deploy`를 실행합니다. 배포가 Basic Memory를 다시 만들어 새 목록을 읽게 합니다(VM 콜드 스타트 161~192초). 이미 색인된 항목은 남습니다.
+- **관리 페이지:** `Library/agent-hub/agent-hub.md`는 배포마다 덮어씁니다. 개인 설정은 `CONFIG` 페이지에 둡니다. 대시보드 `index`는 처음 한 번만 만들고 이후에는 건드리지 않습니다.
 
 ## 정지된 VM
 
@@ -62,7 +74,7 @@ VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 �
 
 ## Exposure audit
 
-`make verify`/`make probe`는 VM 쪽에서 확인할 수 있는 것만 자동으로 검사합니다: `127.0.0.1` 바인딩, Serve가 tailnet 전용인지(Funnel off), 공인 IP의 22·80·443·8737 차단. 나머지 두 가지는 VM에서 읽을 수 없으므로, 배포 직후와 방화벽·정책을 바꾼 뒤(VM 재구축 포함)에 손으로 점검하고 결과를 Incident log 아래 "점검 기록"에 남깁니다.
+`make verify`/`make probe`는 VM 쪽에서 확인할 수 있는 것만 자동으로 검사합니다: 8737·3000의 `127.0.0.1` 바인딩, Serve가 tailnet 전용이고 443→Basic Memory·8443→SilverBullet인지(두 포트 모두 Funnel off), 공인 IP의 22·80·443·8443·8737·3000 차단. 나머지 두 가지는 VM에서 읽을 수 없으므로, 배포 직후와 방화벽·정책을 바꾼 뒤(VM 재구축 포함)에 손으로 점검하고 결과를 Incident log 아래 "점검 기록"에 남깁니다.
 
 1. 방화벽 규칙 중 **VPC 밖의 소스를 허용하는 인바운드 규칙이 0개인지** 확인합니다. `default-allow-internal`의 `10.128.0.0/9`만 남아야 합니다.
 
@@ -73,7 +85,7 @@ VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 �
    `direction`이 `INGRESS`, `disabled`가 `False`이면서 소스가 `10.128.0.0/9`가 아닌 행이 없어야 합니다(`default-allow-ssh`는 부트스트랩이 끝나면 지워져 있어야 함). **Assumption:** 기본 `default` 네트워크 하나만 쓰는 프로젝트입니다.
 2. Tailscale admin console → Access controls의 정책 `nodeAttrs`에 **`"funnel"`이 없는지** 확인합니다.
 
-스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@agent-hub sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다. **Verified (2026-10-13, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Step 14):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=agent-hub`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 노드가 이미 tailnet에 있으면 키 프롬프트에 아무것도 넣지 않고 Enter만 누릅니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다. 또한 **Verified (2026-10-13, Tailscale v1.104.1 소스 `cmd/tailscale/cli/serve_v2.go`의 `applyFunnel`):** `serve --bg`는 자기가 설정하는 포트(443)의 Funnel만 끄고(`Removing Funnel for ...` 출력) 다른 포트의 Funnel은 그대로 둡니다. 그래서 `tailscale funnel status`에 443 말고 다른 포트의 Funnel이 남아 있으면 `ssh ubuntu@agent-hub sudo tailscale serve reset`을 사용자 OK 후에 실행하고, Serve를 다시 설정합니다.
+스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@agent-hub sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다. **Verified (2026-10-13, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Step 14):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=agent-hub`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 노드가 이미 tailnet에 있으면 키 프롬프트에 아무것도 넣지 않고 Enter만 누릅니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다. 또한 **Verified (2026-10-13, Tailscale v1.104.1 소스 `cmd/tailscale/cli/serve_v2.go`의 `applyFunnel`):** `serve --bg`는 자기가 설정하는 포트(443)의 Funnel만 끄고(`Removing Funnel for ...` 출력) 다른 포트의 Funnel은 그대로 둡니다. 그래서 `tailscale funnel status`에 443 말고 다른 포트의 Funnel이 남아 있으면 `ssh ubuntu@agent-hub sudo tailscale serve reset`을 사용자 OK 후에 실행하고, Serve를 다시 설정합니다. `serve reset`은 443과 8443 설정을 모두 지우므로, 그 뒤 `make vm-bootstrap HOST=agent-hub`로 두 포트를 다시 설정합니다.
 
 ## 비용 점검
 

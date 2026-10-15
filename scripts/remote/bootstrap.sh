@@ -5,6 +5,9 @@ set -euo pipefail
 
 readonly TS_HOSTNAME="${TS_HOSTNAME:-agent-hub}"
 readonly BM_PORT="${BM_PORT:-8737}"
+readonly SB_PORT="${SB_PORT:-3000}"
+# Tailscale Serve publishes SilverBullet on this https port of the same tailnet name (443 stays Basic Memory).
+readonly SB_HTTPS_PORT=8443
 readonly BM_REMOTE_DATA_ROOT="${BM_REMOTE_DATA_ROOT:-/srv/basic-memory}"
 readonly BM_REMOTE_APP_DIR="${BM_REMOTE_APP_DIR:-/opt/basic-memory}"
 readonly ADMIN_USER="${ADMIN_USER:-ubuntu}"
@@ -139,17 +142,22 @@ join_tailnet() {
 }
 
 # Verified (tailscale cli/serve_legacy.go, read in the final review): when HTTPS is not enabled on the tailnet,
-# `serve --bg` may print an enable URL and exit 0 without applying any config, so read the result back.
+# `serve --bg` may print an enable URL and exit 0 without applying any config, so read the result back. The VM has
+# no jq, so this checks that both targets appear; verify-vm.sh checks the target of each port.
 configure_serve() {
-  local target="http://127.0.0.1:${BM_PORT}" serve_status
-  tailscale serve --bg "$target" || die "tailscale serve failed: rerun 'make vm-bootstrap' (it is safe to repeat)"
+  local bm_target="http://127.0.0.1:${BM_PORT}" sb_target="http://127.0.0.1:${SB_PORT}" serve_status port
+  tailscale serve --bg "$bm_target" || die "tailscale serve failed: rerun 'make vm-bootstrap' (it is safe to repeat)"
+  tailscale serve --bg --https="$SB_HTTPS_PORT" "$sb_target" \
+    || die "tailscale serve for SilverBullet failed: rerun 'make vm-bootstrap' (it is safe to repeat)"
   serve_status="$(tailscale serve status)" || die "could not read tailscale serve status: rerun 'make vm-bootstrap'"
   if grep -qi 'funnel on' <<<"$serve_status"; then
     die "Funnel is on for this node, which makes the unauthenticated endpoint public: turn it off (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit), then rerun 'make vm-bootstrap'"
   fi
-  grep -qE "proxy http://127\.0\.0\.1:${BM_PORT}/?\$" <<<"$serve_status" \
-    || die "Serve is not active (expected a proxy to $target, got: $serve_status): enable MagicDNS and HTTPS certificates in the Tailscale admin console (docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md), then rerun 'make vm-bootstrap'"
-  log "tailscale serve -> $target (tailnet only)"
+  for port in "$BM_PORT" "$SB_PORT"; do
+    grep -qE "proxy http://127\.0\.0\.1:${port}/?\$" <<<"$serve_status" \
+      || die "Serve is not active (expected a proxy to http://127.0.0.1:$port, got: $serve_status): enable MagicDNS and HTTPS certificates in the Tailscale admin console (docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md), then rerun 'make vm-bootstrap'"
+  done
+  log "tailscale serve -> $bm_target (https 443) and $sb_target (https $SB_HTTPS_PORT), tailnet only"
 }
 
 main() {

@@ -12,11 +12,12 @@ MAIN_ROOT := $(if $(GIT_COMMON_DIR),$(abspath $(GIT_COMMON_DIR)/..),$(CURDIR))
 BM_PORT := $(or $(BM_PORT),8737)
 SB_PORT := $(or $(SB_PORT),3000)
 export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT SB_PORT
-# Only the targets that hand the SilverBullet login to compose or the VM see it; make review's CLIs do not.
-local-up local-down local-logs local-verify deploy restore: export SB_USER := $(SB_USER)
+# Only the targets that hand the SilverBullet login to compose or the VM, or log in to check it, see it; make
+# review's CLIs and the read-only probe do not.
+local-up local-down local-logs local-verify deploy restore verify: export SB_USER := $(SB_USER)
 # make reads .env as makefile text (# starts a comment, $ expands), so the same targets also get the path of that file
 # (never the value) and require_sb_user in scripts/lib/common.sh compares SB_USER with its raw line.
-local-up local-down local-logs local-verify deploy restore: export SB_ENV_FILE := $(MAIN_ROOT)/.env
+local-up local-down local-logs local-verify deploy restore verify: export SB_ENV_FILE := $(MAIN_ROOT)/.env
 REVIEW_BASE := $(or $(REVIEW_BASE),origin/main)
 export REVIEW_BASE REVIEW_ALLOW_SAME_VENDOR REVIEW_MODEL
 
@@ -93,10 +94,10 @@ vm-bootstrap: ## First-time VM setup over public SSH (HOST=<public-ip>; asks for
 deploy: ## Copy compose.yaml to the VM and start Basic Memory (waits until healthy)
 	scripts/deploy.sh
 
-verify: ## Full VM check: MCP write/read/delete, loopback binding, tailnet-only serve, closed public ports
+verify: ## Full VM check: MCP write/read/delete, SilverBullet login, loopback binding, tailnet-only serve, closed public ports
 	scripts/verify-vm.sh
 
-probe: ## Read-only VM check: same as verify but writes no notes (safe while diagnosing)
+probe: ## Read-only VM check: same as verify but writes no notes and does not log in to SilverBullet
 	scripts/verify-vm.sh --read-only
 
 status: ## Show VM containers, memory and swap use, and tailscale serve

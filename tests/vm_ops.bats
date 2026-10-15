@@ -8,6 +8,7 @@ setup() {
   export VERIFY_ID=test1
   cp -R "$REPO_DIR/tests/fixtures/mcp-sse" "$BATS_TEST_TMPDIR/fixtures"
   export CURL_FIXTURES="$BATS_TEST_TMPDIR/fixtures"
+  export CURL_SB_COOKIE="set-cookie: auth_agent-hub=stub-session-token; Path=/; SameSite=Lax; HttpOnly; Secure"
 }
 
 # --- deploy ---
@@ -97,16 +98,19 @@ setup() {
 
 # --- verify-vm ---
 
-@test "verify runs the MCP round trip over the tailnet URL and checks loopback binding" {
+@test "verify runs the MCP round trip and the SilverBullet login over the tailnet URLs and checks both loopback ports" {
   run "$REPO_DIR/scripts/verify-vm.sh"
   assert_success
   assert_output --partial "OK: MCP round trip passed"
+  assert_output --partial "OK: SilverBullet checks passed for https://agent-hub.example.ts.net:8443"
   assert_output --partial "port 8737 listens on 127.0.0.1 only"
-  assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8737"
+  assert_output --partial "port 3000 listens on 127.0.0.1 only"
+  assert_output --partial "443 -> 127.0.0.1:8737, 8443 -> 127.0.0.1:3000"
+  assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8443 8737 3000"
   run grep -F 'https://agent-hub.example.ts.net/mcp' "$STUB_LOG"
   assert_success
   run grep -c '^nc ' "$STUB_LOG"
-  assert_output 4
+  assert_output 6
 }
 
 @test "verify fails when the port is exposed beyond loopback" {
@@ -123,7 +127,7 @@ setup() {
   run grep -Fx 'nc -z -G 5 -w 5 203.0.113.10 22' "$STUB_LOG"
   assert_success
   run grep -c '^nc -z -G 5 -w 5 ' "$STUB_LOG"
-  assert_output 4
+  assert_output 6
 
   : >"$STUB_LOG"
   export UNAME_STUB_OUTPUT=Linux
@@ -149,13 +153,26 @@ setup() {
   assert_output --partial "Funnel is on for this node"
 }
 
-@test "probe runs every check without writing notes" {
+@test "verify fails unless Serve sends 443 to Basic Memory and 8443 to SilverBullet with Funnel off on both" {
+  local case
+  for case in "TS_STUB_SERVE_8443=" "TS_STUB_SERVE_8443=http://127.0.0.1:8737" "TS_STUB_SERVE_EMPTY=1" \
+    "TS_STUB_FUNNEL=on TS_STUB_FUNNEL_PORT=8443"; do
+    run env $case "$REPO_DIR/scripts/verify-vm.sh" --read-only
+    [[ "$status" -ne 0 ]] || fail "expected a failure with $case; got: $output"
+  done
+}
+
+@test "probe runs every check without writing notes, logging in or needing SB_USER" {
+  unset SB_USER
   run "$REPO_DIR/scripts/verify-vm.sh" --read-only
   assert_success
   assert_output --partial "OK: MCP read-only probe passed"
+  assert_output --partial "OK: SilverBullet answers and refuses requests without a login"
   assert_output --partial "tailscale serve is tailnet only"
   assert_output --partial "public IP 203.0.113.10 refuses"
   run grep -F '"method":"tools/call"' "$STUB_LOG.requests"
+  assert_failure
+  run grep -F '/.auth' "$STUB_LOG"
   assert_failure
 }
 

@@ -40,3 +40,17 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 ## VM 측정
 
 [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)에서 두 컨테이너를 함께 띄운 뒤의 메모리·스왑 사용량을 여기에 기록합니다. OOM이 나면 [vm-sizing ADR](adr-2026-10-12-mdq5exsf-vm-sizing.md)을 다시 판단합니다.
+
+**Verified ([web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md), 2026-10-15, `agent-hub-01` e2-micro amd64):**
+
+컨테이너 열은 `docker stats`의 상주 메모리입니다. 스왑으로 나간 페이지는 세지 않습니다.
+
+| 시점 | 명령 | SilverBullet | Basic Memory | 메모리 사용 | 스왑 사용 | OOM |
+|---|---|---|---|---|---|---|
+| 배포 전 | `make status` | - | - | 56% (`make status`는 %만 출력) | 490/1023 MB | - |
+| 배포 직후 | `docker stats`, `free -m`, `dmesg` | 26.85 MiB | 252.4 MiB | 594/952 MB | 109/1023 MB | 없음 |
+| 브라우저 확인 뒤 | 같음 | 6.6 MiB | 390.3 MiB | 695/952 MB | 402/1023 MB | 없음 |
+
+- `make deploy`는 91초 걸렸습니다. Basic Memory를 다시 만들고 healthy가 되기까지 54초였습니다. 이미지가 캐시돼 있어서, 처음부터 받는 콜드 스타트(161~192초)보다 짧았습니다.
+- 스왑 사용량은 배포 전 수준(490 MB)을 넘지 않았습니다.
+- **Assumption:** 메모리 부담은 대부분 Basic Memory에서 옵니다. SilverBullet의 상주 메모리는 26.85 MiB에서 6.6 MiB로 줄었는데, 같은 때 스왑은 109 MB에서 402 MB로 늘었습니다. 그러니 6.6 MiB는 실제 사용량이 아니라 스왑으로 밀려난 결과일 수 있습니다. 다음에 잴 때는 컨테이너별 `memory.swap.current`도 기록합니다.

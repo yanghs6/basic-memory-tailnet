@@ -105,7 +105,14 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
   - 스파이크 때 쓴 origin(`localhost:3000`)에는 브라우저 캐시(`CONFIG.md` 등)가 남아, 첫 화면이 예전 스크립트로 그려져 `attempt to call a nil value (field 'dashboard')`가 났다. 새로고침한 탭과 새 origin(`sb.localhost:3000`)에서는 오류가 없었다. VM은 새 origin이므로 해당하지 않는다.
   - 2.12.1의 service worker 뒤에서는 페이지의 `fetch("/.fs/…")`가 파일을 읽고 쓰지 못한다(PUT은 405 `allow: GET,HEAD`, GET은 앱 HTML). 확인용 쓰기·읽기는 `client.space.writePage`·`readPage`로 한다.
   - Basic Memory `search_notes`의 기본 검색은 글자가 일치하지 않는 노트도 점수를 매겨 돌려준다. 무시 목록 확인은 `search_type: "text"`(0건)와 `list_directory`(노트만 있음)로 한다.
-- **Assumption ([web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)에서 확인):** Serve 뒤에서 쿠키에 `Secure`가 붙는다(위 소스 근거). `sudo -n -u '#1000'`로 노트 폴더에 쓸 수 있다. SilverBullet 컨테이너는 호스트의 `127.0.0.1:8737`에 닿지 못한다. amd64에서의 메모리. `tailscale serve --bg --https=8443`이 기존 443 설정을 지우지 않는다.
+- **Verified ([web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md), 2026-10-15, `agent-hub-01`):**
+  - Serve 뒤에서 쿠키에 `Secure`가 붙는다. `make verify`가 `https://…:8443`에서 로그인 쿠키 검사를 통과했다.
+  - `sudo -n -u '#1000'`로 노트 폴더에 쓸 수 있다. `make deploy`가 공간 파일과 페이지를 오류 없이 썼다.
+  - SilverBullet 컨테이너는 Basic Memory에 닿지 못한다. 컨테이너 안에서 `curl`로 `127.0.0.1:8737`, `silverbullet` 네트워크 게이트웨이의 `:8737`, `basic-memory-server:8000`을 불렀더니 모두 `000`이 나왔다.
+  - amd64에서 `docker stats` 상주 메모리(스왑 제외)는 SilverBullet 6.6~26.9 MiB, Basic Memory 252~390 MiB이고 OOM은 없다([web-ui-silverbullet ADR](../decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md) "VM 측정").
+  - `tailscale serve --bg --https=8443`은 기존 443 설정을 지우지 않는다(`serve status --json`에 두 포트가 모두 있음).
+  - `serve status --json`의 모양은 테스트 스텁과 같다: `Web."<host>:<port>".Handlers["/"].Proxy`이고, Funnel이 꺼져 있으면 `AllowFunnel`이 없다.
+  - Mac에서 tailnet 왕복이 300ms쯤이면 새 TLS 연결이 2초를 넘을 수 있다(`/.ping` 2.6초). 그러면 새 기기에서 처음 열 때 클라이언트의 2초 ping이 시간을 넘겨, 상단 막대가 빨갛게(`sb-sync-error`) 되고 글꼴 요청이 503을 받아 기본 글꼴로 보인다. 몇 초 뒤 새로고침하면 둘 다 정상이 된다.
 - **Verified ([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) 진행 로그 2026-10-13 Step 14, `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md:293`):** 22번이 닫힌 뒤에도 `make vm-bootstrap HOST=agent-hub </dev/null`이 Tailscale SSH로 키 없이 다시 실행되고 Serve를 다시 적용한다. [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)은 이 경로로 8443을 더한다.
 - **Verified (tailscale `ipn/serve.go:53-76`, `:125-172`, `cmd/tailscale/cli/serve_v2.go:259-264`):** `tailscale serve status --json`은 `Web`(키 `<호스트>:<포트>`, 값의 `Handlers["/"].Proxy`)과 `AllowFunnel`(키 `<호스트>:<포트>`)을 담은 설정을 출력한다. [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)의 `verify`가 포트별 대상과 Funnel을 이 JSON으로 검사한다.
 
@@ -147,7 +154,7 @@ scripts/sb-fonts.sh              TTF → WOFF2 변환과 업로드 (--local 또�
 scripts/verify-sb.sh             SilverBullet 검사, URL 인자 (§7.5)
 scripts/deploy.sh  restore.sh  lib/common.sh   (§7.3, §8.3) — web-ui-local 계획
 scripts/verify-vm.sh  bootstrap-vm.sh  remote/bootstrap.sh   (§7.6, §7.7) — web-ui-vm-rollout 계획
-Makefile                         sb-fonts 추가, local-up·local-verify 변경, SB_PORT export, SB_USER는 여섯 타깃에만 export (§8.3)
+Makefile                         sb-fonts 추가, local-up·local-verify 변경, SB_PORT export, SB_USER는 일곱 타깃에만 export (§8.3)
 .env.example                     SB_PORT=3000, 빈 SB_USER= ("main 체크아웃 .env에만 적고 커밋 금지" 주석)
 tests/*.bats, tests/stubs/       §10 (curl·sudo·tailscale 스텁 확장, python3 스텁 추가)
 docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md  README.md  AGENTS.md
@@ -309,8 +316,8 @@ docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md  docs/ARCHITECTURE
 3. **`SB_USER`(`user:password`)의 흐름:**
    - 사용자가 main 체크아웃의 `.env`에 직접 적는다. 채팅이나 명령 인자로는 다루지 않는다.
    - 문자는 영문자, 숫자, `._~+/=-`만 쓴다(사용자 이름은 `._-`까지). make는 `.env`를 그대로 읽어 `#`을 주석으로, `$`를 변수로 해석하고, docker compose `.env`도 `$`를 해석하기 때문이다. `require_sb_user`가 형식을 검사한다. 비밀번호 예: `openssl rand -base64 24`.
-   - make가 이미 바꾼 값은 형식 검사를 통과할 수 있다(예: `admin:abc#def`는 `admin:abc`로 잘리고, `$s`는 빈 값으로 펼쳐진다). 그래서 `SB_USER`를 받는 여섯 타깃은 값이 아닌 경로 `SB_ENV_FILE`(main 체크아웃 `.env`)도 타깃별로 export하고, `require_sb_user`는 그 파일의 마지막 `SB_USER=` 줄을 그대로 읽어(접두어와 줄 끝 CR만 뗀다) 받은 값과 비교한다. 다르면 두 값을 출력하지 않고 파일 경로와 허용 문자를 알리며 멈춘다. `SB_ENV_FILE`이 없으면(스크립트를 직접 실행할 때) 비교를 건너뛴다. `local-up`은 compose를 부르기 전 첫 레시피 줄에서 `scripts/lib/common.sh`를 읽어 `require_sb_user`를 실행한다.
-   - Makefile의 export 목록(`Makefile:13`)에는 `SB_PORT`만 더한다. `SB_USER`는 compose나 VM에 로그인을 넘기는 여섯 타깃(`local-up`, `local-down`, `local-logs`, `local-verify`, `deploy`, `restore`)에만 타깃별로 export한다(`<타깃들>: export SB_USER := $(SB_USER)`). 전역 export는 모든 레시피 환경에 들어가, `make review`가 실행하는 다른 벤더 CLI(`codex exec`, `claude -p`, `scripts/review.sh:129-141`)도 비밀값을 보게 되기 때문이다. GNU make 3.81(macOS 기본)에서 타깃별 export는 이름을 적은 타깃에만 닿는다([web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md) 사전 점검에서 확인). 레시피 인자로 넘기면 make가 명령을 출력하므로 쓰지 않는다.
+   - make가 이미 바꾼 값은 형식 검사를 통과할 수 있다(예: `admin:abc#def`는 `admin:abc`로 잘리고, `$s`는 빈 값으로 펼쳐진다). 그래서 `SB_USER`를 받는 일곱 타깃은 값이 아닌 경로 `SB_ENV_FILE`(main 체크아웃 `.env`)도 타깃별로 export하고, `require_sb_user`는 그 파일의 마지막 `SB_USER=` 줄을 그대로 읽어(접두어와 줄 끝 CR만 뗀다) 받은 값과 비교한다. 다르면 두 값을 출력하지 않고 파일 경로와 허용 문자를 알리며 멈춘다. `SB_ENV_FILE`이 없으면(스크립트를 직접 실행할 때) 비교를 건너뛴다. `local-up`은 compose를 부르기 전 첫 레시피 줄에서 `scripts/lib/common.sh`를 읽어 `require_sb_user`를 실행한다.
+   - Makefile의 export 목록(`Makefile:13`)에는 `SB_PORT`만 더한다. `SB_USER`는 compose나 VM에 로그인을 넘기거나 로그인해 검사하는 일곱 타깃(`local-up`, `local-down`, `local-logs`, `local-verify`, `deploy`, `restore`, [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)에서 더한 `verify`)에만 타깃별로 export한다. 읽기 전용 `probe`는 받지 않는다(`<타깃들>: export SB_USER := $(SB_USER)`). 전역 export는 모든 레시피 환경에 들어가, `make review`가 실행하는 다른 벤더 CLI(`codex exec`, `claude -p`, `scripts/review.sh:129-141`)도 비밀값을 보게 되기 때문이다. GNU make 3.81(macOS 기본)에서 타깃별 export는 이름을 적은 타깃에만 닿는다([web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md) 사전 점검에서 확인). 레시피 인자로 넘기면 make가 명령을 출력하므로 쓰지 않는다.
    - VM `.env`는 배포·복원 때마다 `vm_env`가 새로 쓰므로(`scripts/lib/common.sh:65-69`, `scripts/deploy.sh:19`, `scripts/restore.sh:142`) 여기에 넣는다. 전송은 지금처럼 ssh 표준입력이다. 파일 권한은 `600`이다(배포는 내용보다 `chmod`를 먼저, 복원은 `umask 077`).
    - 컨테이너 재시작에는 필요 없다(Docker가 저장된 설정으로 다시 띄운다). 그래도 VM `.env`에 남겨 두는 이유는 `backup`의 stop·start, `status`, `logs`가 VM에서 compose 파일을 읽을 때 `${SB_USER:?}`가 값을 요구하기 때문이다.
    - 스크립트는 값을 출력하지 않고, 필요하면 `mask`를 쓴다. 로그인 확인(§7.5)은 비밀번호를 명령 인자가 아니라 curl 표준입력으로 넘긴다.
