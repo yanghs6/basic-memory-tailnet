@@ -75,7 +75,7 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (스파이크, `server/src/shell.rs:1-23`):** `SB_SHELL_BACKEND`가 `local`이 아니면 셸이 꺼지고 `/.shell`이 405 `Shell commands are disabled`를 낸다(로그인 상태 포함).
 - **Verified (스파이크, `server/src/handlers/auth.rs:122`):** `SB_USER`를 주면 로그인 전 `/.fs`·`/.shell`·`/.proxy`가 401이다. 세션 쿠키는 `SameSite=Lax; HttpOnly`다. 세션은 공간 루트의 `.silverbullet.browser-sessions.json`에 저장된다(`server/src/auth/browser_sessions.rs:10`).
 - **Verified (`server/src/router.rs:349-353`, `:614-616`):** 인증 없이 열리는 경로 목록은 `/.ping`, `/.logout`, `/.auth*`, `robots.txt`, `sitemap.xml`과 클라이언트 번들이다. healthcheck는 이 목록에 있는 `/.ping`을 쓴다.
-- **Verified (계획 10, 2026-10-15, 로컬 2.12.1-slim, `curl`):** 로그인 전 `/.fs/index.md`는 401이지만, 목록에 없는 `/.instance`는 200과 `{"instance":"<uuid>","version":"2.12.1-…"}`를 돌려준다. 이미지 기본 healthcheck는 지금 버전에서는 인증을 켜도 통과하지만, 목록 밖 경로에 기대지 않으려고 `/.ping`으로 덮어쓴다.
+- **Verified (계획 10, 2026-10-15, 로컬 2.12.1-slim, `curl`):** 로그인 전 `/.fs/index.md`는 401이지만, 목록에 없는 `/.instance`는 200과 `{"instance":"<uuid>","version":"2.12.1-…"}`를 돌려준다. 그러니 이미지 기본 healthcheck도 지금 버전에서는 인증을 켜도 통과할 것으로 본다(추정, 직접 돌려 보지는 않음). 목록 밖 경로에 기대지 않으려고 `/.ping`으로 덮어쓴다.
 - **Verified (`server/src/handlers/auth.rs:81-137`, `:163-212`):** `POST /.auth`는 성공과 실패 모두 HTTP 200 JSON으로 답한다(`{"status":"ok"}` 또는 `{"status":"error"}`). 성공일 때만 `auth_`로 시작하는 세션 쿠키를 붙인다. `GET /.logout`은 세션을 폐기하고 302로 답한다.
 - **Verified (`server/src/auth/cookie.rs:49-57`, `:84-85`, tailscale `ipn/ipnlocal/serve.go:1088-1091`):** 세션 쿠키의 `Secure`는 요청에 `X-Forwarded-Proto: https`가 있을 때만 붙고, Tailscale Serve가 이 헤더를 붙인다. VM에서의 확인은 계획 11에서 한다.
 - **Verified (`client/navigator/view_defaults.ts`, `client/navigator/builtins.ts:31-41`, `views/space_tree.ts:164-170`, 스파이크):** 트리 뷰 이름은 `std.spaceTree`이고, `config.set("view.defaults", {["std.spaceTree"] = {dock = "lhs", open = true}})`로 처음부터 왼쪽에 연다. 브라우저에 저장된 사용자 선택이 이 값보다 앞선다. 저장된 선택이 없는 새 origin(`localhost:3000`)에서 트리가 왼쪽에 열렸다.
@@ -85,7 +85,7 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (`libraries/Library/Std/Widgets/Widgets.md`, `docs/API/view.md:39-58`, 스파이크):** 사용자 뷰는 `view.define`으로 등록하고 `lhs`·`rhs`·`page-top` 등에 둔다. `frame = "minimal"`인 `page-top` 뷰는 제목줄 없이 본문처럼 보이고 내용이 없으면 숨는다. Linked Tasks는 다른 페이지의 작업을 체크·상태 변경이 되는 채로 `page-top`에 보여 주며 기본으로 열려 있다.
 - **Verified (스파이크, 2026-10-14):**
   - 색인 객체의 필드: 페이지 `lastModified`는 `2026-10-14T11:49:06.750`처럼 로컬 시각 문자열이고, 프론트매터의 `permalink`도 들어 있다. 목록 항목은 `text`·`tags`·`ref`(`페이지@위치`), 헤더는 `name`·`ref`다. 관찰 줄은 목록 항목이 아니라 작업(`index.tasks()`, `state`·`name`·`tags`)으로 색인된다.
-  - 문단은 `config.set("index.paragraph.all", true)`가 있어야 색인된다. 이미 색인한 브라우저뿐 아니라 처음 여는 브라우저도 공간 설정보다 색인이 먼저 돌므로, 문단 검색은 브라우저마다 `Space: Reindex`를 한 번 실행한 뒤에 된다. 계획 10(2026-10-15)에서는 관리 페이지가 처음부터 있는 공간을 새 origin(`sb.localhost:3000`)으로 열었을 때 Reindex 없이 문단이 검색됐다. 스파이크의 누락은 설정을 나중에 더한 데서 생긴 것으로 본다(Assumption). 문단이 안 나올 때의 Reindex 안내는 그대로 둔다.
+  - 문단은 `config.set("index.paragraph.all", true)`가 있어야 색인된다. 스파이크에서는 이미 색인한 브라우저와 처음 연 브라우저 모두 `Space: Reindex`를 한 번 실행한 뒤에야 문단이 검색됐다. 계획 10(2026-10-15)에서는 관리 페이지가 처음부터 있는 공간을 새 origin(`sb.localhost:3000`)으로 열었을 때 Reindex 없이 문단이 검색됐다. 스파이크의 누락은 설정을 나중에 더한 데서 생긴 것으로 본다(Assumption). 문단이 안 나올 때의 Reindex 안내는 그대로 둔다.
   - Space Lua에서 `query[[…]][1]`처럼 질의 결과를 바로 인덱싱하면 블록 전체가 파싱 오류가 된다. 변수에 담은 뒤 인덱싱한다.
   - `memory://main/projects/agent-hub`를 Basic Memory `build_context`에 넘기면 그 노트와 관찰·관계가 돌아온다.
   - 검색 패널이 트리를 밀어낸 상태에서 Esc로 닫으면 트리가 돌아온다. 검색 패널을 연 채로 새로고침하면 검색이 그 칸의 주인이 되어, 닫으면 칸이 비고 Cmd-O로 트리를 다시 연다.
