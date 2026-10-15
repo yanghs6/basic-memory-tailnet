@@ -73,7 +73,7 @@ run_bootstrap_with_key() {
   assert_output --partial "not on the tailnet and no auth key given"
 }
 
-@test "on a host already on the tailnet it skips the docker install, refreshes only hostname and Tailscale SSH, creates data dirs owned by the container uid and serves the loopback port" {
+@test "on a host already on the tailnet it skips the docker install, refreshes only hostname and Tailscale SSH, creates data dirs owned by the container uid and serves both loopback ports" {
   setup_stubs docker
   run_bootstrap_with_key ""
   assert_success
@@ -88,18 +88,22 @@ run_bootstrap_with_key() {
   assert_output "1000:1000"
   run grep -F 'tailscale serve --bg http://127.0.0.1:8737' "$STUB_LOG"
   assert_success
+  run grep -F 'tailscale serve --bg --https=8443 http://127.0.0.1:3000' "$STUB_LOG"
+  assert_success
   run grep -Fx 'tailscale serve status' "$STUB_LOG"
   assert_success
 }
 
-@test "fails with HTTPS guidance when Serve is not active after setup" {
+@test "fails with HTTPS guidance when Serve is not active after setup, also when only the 8443 mapping is missing" {
+  local case
   setup_stubs docker
-  export TS_STUB_SERVE_EMPTY=1
-  run_bootstrap_with_key ""
-  assert_failure
-  assert_output --partial "Serve is not active"
-  assert_output --partial "enable MagicDNS and HTTPS certificates"
-  refute_output --partial "done"
+  for case in "TS_STUB_SERVE_EMPTY=1" "TS_STUB_SERVE_8443="; do
+    run env "$case" bash -c 'printf "\n" | "$0"' "$BOOTSTRAP"
+    assert_failure
+    assert_output --partial "Serve is not active"
+    assert_output --partial "enable MagicDNS and HTTPS certificates"
+    refute_output --partial "done"
+  done
 }
 
 @test "fails when the Serve config has Funnel on" {
