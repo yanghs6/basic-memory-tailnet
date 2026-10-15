@@ -10,7 +10,10 @@ GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir 
 MAIN_ROOT := $(if $(GIT_COMMON_DIR),$(abspath $(GIT_COMMON_DIR)/..),$(CURDIR))
 -include $(MAIN_ROOT)/.env
 BM_PORT := $(or $(BM_PORT),8737)
-export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT
+SB_PORT := $(or $(SB_PORT),3000)
+export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT SB_PORT
+# Only the targets that hand the SilverBullet login to compose or the VM see it; make review's CLIs do not.
+local-up local-down local-logs local-verify deploy restore: export SB_USER := $(SB_USER)
 REVIEW_BASE := $(or $(REVIEW_BASE),origin/main)
 export REVIEW_BASE REVIEW_ALLOW_SAME_VENDOR REVIEW_MODEL
 
@@ -47,11 +50,11 @@ check: lint coverage ## Lint + all tests + coverage gate (run before every commi
 COMPOSE := docker compose -f compose.yaml
 LOCAL_DATA_DIRS := .local-data/knowledge .local-data/config
 
-local-up: ## Start Basic Memory locally on 127.0.0.1:BM_PORT and wait until healthy
+local-up: ## Start Basic Memory and SilverBullet locally (127.0.0.1:BM_PORT, SB_PORT) and wait until healthy
 	mkdir -p $(LOCAL_DATA_DIRS)
 	$(COMPOSE) up -d --wait
 
-local-down: ## Stop the local container (data in .local-data/ is kept)
+local-down: ## Stop the local containers (data in .local-data/ is kept)
 	$(COMPOSE) down
 
 local-logs: ## Show recent local container logs

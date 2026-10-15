@@ -75,9 +75,14 @@ require_shell_files() {
   [[ "$healthcheck" == *"8000"* ]] || fail "healthcheck must probe port 8000"
 }
 
-# compose_start_period_seconds: print the healthcheck start_period of compose.yaml in whole seconds (empty if absent).
+# service_block NAME -> the lines of service NAME in compose.yaml, up to the next service or top-level key.
+service_block() {
+  awk -v name="$1" '$0 == "  " name ":" { inside = 1; next } inside && (/^[^ ]/ || /^  [^ ]/) { exit } inside { print }' "$REPO_DIR/compose.yaml"
+}
+
+# compose_start_period_seconds: print the Basic Memory healthcheck start_period in whole seconds (empty if absent).
 compose_start_period_seconds() {
-  sed -nE 's/^ +start_period: ([0-9]+)s$/\1/p' "$REPO_DIR/compose.yaml"
+  service_block basic-memory | sed -nE 's/^ +start_period: ([0-9]+)s$/\1/p'
 }
 
 @test "compose healthcheck start_period covers the measured e2-micro cold start" {
@@ -101,6 +106,26 @@ compose_start_period_seconds() {
 @test "compose restarts the container after reboots" {
   run grep -E '^ +restart: unless-stopped$' "$REPO_DIR/compose.yaml"
   assert_success
+}
+
+@test "SilverBullet is pinned, needs a login, has no shell or runtime API and shares no network or data beyond the notes" {
+  local sb bm
+  sb="$(service_block silverbullet)"
+  bm="$(service_block basic-memory)"
+  [[ -n "$sb" && -n "$bm" ]] || fail "compose.yaml must define the basic-memory and silverbullet services"
+  grep -qE '^ +image: ghcr\.io/silverbulletmd/silverbullet:[0-9.]+-slim@sha256:[0-9a-f]{64}$' <<<"$sb" \
+    || fail "pin the silverbullet -slim image by digest"
+  grep -qF 'SB_USER: ${SB_USER:?' <<<"$sb" \
+    || fail 'SB_USER must read ${SB_USER:?...} so compose refuses to start SilverBullet without a login'
+  grep -qxF '      SB_SHELL_BACKEND: "off"' <<<"$sb" || fail 'silverbullet must set SB_SHELL_BACKEND: "off"'
+  grep -qxF '      SB_RUNTIME_API: "0"' <<<"$sb" || fail 'silverbullet must set SB_RUNTIME_API: "0"'
+  grep -qxF '    networks: [silverbullet]' <<<"$sb" || fail "silverbullet must use only its own network"
+  grep -qxF '    networks: [basic-memory]' <<<"$bm" || fail "basic-memory must use only its own network"
+  grep -qxF '      - "${BM_KNOWLEDGE_DIR:-./.local-data/knowledge}/basic-memory:/data"' <<<"$sb" \
+    || fail "silverbullet must mount the notes folder at /data"
+  if grep -q 'BM_CONFIG_DIR' <<<"$sb"; then
+    fail "silverbullet must not mount the Basic Memory config and database"
+  fi
 }
 
 @test ".env is never tracked by git" {
