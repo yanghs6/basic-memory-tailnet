@@ -32,7 +32,7 @@
 
 ## ssh 모드 순서
 
-1. [VM 런북](gcp-vm.md) 3단계와 8단계: `default-allow-ssh`를 지우고 `allow-iap-ssh`를 만들고, `~/.ssh/config`에 `agent-hub-iap`를 넣고, 대화형 `ssh ubuntu@agent-hub-iap true`로 호스트 키를 수락합니다.
+1. [VM 런북](gcp-vm.md) 3단계와 8단계: `default-allow-ssh`를 지우고 `allow-iap-ssh`를 만들고, `~/.ssh/config`에 `agent-hub-iap`를 넣고(VM을 다시 만들어 인스턴스 이름이 바뀌었으면 별칭의 `HostName`도 새 이름으로 바꿉니다), 대화형 `ssh ubuntu@agent-hub-iap true`로 호스트 키를 수락합니다.
 2. `.env`: `BM_ACCESS=ssh`, `BM_VM_HOST=agent-hub-iap`. `BM_TAILNET_DOMAIN`은 필요 없습니다. `make access-check`가 `ssh ubuntu@agent-hub-iap: ok`를 출력해야 합니다.
 3. `make vm-bootstrap HOST=agent-hub-iap` → 인증 키를 묻지 않고 스왑·Docker·데이터 디렉터리만 준비합니다(`access mode ssh: skipping Tailscale`).
 4. `make deploy sb-fonts verify status`

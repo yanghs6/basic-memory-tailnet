@@ -102,7 +102,7 @@ VM이 정지돼 있으면(`TERMINATED`) 다시 만들지 않고 시작합니다.
 VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 합니다(에이전트의 `bm-recover` 스킬이 같은 순서를 따릅니다).
 
 1. 최신 백업(`.sha256`과 `.manifest` 포함)이 main 체크아웃의 `backups/`에 있는지 확인합니다.
-2. [gcp-vm.md](gcp-vm.md)대로 VM을 다시 만들고 방화벽을 정리합니다. 옛 인스턴스와 디스크는 복원이 검증되기 전에는 지우지 않습니다.
+2. [gcp-vm.md](gcp-vm.md)대로 VM을 다시 만들고 방화벽을 정리합니다. 옛 인스턴스와 디스크는 복원이 검증되기 전에는 지우지 않습니다. `ssh` 모드면 `~/.ssh/config` 별칭의 `HostName`을 새 인스턴스 이름으로 바꾼 뒤, 3단계 대신 [bootstrap.md](bootstrap.md)의 "ssh 모드 순서"를 따릅니다.
 3. [bootstrap.md](bootstrap.md) 1단계(옛 `agent-hub` 기기 삭제, 호스트 키 정리)와 2~4단계(부트스트랩, Tailscale SSH 확인, `default-allow-ssh` 삭제)를 합니다.
 4. 배포 전에 `make status`의 이미지와 `compose.yaml`의 `image:`를 비교합니다(위의 이미지 점검). 아직 아무것도 배포하지 않은 VM에서는 `make status`가 `could not query containers`로 끝나는 것이 정상이며 비교는 건너뜁니다(에이전트는 `git diff main -- compose.yaml`이 비어 있는지만 확인). 그다음 `make deploy`, `make restore BACKUP=<절대 경로>`를 합니다.
 5. Exposure audit을 다시 합니다(방화벽을 새로 만들었으므로).

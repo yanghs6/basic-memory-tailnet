@@ -154,7 +154,7 @@ IAP TCP 포워딩은 Google 계정 인증을 거쳐 VM의 22번으로 터널을 
    ```
 
 2. 권한. 프로젝트 소유자는 이미 가집니다. 다른 사람에게는 [accounts 7단계](accounts.md)를 따릅니다.
-3. `~/.ssh/config` (macOS·Linux·WSL). `HostName`은 인스턴스 이름입니다.
+3. `~/.ssh/config` (macOS·Linux·WSL). `HostName`은 인스턴스 이름입니다. 인스턴스 이름이 바뀌면(VM 재구축) `HostName`도 바꿔야 합니다. 안 바꾸면 별칭이 옛 VM을 가리킵니다.
 
    ```
    Host agent-hub-iap
