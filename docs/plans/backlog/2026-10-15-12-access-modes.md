@@ -762,13 +762,14 @@ git push
 
 **Files:**
 - Create: `tests/stubs/sshd`(실행 권한)
-- Modify: `scripts/lib/common.sh`(`SSH_FAILURE_EXIT`, `vm_tailscale_logged_in`), `scripts/verify-vm.sh`(머리 주석, 상수, 새 함수, `main`)
+- Modify: `scripts/lib/common.sh`(`vm_tailscale_logged_in`), `scripts/verify-vm.sh`(머리 주석, 상수, 새 함수, `main`), `tests/stubs/tailscale`(`status --json`)
 - Test: `tests/vm_ops.bats`(setup의 스텁 목록, 헬퍼, 새 테스트)
 
 **Interfaces:**
 - Consumes: Task 1의 `access_mode`·`access_hint`, Task 2의 `forward_spec`·ssh 스텁 `-N`·nc 스텁 `NC_STUB_OPEN_MATCH`, 계획 11의 `check_serve`·`check_public_closed`·`check_loopback_binding`·`validate_public_ip`·`SB_HTTPS_PORT`, 계획 10의 `verify-sb.sh`
 - Produces:
-  - `common.sh`: `readonly SSH_FAILURE_EXIT=255`, `vm_tailscale_logged_in` → 0(로그인), 1(없음·로그아웃·정지), VM에 닿지 못하면 `die`
+  - `common.sh`: `vm_tailscale_logged_in` → 0(`BackendState` `Running`), 1(설치 안 됨, 또는 `NeedsLogin`·`NeedsMachineAuth`·`Stopped`·`NoState`). 상태를 읽지 못하면 `die`한다(ssh 실패, `sudo -n tailscale status --json` 실패, 모르는 상태). 보안 검사가 오류를 "꺼짐"으로 오인해 통과하지 않게 하기 위해서다. 로컬 `jq`를 쓴다.
+  - tailscale 스텁: `status --json`이 `{"BackendState": "${TS_STUB_BACKEND_STATE:-Running}"}`을 출력하고 0으로 끝난다
   - `verify-vm.sh`: `open_verify_tunnel BM_PORT SB_PORT`, `close_verify_tunnel`, `check_tailscale_off`, `check_sshd_auth`
   - sshd 스텁: `sshd -T`가 `passwordauthentication ${SSHD_STUB_PASSWORD:-no}`, `kbdinteractiveauthentication no`를 출력
   - `tests/vm_ops.bats`의 `use_ssh_mode` 헬퍼(Task 5도 쓴다)
@@ -781,7 +782,7 @@ git push
 # use_ssh_mode: the ssh access mode over an SSH alias, with the verify tunnel opening at once and Tailscale on the VM
 # logged out.
 use_ssh_mode() {
-  export BM_ACCESS=ssh BM_VM_HOST=agent-hub-iap NC_STUB_OPEN_MATCH=127.0.0.1 TS_STUB_STATUS_EXIT=1
+  export BM_ACCESS=ssh BM_VM_HOST=agent-hub-iap NC_STUB_OPEN_MATCH=127.0.0.1 TS_STUB_BACKEND_STATE=NeedsLogin
   unset BM_TAILNET_DOMAIN
 }
 ```
@@ -817,11 +818,20 @@ use_ssh_mode() {
   assert_failure
 }
 
-@test "ssh mode: verify fails while Tailscale is logged in on the VM, sshd takes passwords or the tunnel does not open" {
+@test "ssh mode: verify fails while Tailscale is logged in or unreadable on the VM, sshd takes passwords or the tunnel does not open" {
   use_ssh_mode
-  TS_STUB_STATUS_EXIT=0 run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  TS_STUB_BACKEND_STATE=Running run "$REPO_DIR/scripts/verify-vm.sh" --read-only
   assert_failure
   assert_output --partial "Tailscale is logged in on the VM but BM_ACCESS=ssh"
+
+  # A state it cannot read or does not know never counts as off.
+  TS_STUB_BACKEND_STATE=Starting run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "unexpected Tailscale state on agent-hub-iap: 'Starting'"
+
+  SSH_STUB_FAIL_MATCH="tailscale status" run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "could not read the Tailscale state on agent-hub-iap"
 
   SSHD_STUB_PASSWORD=yes run "$REPO_DIR/scripts/verify-vm.sh" --read-only
   assert_failure
@@ -860,25 +870,41 @@ printf 'kbdinteractiveauthentication no\n'
 printf 'permitrootlogin without-password\n'
 ```
 
-- [ ] **Step 4: `scripts/lib/common.sh`**
-
-상수 블록의 `SSH_CONNECT_TIMEOUT_SECONDS` 다음에 넣는다.
+`tests/stubs/tailscale`(계획 11이 다시 쓴 파일)의 머리 주석에 한 줄을 더하고, `status)` 분기를 바꾼다. 다른 분기는 그대로 둔다.
 
 ```bash
-# Exit code ssh uses for its own failures (connection, authentication), as opposed to the remote command's.
-readonly SSH_FAILURE_EXIT=255
+# `status --json` prints {"BackendState": "$TS_STUB_BACKEND_STATE"} (default Running) and exits 0, like the real CLI.
 ```
 
-`remote_compose` 다음에 넣는다.
+```bash
+  status)
+    if [[ "${2:-}" == --json ]]; then
+      printf '{"BackendState": "%s"}\n' "${TS_STUB_BACKEND_STATE:-Running}"
+      exit 0
+    fi
+    exit "${TS_STUB_STATUS_EXIT:-0}"
+    ;;
+```
+
+- [ ] **Step 4: `scripts/lib/common.sh`**
+
+`remote_compose` 다음에 넣는다. 종료 코드가 아니라 `BackendState`로 판정하는 이유가 있다. `tailscale status`의 0이 아닌 종료 코드는 로그아웃과 sudo 권한 문제를 구분하지 못한다. 그래서 종료 코드만 보면 sudo 실패도 "꺼짐"으로 통과한다.
 
 ```bash
-# vm_tailscale_logged_in -> exit 0 when Tailscale on the VM is logged in, 1 when it is missing, logged out or
-# stopped. Dies when the VM cannot be reached. The ssh access mode expects 1 (one access path per VM).
+# vm_tailscale_logged_in -> exit 0 when Tailscale on the VM is logged in (BackendState Running), 1 when it is not
+# installed or its BackendState is NeedsLogin, NeedsMachineAuth, Stopped or NoState. Dies when the state cannot be
+# read (no SSH, no passwordless sudo, tailscaled down) or is unknown, so the ssh mode's checks never pass on an error.
 vm_tailscale_logged_in() {
-  local rc=0
-  remote "command -v tailscale >/dev/null 2>&1 && sudo -n tailscale status >/dev/null 2>&1" || rc=$?
-  ((rc != SSH_FAILURE_EXIT)) || die "could not check Tailscale on $BM_VM_HOST: $(access_hint)"
-  ((rc == 0))
+  local out state
+  out="$(remote "if command -v tailscale >/dev/null 2>&1; then sudo -n tailscale status --json; else echo missing; fi")" \
+    || die "could not read the Tailscale state on $BM_VM_HOST: $(access_hint); on the VM 'sudo -n tailscale status --json' must work"
+  [[ "$out" != missing ]] || return 1
+  state="$(jq -r '.BackendState // empty' <<<"$out" 2>/dev/null)" || state=""
+  case "$state" in
+    Running) return 0 ;;
+    NeedsLogin | NeedsMachineAuth | Stopped | NoState) return 1 ;;
+    *) die "unexpected Tailscale state on $BM_VM_HOST: '$state' (expected Running, NeedsLogin, NeedsMachineAuth, Stopped or NoState)" ;;
+  esac
 }
 ```
 
@@ -1015,7 +1041,7 @@ Expected: exit 0. 새 네 테스트와 기존 `vm_ops.bats` 전체가 ok다. `re
 - [ ] **Step 7: 커밋과 push**
 
 ```bash
-git add scripts/verify-vm.sh scripts/lib/common.sh tests/stubs/sshd tests/vm_ops.bats
+git add scripts/verify-vm.sh scripts/lib/common.sh tests/stubs/sshd tests/stubs/tailscale tests/vm_ops.bats
 git commit -m "feat: verify the VM through a temporary SSH tunnel in the ssh access mode" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 12" --trailer "Task: 4"
 git push
 ```
@@ -1040,7 +1066,7 @@ git push
   assert_output --partial "access: ssh"
   assert_output --partial "tailscale: not installed or logged out"
   refute_output --partial "proxy http://127.0.0.1:8737"
-  export TS_STUB_STATUS_EXIT=0
+  export TS_STUB_BACKEND_STATE=Running
   run "$REPO_DIR/scripts/status.sh"
   assert_success
   assert_output --partial "WARNING: Tailscale is still logged in on the VM; BM_ACCESS=ssh expects it off"
@@ -1074,6 +1100,7 @@ memory_swap_summary() {
 show_access() {
   if [[ "$1" == ssh ]]; then
     step "access: ssh"
+    require_cmd jq
     if vm_tailscale_logged_in; then
       log "WARNING: Tailscale is still logged in on the VM; BM_ACCESS=ssh expects it off (docs/runbooks/operations.md, Access mode change)"
     else
@@ -1558,7 +1585,7 @@ git push
 **실제 VM에서만 확인할 수 있는 항목.** 해당 Step에서 Progress log에 `Verified`(명령 포함)로 적고, 확인하지 못하면 `Assumption`으로 남긴다.
 1. IAP 터널에 `iap.googleapis.com`을 켜야 하는가. (Step 3)
 2. `ConnectTimeout=10`이 IAP 터널을 여는 시간보다 길다. (Step 4, 6)
-3. `tailscale status`가 로그인 상태에서 0, 로그아웃 상태에서 0이 아닌 값이다. (Step 4, 5)
+3. `sudo -n tailscale status --json`이 0으로 끝나고, `BackendState`가 로그인 상태에서 `Running`, 로그아웃 뒤 `NeedsLogin`이다. ubuntu 사용자의 `sudo -n`이 암호 없이 된다. (Step 4, 5)
 4. Ubuntu 26.04 Minimal의 `sshd -T`가 `passwordauthentication no`, `kbdinteractiveauthentication no`를 출력한다. (Step 6)
 5. `make backup`이 IAP 경로에서 걸리는 시간. (Step 6)
 6. 사무실 네트워크에서 `make tunnel`과 도구 호출이 된다. (Step 8)
@@ -1616,7 +1643,7 @@ make status
 
 Expected:
 - `make access-check`가 `ssh ubuntu@agent-hub-iap: ok`를 출력하고 0으로 끝난다(안전 장치 2). 걸린 시간을 적는다(IAP 연결 시간이 `ConnectTimeout=10`보다 짧은지, 항목 2).
-- `make status`가 `access: ssh`와 `WARNING: Tailscale is still logged in on the VM`을 출력한다. 로그인 상태에서 `tailscale status`가 0이라는 증거다(항목 3 앞부분).
+- `make status`가 `access: ssh`와 `WARNING: Tailscale is still logged in on the VM`을 출력한다. 로그인 상태의 `BackendState`가 `Running`으로 읽힌다는 증거다(항목 3 앞부분).
 
 - [ ] **Step 5: VM의 Tailscale 정리 (사용자 OK, 항목 3)**
 
@@ -1719,7 +1746,7 @@ Expected: VPC 밖 소스는 `allow-iap-ssh`(`35.235.240.0/20`, `tcp:22`) 하나�
 
 - [ ] **Step 11: 기록**
 
-- ADR 0006 "이전 결과"에 Step 1~9의 결과를 `Verified`(명령 포함)로 적는다: IAP API 필요 여부, 접속 시간, `tailscale status` 종료 코드, `sshd -T` 줄, 백업 시간 비교, 사무실 결과, 무활동 결과, 패키지 결정(A/B).
+- ADR 0006 "이전 결과"에 Step 1~9의 결과를 `Verified`(명령 포함)로 적는다: IAP API 필요 여부, 접속 시간, `tailscale status --json`의 `BackendState`(로그인·로그아웃), `sshd -T` 줄, 백업 시간 비교, 사무실 결과, 무활동 결과, 패키지 결정(A/B).
 - 스펙 §3의 "Assumption (계획 12 Task 8에서 확인)" 중 확인한 것을 `Verified (계획 12 Task 8, <날짜>)`로 바꾸고, §14에서 풀린 질문을 표시한다.
 - 확인된 사실이 런북 문장과 다르면 그 문장을 고친다(예: gcp-vm 8단계 5번의 IAP API 문장, Step 9의 끊김 안내).
 - Progress log에 Step 1~10의 증거를 적는다.

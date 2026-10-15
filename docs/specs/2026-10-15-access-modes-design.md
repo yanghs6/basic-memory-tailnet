@@ -78,7 +78,7 @@ IAP TCP 포워딩 (공식 문서, 2026-10-15 조회):
 
 - IAP 터널에 `iap.googleapis.com`을 켜야 하는지. 문서에는 언급이 없다.
 - `ServerAliveInterval` 신호가 IAP의 "활동"으로 인정돼 한 시간 무활동 끊김을 막는지.
-- `tailscale status`가 로그아웃 상태에서 0이 아닌 값으로 끝난다(지금 부트스트랩 `join_tailnet`도 같은 가정을 쓴다).
+- `sudo -n tailscale status --json`이 로그인·로그아웃 상태 모두 0으로 끝나고, `BackendState`를 `Running`·`NeedsLogin`으로 보인다. VM의 ubuntu 사용자는 암호 없이 `sudo -n`을 쓸 수 있다.
 - Ubuntu 26.04 Minimal의 `sshd -T`가 `passwordauthentication no`와 `kbdinteractiveauthentication no`를 출력한다.
 - `ConnectTimeout=10`이 IAP 터널을 여는 시간보다 길다.
 - 터널 트래픽이 무료 송신 한도(월 1GB)에 들어가는지. 이전 다음 달 청구서로 확인한다.
@@ -177,7 +177,7 @@ AGENTS.md                    사용자 승인 후 (§12)
   - `tailscale`: `is <host> reachable over Tailscale SSH? (ssh <user>@<host> true)`
   - `ssh`: `check the ProxyCommand for <host> in ~/.ssh/config and its login (docs/runbooks/gcp-vm.md)`
 - `forward_spec LOCAL_PORT REMOTE_PORT`: `127.0.0.1:LOCAL:127.0.0.1:REMOTE`를 출력한다. 모든 `-L`이 이 함수를 거치므로 로컬 바인딩 불변식이 한 곳에 있다.
-- `vm_tailscale_logged_in`: VM에서 `command -v tailscale && sudo -n tailscale status`를 실행해, 로그인 상태면 0, 없거나 로그아웃·정지면 1로 끝난다. ssh 자체가 실패하면(`SSH_FAILURE_EXIT=255`) `die`. `verify`와 `status`가 함께 쓴다.
+- `vm_tailscale_logged_in`: VM에서 `sudo -n tailscale status --json`의 `BackendState`를 읽는다(설치되지 않았으면 `missing`). `Running`이면 0으로 끝나고, 설치 안 됨·`NeedsLogin`·`NeedsMachineAuth`·`Stopped`·`NoState`이면 1로 끝난다. 상태를 읽지 못하거나(ssh 실패, sudo 실패, tailscaled 중지) 모르는 값이면 `die`한다. 종료 코드만 보면 sudo 실패도 "꺼짐"으로 보이므로, 보안 검사가 오류를 통과로 처리하지 않게 상태 값으로 판정한다. `verify`와 `status`가 함께 쓴다.
 - `remote()`의 주석을 "over SSH (Tailscale SSH or the ssh mode host alias)"로 바꾸고, `ssh`를 부르기 전에 `access_mode`를 부른다. 모드를 직접 읽지 않는 VM 타깃(`deploy`, `restore`, `backup`, `logs`, `sb-fonts`)도 모두 `remote`로 VM에 닿으므로, `BM_ACCESS`가 잘못되면 VM에 닿기 전에 멈춘다(§6). 그 밖의 동작은 그대로다.
 
 ### 8.2 `access-check.sh`
@@ -235,7 +235,7 @@ AGENTS.md                    사용자 승인 후 (§12)
 3. **MCP 검사:** `verify-mcp.sh [--read-only] http://127.0.0.1:28737/mcp`
 4. **웹 UI 검사:** `verify-sb.sh [--read-only] http://127.0.0.1:23000`. http URL에서는 쿠키 `Secure`를 요구하지 않는다(계획 10의 `verify-sb.sh` 동작. 계획 12 시작 때 확인).
 5. **바인딩 검사:** `check_loopback_binding` 8737·3000은 그대로다.
-6. **`check_tailscale_off`:** `vm_tailscale_logged_in`(§8.1)이 1이면 통과하고, 0(로그인 상태)이면 실패한다: `Tailscale is logged in on the VM but BM_ACCESS=ssh: log it out (docs/runbooks/operations.md, Access mode change)`. VM에 닿지 못하면 그 함수가 실패시킨다.
+6. **`check_tailscale_off`:** `vm_tailscale_logged_in`(§8.1)이 1이면 통과하고, 0(로그인 상태)이면 실패한다: `Tailscale is logged in on the VM but BM_ACCESS=ssh: log it out (docs/runbooks/operations.md, Access mode change)`. VM에 닿지 못하거나 상태를 읽지 못하면 그 함수가 실패시킨다.
 7. **`check_sshd_auth`:** `remote "sudo -n sshd -T"`에서 `passwordauthentication no`와 `kbdinteractiveauthentication no`를 확인한다. 없으면 실패한다.
 8. **공인 포트 검사:** `check_public_closed`는 그대로다.
 9. **마지막 줄:** `OK: automated VM checks passed (access: ssh); audit firewall rules by hand (docs/runbooks/operations.md, Exposure audit)`
