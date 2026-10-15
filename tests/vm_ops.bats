@@ -322,6 +322,19 @@ teardown() {
   assert_output --partial "proxy http://127.0.0.1:8737"
 }
 
+@test "ssh mode: status shows the access mode instead of Serve and warns while Tailscale is logged in on the VM" {
+  use_ssh_mode
+  run "$REPO_DIR/scripts/status.sh"
+  assert_success
+  assert_output --partial "access: ssh"
+  assert_output --partial "tailscale: not installed or logged out"
+  refute_output --partial "proxy http://127.0.0.1:8737"
+  export TS_STUB_BACKEND_STATE=Running
+  run "$REPO_DIR/scripts/status.sh"
+  assert_success
+  assert_output --partial "WARNING: Tailscale is still logged in on the VM; BM_ACCESS=ssh expects it off"
+}
+
 # --- logs ---
 
 @test "logs prints the last 200 lines from the VM" {

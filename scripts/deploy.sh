@@ -18,7 +18,7 @@ main() {
 
   step "upload compose.yaml to $BM_VM_HOST:$BM_REMOTE_APP_DIR"
   remote "cat > $BM_REMOTE_APP_DIR/compose.yaml" <"$REPO_DIR/compose.yaml" \
-    || die "upload failed: is $BM_VM_HOST reachable over Tailscale SSH? (ssh $BM_VM_USER@$BM_VM_HOST true)"
+    || die "upload failed: $(access_hint)"
 
   step "write $env_file (owner only: it holds SB_USER)"
   # umask covers only new files, so an existing .env is made owner-only before the login goes in.
