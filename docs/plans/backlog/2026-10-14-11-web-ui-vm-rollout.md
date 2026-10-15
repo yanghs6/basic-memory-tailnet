@@ -490,7 +490,7 @@ Exposure audit 첫 문단의 자동 검사 목록을 바꾼다.
 `make verify`/`make probe`는 VM 쪽에서 확인할 수 있는 것만 자동으로 검사합니다: 8737·3000의 `127.0.0.1` 바인딩, Serve가 tailnet 전용이고 443→Basic Memory·8443→SilverBullet인지(두 포트 모두 Funnel off), 공인 IP의 22·80·443·8443·8737·3000 차단. 나머지 두 가지는 VM에서 읽을 수 없으므로, 배포 직후와 방화벽·정책을 바꾼 뒤(VM 재구축 포함)에 손으로 점검하고 결과를 Incident log 아래 "점검 기록"에 남깁니다.
 ```
 
-Funnel 문단의 `serve reset` 문장 끝에 한 문장을 더한다. 계획 05가 이 문단을 고쳤으면 고친 문장 뒤에 더한다.
+Funnel 문단의 마지막 문장(계획 05가 고친 `serve reset` 문장) 뒤에 한 문장을 더한다.
 
 ```markdown
 `serve reset`은 443과 8443 설정을 모두 지우므로, 그 뒤 `make vm-bootstrap HOST=agent-hub`로 두 포트를 다시 설정합니다.

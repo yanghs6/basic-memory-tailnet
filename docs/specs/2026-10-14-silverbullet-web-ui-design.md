@@ -3,7 +3,7 @@
 - 상태: 승인 (2026-10-14). [GCP 설계](2026-10-12-basic-memory-gcp-tailscale-design.md)에 웹 UI를 더한다. 모든 계획은 [GitHub PR 워크플로](2026-10-13-github-pr-workflow-design.md)와 [git·리뷰 정책](2026-10-07-git-review-policy-design.md)을 따른다.
 - 구현 계획 (대기는 `docs/plans/backlog/`):
   1. `2026-10-14-10-web-ui-local.md`: compose 서비스, 공간 파일, 스크립트, `deploy`·`restore`의 `SB_USER` 처리, 테스트, 문서. VM에서는 아무것도 실행하지 않고 모두 로컬과 스텁으로 검증한다. `compose.yaml`에 SilverBullet이 들어가는 순간 VM `.env`에도 `SB_USER`가 있어야 하므로, `deploy`·`restore` 변경을 이 계획에 넣어 `main`을 계속 배포할 수 있는 상태로 둔다.
-  2. `2026-10-14-11-web-ui-vm-rollout.md`: `verify`·`probe`의 SilverBullet·Serve 검사, 부트스트랩의 Serve 8443, 실제 배포(사용자와 함께). 계획 10과 계획 05(PR #2, 운영 런북과 GCP 설계를 고침)가 병합된 뒤 시작한다. 계획 08은 병합됐다(`d59bfed`).
+  2. `2026-10-14-11-web-ui-vm-rollout.md`: `verify`·`probe`의 SilverBullet·Serve 검사, 부트스트랩의 Serve 8443, 실제 배포(사용자와 함께). 계획 10이 병합된 뒤 시작한다. 계획 05(PR #2, `f0b4f9c`)와 계획 08(`d59bfed`)은 병합됐다.
 - 범위: tailnet 안의 브라우저에서 Basic Memory 노트를 읽고 편집하고(B), 백링크와 그래프로 탐색한다(C).
 - 출처: 2026-10-14 사용자와의 브레인스토밍, 같은 날 로컬 스파이크(Basic Memory 0.23.2 + SilverBullet 2.12.1-slim, Mac arm64), 두 프로젝트의 소스(태그 `v0.23.2`, `2.12.1`)와 공식 문서.
 
@@ -101,7 +101,7 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
   - 대시보드 질의에 쓸 API(`index.pages()`·`index.tasks()`·`index.tags()`의 필드, `table.sort`)가 문서대로 동작한다(`docs/Space Lua/Integrated Query.md`).
   - curl의 `--data-urlencode "password@-"`가 표준입력의 비밀번호를 그대로 보낸다.
 - **Assumption (계획 11에서 확인):** Serve 뒤에서 쿠키에 `Secure`가 붙는다(위 소스 근거). `sudo -n -u '#1000'`로 노트 폴더에 쓸 수 있다. SilverBullet 컨테이너는 호스트의 `127.0.0.1:8737`에 닿지 못한다. amd64에서의 메모리. `tailscale serve --bg --https=8443`이 기존 443 설정을 지우지 않는다.
-- **Verified (계획 05 진행 로그 2026-10-13 Step 14, PR #2 브랜치 `plan/05-vm-rollout-public`):** 22번이 닫힌 뒤에도 `make vm-bootstrap HOST=agent-hub </dev/null`이 Tailscale SSH로 키 없이 다시 실행되고 Serve를 다시 적용한다. 계획 11은 이 경로로 8443을 더한다.
+- **Verified (계획 05 진행 로그 2026-10-13 Step 14, `docs/plans/completed/2026-10-07-05-vm-rollout.md:293`):** 22번이 닫힌 뒤에도 `make vm-bootstrap HOST=agent-hub </dev/null`이 Tailscale SSH로 키 없이 다시 실행되고 Serve를 다시 적용한다. 계획 11은 이 경로로 8443을 더한다.
 - **Verified (tailscale `ipn/serve.go:53-76`, `:125-172`, `cmd/tailscale/cli/serve_v2.go:259-264`):** `tailscale serve status --json`은 `Web`(키 `<호스트>:<포트>`, 값의 `Handlers["/"].Proxy`)과 `AllowFunnel`(키 `<호스트>:<포트>`)을 담은 설정을 출력한다. 계획 11의 `verify`가 포트별 대상과 Funnel을 이 JSON으로 검사한다.
 
 **Tailscale과 VM**
