@@ -147,7 +147,7 @@ scripts/sb-fonts.sh              TTF → WOFF2 변환과 업로드 (--local 또�
 scripts/verify-sb.sh             SilverBullet 검사, URL 인자 (§7.5)
 scripts/deploy.sh  restore.sh  lib/common.sh   (§7.3, §8.3) — 계획 10
 scripts/verify-vm.sh  bootstrap-vm.sh  remote/bootstrap.sh   (§7.6, §7.7) — 계획 11
-Makefile                         sb-fonts 추가, local-up·local-verify 변경, SB_PORT export, SB_USER는 여섯 타깃에만 export (§8.3)
+Makefile                         sb-fonts 추가, local-up·local-verify 변경, SB_PORT export, SB_USER는 일곱 타깃에만 export (§8.3)
 .env.example                     SB_PORT=3000, 빈 SB_USER= ("main 체크아웃 .env에만 적고 커밋 금지" 주석)
 tests/*.bats, tests/stubs/       §10 (curl·sudo·tailscale 스텁 확장, python3 스텁 추가)
 docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/operations.md  README.md  AGENTS.md
@@ -309,8 +309,8 @@ docs/decisions/0005-web-ui-silverbullet.md  docs/ARCHITECTURE.md  docs/runbooks/
 3. **`SB_USER`(`user:password`)의 흐름:**
    - 사용자가 main 체크아웃의 `.env`에 직접 적는다. 채팅이나 명령 인자로는 다루지 않는다.
    - 문자는 영문자, 숫자, `._~+/=-`만 쓴다(사용자 이름은 `._-`까지). make는 `.env`를 그대로 읽어 `#`을 주석으로, `$`를 변수로 해석하고, docker compose `.env`도 `$`를 해석하기 때문이다. `require_sb_user`가 형식을 검사한다. 비밀번호 예: `openssl rand -base64 24`.
-   - make가 이미 바꾼 값은 형식 검사를 통과할 수 있다(예: `admin:abc#def`는 `admin:abc`로 잘리고, `$s`는 빈 값으로 펼쳐진다). 그래서 `SB_USER`를 받는 여섯 타깃은 값이 아닌 경로 `SB_ENV_FILE`(main 체크아웃 `.env`)도 타깃별로 export하고, `require_sb_user`는 그 파일의 마지막 `SB_USER=` 줄을 그대로 읽어(접두어와 줄 끝 CR만 뗀다) 받은 값과 비교한다. 다르면 두 값을 출력하지 않고 파일 경로와 허용 문자를 알리며 멈춘다. `SB_ENV_FILE`이 없으면(스크립트를 직접 실행할 때) 비교를 건너뛴다. `local-up`은 compose를 부르기 전 첫 레시피 줄에서 `scripts/lib/common.sh`를 읽어 `require_sb_user`를 실행한다.
-   - Makefile의 export 목록(`Makefile:13`)에는 `SB_PORT`만 더한다. `SB_USER`는 compose나 VM에 로그인을 넘기는 여섯 타깃(`local-up`, `local-down`, `local-logs`, `local-verify`, `deploy`, `restore`)에만 타깃별로 export한다(`<타깃들>: export SB_USER := $(SB_USER)`). 전역 export는 모든 레시피 환경에 들어가, `make review`가 실행하는 다른 벤더 CLI(`codex exec`, `claude -p`, `scripts/review.sh:129-141`)도 비밀값을 보게 되기 때문이다. GNU make 3.81(macOS 기본)에서 타깃별 export는 이름을 적은 타깃에만 닿는다(계획 10 사전 점검에서 확인). 레시피 인자로 넘기면 make가 명령을 출력하므로 쓰지 않는다.
+   - make가 이미 바꾼 값은 형식 검사를 통과할 수 있다(예: `admin:abc#def`는 `admin:abc`로 잘리고, `$s`는 빈 값으로 펼쳐진다). 그래서 `SB_USER`를 받는 일곱 타깃은 값이 아닌 경로 `SB_ENV_FILE`(main 체크아웃 `.env`)도 타깃별로 export하고, `require_sb_user`는 그 파일의 마지막 `SB_USER=` 줄을 그대로 읽어(접두어와 줄 끝 CR만 뗀다) 받은 값과 비교한다. 다르면 두 값을 출력하지 않고 파일 경로와 허용 문자를 알리며 멈춘다. `SB_ENV_FILE`이 없으면(스크립트를 직접 실행할 때) 비교를 건너뛴다. `local-up`은 compose를 부르기 전 첫 레시피 줄에서 `scripts/lib/common.sh`를 읽어 `require_sb_user`를 실행한다.
+   - Makefile의 export 목록(`Makefile:13`)에는 `SB_PORT`만 더한다. `SB_USER`는 compose나 VM에 로그인을 넘기거나 로그인해 검사하는 일곱 타깃(`local-up`, `local-down`, `local-logs`, `local-verify`, `deploy`, `restore`, 계획 11에서 더한 `verify`)에만 타깃별로 export한다. 읽기 전용 `probe`는 받지 않는다(`<타깃들>: export SB_USER := $(SB_USER)`). 전역 export는 모든 레시피 환경에 들어가, `make review`가 실행하는 다른 벤더 CLI(`codex exec`, `claude -p`, `scripts/review.sh:129-141`)도 비밀값을 보게 되기 때문이다. GNU make 3.81(macOS 기본)에서 타깃별 export는 이름을 적은 타깃에만 닿는다(계획 10 사전 점검에서 확인). 레시피 인자로 넘기면 make가 명령을 출력하므로 쓰지 않는다.
    - VM `.env`는 배포·복원 때마다 `vm_env`가 새로 쓰므로(`scripts/lib/common.sh:65-69`, `scripts/deploy.sh:19`, `scripts/restore.sh:142`) 여기에 넣는다. 전송은 지금처럼 ssh 표준입력이다. 파일 권한은 `600`이다(배포는 내용보다 `chmod`를 먼저, 복원은 `umask 077`).
    - 컨테이너 재시작에는 필요 없다(Docker가 저장된 설정으로 다시 띄운다). 그래도 VM `.env`에 남겨 두는 이유는 `backup`의 stop·start, `status`, `logs`가 VM에서 compose 파일을 읽을 때 `${SB_USER:?}`가 값을 요구하기 때문이다.
    - 스크립트는 값을 출력하지 않고, 필요하면 `mask`를 쓴다. 로그인 확인(§7.5)은 비밀번호를 명령 인자가 아니라 curl 표준입력으로 넘긴다.

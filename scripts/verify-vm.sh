@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Verify the VM end to end: MCP round trip over the tailnet URL (read-only probe with --read-only),
-# loopback-only binding, tailnet-only Serve (no Funnel), and that the public IP refuses common ports.
-# Firewall rules and the tailnet policy cannot be read from here; audit them by hand
+# Verify the VM end to end: MCP round trip over the tailnet URL, the SilverBullet login on https port 8443,
+# loopback-only binding of both ports, tailnet-only Serve that sends 443 to Basic Memory and 8443 to SilverBullet
+# (no Funnel on either), and that the public IP refuses common ports. With --read-only it writes no notes and does
+# not log in. Firewall rules and the tailnet policy cannot be read from here; audit them by hand
 # (docs/runbooks/operations.md, Exposure audit).
 # Usage: verify-vm.sh [--read-only]
 set -euo pipefail
@@ -11,7 +12,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib/common.sh"
 
 readonly PUBLIC_PROBE_TIMEOUT_SECONDS=5
-readonly PUBLIC_PROBE_PORTS="22 80 443"
+readonly SB_HTTPS_PORT=8443
+readonly PUBLIC_PROBE_PORTS="22 80 443 $SB_HTTPS_PORT"
 
 check_loopback_binding() {
   local port="$1" listeners
@@ -24,15 +26,28 @@ check_loopback_binding() {
   log "OK: port $port listens on 127.0.0.1 only"
 }
 
-check_serve_tailnet_only() {
-  local serve
-  step "check tailscale serve is tailnet only"
-  serve="$(remote "sudo -n tailscale serve status")" || die "could not read tailscale serve status on $BM_VM_HOST"
-  if grep -qi 'funnel on' <<<"$serve"; then
-    die "Funnel is on for this node: the unauthenticated endpoint is public; turn it off (docs/runbooks/operations.md, Exposure audit)"
-  fi
-  grep -q 'tailnet only' <<<"$serve" || die "unexpected tailscale serve status (expected '(tailnet only)'): $serve"
-  log "OK: tailscale serve is tailnet only"
+# serve_proxy CONFIG_JSON PORT -> the proxy target of path / on https port PORT in `tailscale serve status --json`,
+# without a trailing slash (empty when there is none).
+serve_proxy() {
+  jq -r --arg suffix ":$2" \
+    '[(.Web // {}) | to_entries[] | select(.key | endswith($suffix)) | .value.Handlers["/"].Proxy // empty] | join(" ") | rtrimstr("/")' <<<"$1"
+}
+
+check_serve() {
+  local bm_port="$1" sb_port="$2" serve funnel pair https_port local_port target
+  step "check tailscale serve: tailnet only, 443 -> Basic Memory, $SB_HTTPS_PORT -> SilverBullet"
+  serve="$(remote "sudo -n tailscale serve status --json")" || die "could not read tailscale serve status on $BM_VM_HOST"
+  funnel="$(jq -r '[(.AllowFunnel // {})[] | select(. == true)] | length' <<<"$serve")" \
+    || die "unexpected tailscale serve status (not JSON): $serve"
+  ((funnel == 0)) \
+    || die "Funnel is on for this node: the unauthenticated endpoint is public; turn it off (docs/runbooks/operations.md, Exposure audit)"
+  for pair in "443 $bm_port" "$SB_HTTPS_PORT $sb_port"; do
+    read -r https_port local_port <<<"$pair"
+    target="$(serve_proxy "$serve" "$https_port")" || die "unexpected tailscale serve status (not JSON): $serve"
+    [[ "$target" == "http://127.0.0.1:$local_port" ]] \
+      || die "tailscale serve must proxy https port $https_port to http://127.0.0.1:$local_port (found '${target:-nothing}'): rerun 'make vm-bootstrap HOST=$BM_VM_HOST'"
+  done
+  log "OK: tailscale serve is tailnet only: 443 -> 127.0.0.1:$bm_port, $SB_HTTPS_PORT -> 127.0.0.1:$sb_port"
 }
 
 # probe_port PLATFORM HOST PORT -> succeeds when HOST accepts a TCP connection on PORT.
@@ -79,19 +94,19 @@ probe_is_open() {
 }
 
 check_public_closed() {
-  local port="$1" probe platform
+  local ports="$PUBLIC_PROBE_PORTS $*" probe platform
   platform="$(uname -s)" || die "could not detect the local platform with uname -s"
-  step "check public IP $BM_VM_PUBLIC_IP refuses ports $PUBLIC_PROBE_PORTS $port"
-  for probe in $PUBLIC_PROBE_PORTS "$port"; do
+  step "check public IP $BM_VM_PUBLIC_IP refuses ports $ports"
+  for probe in $ports; do
     if probe_is_open "$platform" "$BM_VM_PUBLIC_IP" "$probe"; then
       die "public IP $BM_VM_PUBLIC_IP accepts connections on port $probe: remove the firewall rule that allows it"
     fi
   done
-  log "OK: public IP $BM_VM_PUBLIC_IP refuses ports $PUBLIC_PROBE_PORTS $port"
+  log "OK: public IP $BM_VM_PUBLIC_IP refuses ports $ports"
 }
 
 main() {
-  local port="${BM_PORT:-8737}" url
+  local port="${BM_PORT:-8737}" sb_port="${SB_PORT:-3000}" url sb_url
   case "${1:-}" in
     "" | --read-only) ;;
     *) die "usage: verify-vm.sh [--read-only]" ;;
@@ -102,15 +117,19 @@ main() {
     || die "BM_TAILNET_DOMAIN must look like tail1234.ts.net (no https://, no trailing dot): '$BM_TAILNET_DOMAIN'"
   validate_public_ip "$BM_VM_PUBLIC_IP"
   url="https://${BM_VM_HOST}.${BM_TAILNET_DOMAIN}/mcp"
+  sb_url="https://${BM_VM_HOST}.${BM_TAILNET_DOMAIN}:$SB_HTTPS_PORT"
 
   if [[ "${1:-}" == --read-only ]]; then
     "$SCRIPT_DIR/verify-mcp.sh" --read-only "$url"
+    "$SCRIPT_DIR/verify-sb.sh" --read-only "$sb_url"
   else
     "$SCRIPT_DIR/verify-mcp.sh" "$url"
+    "$SCRIPT_DIR/verify-sb.sh" "$sb_url"
   fi
   check_loopback_binding "$port"
-  check_serve_tailnet_only
-  check_public_closed "$port"
+  check_loopback_binding "$sb_port"
+  check_serve "$port" "$sb_port"
+  check_public_closed "$port" "$sb_port"
   log "OK: automated VM checks passed; audit firewall rules and the tailnet policy by hand (docs/runbooks/operations.md, Exposure audit)"
 }
 

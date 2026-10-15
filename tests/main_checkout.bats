@@ -62,6 +62,20 @@ make_in() {
   assert_output 1
 }
 
+@test "make verify hands SB_USER and the env file path to the VM check; make probe hands neither" {
+  unset SB_USER SB_ENV_FILE
+  mkdir -p "$LINKED_WT/scripts"
+  printf '#!/usr/bin/env bash\necho "[${SB_USER-unset}] [${SB_ENV_FILE-unset}] $*"\n' >"$LINKED_WT/scripts/verify-vm.sh"
+  chmod +x "$LINKED_WT/scripts/verify-vm.sh"
+  printf 'SB_USER=admin:Tr4mpoline\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" verify
+  assert_success
+  assert_output --partial "[admin:Tr4mpoline] [$MAIN_REPO/.env] "
+  run make_in "$LINKED_WT" probe
+  assert_success
+  assert_output --partial "[unset] [unset] --read-only"
+}
+
 # --- backup ---
 
 @test "backup from a linked worktree saves into the main checkout's backups/" {
