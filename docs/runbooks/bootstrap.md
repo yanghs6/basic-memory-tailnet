@@ -26,13 +26,13 @@
    ```
 
    이제 VPC 밖 소스를 허용하는 인바운드 규칙이 없습니다(`default-allow-internal`의 `10.128.0.0/9`만 남음).
-5. `make deploy verify status`
+5. `make deploy sb-fonts verify status`
 
 ## 완료 조건
 
-- [ ] `make verify`가 `OK: MCP round trip passed`, `listens on 127.0.0.1 only`, `tailscale serve is tailnet only`, `refuses ports 22 80 443 8737`을 모두 출력한다.
+- [ ] `make verify`가 `OK: MCP round trip passed`, `OK: SilverBullet checks passed`, `listens on 127.0.0.1 only`(8737과 3000), `tailscale serve is tailnet only`, `refuses ports 22 80 443 8443 8737 3000`을 모두 출력한다.
 - [ ] [운영 런북](operations.md)의 Exposure audit(수동 점검)을 마치고 결과를 기록했다.
-- [ ] `make status`에 `(healthy)`, `proxy http://127.0.0.1:8737`이 보이고, 스왑이 활성이다(`no active swap` 경고가 없음).
+- [ ] `make status`에 두 컨테이너의 `(healthy)`, `proxy http://127.0.0.1:8737`, `proxy http://127.0.0.1:3000`이 보이고, 스왑이 활성이다(`no active swap` 경고가 없음).
 - [ ] `make backup`이 main 체크아웃의 `backups/`에 `bm-*.tgz`와 `.sha256`, `.manifest`를 만든다.
 
 ## 문제 해결
