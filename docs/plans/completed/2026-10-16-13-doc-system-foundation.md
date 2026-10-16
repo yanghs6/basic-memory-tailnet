@@ -1075,15 +1075,8 @@ git push
 ## Follow-ups (이 계획 밖)
 
 - 계획 14: 모든 문서 이름 변경과 참조 갱신, 계획 폴더 통합, front matter, 문서 검사(`tests/repo-docs.bats`, 스펙 8.3절 1~6), 증거 위치 변경(D4). `docs/README.md`와 `doc-authoring` 스킬의 "전환 중" 문장을 지우고, ADR 0004의 "일부 대체" 줄을 front matter `amended-by`로 옮긴다. 계획 12 결과 PR이 병합된 뒤 시작한다.
-- 계획 14로 넘기는 최종 리뷰의 Minor(2026-10-16, opus):
-  - 새 이름의 계획과 아직 옛 흐름을 말하는 곳(`git-workflow` Start 3, `review-and-merge.md` 1단계, `AGENTS.md`의 Active work와 리뷰 규칙 3, PR 템플릿)이 어긋난다. 계획 14가 이 문장들을 고칠 때 함께 맞춘다. 계획 14 자신의 계획 파일이 새 이름이므로 그 시작 절은 폴더 이동 대신 `status`를 바꾼다.
-  - `doc_types`가 표의 머리 행을 확인하지 않는다. 머리와 모든 행의 열 순서를 바꾸면 엉뚱한 폴더에 쓴다. 검사 1에서 머리 행을 확인한다.
-  - 스펙 11절은 스킬에 레지스트리 행 예시를 둔다고 했으나 `SKILL.md`에 없다.
-  - `금지` 거부 테스트가 템플릿이 `없음`인 review를 써서, 새 문서 열 검사가 빠져도 템플릿 검사가 대신 막는다. 템플릿이 있는 가짜 행으로 시험한다.
-  - 번호가 있는 타입은 같은 slug로 두 번 실행하면 거부하지 않고 다음 번호로 하나 더 만든다.
-  - `SKILL.md`가 상태가 바뀔 때 런북의 `reviewed`도 바꾸라고 읽힌다. 스펙 4절의 뜻(실제와 대조한 날)과 맞춘다.
-  - 스킬 설명이 리뷰 기록을 `branch-review`로 보낸다. 기록은 작성자가 `git-workflow`로 남긴다.
-  - Gemini CLI의 folder trust가 켜져 있으면 신뢰하지 않은 worktree에서 `.gemini/settings.json`을 무시한다. Task 4 Step 8 확인 결과에 따라 `git-workflow`의 Gemini 시작 단계에 신뢰 안내를 더한다.
+- 최종 리뷰(2026-10-16, opus)의 Minor 8건은 사용자 결정으로 이 PR에서 고쳤다(Progress log). 계획 14로 넘기는 것은 M1의 나머지다: `AGENTS.md`의 Active work 줄과 리뷰 규칙 3은 문구 승인이 필요하므로 계획 14가 증거 위치 변경(D4)과 함께 고친다. 계획 14 자신의 계획 파일은 새 이름이므로 그 시작 절은 폴더 이동 대신 `status`를 바꾼다.
+- Gemini CLI가 실제로 `AGENTS.md`를 읽는지(Task 4 Step 8)는 사용자가 이번에는 확인하지 않기로 함. `Assumption`으로 남는다.
 - 계획 15: 본문 소급(템플릿 절 구성, 레이블 표기 통일, README 중복 삭제).
 - 계획 16·17: 스크립트·테스트 구조 설계. `scripts/lib/docs.sh`의 이중 source 방지 줄과 `lib-*.bats` 규칙은 계획 16이 다른 라이브러리와 함께 맞춘다.
 
@@ -1103,3 +1096,7 @@ git push
 | 2026-10-16 | Assumption | Gemini CLI가 `.gemini/settings.json`으로 `AGENTS.md`를 읽는다(근거 조사 §1의 설정 문서 기준). Gemini CLI는 이 Mac에 설치돼 있으나 `/memory show` 확인은 대화형이라 사용자 선택으로 남김. |
 | 2026-10-16 | Verified | Task 4 `0f4a05b`: `make check` exit 0, 206 ok, 커버리지 95.12%. |
 | 2026-10-16 | Verified | 최종 리뷰(opus, `16aa61f..0f4a05b`, 정적 읽기): Ready to merge, Critical 0, Important 0, Minor 9. Minor 1~8은 Follow-ups(계획 14)로 넘김. Minor 9(끝낸 Step 미체크, 스펙 5.2)는 이 커밋에서 체크함. 실행자 판정 두 건(승인 시점, Gotchas 문구)에 리뷰어 동의. |
+| 2026-10-16 | Verified | PR #11 CI(`7771898`): `check` pass, `pr-rules` pass, GitGuardian pass. |
+| 2026-10-16 | Verified | 사용자 결정: 최종 리뷰 Minor를 이 PR에서 고치고 Gemini 확인은 제외. 커밋(`Review-Finding: SDD-final-M<n>`): M1·M8 `d87dcee`(git-workflow의 새 이름 계획 `status` 흐름, Gemini folder trust 안내, PR 템플릿), M3·M6·M7 `fbe5510`(레지스트리 행 예시, `reviewed` 규칙, 리뷰 기록을 `git-workflow`로), M2 `5c3347c`(머리·구분 행 확인, RED: 열을 바꾼 표가 통과 → GREEN), M4 `a328b2f`(템플릿이 있는 타입의 `금지` 거부 테스트, 검사를 빼면 이 테스트만 실패함을 확인), M5 `b97507b`(같은 날 같은 slug의 번호 문서 거부, RED → GREEN, macOS에서 두 번째 실행 거부 확인). 같은 파일에 걸친 지적은 대화형 hunk 스테이징을 쓸 수 없어 파일 단위로 묶음. |
+| 2026-10-16 | Verified | **Verified (공식 문서, 2026-10-16):** Gemini CLI folder trust는 기본으로 꺼져 있고, 켜져 있으면 신뢰하지 않은 폴더의 `.gemini/settings.json`을 읽지 않는다(geminicli.com, Trusted Folders). 이 Mac의 `~/.gemini/settings.json`에는 folder trust 설정이 없다. |
+| 2026-10-16 | Verified | 수정 뒤 `make check`(`b97507b`): exit 0, 208 ok, 0 not ok, 커버리지 94.51%(`create-doc.sh` 100%). |
