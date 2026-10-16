@@ -1,6 +1,6 @@
 ---
 name: doc-authoring
-description: Creates and updates this repo's documents (spec, plan, ADR, runbook, research note) from the type registry in docs/README.md and this skill's templates with make new-doc. Use when writing a new spec, plan, ADR, runbook or research note, changing a document's status (approved, active, completed, superseded), superseding or amending a document, deciding where labels and evidence go, or adding a document type. Not for skills (use skill-authoring) or review records, which are PR comments (use branch-review).
+description: Creates and updates this repo's documents (spec, plan, ADR, runbook, research note) from the type registry in docs/README.md and this skill's templates with make new-doc. Use when writing a new spec, plan, ADR, runbook or research note, changing a document's status (approved, active, completed, superseded), superseding or amending a document, deciding where labels and evidence go, or adding a document type. Not for skills (use skill-authoring) or review records, which are PR comments the author keeps (use git-workflow).
 ---
 
 # Create and update repository documents
@@ -29,7 +29,7 @@ Every agent creates documents the same way from repo files alone. The type regis
 ## Front matter and status
 
 - Front matter keys are lowercase English: `status`, `date`, `spec`, `reviewed`, `superseded-by`, `amended-by` (meanings in `docs/README.md`, "메타데이터"). Use no other keys.
-- Change `status` in the commit that causes the change, and set `date` (spec, ADR) or `reviewed` (runbook) to that day:
+- Change `status` in the commit that causes the change, and set `date` (spec, ADR) to that day:
   - spec: `draft`, then `approved` when the user approves it.
   - plan: `backlog` when written, `active` in the first commit of the plan branch, `completed` when every task is done and before the review, or `dropped` with a one-line reason under the title.
   - ADR: `proposed`, then `accepted`; later `superseded` or `deprecated`.
@@ -46,7 +46,11 @@ Every agent creates documents the same way from repo files alone. The type regis
 ## Add a document type
 
 1. First check whether an existing type fits. Add a type only for a new folder or a new lifecycle (status values).
-2. In one pull request: a registry row with an unused 3-4 letter code, a template `assets/<type>.md` named in this SKILL.md, and a line in `AGENTS.md` if agents need it. `make new-doc` reads the registry, so no code changes.
+2. In one pull request: a registry row with an unused 3-4 letter code, a template `assets/<type>.md` named in this SKILL.md, and a line in `AGENTS.md` if agents need it. `make new-doc` reads the registry, so no code changes. Copy an existing row and change every cell: a row has exactly ten cells and none is empty (write `없음` for no number or no template), for example:
+
+   ```markdown
+   | memo | memo | 없음 | `docs/memos/` | draft, final | status, date | 허용 | 기록 | 한국어 | `.agents/skills/doc-authoring/assets/memo.md` |
+   ```
 3. Record the reason in an ADR when the status values are a lifecycle no other type has.
 4. To retire a type, set its `새 문서` cell to `금지`: new files are refused and old ones stay.
 
