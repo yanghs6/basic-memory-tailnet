@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 spec: docs/specs/spec-2026-10-15-doc-system.md
 ---
 
@@ -72,7 +72,7 @@ spec: docs/specs/spec-2026-10-15-doc-system.md
 - Consumes: `scripts/lib/docs.sh`의 `doc_types`(8개 필드: type code number location statuses keys new template), `tests/helpers.bash`의 `frontmatter`
 - Produces: `tests/repo-docs.bats`의 도우미 `doc_files`, `type_row FILE`, `outside_code FILE`, `docs_paths`(stdin → 이 저장소의 docs 경로, 한 줄에 하나)와 상수 `SINGLE_FILES`. Task 2가 같은 파일에 검사 3, 5를 더한다.
 
-- [ ] **Step 1: 실패하는 검사 작성 (`tests/repo-docs.bats`)**
+- [x] **Step 1: 실패하는 검사 작성 (`tests/repo-docs.bats`)**
 
 ```bash
 #!/usr/bin/env bats
@@ -184,12 +184,12 @@ docs_paths() {
 
 `tests/repo.bats`에서 `every docs markdown path named in scripts, skills and AGENTS.md exists` 테스트를 지운다. 위의 마지막 검사가 범위를 넓혀 대신한다.
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `make test`
 Expected: `every file under docs/ is a single file …`(옛 이름과 계획 하위 폴더)와 `every docs path named …`(이미 없는 옛 경로들) 두 개가 실패한다. 레지스트리 검사와 번호 검사는 통과한다.
 
-- [ ] **Step 3: 이름 변경과 참조 고치기 (scratch 스크립트, 커밋하지 않음)**
+- [x] **Step 3: 이름 변경과 참조 고치기 (scratch 스크립트, 커밋하지 않음)**
 
 아래 두 파일을 저장소 밖 scratch 폴더(이하 `$S`)에 만든다.
 
@@ -330,7 +330,7 @@ docs/specs/2026-10-15-doc-system-design.md	docs/specs/spec-2026-10-15-doc-system
 docs/specs/2026-10-15-script-test-layout-design.md	docs/specs/spec-2026-10-15-script-test-layout.md
 ```
 
-- [ ] **Step 4: 남은 경로 고치기**
+- [x] **Step 4: 남은 경로 고치기**
 
 Run: `make test`
 Expected: 이름 검사는 통과하고, 경로 검사에 이름 변경으로 고칠 수 없는 경로만 남는다. 2026-10-16에 미리 확인한 것과 고치는 방법:
@@ -345,7 +345,7 @@ Expected: 이름 검사는 통과하고, 경로 검사에 이름 변경으로 �
 
 새로 나오는 경로도 같은 규칙으로 고친다. 고친 내용을 Progress log에 적는다.
 
-- [ ] **Step 5: 통과 확인과 기록 보존 확인**
+- [x] **Step 5: 통과 확인과 기록 보존 확인**
 
 Run: `make check`
 Expected: exit 0. 새 검사 4개, 상대 링크 검사, 스크립트 메시지를 단언하는 테스트(`vm_ops.bats`, `cloud_neutral.bats` 등)가 통과한다.
@@ -356,7 +356,7 @@ Expected: 44(모두 rename으로 잡힘).
 Run: `git diff -M --word-diff=porcelain | grep -E '^[-+][^-+]' | grep -vE 'docs/|[.]md'`
 Expected: 경로가 아닌 낱말이 바뀐 줄은 Step 4에서 손으로 고친 줄뿐이다.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git status --short
@@ -378,7 +378,7 @@ git push
 - Consumes: Task 1의 `doc_files`, `type_row`, `outside_code`, `SINGLE_FILES`, `tests/helpers.bash`의 `frontmatter FILE`
 - Produces: 없음
 
-- [ ] **Step 1: 실패하는 검사 작성 (`tests/repo-docs.bats`에 추가)**
+- [x] **Step 1: 실패하는 검사 작성 (`tests/repo-docs.bats`에 추가)**
 
 파일 위쪽 상수에 더한다.
 
@@ -458,12 +458,12 @@ front_problems() {
 }
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `make test`
 Expected: front matter 검사가 계획 13·14와 ADR 0007을 뺀 모든 타입 문서와 ARCHITECTURE를 "no front matter"로 들며 실패한다. `{{` 검사는 통과한다(계획 13의 템플릿 내용은 코드 블록 안이다).
 
-- [ ] **Step 3: front matter 달기**
+- [x] **Step 3: front matter 달기**
 
 각 파일 맨 위에 `---`, 아래 키, `---`, 빈 줄을 넣는다. 값의 근거는 각 문서의 머리 줄과 PR 병합일이다.
 
@@ -500,7 +500,7 @@ Expected: front matter 검사가 계획 13·14와 ADR 0007을 뺀 모든 타입 
 
 계획 14는 시작 커밋에서 `active`다.
 
-- [ ] **Step 4: 상태 줄과 낡은 상태 문구**
+- [x] **Step 4: 상태 줄과 낡은 상태 문구**
 
 - 상태 줄: 첫 `##` 앞의 머리에서 `상태:` 줄의 상태 낱말과 날짜를 지운다. 남는 문장이 있으면 `- `로 시작하는 줄로 남기고, 없으면 줄을 지운다. 대상: 스펙 8개, ADR 6개, 조사 2개, 계획 07의 `> **상태:** 백로그.` 줄. 예: GCP 설계의 상태 줄 "상태: 승인됨 (2026-10-12). OCI 설계(링크)를 대체한다. …"는 "OCI 설계(링크)를 대체한다. …"만 남는다(링크는 그대로 둔다). OCI 설계의 "이전 상태" 줄은 그때의 기록이므로 둔다.
 - 낡은 상태 문구(스펙 §2의 예):
@@ -508,12 +508,12 @@ Expected: front matter 검사가 계획 13·14와 ADR 0007을 뺀 모든 타입 
   - 웹 UI 설계 4행 "구현 계획 (대기는 …)" → "구현 계획". 6행의 계획 11 "계획 10이 병합된 뒤 시작한다"는 그때의 순서 기록이므로 둔다. 두 계획이 끝났다는 사실은 계획의 front matter가 말한다.
   - ADR 0004 머리의 "일부 대체" 줄은 지운다(Step 3에서 `amended-by`로 옮김).
 
-- [ ] **Step 5: 통과 확인**
+- [x] **Step 5: 통과 확인**
 
 Run: `make check`
 Expected: exit 0. 검사 6개가 모두 통과한다. `git diff --word-diff`에서 본문 변경은 front matter, 상태 줄, 위 낡은 문구뿐이다.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git status --short
@@ -534,7 +534,7 @@ git push
 - Consumes: Task 1의 계획 폴더 통합, Task 2의 front matter
 - Produces: 없음
 
-- [ ] **Step 1: `AGENTS.md` (시작 절에서 승인한 문구)**
+- [x] **Step 1: `AGENTS.md` (시작 절에서 승인한 문구)**
 
 줄 번호는 `4cedf49` 기준이다. 4행과 `## Git`의 정책 경로는 Task 1이 이미 새 경로로 바꿨다. 아래 네 줄을 바꾼다(5행, 41행, 49행, 60행 순서).
 
@@ -545,7 +545,7 @@ Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, co
 3. The plan's Progress log records a passing `make check`, the PR body's Verification records passing CI (`check`, `pr-rules`), and `scripts/check-git.sh origin/main <branch>` passes.
 ```
 
-- [ ] **Step 2: 스킬, 템플릿, 문서 지도**
+- [x] **Step 2: 스킬, 템플릿, 문서 지도**
 
 - `git-workflow` Start 3 → "For a plan, make the first commit change the plan's front matter `status` from `backlog` to `active` (`doc-authoring`)."
 - `review-and-merge.md` Review 1 → "Set a finished plan's front matter `status` to `completed` (commit with `Task: none`) and push. Put the CI results in the PR body's Verification."
@@ -556,17 +556,17 @@ Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, co
 - `docs/README.md`의 "전환 중" 문단을 지운다.
 - PR 템플릿 Verification 설명 → "Commands and results (for example `make check`: N ok, 0 not ok, coverage X%) and CI (`check`, `pr-rules`)."
 
-- [ ] **Step 3: 남은 옛 흐름 찾기**
+- [x] **Step 3: 남은 옛 흐름 찾기**
 
 Run: `git grep -nE 'plans/(active|backlog|completed)|Progress log.*CI|CI.*Progress log' -- AGENTS.md README.md .agents .github scripts docs/README.md`
 Expected: 출력 없음. 남으면 위 규칙으로 고친다. 기록 문서(완료 계획, 스펙, ADR, 조사, 리뷰)의 옛 표현은 그대로 둔다.
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run: `make check`
 Expected: exit 0. `wc -c AGENTS.md`가 24,000 이하다.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git status --short
@@ -579,8 +579,8 @@ git push
 
 ### Finish: review and hand-off
 
-- [ ] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
-- [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
+- [x] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
+- [x] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
 - [ ] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
 - [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
 
@@ -601,3 +601,7 @@ git push
 | 2026-10-16 | Verified | Task 2 RED `make test`: front matter 검사 실패, `{{` 검사 통과. 계획 결함 두 가지: (1) 검사 3·5가 리뷰 폴더의 단일 파일 `docs/reviews/README.md`도 타입 문서로 셈 → 검사 2처럼 `SINGLE_FILES`를 건너뛰게 고침. (2) 계획 13 파일은 템플릿 이전에 써서 front matter가 없었음 → 다른 문서처럼 새로 닮(`status: completed`). |
 | 2026-10-16 | Verified | Task 2: 표대로 45개(이름을 바꾼 44개와 ARCHITECTURE)에 front matter를 닮. 머리의 상태 줄 19곳을 정리함(상태 낱말과 날짜만 지움, 상태만 있던 ADR 0003~0006 줄과 ADR 0004의 "일부 대체" 줄은 지움, 조사 문서는 "YYYY-MM-DD 시점의 스냅샷이다"로). OCI 설계의 "이전 상태" 줄은 기록이라 둠. GCP 설계 4·8행과 웹 UI 설계 4행의 낡은 계획 상태 문구를 고침. GREEN `make check` exit 0, 0 not ok. |
 | 2026-10-16 | Verified | Task 3(서브에이전트, 별도 worktree, Task 2와 병렬): `ff6e7b5`(브랜치 `plan/14-doc-rename-and-checks-t3`), 파일 9개. 그쪽 `make check` 210 ok, 94.51%, `AGENTS.md` 9,216바이트. Step 3의 grep은 승인된 새 문구 4줄에도 걸림(`make check`는 Progress log, CI는 PR 본문을 한 줄에 함께 말함). 옛 지시는 남지 않음. |
+| 2026-10-16 | Verified | 세 Task를 합친 `615ccd0`(Task 3은 `ff6e7b5`를 cherry-pick): `make check` exit 0, 0 not ok, 커버리지 94.51%, `AGENTS.md` 9,216바이트. `AGENTS.md`의 네 줄이 승인 문구와 같음을 diff로 확인. |
+| 2026-10-16 | Verified | 최종 리뷰(opus, `4cedf49..615ccd0`): 수정 후 병합 가능, Critical 0, Important 1, Minor 9. 옛 이름 44개는 코드 블록 밖 어디에도 남지 않았고, 코드 블록 안 줄은 하나도 바뀌지 않았다는 확인을 받음. |
+| 2026-10-16 | Verified | I1 수정 `61529c0`(`Review-Finding: SDD-final-I1`): git·리뷰 정책 167~168행과 GitHub PR 워크플로 187행이 옛 계획 폴더 규칙을 말하는데 대체 연결이 없었음 → 두 정책 스펙에 `amended-by: …doc-system`, GCP 설계에 스크립트·테스트 구조 스펙을 더하고, 문서 체계·스크립트 구조 스펙의 "대체 범위"에 대체하는 규칙을 적음(스펙 §5.1의 승인 스펙 수정). 문서 사이의 의미 관계라 실패 테스트는 쓰지 않음(ADR 0004). `make check` exit 0, 0 not ok. |
+| 2026-10-16 | Assumption | 런북 `reviewed`는 마지막 변경일로 둠(마지막 변경 때 내용을 실제와 대조했다고 봄). |
