@@ -1,6 +1,6 @@
 ## Summary
 
-What changes and why.
+What changes and why. Write each paragraph and list item on one line; GitHub shows every line break.
 
 ## Plan
 

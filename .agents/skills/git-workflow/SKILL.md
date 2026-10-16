@@ -28,7 +28,7 @@ Policy: docs/specs/spec-2026-10-13-github-pr-workflow.md (pull requests, review,
 
 ## Publish
 
-1. After the first commit run `git push -u origin <branch>`, then open one draft pull request for the whole branch: `gh pr create --draft --base main --title "<type>: <description>" --body-file <file>`. The body follows `.github/pull_request_template.md`: summary, plan file, verification evidence, and as the last paragraph `Assisted-by: <tool> <model id>` (one line per tool that worked on the branch) and `Plan: <NN|none>`. Replace the template's example text; the squash merge turns the title and body into the commit on `main`.
+1. After the first commit run `git push -u origin <branch>`, then open one draft pull request for the whole branch: `gh pr create --draft --base main --title "<type>: <description>" --body-file <file>`. The body follows `.github/pull_request_template.md`: summary, plan file, verification evidence, and as the last paragraph `Assisted-by: <tool> <model id>` (one line per tool that worked on the branch) and `Plan: <NN|none>`. Replace the template's example text; the squash merge turns the title and body into the commit on `main`. Write each paragraph and each list item on one line: GitHub shows every line break in a pull request body, so text wrapped at a fixed width reads as broken sentences.
 2. Push after every commit. CI runs `check` (`make check`) and `pr-rules` (branch name, commit trailers, PR title and trailers). Fix every failure; editing the title or body re-runs `pr-rules`.
 3. `gh` and `git push` run as the machine account. If your sandbox blocks the network, ask the human to run the push or `gh` command.
 4. Never write the VM's external or tailnet IP addresses in commits, the pull request or comments.
