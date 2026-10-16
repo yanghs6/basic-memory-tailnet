@@ -169,13 +169,13 @@ IAP TCP 포워딩은 Google 계정 인증을 거쳐 VM의 22번으로 터널을 
 
    Windows(PowerShell, OpenSSH)는 `%USERPROFILE%\.ssh\config`에 같은 블록을 넣고 `ProxyCommand`의 `gcloud`를 `gcloud.cmd`로 바꿉니다(**Assumption**, 검증하지 않음).
 4. 첫 접속은 대화형으로 해서 호스트 키를 수락합니다: `ssh ubuntu@agent-hub-iap true`. 그다음 `.env`에 `BM_ACCESS=ssh`, `BM_VM_HOST=agent-hub-iap`를 넣고 `make access-check`가 `ssh ubuntu@agent-hub-iap: ok`를 출력하는지 봅니다.
-5. 터널이 API나 권한 오류로 열리지 않으면 IAP API를 켭니다(사용자 OK 후). 켜야 하는지는 **Open question**이고, [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md)의 Task 8에서 확인합니다.
+5. 터널이 API나 권한 오류로 열리지 않으면 IAP API를 켭니다(사용자 OK 후). **Verified (2026-10-15, [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8):** 이 프로젝트는 IAP API를 켜지 않은 채 터널이 열렸습니다.
 
    ```bash
    gcloud services enable iap.googleapis.com --configuration=bm-personal
    ```
 
 6. sshd는 키 전용이어야 합니다. `make verify`가 `sshd -T`로 `passwordauthentication no`와 `kbdinteractiveauthentication no`를 확인합니다. 실패하면 `/etc/ssh/sshd_config.d/`에 파일을 만듭니다. sshd는 키워드마다 처음 읽은 값을 쓰고 `sshd_config.d/*.conf`를 이름순으로 읽으므로, 먼저 읽히도록 `/etc/ssh/sshd_config.d/00-keys-only.conf`처럼 이름을 짓고 두 줄 `PasswordAuthentication no`, `KbdInteractiveAuthentication no`를 넣습니다. 그다음 `sudo systemctl reload ssh`를 실행합니다(사용자 OK 후).
-7. 로그인이 만료되면 `ProxyCommand`가 실패하고 스크립트는 `check the ProxyCommand for agent-hub-iap in ~/.ssh/config and its login`을 출력합니다. `gcloud auth login --configuration=bm-personal`로 다시 로그인합니다.
+7. 로그인이 만료되면 `ProxyCommand`가 실패하고 스크립트는 `check the ProxyCommand for agent-hub-iap in ~/.ssh/config and its login`을 출력합니다. `gcloud auth login --configuration=bm-personal`로 다시 로그인합니다. **Reported (2026-10-16):** `make tunnel`을 Ctrl-C로 끝낼 때도 `tunnel closed (exit 255) ... check the ProxyCommand` 안내가 나옵니다. 직접 끝낸 경우라면 무시합니다.
 
-IAP 터널은 대량 전송용이 아니고, 한 시간 동안 활동이 없으면 끊깁니다. `make tunnel`은 30초마다 keepalive를 보내고, 끊기면 종료하므로 다시 실행합니다.
+IAP 터널은 대량 전송용이 아니고, 한 시간 동안 활동이 없으면 끊깁니다. `make tunnel`은 30초마다 keepalive를 보내고, 끊기면 종료하므로 다시 실행합니다. **Reported (2026-10-16, [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8):** 70분 동안 MCP를 쓰지 않아도 터널은 끊기지 않았습니다.

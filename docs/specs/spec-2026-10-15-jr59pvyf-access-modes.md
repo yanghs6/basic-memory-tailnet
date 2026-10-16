@@ -84,6 +84,15 @@ IAP TCP 포워딩 (공식 문서, 2026-10-15 조회):
 - 터널 트래픽이 무료 송신 한도(월 1GB)에 들어가는지. 이전 다음 달 청구서로 확인한다.
 - Windows: OpenSSH의 `ProxyCommand`가 `gcloud.cmd`를 실행하고, WSL2의 `127.0.0.1` 포트에 Windows 앱이 닿는다(WSL2 localhost 포워딩).
 
+[access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8의 확인 결과(자세한 내용은 [access-modes ADR](../decisions/adr-2026-10-15-cz8c26gp-access-modes.md)의 "이전 결과"):
+
+- **Verified ([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8, 2026-10-15):** `iap.googleapis.com`을 켜지 않아도 IAP 터널이 열린다.
+- **Reported ([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8, 2026-10-16):** `ServerAliveInterval=30`을 켠 `make tunnel`은 70분 무활동 뒤에도 끊기지 않았다(사용자 확인).
+- **Verified ([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8, 2026-10-15):** `sudo -n tailscale status --json`은 로그인 상태에서 `BackendState` `Running`, 로그아웃 뒤 `NeedsLogin`이고 두 경우 모두 0으로 끝난다. ubuntu 사용자는 암호 없이 `sudo -n`을 쓴다.
+- **Verified ([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8, 2026-10-15):** Ubuntu 26.04 Minimal의 `sshd -T`가 `passwordauthentication no`와 `kbdinteractiveauthentication no`를 출력한다.
+- **Verified ([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8, 2026-10-15):** IAP로 SSH 연결을 여는 데 3.75~4.04초가 걸려 `ConnectTimeout=10`보다 짧다.
+- 무료 송신 한도와 Windows는 아직 확인하지 않았다.
+
 ## 4. 아키텍처
 
 ```mermaid
@@ -370,8 +379,8 @@ operations 런북에 "접속 방식 바꾸기 (Access mode change)" 절로 둔�
 
 ## 14. Open questions
 
-1. IAP 터널에 `iap.googleapis.com`을 켜야 하는가([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8에서 시험).
+1. IAP 터널에 `iap.googleapis.com`을 켜야 하는가([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8에서 시험). → 풀림: 켜지 않아도 된다(§3, 2026-10-15).
 2. 터널 트래픽이 무료 송신 한도에 포함되는가(이전 다음 달 청구서).
-3. VM에서 Tailscale 패키지를 지울지, 로그아웃만 할지([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8, 사용자 결정).
+3. VM에서 Tailscale 패키지를 지울지, 로그아웃만 할지([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8, 사용자 결정). → 풀림: 사용자가 로그아웃만 하기로 정했다(2026-10-16).
 4. 다른 사람에게 줄 최소 IAM 권한(`roles/iap.tunnelResourceAccessor` 외에 `gcloud`가 인스턴스를 찾는 데 필요한 권한).
 5. Windows 동작(기기가 생기면 확인).

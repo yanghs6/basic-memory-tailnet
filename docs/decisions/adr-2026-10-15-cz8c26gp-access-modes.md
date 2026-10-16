@@ -27,4 +27,16 @@
 
 ## 이전 결과
 
-[access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md)의 Task 8에서 채웁니다.
+[access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md)의 Task 8(2026-10-15~16)에서 지금 VM(`agent-hub-01`)을 `ssh` 모드로 옮겼습니다. 명령과 출력은 access-modes 계획의 Progress log에 있습니다.
+
+- **Verified (2026-10-15):** IAP API(`iap.googleapis.com`)를 켜지 않고도 터널이 열립니다. `ssh -o StrictHostKeyChecking=accept-new ubuntu@agent-hub-iap true`가 0으로 끝났고, 2026-10-16 `gcloud services list --enabled --configuration=bm-personal`에도 `iap.googleapis.com`은 없습니다.
+- **Verified (2026-10-15~16):** IAP로 SSH 연결을 여는 데 3.75~4.04초가 걸려 `ConnectTimeout=10`보다 짧습니다. `make verify`의 임시 터널은 4초 만에 열렸고, `make access-check`는 12.8~13.6초 걸립니다(대부분 Tailscale 조정 서버 timeout 대기).
+- **Verified (2026-10-15):** VM의 Tailscale이 로그인 상태일 때 `make status`가 `WARNING: Tailscale is still logged in on the VM`을 냈습니다(`BackendState` `Running`). `sudo tailscale serve reset && sudo tailscale logout` 뒤에는 `sudo -n tailscale status --json`이 0으로 끝나고 `BackendState`가 `NeedsLogin`이며, `make status`는 `tailscale: not installed or logged out`입니다. ubuntu 사용자는 암호 없이 `sudo -n`을 씁니다.
+- **Verified (2026-10-15):** Ubuntu 26.04 Minimal의 `sshd -T`가 `passwordauthentication no`, `kbdinteractiveauthentication no`를 출력해 sshd 설정은 바꾸지 않았습니다.
+- **Verified (2026-10-15):** `make backup`은 Tailscale 경로에서 61.2초, IAP 경로에서 83.3초(1.4배) 걸렸습니다.
+- **Verified (2026-10-15~16):** 사무실 네트워크(Tailscale 조정 서버 `blocked (timeout)`, 터널 엔드포인트 `HTTP 404`)에서 `make tunnel`을 띄우고 `claude -p`와 `codex exec`가 `list_memory_projects`로 `main`을 받았습니다. 2026-10-16 `make verify`는 `OK: automated VM checks passed (access: ssh)`로 끝났습니다.
+- **Reported (2026-10-16, 사용자):** 집 네트워크에서도 `make access-check`, `make tunnel`, 두 클라이언트의 도구 호출, 웹 UI 로그인이 됩니다. 이 Mac 말고 바꿀 기기는 없습니다.
+- **Reported (2026-10-16, 사용자):** `make tunnel`을 띄운 채 70분 동안 MCP를 쓰지 않은 뒤에도 `claude -p` 호출이 `main`을 받았고 `tunnel closed`가 없었습니다. `ServerAliveInterval=30`이 IAP의 한 시간 무활동 끊김을 막는 것으로 봅니다.
+- **Reported (2026-10-16, 사용자):** `make tunnel`을 Ctrl-C로 끝내도 `tunnel closed (exit 255) ... check the ProxyCommand` 안내가 나옵니다. [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md)의 Follow-up으로 남깁니다.
+- 패키지(설계 §14의 3): 사용자가 VM의 Tailscale은 로그아웃만 하고 패키지는 남기기로 정했습니다. 롤백할 때 새 인증 키로 `make vm-bootstrap`만 다시 하면 됩니다. Tailscale admin console의 `agent-hub` 기기는 사용자가 지웠습니다.
+- **Verified (2026-10-16):** GCP 방화벽에서 VPC 밖 소스를 허용하는 인바운드 규칙은 `allow-iap-ssh`(`35.235.240.0/20`, `tcp:22`) 하나입니다.

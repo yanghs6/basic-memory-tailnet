@@ -139,9 +139,11 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다. 외부 IP
 
 | 날짜 | 원인 | 사용한 백업 | 데이터 손실 구간 | 비고 |
 |---|---|---|---|---|
+| 2026-10-15 | 장애 아님: 접속 방식을 `tailscale`에서 `ssh`로 바꿈([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8) | 사용 안 함(롤백 지점 `bm-20261015T090644Z.tgz`) | 없음 | VM의 Tailscale은 로그아웃만 함(패키지 유지), admin console의 `agent-hub` 기기 삭제. 2026-10-16 `make verify` 통과 |
 
 ### 점검 기록 (Exposure audit)
 
 | 날짜 | VPC 밖 소스를 허용하는 인바운드 규칙 수 | 정책 funnel 속성 | `make verify` | 점검자 |
 |---|---|---|---|---|
 | 2026-10-13 | 0 (`default-allow-ssh` 삭제 후 `default-allow-internal` `10.128.0.0/9`만 남음) | 없음: 2026-10-12에 사용자가 붙여 준 정책 JSON의 `nodeAttrs`에 없음, 2026-10-13 VM 노드 `CapMap`에 funnel 권한 없음 | 통과 (MCP 왕복, 127.0.0.1 바인딩, Serve tailnet only, 22·80·443·8737 차단) | claude-code, 사용자 |
+| 2026-10-16 | 1 (`allow-iap-ssh` `35.235.240.0/20` `tcp:22`, 그 밖에는 `default-allow-internal` `10.128.0.0/9`만) | 해당 없음(`ssh` 모드). Tailscale admin console에 `agent-hub` 기기 없음(사용자 확인) | 통과 (`access: ssh`: MCP 왕복, SilverBullet, 8737·3000 loopback, Tailscale 노출 없음, sshd 키 전용, 공인 IP 22·80·443·8443·8737·3000 차단) | claude-code, 사용자 |
