@@ -4,7 +4,7 @@ What changes and why.
 
 ## Plan
 
-docs/plans/active/... or none
+docs/plans/... (the plan file) or none
 
 ## Verification
 
