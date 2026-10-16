@@ -19,9 +19,11 @@ setup() {
   TYPES="$(doc_types "$REPO_DIR/docs/README.md")" || fail "the registry under '## 문서 타입' in docs/README.md does not parse"
 }
 
-# doc_files: every tracked or new (not ignored) file under docs/, one per line, relative to the repo.
+# doc_files: every tracked file under docs/ and every new (untracked, not ignored) Markdown file there, one per line,
+# relative to the repo. New files other than Markdown (.DS_Store, editor swap files) are local clutter, not documents.
 doc_files() {
-  git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- docs
+  git -C "$REPO_DIR" ls-files --cached -- docs
+  git -C "$REPO_DIR" ls-files --others --exclude-standard -- 'docs/*.md'
 }
 
 # type_row FILE: the registry row whose folder holds FILE directly; nothing when no type owns that folder.
