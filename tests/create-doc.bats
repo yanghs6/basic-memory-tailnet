@@ -70,6 +70,9 @@ setup() {
   assert_success
   assert_line "docs/plans/plan-$TODAY-10-next-plan.md"
   assert_output --partial "git fetch origin"
+  # Running it again with the same slug the same day must not take another number.
+  run "$CREATE" plan next-plan
+  assert_failure
   # The first new plan is untracked; the working tree counts too.
   run "$CREATE" plan another-plan
   assert_success

@@ -19,7 +19,7 @@ readonly NEW_DOCS_ALLOWED="허용"
 readonly NO_NUMBER="없음"
 
 main() {
-  local type="${1:-}" slug="${2:-}" root row code number location new template day name target
+  local type="${1:-}" slug="${2:-}" root row code number location new template day name target digits i
   [[ -n "$type" && -n "$slug" ]] || die "usage: make new-doc TYPE=<type> SLUG=<slug> (types: $REGISTRY_REL_PATH)"
   [[ "$slug" =~ $SLUG_PATTERN ]] || die "slug '$slug' must be lowercase letters and digits joined by single hyphens"
   require_cmd git
@@ -32,6 +32,12 @@ main() {
   day="$(date +%F)"
   name="$code-$day-$slug.md"
   if [[ "$number" != "$NO_NUMBER" ]]; then
+    # A rerun would take the next number instead of hitting the existing file, so match any number of that width.
+    digits=""
+    for ((i = 0; i < ${#number}; i++)); do digits="${digits}[0-9]"; done
+    if compgen -G "$root/${location%/}/$code-$day-$digits-$slug.md" >/dev/null; then
+      die "a $type with slug '$slug' was already created today in ${location%/}: fill that file or pick another slug"
+    fi
     log "numbering from every local and remote-tracking branch: run 'git fetch origin' first if you have not"
     number="$(next_doc_number "$root" "$location" "$code" "${#number}")" || exit 1
     name="$code-$day-$number-$slug.md"
