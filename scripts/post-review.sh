@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Post one review round's raw reports to its pull request: one comment for the change review and one for the
-# plan review (docs/specs/2026-10-13-github-pr-workflow-design.md, section 8). make review writes the reports.
+# plan review (docs/specs/spec-2026-10-13-github-pr-workflow.md, section 8). make review writes the reports.
 # Usage: post-review.sh PR BRANCH codex|claude [ROUND]
 #   REVIEW_OUT_DIR=<dir>   where make review wrote the reports (default: the main checkout's .review-out)
 #   REVIEW_MODEL=<model>   the reviewer's model for the comment header (default: "CLI default model")

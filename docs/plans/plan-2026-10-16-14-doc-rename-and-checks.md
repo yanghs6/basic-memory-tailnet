@@ -1,6 +1,6 @@
 ---
 status: active
-spec: docs/specs/2026-10-15-doc-system-design.md
+spec: docs/specs/spec-2026-10-15-doc-system.md
 ---
 
 # 14 Doc Rename And Checks Implementation Plan
@@ -15,7 +15,7 @@ spec: docs/specs/2026-10-15-doc-system-design.md
 - 검사는 `scripts/lib/docs.sh`의 `doc_types`로 레지스트리를 읽어 반복문으로 한다(ADR 0007). 계획 13의 파서를 그대로 쓴다.
 - Task 1은 이름과 경로, Task 2는 front matter, Task 3은 문장(생애 주기와 D4)이다. 각 Task가 끝날 때 `make check`가 통과한다.
 
-**Spec:** `docs/specs/2026-10-15-doc-system-design.md` (특히 §3.1, §4, §6.3, §6.4, §8.3, §9, §10)
+**Spec:** `docs/specs/spec-2026-10-15-doc-system.md` (특히 §3.1, §4, §6.3, §6.4, §8.3, §9, §10)
 
 **Sequence:** 계획 14. 다음을 모두 만족한 뒤 시작한다.
 - 계획 13(PR #11, `03432a1`)이 병합됐다(충족).
@@ -595,3 +595,6 @@ git push
 |---|---|---|
 | 2026-10-16 | Command | 시작: `plan/14-doc-rename-and-checks`를 `origin/main` `4cedf49`(PR #12 병합)에서 만들고(worktree `repo-structure` 재사용), `make new-doc TYPE=plan`으로 만든 이 계획을 첫 커밋으로 넣음(사용자 결정: 문서 PR 없이 같은 PR에서 실행). 실행은 사용자 결정대로 가능한 Task를 병렬로: Task 1 뒤 Task 2(이 worktree)와 Task 3(별도 worktree의 서브에이전트)을 함께. |
 | 2026-10-16 | Verified | 사용자가 `AGENTS.md` 변경을 승인함(2026-10-16, `4cedf49` 기준): (a) 이름 변경으로 바뀌는 경로 4·30·54행, (b) Task 3 Step 1의 문구 5·41·49·60행. |
+| 2026-10-16 | Verified | Task 1 RED `make test`: 이름·위치 검사와 경로 검사 실패, 레지스트리·번호 검사 통과. 시작 시점에 다시 만든 이름 변경표가 계획의 표와 같음(44행, `diff` 출력 없음). |
+| 2026-10-16 | Verified | Task 1 Step 3: `git mv` 44개, perl이 76개 파일의 참조를 고침. Step 4에서 계획대로 남은 경로 다섯 묶음을 고침(계획 04 6곳, 계획 05 1곳, OCI 설계 1곳, 계획 13 2곳, 웹 UI 설계 2곳). 계획에 없던 두 가지: (1) `tests/cloud_neutral.bats`의 예외 패턴이 정규식으로 이스케이프된 `gcp-vm\.md`라 perl이 놓쳐 클라우드 이름 검사 3개가 실패함 → 새 이름으로 고침(이스케이프된 옛 이름은 이것과 계획 04 코드 블록의 기록뿐). (2) 옮긴 계획의 `](../../` 규칙이 원래부터 `docs/plans/`에 있던 이 계획의 Review Focus 문장도 바꿈 → 되돌림. |
+| 2026-10-16 | Verified | Task 1 GREEN `make check`: exit 0, 210 ok, 0 not ok, 커버리지 94.51%. 스테이징한 rename 44개, 경로가 아닌 낱말만 바뀐 줄 없음(`git diff --cached -M --word-diff=porcelain`). |

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Document helpers for scripts/*.sh: read the document type registry (the table under "## 문서 타입" in
 # docs/README.md) and number new documents. Source scripts/lib/common.sh first (die, log).
-# Must stay compatible with macOS bash 3.2. Spec: docs/specs/2026-10-15-doc-system-design.md, sections 3 and 8.2.
+# Must stay compatible with macOS bash 3.2. Spec: docs/specs/spec-2026-10-15-doc-system.md, sections 3 and 8.2.
 #   doc_types REGISTRY -> every type row as tab-separated fields
 #   doc_type_row REGISTRY TYPE -> the row of TYPE
 #   doc_paths ROOT LOCATION -> file paths under LOCATION on every branch and in the working tree

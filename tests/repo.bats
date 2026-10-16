@@ -2,7 +2,7 @@
 load helpers
 
 # Antigravity truncates a rule file at 24,000 bytes, the smallest limit of the four agents
-# (docs/research/2026-10-15-agent-repo-conventions.md, section 1).
+# (docs/research/rsch-2026-10-15-agent-repo-conventions.md, section 1).
 AGENTS_MD_MAX_BYTES=24000
 
 shell_files() {
@@ -253,20 +253,6 @@ markdown_links() {
   done <<<"$files"
   ((checked > 0)) || fail "no relative links were checked"
   [[ -z "$broken" ]] || fail "broken relative links:$broken"
-}
-
-@test "every docs markdown path named in scripts, skills and AGENTS.md exists" {
-  local path missing="" count=0 found paths
-  # Capture grep alone: tests run without pipefail, so a pipe into sort would hide grep's exit status.
-  found="$(grep -rhoE 'docs/[A-Za-z0-9_./-]+\.md' "$REPO_DIR/scripts" "$REPO_DIR/.agents/skills" "$REPO_DIR/AGENTS.md")" \
-    || fail "found no docs/*.md references to check (grep exit status $?)"
-  paths="$(sort -u <<<"$found")"
-  while IFS= read -r path; do
-    count=$((count + 1))
-    [[ -f "$REPO_DIR/$path" ]] || missing="$missing $path"
-  done <<<"$paths"
-  ((count > 0)) || fail "no docs paths were checked"
-  [[ -z "$missing" ]] || fail "referenced docs do not exist:$missing"
 }
 
 @test "every gcloud command in runbooks and skills names the bm-personal configuration" {

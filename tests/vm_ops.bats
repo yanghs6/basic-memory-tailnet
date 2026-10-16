@@ -279,7 +279,7 @@ teardown() {
   for ip in example.com 1.2.3 999.1.1.1 127.0.0.1 10.0.0.5 172.16.0.1 172.31.255.255 192.168.1.1 169.254.1.1 0.0.0.0; do
     BM_VM_PUBLIC_IP="$ip" run "$REPO_DIR/scripts/verify-vm.sh"
     assert_failure
-    assert_output --partial "docs/runbooks/gcp-vm.md"
+    assert_output --partial "docs/runbooks/rbk-2026-10-12-gcp-vm.md"
     if [[ "$ip" == 999.1.1.1 ]]; then
       assert_output --partial "BM_VM_PUBLIC_IP must be the VM's public IPv4"
     fi
@@ -329,7 +329,7 @@ teardown() {
   run "$REPO_DIR/scripts/status.sh"
   assert_success
   assert_output --partial "swap used: 0/0 MB"
-  assert_output --partial "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/bootstrap.md)"
+  assert_output --partial "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/rbk-2026-10-12-bootstrap.md)"
   assert_output --partial "proxy http://127.0.0.1:8737"
 }
 

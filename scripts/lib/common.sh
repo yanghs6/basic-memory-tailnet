@@ -48,7 +48,7 @@ require_cmd() {
 require_env() {
   local name
   for name in "$@"; do
-    [[ -n "${!name:-}" ]] || die "missing env $name: set it in .env in the main checkout (copy .env.example there; see docs/runbooks/accounts.md)"
+    [[ -n "${!name:-}" ]] || die "missing env $name: set it in .env in the main checkout (copy .env.example there; see docs/runbooks/rbk-2026-10-12-accounts.md)"
   done
 }
 
@@ -97,14 +97,14 @@ access_mode() {
   local mode="${BM_ACCESS:-tailscale}"
   case "$mode" in
     tailscale | ssh) printf '%s\n' "$mode" ;;
-    *) die "BM_ACCESS must be tailscale or ssh (got '$mode'): set it in .env in the main checkout (docs/runbooks/bootstrap.md)" ;;
+    *) die "BM_ACCESS must be tailscale or ssh (got '$mode'): set it in .env in the main checkout (docs/runbooks/rbk-2026-10-12-bootstrap.md)" ;;
   esac
 }
 
 # access_hint -> what to check when SSH to the VM fails, for the current access mode.
 access_hint() {
   if [[ "${BM_ACCESS:-tailscale}" == ssh ]]; then
-    printf 'check the ProxyCommand for %s in ~/.ssh/config and its login (docs/runbooks/gcp-vm.md)\n' "$BM_VM_HOST"
+    printf 'check the ProxyCommand for %s in ~/.ssh/config and its login (docs/runbooks/rbk-2026-10-12-gcp-vm.md)\n' "$BM_VM_HOST"
   else
     printf 'is %s reachable over Tailscale SSH? (ssh %s@%s true)\n' "$BM_VM_HOST" "$BM_VM_USER" "$BM_VM_HOST"
   fi

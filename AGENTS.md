@@ -1,7 +1,7 @@
 # Agent instructions
 
 This repo deploys a Basic Memory MCP server on a GCP free-tier e2-micro VM that is reachable through one access mode per VM (`BM_ACCESS`): inside a Tailscale tailnet, or through an SSH tunnel (GCP IAP).
-Read first: `docs/specs/2026-10-12-basic-memory-gcp-tailscale-design.md`, then `docs/ARCHITECTURE.md`. For the access modes, read `docs/specs/2026-10-15-access-modes-design.md`.
+Read first: `docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md`, then `docs/ARCHITECTURE.md`. For the access modes, read `docs/specs/spec-2026-10-15-access-modes.md`.
 Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`).
 
 ## Commands
@@ -27,7 +27,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - The user types the Tailscale auth key and the restore `yes` in their own terminal, never in chat or through a pipe.
 - Never write the VM's external or tailnet IP addresses in commits, PRs, PR comments or repo files; use `agent-hub` or a placeholder.
 
-## Git (policy: docs/specs/2026-10-13-github-pr-workflow-design.md on top of docs/specs/2026-10-07-git-review-policy-design.md)
+## Git (policy: docs/specs/spec-2026-10-13-github-pr-workflow.md on top of docs/specs/spec-2026-10-07-git-review-policy.md)
 - Work only in your own git worktree on `plan/<NN>-<slug>` or `work/<slug>`, branched from `origin/main` after `git fetch origin`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) with `git branch -m` before you push; on a detached HEAD (Codex app) run `git switch -c <branch> --no-track origin/main` first. Per-tool steps: the `git-workflow` skill.
 - Never commit or push to `main`, force-push, rebase or rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree.
 - End every commit message with the trailers `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>`, `Plan: <NN|none>` and `Task: <N|review|none>`; add `Review-Finding: R<n>-F<m>` (cross-vendor review) or `SDD-T<task>-F<n>` (in-plan task review) to review fixes. Never add `Co-authored-by` or `Signed-off-by`.
@@ -51,7 +51,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - `docs/reviews/` review records (template in its README).
 - `docs/runbooks/` accounts, VM creation, bootstrap, operations (incident log); `docs/decisions/` ADRs.
 - `docs/research/` dated research snapshots (not maintained after their date).
-- `.github/` CI workflows, the `main` ruleset (`rulesets/main.json`) and the PR template; GitHub setup and token rotation: `docs/runbooks/github.md`.
+- `.github/` CI workflows, the `main` ruleset (`rulesets/main.json`) and the PR template; GitHub setup and token rotation: `docs/runbooks/rbk-2026-10-14-github.md`.
 
 ## Code Review Rules
 Reviewers check only the changes since the base (Codex reads this section; Claude uses the `branch-review` skill):

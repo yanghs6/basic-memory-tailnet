@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Check the git policy for a branch (docs/specs/2026-10-07-git-review-policy-design.md):
+# Check the git policy for a branch (docs/specs/spec-2026-10-07-git-review-policy.md):
 # branch name, trailers on every non-merge commit in BASE..BRANCH, forbidden trailers, worktree config.
 # Usage: check-git.sh [BASE] [BRANCH]   (defaults: main, the current branch)
 # Pass BRANCH to check a branch from anywhere, e.g. from a reviewer's detached worktree.

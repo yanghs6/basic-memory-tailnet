@@ -1,6 +1,6 @@
 # Review and merge
 
-The phases after the last task commit, in order. Policy: docs/specs/2026-10-13-github-pr-workflow-design.md, sections 8 and 9.
+The phases after the last task commit, in order. Policy: docs/specs/spec-2026-10-13-github-pr-workflow.md, sections 8 and 9.
 
 ## Review
 

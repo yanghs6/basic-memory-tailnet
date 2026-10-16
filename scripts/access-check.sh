@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Report which access path works from the network this machine is on: the Tailscale control plane, the ssh mode's
 # tunnel endpoint (BM_ACCESS_CHECK_URL) and, with BM_ACCESS=ssh, the SSH host alias. The recommendation covers this
-# network only: run it on every network your clients use, then set BM_ACCESS (docs/runbooks/bootstrap.md).
+# network only: run it on every network your clients use, then set BM_ACCESS (docs/runbooks/rbk-2026-10-12-bootstrap.md).
 # Exits 1 only when BM_ACCESS is set and that mode does not work here.
 # Usage: access-check.sh
 set -euo pipefail
