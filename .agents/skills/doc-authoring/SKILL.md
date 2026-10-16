@@ -35,12 +35,11 @@ Every agent creates documents the same way from repo files alone. The type regis
   - ADR: `proposed`, then `accepted`; later `superseded` or `deprecated`.
   - runbook: `reviewed` is the day you last followed the steps or checked them against the system.
 - To replace a document, write the new one (its "대체 범위" line says what it replaces) and, in the same commit, give the old one `status: superseded` and `superseded-by: <path>`, or `amended-by: <path>` when only part changes.
-- Until plan 14 merges, older documents keep their old names and have no front matter, and old-name plans still move between `docs/plans/backlog/`, `active/` and `completed/` as `git-workflow` says. Do not rename them by hand: plan 14 does.
 
 ## Labels and evidence
 
 - In Korean documents, start a statement about outside systems, the environment or tool behavior with a label: `**Verified:**` (you checked it), `**Command:**` (what you ran), `**Assumption:**` (not checked), `**Open question:**` (for a human), `**Reported:**` (second-hand). In a table, put only the label in the 표기 column. Add a date when it matters: `**Verified (2026-10-16):**`.
-- Record evidence (command and result) in the active plan's Progress log (`| 날짜 | 표기 | 내용 |`) or in an ADR.
+- Record evidence (command and result) in the active plan's Progress log (`| 날짜 | 표기 | 내용 |`), or on a work branch in the PR body's Verification; record decisions in an ADR. The PR's CI results go in the PR body's Verification.
 - Name repo files by relative link or by repo path in backticks. Write example paths of files that do not exist only inside code blocks.
 
 ## Add a document type
@@ -57,4 +56,4 @@ Every agent creates documents the same way from repo files alone. The type regis
 ## Gotchas
 
 - `make new-doc` sees only the branches you have fetched; a number another agent pushed after your last fetch can collide. If your pull request shows a duplicate number, rename your file with `git mv` and update its references.
-- `tests/repo.bats` checks the relative links of every tracked Markdown file and every docs Markdown path named in skills, even inside code blocks, so templates and this skill name only files that exist.
+- `tests/repo.bats` checks the relative links of every tracked Markdown file, and `tests/repo-docs.bats` checks every docs Markdown path named in skills (even inside code blocks) and in other Markdown outside code, so templates and this skill name only files that exist.

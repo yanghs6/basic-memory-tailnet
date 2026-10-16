@@ -2,7 +2,7 @@
 # Create a document from the template of its type (the table under "## 문서 타입" in docs/README.md). The name is
 # <code>-<YYYY-MM-DD>-<slug>.md, with the next free number after the date for numbered types (plan NN, adr NNNN).
 # Numbers come from every local and remote-tracking branch and the working tree, so run git fetch origin first.
-# Prints the new path on stdout. Spec: docs/specs/2026-10-15-doc-system-design.md, section 8.2.
+# Prints the new path on stdout. Spec: docs/specs/spec-2026-10-15-doc-system.md, section 8.2.
 # Usage: make new-doc TYPE=<type> SLUG=<slug>
 set -euo pipefail
 

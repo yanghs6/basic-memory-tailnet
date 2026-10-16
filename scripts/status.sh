@@ -19,7 +19,7 @@ show_access() {
     step "access: ssh"
     require_cmd jq
     if vm_tailscale_logged_in; then
-      log "WARNING: Tailscale is still logged in on the VM; BM_ACCESS=ssh expects it off (docs/runbooks/operations.md, Access mode change)"
+      log "WARNING: Tailscale is still logged in on the VM; BM_ACCESS=ssh expects it off (docs/runbooks/rbk-2026-10-12-operations.md, Access mode change)"
     else
       log "tailscale: not installed or logged out"
     fi
@@ -27,7 +27,7 @@ show_access() {
   fi
   step "tailscale serve"
   remote "sudo -n tailscale serve status" \
-    || die "tailscale serve is not configured: rerun 'make vm-bootstrap HOST=<public-ip>' (docs/runbooks/bootstrap.md)"
+    || die "tailscale serve is not configured: rerun 'make vm-bootstrap HOST=<public-ip>' (docs/runbooks/rbk-2026-10-12-bootstrap.md)"
 }
 
 main() {
@@ -45,7 +45,7 @@ main() {
   log "memory used: ${used}%"
   log "swap used: ${swap_used}/${swap_total} MB"
   if ((swap_total == 0)); then
-    log "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/bootstrap.md)"
+    log "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/rbk-2026-10-12-bootstrap.md)"
   fi
 
   show_access "$mode"

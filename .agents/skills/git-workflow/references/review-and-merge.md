@@ -1,10 +1,10 @@
 # Review and merge
 
-The phases after the last task commit, in order. Policy: docs/specs/2026-10-13-github-pr-workflow-design.md, sections 8 and 9.
+The phases after the last task commit, in order. Policy: docs/specs/spec-2026-10-13-github-pr-workflow.md, sections 8 and 9.
 
 ## Review
 
-1. Move a finished plan to `docs/plans/completed/` (commit with `Task: none`) and push. A plan that `make new-doc` created stays where it is: set its front matter `status` to `completed` instead.
+1. Set a finished plan's front matter `status` to `completed` (commit with `Task: none`) and push. Put the CI results in the PR body's Verification.
 2. Ask the other vendor to review; never review your own branch:
    - you are Claude Code: `make review BRANCH=<branch> REVIEWER=codex` (runs `codex exec review` with `-c 'sandbox_mode="read-only"'`; never use a writable sandbox)
    - you are Codex, Antigravity or Gemini: `make review BRANCH=<branch> REVIEWER=claude`

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Check a pull request's title and body (docs/specs/2026-10-13-github-pr-workflow-design.md, sections 5 and 6).
+# Check a pull request's title and body (docs/specs/spec-2026-10-13-github-pr-workflow.md, sections 5 and 6).
 # The squash merge makes the title the commit subject and the body the commit message, so the title follows
 # the commit format and the body's last paragraph carries the Assisted-by and Plan trailers.
 # Usage: PR_TITLE=<title> PR_BODY=<body> check-pr.sh   (the pr-rules workflow passes both from the event)

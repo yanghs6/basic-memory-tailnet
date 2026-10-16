@@ -21,7 +21,7 @@ main() {
   local -a cmd
   mode="$(access_mode)" || exit 1
   [[ "$mode" == ssh ]] \
-    || die "make tunnel is for BM_ACCESS=ssh; in tailscale mode clients use https://<host>.<tailnet>.ts.net/mcp (docs/runbooks/operations.md)"
+    || die "make tunnel is for BM_ACCESS=ssh; in tailscale mode clients use https://<host>.<tailnet>.ts.net/mcp (docs/runbooks/rbk-2026-10-12-operations.md)"
   require_cmd ssh nc
   require_env BM_VM_HOST BM_VM_USER
   require_free_port BM_TUNNEL_MCP_PORT "$mcp_port"
