@@ -451,7 +451,7 @@ jobs:
 
 - [ ] **Step 5: `.github/rulesets/main.json`**
 
-`integration_id` 15368은 GitHub Actions 앱의 ID다. **Verified** (2026-10-13, 공개 API): 공개 저장소 `cli/cli`의 PR #14650에서 head SHA에는 check-run 19개가 붙어 있었고, 그 앱이 `github-actions`(ID 15368)였다. 같은 PR의 merge SHA에는 check-run이 0개였다. 그래서 `pull_request` 워크플로의 check-run은 PR head SHA에서 조회한다. Task 4 Step 3에서 이 저장소의 첫 PR로 다시 확인한다.
+**Verified (2026-10-13, 공개 API):** `integration_id` 15368은 GitHub Actions 앱의 ID다. 공개 저장소 `cli/cli`의 PR #14650에서 head SHA에는 check-run 19개가 붙어 있었고, 그 앱이 `github-actions`(ID 15368)였다. 같은 PR의 merge SHA에는 check-run이 0개였다. 그래서 `pull_request` 워크플로의 check-run은 PR head SHA에서 조회한다. Task 4 Step 3에서 이 저장소의 첫 PR로 다시 확인한다.
 
 ```json
 {

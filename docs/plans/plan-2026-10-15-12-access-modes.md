@@ -1794,7 +1794,8 @@ gh pr create --draft --base main --title "docs: record the move of the VM to the
 - Windows 확인(기기가 생기면).
 - 계획 12 리뷰에서 미룬 작은 개선(최종 리뷰가 병합 후로 분류):
   - `make tunnel`에서 `BM_TUNNEL_MCP_PORT`와 `BM_TUNNEL_WEB_PORT`가 같으면 ssh 오류 대신 원인을 말한다.
-  - Ctrl-C로 끝낼 때 `tunnel closed (exit 255) ... check the ProxyCommand`가 나오는지 Task 8 Step 7에서 보고, 그렇다면 INT trap으로 안내를 고친다. **Reported (2026-10-16):** 나온다(사용자 확인). INT trap 수정이 남았다.
+  - Ctrl-C로 끝낼 때 `tunnel closed (exit 255) ... check the ProxyCommand`가 나오는지 Task 8 Step 7에서 보고, 그렇다면 INT trap으로 안내를 고친다.
+    - **Reported (2026-10-16):** 나온다(사용자 확인). INT trap 수정이 남았다.
   - `vm_tailscale_logged_in`의 `missing` 분기와 jq 실패 경로 테스트를 더한다.
   - `bm-recover` 체크리스트 4번의 "host keys cleared"를 모드별 문구로 바꾼다.
 
@@ -1807,7 +1808,8 @@ gh pr create --draft --base main --title "docs: record the move of the VM to the
 | 2026-10-15 | Verified | 사용자가 Task 7 Step 3의 `AGENTS.md` 문구 다섯 곳을 승인함(2026-10-15, 대상은 `3b87fa5` 기준 3·4·10·13·22행). `4a184f1`에서도 그 다섯 줄은 바뀌지 않았다(`git diff 3b87fa5 origin/main -- AGENTS.md` 출력 없음). Task 7 직전에 `main`의 `AGENTS.md`를 다시 확인한다. |
 | 2026-10-15 | Verified | Task 1~7 구현과 태스크 리뷰 통과(묶음 T1∥T6∥T7 → T2∥T3 → T4 → T5). T1 `ba9b2be`, T6 `e5567b8`(병합 `08f6b80`), T7 `1849574`, T2 `9982d85`, T3 `cb94253`(병합 `9380c5c`), T4 `eb2e773`, T5 `cfa3624`. T4는 리뷰에서 테스트 두 개가 결함을 잡지 못한다는 지적을 받아 `bf1bca6`·`a6e0838`(`SDD-T4-F1`, `SDD-T4-F2`)로 고쳤고, 일부러 코드를 깨뜨려 두 테스트가 실패하는 것을 확인했다. `bf1bca6`은 `make check`가 실패한 상태(shellcheck SC2217)로 커밋됐고 `a6e0838`이 고쳤다(이력은 고치지 않음). |
 | 2026-10-15 | Verified | 최종 전체 리뷰(`4a184f1..cfa3624`): With fixes, Important 2건. I-1: `BM_ACCESS_CHECK_URL`이 없으면 터널을 '막힘'으로 세어 잘못 추천함. I-2: ssh 모드 재구축에서 known_hosts는 별칭이 아니라 `HostName`으로 저장되고 `HostName` 변경 단계가 빠짐. Minor 7건과 함께 고쳐야 할 4건을 `cfa3624..32415f1`에서 고쳤고, 범위 재리뷰에서 모두 해결로 확인했다. 미룬 항목은 Follow-ups에 적었다. |
-| 2026-10-15 | Verified | `make check`(`32415f1`): exit 0, 198 ok, 0 not ok, 커버리지 96.35%. PR #8 CI(`32415f1`): `check` pass, `pr-rules` pass. GitGuardian(필수 체크 아님)은 fail("1 secret"). `cfa3624`에서는 통과했고, 그 뒤 추가된 키 모양 문자열은 테스트용 가짜 값 `TS_AUTHKEY=tskey-auth-ssh123`(`tests/bootstrap.bats`) 하나뿐이라 그것으로 본다(**Assumption**, 대시보드에서 확인 필요). 실제 키가 아니다. |
+| 2026-10-15 | Verified | `make check`(`32415f1`): exit 0, 198 ok, 0 not ok, 커버리지 96.35%. PR #8 CI(`32415f1`): `check` pass, `pr-rules` pass. GitGuardian(필수 체크 아님)은 fail("1 secret"). |
+| 2026-10-15 | Assumption | `cfa3624`에서는 통과했고, 그 뒤 추가된 키 모양 문자열은 테스트용 가짜 값 `TS_AUTHKEY=tskey-auth-ssh123`(`tests/bootstrap.bats`) 하나뿐이라 그것으로 본다(대시보드에서 확인 필요). 실제 키가 아니다. |
 | 2026-10-15 | Verified | Codex 교차 리뷰(사용자 승인, `REVIEW_BASE=origin/main`). R1(`4a184f1..92da5b2`)은 blocked: R1-F1(P1) 28737이 이미 쓰이면 verify 임시 터널이 남의 listener를 준비 완료로 보고 다른 VM에 테스트 노트를 쓸 수 있음 → `254ce5e`(ssh 전에 두 verify 포트가 비었는지 확인, `require_free_port`를 `common.sh`로 옮김). R1-F2(P2) `make tunnel`이 ssh 종료 코드 대신 1로 끝남(스펙 §2) → `249c689`. R2(`92da5b2..249c689`)는 mergeable, 새 지적 없음. |
 | 2026-10-15 | Verified | `make check`(`249c689`): exit 0, 199 ok, 0 not ok, 커버리지 96.37%. PR #8 CI(`249c689`): `check` pass, `pr-rules` pass. GitGuardian(필수 아님) fail은 `3b24c1c`의 `tests/bootstrap.bats:182` 테스트용 가짜 값 `TS_AUTHKEY=tskey-auth-ssh123`("Generic High Entropy Secret")으로 확인함(체크 상세). 실제 키 아님. |
 | 2026-10-15 | Command | Task 8 Step 0: PR #8이 `87e86d4`로 병합된 뒤 worktree `access-modes`에서 `plan/12-access-mode-migration`을 `origin/main`으로 만듦. 사무실 네트워크에서 시작했다. 조정 서버는 막혔지만 기존 Tailscale direct 연결이 살아 있어 Step 1~4의 롤백 경로가 있었다(시작 조건 3을 이렇게 충족). |

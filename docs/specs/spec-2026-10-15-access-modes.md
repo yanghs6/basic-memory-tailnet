@@ -45,7 +45,7 @@ date: 2026-10-15
 | 터널 실행 | `make tunnel`이 터미널 앞단에서 `ssh -N -L`을 실행한다. 끊기면 다시 붙지 않고 종료 코드를 그대로 낸다 | 플랫폼을 가리지 않고 실패가 숨지 않는다. bats로 시험할 수 있다 |
 | 로컬 포트 | `make tunnel`은 18737(MCP)·13000(웹 UI), `verify`의 임시 터널은 28737·23000 | 로컬 컨테이너(8737·3000, `bm-local`)와 서로 겹치지 않는다 |
 | MCP 이름 | 클라이언트마다 `basic-memory` 하나. URL만 모드에 따라 다르다 | VM마다 모드가 하나이므로 이름도 하나다 |
-| Windows | WSL2에서 Make 타깃, PowerShell에서 터널 명령 한 줄. 미검증(Assumption) | 스크립트를 두 벌로 만들지 않는다. 이 저장소의 사람이 Windows 기기로 확인하지 못했다 |
+| Windows | **Assumption:** WSL2에서 Make 타깃, PowerShell에서 터널 명령 한 줄. 미검증 | 스크립트를 두 벌로 만들지 않는다. 이 저장소의 사람이 Windows 기기로 확인하지 못했다 |
 | 지금 VM | 계획 12 Task 8에서 `ssh` 모드로 옮기고 VM의 Tailscale은 로그아웃한다 | 사무실에서 쓰는 것이 이번 작업의 출발점이다. 모드 하나 원칙대로 tailnet 경로를 닫는다 |
 | 이전 자동화 | 하지 않는다. 런북 명령으로 한 번 한다 | 부트스트랩이 Tailscale을 자동으로 끄면, Tailscale SSH로 실행하던 중에 연결이 끊긴다 |
 | `ssh` 모드의 sshd | `verify`가 `sshd -T`로 암호 로그인과 키보드 대화형 인증이 꺼져 있는지 본다 | `ssh` 모드에서는 sshd가 정문이다 |
@@ -278,7 +278,8 @@ AGENTS.md                    사용자 승인 후 (§12)
 1. **불변식 유지:** 공인 인터넷 인그레스 0, 컨테이너 `127.0.0.1` 바인딩, Funnel 금지는 그대로다. `ssh` 모드는 IAP 대역의 22번 하나만 더한다.
 2. **로컬 바인딩:** 모든 `-L`은 `forward_spec`을 거쳐 로컬 `127.0.0.1`에만 바인딩한다. 같은 네트워크의 다른 기기는 터널 포트에 닿지 못한다.
 3. **sshd:** `ssh` 모드의 정문이다. `verify`가 암호·키보드 대화형 인증이 꺼져 있는지 매번 본다. 키는 메타데이터 `ssh-keys`로만 넣고, `gcloud compute ssh`처럼 키를 자동으로 메타데이터에 올리는 명령은 런북에서 쓰지 않는다.
-4. **IAM:** 터널을 쓰는 사람은 프로젝트에서 `roles/iap.tunnelResourceAccessor`가 있어야 한다. 프로젝트 소유자는 이미 가진다. 다른 사람에게 줄 때의 최소 권한은 계획 12 Task 8 뒤 런북에 적는다(**Open question**).
+4. **IAM:** 터널을 쓰는 사람은 프로젝트에서 `roles/iap.tunnelResourceAccessor`가 있어야 한다. 프로젝트 소유자는 이미 가진다.
+   - **Open question:** 다른 사람에게 줄 때의 최소 권한은 계획 12 Task 8 뒤 런북에 적는다.
 5. **두 경로 겹침:** 이전하는 동안 IAP 규칙을 더한 시점부터 VM의 Tailscale을 로그아웃할 때까지 두 경로가 함께 열린다. 계획 12 Task 8은 이 구간을 한 세션 안에서 끝내고 Exposure audit을 다시 한다.
 6. **출력:** 스크립트와 기록에 공인 IP, tailnet 이름, 프로젝트 id를 쓰지 않는다. `access-check`는 URL과 결과만 출력한다.
 
@@ -312,7 +313,8 @@ AGENTS.md                    사용자 승인 후 (§12)
   - `%USERPROFILE%\.ssh\config`에 별칭을 넣는다. `ProxyCommand`에는 `gcloud.cmd`를 쓴다.
   - PowerShell에서 `make tunnel`이 출력하는 ssh 명령을 그대로 실행한다.
   - Windows용 Claude Code·Codex에는 같은 `http://127.0.0.1:18737/mcp`를 등록한다.
-- **WSL2에서 터널을 띄우는 경우:** Windows 앱이 그 포트에 닿는지는 WSL2 localhost 포워딩에 달려 있다(Assumption).
+- **WSL2에서 터널을 띄우는 경우:**
+  - **Assumption:** Windows 앱이 그 포트에 닿는지는 WSL2 localhost 포워딩에 달려 있다.
 
 ### 10.3 접속 방식 바꾸기 (`tailscale` → `ssh`)
 
@@ -327,7 +329,7 @@ operations 런북에 "접속 방식 바꾸기 (Access mode change)" 절로 둔�
 5. **Tailscale 정리:**
    - `ssh ubuntu@agent-hub-iap 'sudo tailscale serve reset && sudo tailscale logout'`을 실행한다.
    - Tailscale 관리 콘솔에서 VM 기기를 지운다.
-   - 패키지를 지울지는 이때 정한다(**Open question**).
+   - **Open question:** 패키지를 지울지는 이때 정한다.
 6. **검증:** `make probe`, `make verify`, `make status`
 7. **클라이언트 전환:** 기기마다 `basic-memory`를 지우고 터널 URL로 다시 등록한 뒤 도구를 호출해 본다.
 8. **마무리:** Exposure audit을 하고 Incident log·점검 기록에 남긴다.

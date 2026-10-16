@@ -64,7 +64,7 @@ reviewed: 2026-10-15
 | `upload failed` | 공인 IP(정지 후 시작하면 바뀜, [rbk-2026-10-12-gcp-vm.md](rbk-2026-10-12-gcp-vm.md) 5단계), SSH 키, `default-allow-ssh`의 소스 IP/32(다른 네트워크면 다시 `update`), 재구축이면 `ssh-keygen -R <공인 IP>` |
 | `not on the tailnet and no auth key given` | VM이 아직 tailnet에 없습니다. 인증 키를 붙여 넣어 다시 실행 |
 | `tailscale up failed` | 키 만료·재사용 여부, Pre-approved, `tag:agent-hub`의 `tagOwners` |
-| 배포 뒤(22번 삭제 뒤) 부트스트랩을 다시 실행해야 함 | `make vm-bootstrap HOST=agent-hub` (Tailscale SSH 사용. **Assumption**, 계획 05 항목 29에서 확인) |
+| 배포 뒤(22번 삭제 뒤) 부트스트랩을 다시 실행해야 함 | **Assumption (계획 05 항목 29에서 확인):** `make vm-bootstrap HOST=agent-hub` (Tailscale SSH 사용) |
 | `Serve is not active` | [accounts 3단계](rbk-2026-10-12-accounts.md)의 MagicDNS와 HTTPS Certificates를 켠 뒤 `make vm-bootstrap`을 다시 실행 |
 | `Funnel is on for this node` | Funnel을 끄고([운영 런북](rbk-2026-10-12-operations.md)의 Exposure audit) 다시 실행 |
 | `Host key verification failed` / `REMOTE HOST IDENTIFICATION HAS CHANGED` | VM을 다시 만들면 호스트 키가 바뀝니다. `ssh-keygen -R agent-hub` 후 대화형 `ssh ubuntu@agent-hub true`로 새 키를 수락 |
