@@ -124,10 +124,15 @@ VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 �
    gcloud compute firewall-rules list --configuration=bm-personal --format='table(name,direction,disabled,sourceRanges.list(),allowed[].map().firewall_rule().list())'
    ```
 
-   `direction`이 `INGRESS`, `disabled`가 `False`이면서 소스가 `10.128.0.0/9`가 아닌 행이 없어야 합니다(`ssh` 모드는 예외로 `allow-iap-ssh` 행(`35.235.240.0/20`, `tcp:22`) 하나가 있습니다. `default-allow-ssh`는 부트스트랩이 끝나면 지워져 있어야 함). **Assumption:** 기본 `default` 네트워크 하나만 쓰는 프로젝트입니다.
+   `direction`이 `INGRESS`, `disabled`가 `False`이면서 소스가 `10.128.0.0/9`가 아닌 행이 없어야 합니다(`ssh` 모드는 예외로 `allow-iap-ssh` 행(`35.235.240.0/20`, `tcp:22`) 하나가 있습니다. `default-allow-ssh`는 부트스트랩이 끝나면 지워져 있어야 함).
+   - **Assumption:** 기본 `default` 네트워크 하나만 쓰는 프로젝트입니다.
 2. Tailscale admin console → Access controls의 정책 `nodeAttrs`에 **`"funnel"`이 없는지** 확인합니다(`tailscale` 모드만).
 
-스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@agent-hub sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다. **Verified (2026-10-13, 계획 05 Step 14):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=agent-hub`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 노드가 이미 tailnet에 있으면 키 프롬프트에 아무것도 넣지 않고 Enter만 누릅니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다. 또한 **Verified (2026-10-13, Tailscale v1.104.1 소스 `cmd/tailscale/cli/serve_v2.go`의 `applyFunnel`):** `serve --bg`는 자기가 설정하는 포트(443)의 Funnel만 끄고(`Removing Funnel for ...` 출력) 다른 포트의 Funnel은 그대로 둡니다. 그래서 `tailscale funnel status`에 443 말고 다른 포트의 Funnel이 남아 있으면 `ssh ubuntu@agent-hub sudo tailscale serve reset`을 사용자 OK 후에 실행하고, Serve를 다시 설정합니다. `serve reset`은 443과 8443 설정을 모두 지우므로, 그 뒤 `make vm-bootstrap HOST=agent-hub`로 두 포트를 다시 설정합니다.
+스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@agent-hub sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다.
+
+**Verified (2026-10-13, 계획 05 Step 14):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=agent-hub`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 노드가 이미 tailnet에 있으면 키 프롬프트에 아무것도 넣지 않고 Enter만 누릅니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다.
+
+**Verified (2026-10-13, Tailscale v1.104.1 소스 `cmd/tailscale/cli/serve_v2.go`의 `applyFunnel`):** 또한 `serve --bg`는 자기가 설정하는 포트(443)의 Funnel만 끄고(`Removing Funnel for ...` 출력) 다른 포트의 Funnel은 그대로 둡니다. 그래서 `tailscale funnel status`에 443 말고 다른 포트의 Funnel이 남아 있으면 `ssh ubuntu@agent-hub sudo tailscale serve reset`을 사용자 OK 후에 실행하고, Serve를 다시 설정합니다. `serve reset`은 443과 8443 설정을 모두 지우므로, 그 뒤 `make vm-bootstrap HOST=agent-hub`로 두 포트를 다시 설정합니다.
 
 ## 비용 점검
 
@@ -135,7 +140,8 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다.
 
 **Open question:** 외부 IPv4 요금($0.005/h, 약 $3.65/월)이 무료 등급에 포함되는지는 아직 확인하지 못했습니다.
 
-- 배포 **다음 날**과 **매월 초**에 청구 보고서를 SKU별로 봅니다: Cloud Console → Billing → Reports에서 프로젝트로 필터링하고 Group by를 SKU로 둡니다(**Assumption:** 메뉴 이름은 바뀔 수 있고, 보고서에는 하루쯤 지연이 있음).
+- 배포 **다음 날**과 **매월 초**에 청구 보고서를 SKU별로 봅니다: Cloud Console → Billing → Reports에서 프로젝트로 필터링하고 Group by를 SKU로 둡니다.
+  - **Assumption:** 메뉴 이름은 바뀔 수 있고, 보고서에는 하루쯤 지연이 있음.
 - e2-micro 인스턴스, standard persistent disk, 외부 IP, 네트워크(아웃바운드) SKU의 금액이 모두 0이어야 합니다. Budget 알림(월 $1)이 오면 같은 보고서를 확인합니다.
 - 0이 아니면 사용자가 "그 금액을 감수"와 "다른 호스트" 중에서 결정합니다. 결과는 [ADR 0001](../decisions/adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md)에 Verified로 남깁니다.
 - 무료 아웃바운드는 월 1GB(북미 → 전 세계, 중국·호주 제외)입니다. Tailscale DERP 중계 트래픽도 포함되므로 같은 보고서로 확인합니다.
