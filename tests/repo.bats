@@ -111,6 +111,21 @@ compose_start_period_seconds() {
   done
 }
 
+@test "compose caps the container logs of both services" {
+  # Docker's json-file driver keeps every line by default (max-size -1), and Basic Memory's uvicorn logs one line
+  # per MCP request, so without a cap the log under /var/lib/docker grows until the container is recreated.
+  local logging service
+  logging="$(awk '$0 == "x-logging: &bounded-logging" { inside = 1; next } inside && /^[^ ]/ { exit } inside { print }' "$REPO_DIR/compose.yaml")"
+  [[ -n "$logging" ]] || fail "compose.yaml must define the top-level 'x-logging: &bounded-logging' block"
+  grep -qxF '  driver: json-file' <<<"$logging" || fail "x-logging must set driver: json-file"
+  grep -qE '^    max-size: "[0-9]+m"$' <<<"$logging" || fail 'x-logging must set options.max-size, e.g. "10m"'
+  grep -qE '^    max-file: "[0-9]+"$' <<<"$logging" || fail 'x-logging must set options.max-file, e.g. "3"'
+  for service in basic-memory silverbullet; do
+    service_block "$service" | grep -qxF '    logging: *bounded-logging' \
+      || fail "$service must set 'logging: *bounded-logging', or its Docker log grows without a limit"
+  done
+}
+
 @test "SilverBullet is pinned, needs a login, has no shell or runtime API and shares no network or data beyond the notes" {
   local sb bm
   sb="$(service_block silverbullet)"
