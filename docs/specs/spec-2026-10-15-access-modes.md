@@ -278,7 +278,8 @@ AGENTS.md                    사용자 승인 후 (§12)
 1. **불변식 유지:** 공인 인터넷 인그레스 0, 컨테이너 `127.0.0.1` 바인딩, Funnel 금지는 그대로다. `ssh` 모드는 IAP 대역의 22번 하나만 더한다.
 2. **로컬 바인딩:** 모든 `-L`은 `forward_spec`을 거쳐 로컬 `127.0.0.1`에만 바인딩한다. 같은 네트워크의 다른 기기는 터널 포트에 닿지 못한다.
 3. **sshd:** `ssh` 모드의 정문이다. `verify`가 암호·키보드 대화형 인증이 꺼져 있는지 매번 본다. 키는 메타데이터 `ssh-keys`로만 넣고, `gcloud compute ssh`처럼 키를 자동으로 메타데이터에 올리는 명령은 런북에서 쓰지 않는다.
-4. **IAM:** 터널을 쓰는 사람은 프로젝트에서 `roles/iap.tunnelResourceAccessor`가 있어야 한다. 프로젝트 소유자는 이미 가진다. 다른 사람에게 줄 때의 최소 권한은 계획 12 Task 8 뒤 런북에 적는다(**Open question**).
+4. **IAM:** 터널을 쓰는 사람은 프로젝트에서 `roles/iap.tunnelResourceAccessor`가 있어야 한다. 프로젝트 소유자는 이미 가진다.
+   - **Open question:** 다른 사람에게 줄 때의 최소 권한은 계획 12 Task 8 뒤 런북에 적는다.
 5. **두 경로 겹침:** 이전하는 동안 IAP 규칙을 더한 시점부터 VM의 Tailscale을 로그아웃할 때까지 두 경로가 함께 열린다. 계획 12 Task 8은 이 구간을 한 세션 안에서 끝내고 Exposure audit을 다시 한다.
 6. **출력:** 스크립트와 기록에 공인 IP, tailnet 이름, 프로젝트 id를 쓰지 않는다. `access-check`는 URL과 결과만 출력한다.
 
@@ -327,7 +328,7 @@ operations 런북에 "접속 방식 바꾸기 (Access mode change)" 절로 둔�
 5. **Tailscale 정리:**
    - `ssh ubuntu@agent-hub-iap 'sudo tailscale serve reset && sudo tailscale logout'`을 실행한다.
    - Tailscale 관리 콘솔에서 VM 기기를 지운다.
-   - 패키지를 지울지는 이때 정한다(**Open question**).
+   - **Open question:** 패키지를 지울지는 이때 정한다.
 6. **검증:** `make probe`, `make verify`, `make status`
 7. **클라이언트 전환:** 기기마다 `basic-memory`를 지우고 터널 URL로 다시 등록한 뒤 도구를 호출해 본다.
 8. **마무리:** Exposure audit을 하고 Incident log·점검 기록에 남긴다.

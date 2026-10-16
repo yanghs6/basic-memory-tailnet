@@ -154,7 +154,7 @@ git commit -m "docs: activate plan 05" --trailer "Assisted-by: <도구> <모델 
   Expected: `git -C <main 체크아웃> check-ignore .env`가 `.env`를 출력한다. 이 worktree에서 `printf 'show-host: ; @echo "[$(BM_VM_HOST)]"\n' > <scratch>/show-host.mk` 후 `make --no-print-directory -f Makefile -f <scratch>/show-host.mk show-host`가 `[agent-hub]`를 출력한다(Makefile이 main 체크아웃의 `.env`를 읽음, C1 수정 확인). macOS의 make 3.81에는 `--eval`이 없어서 보조 makefile을 쓴다. `.env`의 다른 값은 출력하지 않는다.
 - [x] **Step 6 (사용자 확인 후 실행):** Step 1의 인증 키를 발급한 뒤 `make vm-bootstrap HOST=<공인 IP>`를 실행한다. 사용자가 프롬프트에 키를 붙여 넣는다. 끝나면 `unset TS_AUTHKEY`.
   Expected: `[bootstrap] done`과 Next steps 안내. 스왑 1GB가 켜진다(항목 21).
-  **Assumption 확인:** 같은 명령을 한 번 더 실행한다(멱등성). 두 번째 실행은 키 없이 `already on the tailnet`으로 끝나야 하고, `/etc/fstab`의 swapfile 줄이 늘지 않아야 한다. 항목 1, 2, 4의 증거도 여기서 모은다.
+  **Assumption:** (이 Step에서 확인) 같은 명령을 한 번 더 실행한다(멱등성). 두 번째 실행은 키 없이 `already on the tailnet`으로 끝나야 하고, `/etc/fstab`의 swapfile 줄이 늘지 않아야 한다. 항목 1, 2, 4의 증거도 여기서 모은다.
 - [x] **Step 7:** `ssh ubuntu@agent-hub true`를 먼저 대화형으로 실행해 호스트 키를 수락하고, 다시 `ssh -o BatchMode=yes ubuntu@agent-hub true`로 성공을 확인한다. 새 세션에서 `docker compose version`(sudo 없이)과 `sudo -n true`도 확인한다(항목 5, 6).
   Expected: 모두 성공. 하나라도 실패하면 Step 8로 가지 않는다.
 - [x] **Step 8 (사용자 확인 후):** Step 7이 BatchMode로 통과한 뒤에만 `default-allow-ssh`를 지운다.
@@ -166,7 +166,7 @@ git commit -m "docs: activate plan 05" --trailer "Assisted-by: <도구> <모델 
   **Open question:** IMAGE 열이 compose.yaml처럼 `…:0.23.2@sha256:…` 형태로 보이는가? docker stub은 IMAGE 열을 출력하지 않아 비교 형식이 테스트되지 않았다. 형식이 다르면 비교 규칙을 고친다.
   Expected: `OK: MCP round trip passed`, `listens on 127.0.0.1 only`, `tailscale serve is tailnet only`, `refuses ports 22 80 443 8737`. `make status`에 스왑 경고가 없다.
   기록할 것: `deploy`가 healthy가 되기까지 걸린 시간(항목 7), `ss` 출력(항목 8), `free -m`(항목 9), 모델 로드 뒤의 OOM 점검(항목 22), iptables·nft 출력(항목 14).
-  **Assumption 확인:** 실제 `tailscale serve status` 출력에 `tailnet only` 문구가 있는지 본다. 문구가 다르면 `verify-vm.sh`의 검사와 tailscale stub을 실제 출력에 맞추는 수정 계획을 따로 만든다.
+  **Assumption:** (이 Step에서 확인) 실제 `tailscale serve status` 출력에 `tailnet only` 문구가 있는지 본다. 문구가 다르면 `verify-vm.sh`의 검사와 tailscale stub을 실제 출력에 맞추는 수정 계획을 따로 만든다.
 - [x] **Step 10:** `time make probe`를 실행한다(항목 11). 포트 하나가 10초를 넘으면 `nc -G` 가정이 틀린 것이므로 발견 사항으로 기록한다. VM 로그인 셸이 bash인지도 기록한다(항목 17).
   Expected: 22/80/443/8737 모두 닫힘.
 - [x] **Step 11 (사용자, 수동 점검):** `docs/runbooks/rbk-2026-10-12-operations.md`의 Exposure audit을 수행한다.

@@ -9,9 +9,9 @@ reviewed: 2026-10-14
 
 ## 1. 머신 계정과 토큰
 
-1. 새 이메일로 GitHub 계정을 만들고 2FA를 켭니다(이 저장소의 머신 계정은 `yanghs6-bot`). 약관상 사람이 직접 만들고, 자동화 작업에만 씁니다(**Verified**, GitHub 약관 B(3)).
+1. **Verified (GitHub 약관 B(3)):** 새 이메일로 GitHub 계정을 만들고 2FA를 켭니다(이 저장소의 머신 계정은 `yanghs6-bot`). 약관상 사람이 직접 만들고, 자동화 작업에만 씁니다.
 2. 개인 계정으로 머신 계정을 이 저장소의 협업자(권한 Write)로 초대하고, 머신 계정으로 수락합니다. 머신 계정에는 다른 저장소 권한을 주지 않고, 머신 계정으로 저장소를 만들지 않습니다. classic 토큰의 실제 범위는 계정 권한으로 정해지기 때문입니다.
-3. 머신 계정에서 classic 토큰을 만듭니다. Settings → Developer settings → Personal access tokens (classic)에서 범위는 `public_repo`와 `workflow`, 만료는 90일로 둡니다. 남의 공개 저장소에 쓰려면 classic 토큰이어야 합니다(**Verified**, GitHub 토큰 문서).
+3. **Verified (GitHub 토큰 문서):** 머신 계정에서 classic 토큰을 만듭니다. Settings → Developer settings → Personal access tokens (classic)에서 범위는 `public_repo`와 `workflow`, 만료는 90일로 둡니다. 남의 공개 저장소에 쓰려면 classic 토큰이어야 합니다.
 4. 이 Mac에 등록합니다. 토큰은 숨김 프롬프트에만 붙여 넣고, 채팅·파일·명령 인자·파이프에 넣지 않습니다.
 
 ```bash

@@ -24,8 +24,9 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 | 직접 만든 UI | 관계 타입까지 원하는 대로 표시 | 편집기·백링크·그래프를 새로 만들어야 하고, Basic Memory REST API가 프로세스 밖에 열려 있지 않음 |
 | SilverBullet 전체 이미지 | 헤드리스 Chrome 등 추가 기능 | 필요 없는 런타임 API와 메모리. slim으로 충분 |
 
-## 근거 (Verified, 2026-10-14 스파이크와 계획 10)
+## 근거
 
+**Verified (2026-10-14 스파이크와 계획 10):**
 - SilverBullet 서버는 1.7~10.6 MiB이고, 색인은 브라우저(IndexedDB)에서 합니다.
 - 위키링크, Linked Mentions, `Graph: Explore`, 트리, 목차가 내장 기능만으로 동작합니다.
 - 에이전트가 쓴 내용은 5초 안에 열린 페이지에 반영되고, SilverBullet에서 쓴 내용은 Basic Memory `search_notes`에 반영됩니다.
