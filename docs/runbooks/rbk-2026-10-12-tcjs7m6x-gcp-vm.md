@@ -1,3 +1,8 @@
+---
+status: current
+reviewed: 2026-10-16
+---
+
 # VM 만들기 (gcloud)
 
 이 런북의 명령은 사용자가 자기 터미널에서 실행합니다. 에이전트는 VM, 방화벽, 클라우드 자원을 바꾸는 명령을 사용자의 OK 없이 실행하지 않습니다. 이 Mac의 활성 gcloud 설정은 회사 계정일 수 있으므로, **모든 gcloud 명령에 `--configuration=bm-personal`을 붙입니다**([accounts 1단계](rbk-2026-10-12-hqxjjqy8-accounts.md)).

@@ -1,3 +1,7 @@
+---
+status: final
+---
+
 # Review: plan/dry1xr43-vm-scripts
 
 Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5. Author: claude-code (Claude Opus controller, Sonnet/Opus implementers). Reviewer: codex, run with `make review BRANCH=plan/dry1xr43-vm-scripts REVIEWER=codex`.

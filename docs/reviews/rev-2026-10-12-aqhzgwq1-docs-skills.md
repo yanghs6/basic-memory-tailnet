@@ -1,3 +1,7 @@
+---
+status: final
+---
+
 # Review: plan/hydaxf15-docs-skills
 
 Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5. Author: claude-code (Claude Opus controller, Sonnet/Haiku implementers, Opus in-plan final reviewer). Reviewer: codex, run with `make review BRANCH=plan/hydaxf15-docs-skills REVIEWER=codex`.

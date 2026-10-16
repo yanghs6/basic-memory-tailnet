@@ -1,3 +1,8 @@
+---
+status: current
+reviewed: 2026-10-16
+---
+
 # 운영
 
 사람은 VM 대상 Make 타깃(`deploy`, `verify`, `backup`, `restore` 등)을 main 체크아웃에서 실행합니다. 에이전트는 자기 worktree에서 실행해도 되며, 그때도 `.env`와 `backups/`는 main 체크아웃의 것을 씁니다. 에이전트가 worktree에서 `deploy`·`restore`를 할 때는 먼저 `git diff main -- compose.yaml`이 아무것도 출력하지 않는지 확인합니다(bm-upgrade의 사용자 승인 배포는 예외. 아래 "배포·복원 전 이미지 점검"도 함께).

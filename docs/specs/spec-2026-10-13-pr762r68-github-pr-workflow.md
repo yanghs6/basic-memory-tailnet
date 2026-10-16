@@ -1,6 +1,12 @@
+---
+status: approved
+date: 2026-10-13
+amended-by: docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md
+---
+
 # GitHub PR 기반 에이전트 Git 워크플로 — 설계
 
-- 상태: 승인됨 (2026-10-13). 구현: [github-switch](../plans/plan-2026-10-13-k93wjt1a-github-switch.md), [review-posting](../plans/plan-2026-10-13-znbc3ase-review-posting.md) 계획
+- 구현: [github-switch](../plans/plan-2026-10-13-k93wjt1a-github-switch.md), [review-posting](../plans/plan-2026-10-13-znbc3ase-review-posting.md) 계획
 - 대체 범위: [에이전트 기반 Git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)의 3절 중 브랜치 기준점, 4절의 병합 트레일러, 5절의 리뷰 기록 위치, 6절 전체. 나머지(브랜치 이름, worktree, 커밋 트레일러, 리뷰어 배정, 심각도)는 그 문서가 계속 정본이다.
 - 근거 조사: [에이전트 개발 오픈소스의 git 전략](../research/rsch-2026-10-13-djx2fzm5-agent-oss-git-strategies.md)
 - 적용 시점: [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)을 병합한 때부터. 그 전에 병합하는 브랜치는 기존 정책을 따른다.

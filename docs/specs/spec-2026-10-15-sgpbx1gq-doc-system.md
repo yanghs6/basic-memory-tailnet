@@ -1,10 +1,15 @@
+---
+status: approved
+date: 2026-10-16
+---
+
 # 에이전트 공용 문서 체계 — 설계
 
-- 상태: 승인 (2026-10-16). 기준 커밋은 `main` 9a43084([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) 코드 병합)다.
+- 기준 커밋은 `main` 9a43084([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) 코드 병합)다.
 - 구현 계획: [doc-system-foundation 계획](../plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md)(기반), [doc-rename-and-checks 계획](../plans/plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)(이름·메타데이터 소급과 검사), [doc-body-backfill 계획](../plans/plan-2026-10-16-hyajr3k3-doc-body-backfill.md)(본문 소급). 번호는 계획을 쓸 때 모든 브랜치를 훑어 다시 확인한다.
 - 근거 조사: [여러 코딩 에이전트가 같은 규칙으로 문서·스크립트·테스트를 만들게 하려면](../research/rsch-2026-10-15-f20fshxg-agent-repo-conventions.md)
 - 함께 읽기: [스크립트·테스트 구조 설계](spec-2026-10-15-d8q0b7bt-script-test-layout.md). 이 스펙의 레지스트리, 생성 명령, 구조 검사 원칙을 스크립트와 테스트에 적용한다.
-- 대체 범위: [OCI 설계](spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md) §5의 문서 배치 규칙(GCP 설계 §5가 이어받음)을 이 문서로 대체한다. [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2의 "문구·형식만 확인하는 테스트" 금지는 새 ADR로 일부 대체한다(8.4절).
+- 대체 범위: [OCI 설계](spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md) §5의 문서 배치 규칙(GCP 설계 §5가 이어받음)과 [git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)·[GitHub PR 워크플로](spec-2026-10-13-pr762r68-github-pr-workflow.md) §9의 계획 파일 이동 규칙(계획 상태는 폴더가 아니라 front matter의 `status`)을 이 문서로 대체한다. [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2의 "문구·형식만 확인하는 테스트" 금지는 새 ADR로 일부 대체한다(8.4절).
 
 ## 1. 목적과 범위
 

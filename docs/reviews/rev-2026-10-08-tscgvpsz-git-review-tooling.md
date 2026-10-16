@@ -1,3 +1,7 @@
+---
+status: final
+---
+
 # Review: plan/qq4h1djv-git-review-tooling
 
 Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5. Author: claude-code (Claude Opus controller, Sonnet/Opus implementers). Reviewer: codex, run with `make review BRANCH=plan/qq4h1djv-git-review-tooling REVIEWER=codex`.

@@ -1,3 +1,8 @@
+---
+status: completed
+spec: docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md
+---
+
 # n6xpm12e Web UI Local Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Task 6 needs the user's browser login, so the controller runs it in the main session, not a subagent. Steps use checkbox (`- [ ]`) syntax for tracking.

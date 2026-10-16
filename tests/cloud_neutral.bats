@@ -3,7 +3,7 @@ load helpers
 
 CLOUD_NAMES='oci|oracle|gcp|gcloud'
 # The runbook's file name is the one allowed mention: scripts point to it instead of naming a provider.
-ALLOWED_RUNBOOK='docs/runbooks/gcp-vm\.md'
+ALLOWED_RUNBOOK='docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm\.md'
 
 # cloud_name_matches DIR -> grep -rn lines under DIR that name a cloud provider (whole word, any case),
 # after removing the allowed runbook path. Prints nothing when DIR is clean.

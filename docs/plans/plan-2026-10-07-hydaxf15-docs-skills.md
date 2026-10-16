@@ -1,3 +1,8 @@
+---
+status: completed
+spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
+---
+
 # hydaxf15 Docs and Skills Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -261,8 +266,8 @@ git commit -m "docs: add repo skills for upgrade, recovery and diagnosis" --trai
 
 **Files:**
 - Create: `README.md`, `docs/ARCHITECTURE.md`
-- Create: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`, `docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md`, `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`
-- Create: `docs/decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`
+- Create: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`, OCI VM 런북(`rbk-2026-10-12-vebvx40g-oci-vm.md`, 이 계획에서 GCP VM 런북으로 바뀜), `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`
+- Create: OCI 시절 [basic-memory-on-oci-tailscale ADR](../decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md)(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜), `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`
 - Test: `tests/repo.bats`(Markdown 링크 검사 추가)
 
 **Interfaces:**
@@ -460,7 +465,7 @@ Settings → **Keys** → **Generate auth key**:
 키는 어디에도 저장하지 말고, `make vm-bootstrap` 프롬프트에 붙여 넣습니다.
 ````
 
-- [ ] **Step 5: `docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md` 작성**
+- [ ] **Step 5: OCI VM 런북(`rbk-2026-10-12-vebvx40g-oci-vm.md`, 이 계획에서 GCP VM 런북으로 바뀜) 작성**
 
 ````markdown
 # VM 만들기 (OCI 콘솔)
@@ -598,7 +603,7 @@ OCI는 7일 동안 CPU(95번째 백분위), 네트워크, 메모리(A1만 해당
 
 - [ ] **Step 8: ADR 작성**
 
-`docs/decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`:
+OCI 시절 [basic-memory-on-oci-tailscale ADR](../decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md)(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜):
 ```markdown
 # ADR b229z2y6: Basic Memory를 OCI Always Free + Tailscale에 자체 호스팅
 
@@ -1116,8 +1121,8 @@ git commit -m "fix: keep .env and backups in the main checkout" --trailer "Assis
 Task 4(C1 코드: `Makefile`, `scripts/lib/common.sh`, `scripts/backup.sh`, `scripts/restore.sh`, `.agents/skills/git-workflow/SKILL.md`, `tests/main_checkout.bats`, `tests/common.bats`)와 병렬로 진행한다. 이 Task는 그 파일들과 `AGENTS.md`, `scripts/`, `Makefile`, `.env.example`, `tests/repo.bats` 외의 테스트를 건드리지 않는다. 스크립트 메시지의 옛 호스트 표현은 Task 6에서 고친다.
 
 **Files:**
-- Rename + 전체 재작성: `docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md` → `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`
-- Rename + 전체 재작성: `docs/decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md` → `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md`
+- Rename + 전체 재작성: OCI VM 런북(`rbk-2026-10-12-vebvx40g-oci-vm.md`, 이 계획에서 GCP VM 런북으로 바뀜) → `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`
+- Rename + 전체 재작성: OCI 시절 [basic-memory-on-oci-tailscale ADR](../decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md)(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜) → `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md`
 - 전체 재작성: `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`, `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`, `README.md`, `docs/ARCHITECTURE.md`
 - Modify: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`
 - 전체 재작성: `.agents/skills/bm-recover/SKILL.md`, `.agents/skills/bm-diagnose/SKILL.md`, `.agents/skills/bm-upgrade/SKILL.md`

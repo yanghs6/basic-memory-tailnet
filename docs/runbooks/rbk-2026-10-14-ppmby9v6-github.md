@@ -1,3 +1,8 @@
+---
+status: current
+reviewed: 2026-10-14
+---
+
 # GitHub 운영: 머신 계정, 첫 push, 저장소 설정
 
 정책: [GitHub PR 워크플로 스펙](../specs/spec-2026-10-13-pr762r68-github-pr-workflow.md). 저장소: `https://github.com/yanghs6/basic-memory-tailnet` (공개). 이 런북의 명령은 사용자가 자기 터미널에서 실행합니다. `gh auth login`은 대화형이라 별도 터미널 앱에서 실행합니다.

@@ -1,3 +1,8 @@
+---
+status: completed
+spec: docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md
+---
+
 # ctv444ep Access Modes Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement Tasks 1-7 task-by-task. Tasks 1-7 touch nothing on the VM or cloud resources, and Task 7 edits `AGENTS.md` only after the user approves the wording. Task 8 changes the VM and cloud resources: run it after the code PR merges, in the main session with the user (superpowers:executing-plans), never in a subagent. Get the user's OK before each step marked "사용자 OK", and let the user run every cloud command and every interactive SSH command in their own terminal. Steps use checkbox (`- [ ]`) syntax for tracking.

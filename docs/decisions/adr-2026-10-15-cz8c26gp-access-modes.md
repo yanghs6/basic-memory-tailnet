@@ -1,6 +1,10 @@
+---
+status: accepted
+date: 2026-10-15
+---
+
 # ADR cz8c26gp: VM마다 접속 방식 하나 (Tailscale 또는 SSH 터널)
 
-- 상태: Accepted ([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) 병합일)
 - 설계: [접속 방식 설계](../specs/spec-2026-10-15-jr59pvyf-access-modes.md)
 
 ## 맥락

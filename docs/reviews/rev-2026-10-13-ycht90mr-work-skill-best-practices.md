@@ -1,3 +1,7 @@
+---
+status: final
+---
+
 # Review: work/skill-best-practices
 
 Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5. Author: claude-code (Claude Opus controller, Sonnet subagents for research and read-only scenarios). Reviewer: codex, run by the human with `make review BRANCH=work/skill-best-practices REVIEWER=codex`.

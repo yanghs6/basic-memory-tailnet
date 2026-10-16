@@ -1,3 +1,7 @@
+---
+status: final
+---
+
 # Review: work/backup-skip-model-cache
 
 Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5. Author: claude-code (Claude Sonnet implementer in an isolated worktree, Claude Opus controller reviewed the diff and re-ran `make check`). Reviewer: codex, run with `make review BRANCH=work/backup-skip-model-cache REVIEWER=codex`.

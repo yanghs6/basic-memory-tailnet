@@ -2,7 +2,7 @@
 
 This repo deploys a Basic Memory MCP server on a GCP free-tier e2-micro VM that is reachable through one access mode per VM (`BM_ACCESS`): inside a Tailscale tailnet, or through an SSH tunnel (GCP IAP).
 Read first: `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`, then `docs/ARCHITECTURE.md`. For the access modes, read `docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md`.
-Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`).
+Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, completed or dropped.
 
 ## Commands
 - `make help` lists every target. Do lifecycle work through Make targets only; use raw `docker compose` or `ssh` only to diagnose a failing target, and record why.
@@ -38,7 +38,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 ## Notes and language
 - Label repository notes `Verified`, `Command`, `Assumption`, `Open question` or `Reported` (second-hand), as `**Verified:**` at the start of a paragraph or list item, or in the label column of a table.
 - Code, comments, script messages, this file, skills, front matter and plan headings are English. README, `docs/README.md`, runbooks, ARCHITECTURE, ADRs, specs, research and plan bodies are Korean; review records stay as written.
-- Record evidence (command + result) in the active plan's Progress log or an ADR in `docs/decisions/`.
+- Record evidence (command + result) in the active plan's Progress log, or on a work branch in the PR body's Verification; record decisions in an ADR in `docs/decisions/`. The pull request's CI results go in its body (Verification), which needs no commit.
 - Create specs, plans, ADRs, runbooks and research notes with `make new-doc TYPE=<type> SLUG=<slug>` in the folders `docs/README.md` lists; this overrides tool and plugin default paths such as `docs/superpowers/`.
 
 ## Map
@@ -46,7 +46,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - `tests/` bats tests; `tools/` test image and coverage gate.
 - `docs/README.md` document map and type registry; templates in `.agents/skills/doc-authoring/assets/`.
 - `CLAUDE.md` (Claude Code) and `.gemini/settings.json` (Gemini CLI) load this file; Codex and Antigravity read it directly.
-- `docs/specs/`, `docs/plans/{active,backlog,completed}/`.
+- `docs/specs/`, `docs/plans/` (state in front matter).
 - `.agents/skills/` canonical skills (Codex, Gemini CLI, Antigravity; rules in `tests/skills.bats`); `.claude/skills/<name>` symlinks and `.claude/agents/branch-reviewer.md` for Claude Code.
 - `docs/reviews/` review records (template in its README).
 - `docs/runbooks/` accounts, VM creation, bootstrap, operations (incident log); `docs/decisions/` ADRs.
@@ -57,7 +57,7 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 Reviewers check only the changes since the base (Codex reads this section; Claude uses the `branch-review` skill):
 1. Every task of the plan is implemented and its verification passed with evidence.
 2. No changes outside the plan's scope.
-3. The plan's Progress log records a passing `make check` and passing CI (`check`, `pr-rules`) on the PR; `scripts/check-git.sh origin/main <branch>` passes.
+3. The plan's Progress log records a passing `make check`, the PR body's Verification records passing CI (`check`, `pr-rules`), and `scripts/check-git.sh origin/main <branch>` passes.
 4. Security: secrets, `.env`, public exposure, unauthenticated endpoints.
 5. Docs required by this file are updated.
 6. Every commit carries the Git trailers, and the PR body ends with the `Assisted-by` and `Plan` trailers.

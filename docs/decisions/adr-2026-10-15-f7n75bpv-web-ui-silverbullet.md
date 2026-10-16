@@ -1,6 +1,10 @@
+---
+status: accepted
+date: 2026-10-14
+---
+
 # ADR f7n75bpv: 웹 UI로 SilverBullet
 
-- 상태: Accepted (2026-10-14)
 - 설계: [SilverBullet 웹 UI 설계](../specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md)
 
 ## 맥락

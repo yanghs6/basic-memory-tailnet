@@ -1,3 +1,8 @@
+---
+status: current
+reviewed: 2026-10-15
+---
+
 # 아키텍처
 
 ## 토폴로지

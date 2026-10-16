@@ -1,3 +1,8 @@
+---
+status: completed
+spec: docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md
+---
+
 # qq4h1djv Git and Review Tooling Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

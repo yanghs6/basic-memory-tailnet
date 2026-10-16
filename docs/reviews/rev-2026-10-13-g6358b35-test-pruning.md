@@ -1,3 +1,7 @@
+---
+status: final
+---
+
 # Review: plan/g57mry4b-test-pruning
 
 Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5. Author: claude-code (Claude Opus as controller, Claude Sonnet as task implementers). Reviewer: codex, run by the human with `make review BRANCH=plan/g57mry4b-test-pruning REVIEWER=codex`.

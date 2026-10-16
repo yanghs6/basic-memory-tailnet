@@ -1,3 +1,7 @@
+---
+status: final
+---
+
 # Review: work/slow-start-health
 
 Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5. Author: claude-code (Claude Opus). Reviewer: codex, run with `make review BRANCH=work/slow-start-health REVIEWER=codex`.

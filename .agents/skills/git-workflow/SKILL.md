@@ -16,7 +16,7 @@ Policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md (pull requests
    - Codex CLI, Gemini CLI, Antigravity: they can write only inside the directory they were started in. From any directory of this repo, create the worktree next to the main checkout:
      `git -C "$(git rev-parse --path-format=absolute --git-common-dir)/.." worktree add --no-track -b plan/NN-slug ../027_agent_share_poc-wt/<slug> origin/main`
      Then end this session and start the tool again inside that directory (`codex -C <dir>`, `cd <dir> && gemini`, or open the folder in Antigravity); `git worktree list` shows its absolute path. If Gemini CLI asks whether to trust the folder, trust it: with folder trust on (off by default), an untrusted folder ignores `.gemini/settings.json`, so Gemini CLI would not read `AGENTS.md`.
-3. For a plan, make the first commit move the plan file from `docs/plans/backlog/` to `docs/plans/active/`. A plan that `make new-doc` created (`docs/plans/plan-<date>-<NN>-<slug>.md`) stays where it is: change its front matter `status` to `active` instead (`doc-authoring`).
+3. For a plan, make the first commit change the plan's front matter `status` from `backlog` to `active` (`doc-authoring`).
 4. For work that belongs to no plan (an upgrade, a fix, a doc change), use a `work/<slug>` branch and write `Plan: none` and `Task: none` in every commit.
 
 ## Commit
@@ -28,7 +28,7 @@ Policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md (pull requests
 
 ## Publish
 
-1. After the first commit run `git push -u origin <branch>`, then open one draft pull request for the whole branch: `gh pr create --draft --base main --title "<type>: <description>" --body-file <file>`. The body follows `.github/pull_request_template.md`: summary, plan file, verification evidence, and as the last paragraph `Assisted-by: <tool> <model id>` (one line per tool that worked on the branch) and `Plan: <NN|none>`. Replace the template's example text; the squash merge turns the title and body into the commit on `main`.
+1. After the first commit run `git push -u origin <branch>`, then open one draft pull request for the whole branch: `gh pr create --draft --base main --title "<type>: <description>" --body-file <file>`. The body follows `.github/pull_request_template.md`: summary, plan file, verification evidence, and as the last paragraph `Assisted-by: <tool> <model id>` (one line per tool that worked on the branch) and `Plan: <NN|none>`. Replace the template's example text; the squash merge turns the title and body into the commit on `main`. Write each paragraph and each list item on one line: GitHub shows every line break in a pull request body, so text wrapped at a fixed width reads as broken sentences.
 2. Push after every commit. CI runs `check` (`make check`) and `pr-rules` (branch name, commit trailers, PR title and trailers). Fix every failure; editing the title or body re-runs `pr-rules`.
 3. `gh` and `git push` run as the machine account. If your sandbox blocks the network, ask the human to run the push or `gh` command.
 4. Never write the VM's external or tailnet IP addresses in commits, the pull request or comments.

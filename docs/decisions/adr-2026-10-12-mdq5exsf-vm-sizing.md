@@ -1,6 +1,11 @@
+---
+status: accepted
+date: 2026-10-14
+---
+
 # ADR mdq5exsf: VM 크기 (e2-micro 1GB + 스왑 1GB)
 
-- 상태: Accepted (2026-10-14). [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)의 VM 실측(아래 "측정")으로 확정했습니다. 처음 제안은 2026-10-12입니다.
+- [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)의 VM 실측(아래 "측정")으로 확정했습니다. 처음 제안은 2026-10-12입니다.
 
 ## 맥락
 

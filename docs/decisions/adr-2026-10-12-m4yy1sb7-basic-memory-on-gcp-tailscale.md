@@ -1,6 +1,11 @@
+---
+status: accepted
+date: 2026-10-12
+---
+
 # ADR m4yy1sb7: Basic Memory를 GCP 무료 e2-micro + Tailscale에 자체 호스팅
 
-- 상태: Accepted (2026-10-12). 2026-10-07의 OCI Always Free 결정을 대체합니다.
+- 2026-10-07의 OCI Always Free 결정을 대체합니다.
 - 출처: [설계 스펙](../specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)
 
 ## 맥락

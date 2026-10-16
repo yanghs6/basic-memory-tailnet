@@ -1,6 +1,11 @@
+---
+status: approved
+date: 2026-10-15
+---
+
 # VM 접속 방식 선택 (Tailscale 또는 SSH 터널) — 설계
 
-- 상태: 초안 (2026-10-15). [GCP 설계](spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)의 "tailnet 안에서만 접근" 전제를 "VM마다 접속 방식 하나"로 넓히고, [웹 UI 설계](spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md)의 노출 방식을 그 위에 맞춘다. 모든 계획은 [GitHub PR 워크플로](spec-2026-10-13-pr762r68-github-pr-workflow.md)와 [git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)을 따른다.
+- [GCP 설계](spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)의 "tailnet 안에서만 접근" 전제를 "VM마다 접속 방식 하나"로 넓히고, [웹 UI 설계](spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md)의 노출 방식을 그 위에 맞춘다. 모든 계획은 [GitHub PR 워크플로](spec-2026-10-13-pr762r68-github-pr-workflow.md)와 [git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)을 따른다.
 - 구현 계획: `docs/plans/plan-2026-10-15-ctv444ep-access-modes.md` 하나에 배포까지 담는다.
   - Task 1~7: `BM_ACCESS` 설정, `make access-check`·`make tunnel`, 모드별 부트스트랩·`status`·`verify`, 런북·[access-modes ADR](../decisions/adr-2026-10-15-cz8c26gp-access-modes.md). VM에서는 아무것도 실행하지 않고 스텁으로 검증한다. 코드 PR로 병합한다.
   - Task 8: 코드 PR이 병합된 뒤 지금 VM(`agent-hub-01`)을 `ssh` 모드로 옮기고 사무실·집 네트워크에서 확인한다(사용자와 함께, 단계마다 OK). 결과는 결과 PR로 남긴다([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)의 결과 PR #2와 같은 방식).

@@ -1,7 +1,13 @@
+---
+status: approved
+date: 2026-10-14
+amended-by: docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md
+---
+
 # Basic Memory 웹 UI (SilverBullet) — 설계
 
-- 상태: 승인 (2026-10-14). [GCP 설계](spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)에 웹 UI를 더한다. 모든 계획은 [GitHub PR 워크플로](spec-2026-10-13-pr762r68-github-pr-workflow.md)와 [git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)을 따른다.
-- 구현 계획 (대기는 `docs/plans/backlog/`):
+- [GCP 설계](spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)에 웹 UI를 더한다. 모든 계획은 [GitHub PR 워크플로](spec-2026-10-13-pr762r68-github-pr-workflow.md)와 [git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)을 따른다.
+- 구현 계획:
   1. `plan-2026-10-14-n6xpm12e-web-ui-local.md`: compose 서비스, 공간 파일, 스크립트, `deploy`·`restore`의 `SB_USER` 처리, 테스트, 문서. VM에서는 아무것도 실행하지 않고 모두 로컬과 스텁으로 검증한다. `compose.yaml`에 SilverBullet이 들어가는 순간 VM `.env`에도 `SB_USER`가 있어야 하므로, `deploy`·`restore` 변경을 이 계획에 넣어 `main`을 계속 배포할 수 있는 상태로 둔다.
   2. `plan-2026-10-14-a88datfz-web-ui-vm-rollout.md`: `verify`·`probe`의 SilverBullet·Serve 검사, 부트스트랩의 Serve 8443, 실제 배포(사용자와 함께). [web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md)이 병합된 뒤 시작한다. [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)(PR #2, `d354732`)과 [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)(`47ed954`)은 병합됐다.
 - 범위: tailnet 안의 브라우저에서 Basic Memory 노트를 읽고 편집하고(B), 백링크와 그래프로 탐색한다(C).
@@ -81,8 +87,8 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (`client/navigator/view_defaults.ts`, `client/navigator/builtins.ts:31-41`, `views/space_tree.ts:164-170`, 스파이크):** 트리 뷰 이름은 `std.spaceTree`이고, `config.set("view.defaults", {["std.spaceTree"] = {dock = "lhs", open = true}})`로 처음부터 왼쪽에 연다. 브라우저에 저장된 사용자 선택이 이 값보다 앞선다. 저장된 선택이 없는 새 origin(`localhost:3000`)에서 트리가 왼쪽에 열렸다.
 - **Verified (`client/navigator/panel_lifecycle.ts:361-381`, `views/pages.ts:202-206`, 스파이크):** 사이드바 칸(`lhs`·`rhs`·`bhs`)에는 뷰가 하나만 열린다. 같은 칸에 기본으로 여는 뷰가 둘이면 하나는 경고와 함께 무시된다. 페이지 검색 `std.pages`는 `modal`·`lhs`·`rhs`·`bhs`에 놓일 수 있고, `["std.pages"] = { dock = "lhs" }`로 두면 Cmd-K가 왼쪽 칸에서 열린다. 트리가 열린 상태에서 Cmd-K를 누르면 검색이 트리 자리를 쓰고, Esc로 닫으면 트리가 돌아온다. 목차 `std.toc`는 오른쪽(`rhs`), Linked Mentions는 페이지 아래(`page-bottom`)가 기본이라 겹치지 않는다(`libraries/Library/Std/Widgets/Widgets.md:22-23`).
 - **Verified (`client/styles/theme.scss:5-358`, 스파이크):** 기본 테마는 밝은 색을 `html`에, 어두운 색을 `html[data-theme="dark"]`에 CSS 변수(`--root-background-color`, `--link-color`, `--editor-task-state-color` 등)로 둔다. `space-style`에서 같은 선택자로 덮어쓰면 두 모드 모두 바뀐다.
-- **Verified (`docs/Full Text Search.md`, `plugs/` 목록):** 2.12.1 코어에는 전체 텍스트 검색이 없다. 공식 문서는 커뮤니티 라이브러리(Silversearch, basic-search) 설치를 권한다. 이 설계는 외부 코드를 공간에 들이지 않고 `view.define`의 `search = "source"`(입력할 때마다 `source(ctx)`를 다시 부름, `docs/API/widget.md:225-226`)로 직접 만든다.
-- **Verified (`libraries/Library/Std/Widgets/Widgets.md`, `docs/API/view.md:39-58`, 스파이크):** 사용자 뷰는 `view.define`으로 등록하고 `lhs`·`rhs`·`page-top` 등에 둔다. `frame = "minimal"`인 `page-top` 뷰는 제목줄 없이 본문처럼 보이고 내용이 없으면 숨는다. Linked Tasks는 다른 페이지의 작업을 체크·상태 변경이 되는 채로 `page-top`에 보여 주며 기본으로 열려 있다.
+- **Verified (`silverbulletmd/silverbullet/docs/Full Text Search.md`, `plugs/` 목록):** 2.12.1 코어에는 전체 텍스트 검색이 없다. 공식 문서는 커뮤니티 라이브러리(Silversearch, basic-search) 설치를 권한다. 이 설계는 외부 코드를 공간에 들이지 않고 `view.define`의 `search = "source"`(입력할 때마다 `source(ctx)`를 다시 부름, `silverbulletmd/silverbullet/docs/API/widget.md:225-226`)로 직접 만든다.
+- **Verified (`libraries/Library/Std/Widgets/Widgets.md`, `silverbulletmd/silverbullet/docs/API/view.md:39-58`, 스파이크):** 사용자 뷰는 `view.define`으로 등록하고 `lhs`·`rhs`·`page-top` 등에 둔다. `frame = "minimal"`인 `page-top` 뷰는 제목줄 없이 본문처럼 보이고 내용이 없으면 숨는다. Linked Tasks는 다른 페이지의 작업을 체크·상태 변경이 되는 채로 `page-top`에 보여 주며 기본으로 열려 있다.
 - **Verified (스파이크, 2026-10-14):**
   - 색인 객체의 필드: 페이지 `lastModified`는 `2026-10-14T11:49:06.750`처럼 로컬 시각 문자열이고, 프론트매터의 `permalink`도 들어 있다. 목록 항목은 `text`·`tags`·`ref`(`페이지@위치`), 헤더는 `name`·`ref`다. 관찰 줄은 목록 항목이 아니라 작업(`index.tasks()`, `state`·`name`·`tags`)으로 색인된다.
   - 문단은 `config.set("index.paragraph.all", true)`가 있어야 색인된다. 스파이크에서는 이미 색인한 브라우저와 처음 연 브라우저 모두 `Space: Reindex`를 한 번 실행한 뒤에야 문단이 검색됐다. [web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md)(2026-10-15)에서는 관리 페이지가 처음부터 있는 공간을 새 origin(`sb.localhost:3000`)으로 열었을 때 Reindex 없이 문단이 검색됐다. 스파이크의 누락은 설정을 나중에 더한 데서 생긴 것으로 본다(Assumption). 문단이 안 나올 때의 Reindex 안내는 그대로 둔다.

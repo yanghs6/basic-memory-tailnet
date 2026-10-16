@@ -1,10 +1,15 @@
+---
+status: approved
+date: 2026-10-16
+---
+
 # 스크립트·테스트 구조와 생성 규칙 — 설계
 
-- 상태: 승인 (2026-10-16). 기준 커밋은 `main` 9a43084([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) 코드 병합)다.
+- 기준 커밋은 `main` 9a43084([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) 코드 병합)다.
 - 구현 계획: [script-cleanup 계획](../plans/plan-2026-10-20-c2vxa7kp-script-cleanup.md)(스크립트 정리), [test-cleanup 계획](../plans/plan-2026-10-21-hf9kadp3-test-cleanup.md)(테스트 정리와 생성 규칙). 번호는 계획을 쓸 때 모든 브랜치를 훑어 다시 확인한다.
 - 근거 조사: [여러 코딩 에이전트가 같은 규칙으로 문서·스크립트·테스트를 만들게 하려면](../research/rsch-2026-10-15-f20fshxg-agent-repo-conventions.md) §5
 - 함께 읽기: [에이전트 공용 문서 체계](spec-2026-10-15-sgpbx1gq-doc-system.md). 구조 검사의 허용 범위(8.4절의 새 ADR)와 생성 명령의 방식을 그 스펙에서 가져온다.
-- 대체 범위: [OCI 설계](spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md) §5의 `scripts/`·`tests/` 배치(78-109행)와 §7.3의 스크립트 규칙 중 이 문서와 겹치는 부분.
+- 대체 범위: [OCI 설계](spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md) §5의 `scripts/`·`tests/` 배치와 §7.3의 스크립트 규칙 중 이 문서와 겹치는 부분. GCP 설계 §5가 이 배치를 이어받으므로 그 부분도 대체한다.
 
 ## 1. 목적과 범위
 

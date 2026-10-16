@@ -1,3 +1,8 @@
+---
+status: completed
+spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
+---
+
 # qtvzskgx VM Rollout Plan
 
 > **For agentic workers:** 이 계획은 사용자 계정과 클라우드 자원을 다룬다. 서브에이전트에 맡기지 말고 사용자와 같은 세션에서 진행하며(superpowers:executing-plans), 각 단계 전에 사용자 확인을 받는다. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -225,7 +230,7 @@ git commit -m "docs: complete the vm-rollout plan" --trailer "Assisted-by: <도�
 ```
 
 - [ ] 1차 리뷰(작성자와 다른 벤더, 읽기 전용): 작성 도구가 Claude Code면 `make review BRANCH=plan/qtvzskgx-vm-rollout REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
-- [ ] 원문(`.review-out/`)을 `docs/reviews/plan-05-vm-rollout.md`로 옮겨 적는다(`docs/reviews/README.md` 형식).
+- [ ] 원문(`.review-out/`)을 `docs/reviews/`의 `plan-05-vm-rollout.md`로(이 파일은 만들어지지 않았다) 옮겨 적는다(`docs/reviews/README.md` 형식).
 
 ```bash
 git add docs/reviews/plan-05-vm-rollout.md

@@ -52,7 +52,7 @@ Put the key words first, because tool skill lists shorten long descriptions. Nev
 1. Write two or three prompts in the user's words that should use the skill, and two near misses that belong to a sibling skill or to none.
 2. Run each prompt in a fresh agent session: first in the main checkout (the old skill or none, the baseline), then in your worktree. Tell the agent to describe its plan without changing anything.
 3. Compare: did it pick the skill, open the right reference, stop at every "Ask first", and use make targets instead of raw commands? Fix the description when it picks the wrong skill and the body when it acts wrongly, then run again.
-4. Record the prompts and results in the commit body, the plan's Progress log or an ADR.
+4. Record the prompts and results in the commit body, the plan's Progress log, or on a work branch the PR body's Verification.
 
 ## Gotchas
 

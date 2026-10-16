@@ -1,3 +1,8 @@
+---
+status: completed
+spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
+---
+
 # k93wjt1a GitHub Switch Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

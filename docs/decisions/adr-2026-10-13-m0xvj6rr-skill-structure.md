@@ -1,6 +1,9 @@
-# ADR m0xvj6rr: 스킬 구조와 작성 규칙
+---
+status: accepted
+date: 2026-10-13
+---
 
-- 상태: Accepted (2026-10-13)
+# ADR m0xvj6rr: 스킬 구조와 작성 규칙
 
 ## 맥락
 

@@ -1,6 +1,12 @@
+---
+status: superseded
+date: 2026-10-12
+superseded-by: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
+---
+
 # Basic Memory on OCI Always Free + Tailscale — 설계
 
-- 상태: **대체됨 (2026-10-12)** → [GCP 설계](spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md). 호스팅을 OCI에서 GCP로 옮겼다. 이 문서는 완료된 [local-foundation](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)·[git-review-tooling](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md)·[vm-scripts](../plans/plan-2026-10-07-dry1xr43-vm-scripts.md) 계획의 기준으로만 남긴다.
+- [GCP 설계](spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)가 이 문서를 대체했다. 호스팅을 OCI에서 GCP로 옮겼다. 이 문서는 완료된 [local-foundation](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)·[git-review-tooling](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md)·[vm-scripts](../plans/plan-2026-10-07-dry1xr43-vm-scripts.md) 계획의 기준으로만 남긴다.
 - 이전 상태: 승인됨 (2026-10-07). 구현 계획은 순서대로 5개다. 진행 중인 계획은 `docs/plans/active/`, 대기 중인 계획은 `docs/plans/backlog/`에 있다. 모든 계획은 [git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)을 따른다.
   1. `plan-2026-10-07-sqzn0teq-local-foundation.md`: 도구 체인, compose, 로컬 MCP 검증, AGENTS.md 기본판(Git 섹션 포함)
   2. `plan-2026-10-07-qq4h1djv-git-review-tooling.md`: `make check-git`, `make review`, 리뷰어 에이전트, git·리뷰 스킬
@@ -124,7 +130,7 @@ docs/decisions/                  ADR (예: 0001-basic-memory-on-oci.md, adr-2026
 | 스킬 | 사용 시점 | 절차 |
 |---|---|---|
 | `bm-upgrade` | Basic Memory 버전을 올릴 때 | 릴리스 노트에서 DB·설정 마이그레이션 확인 → 새 digest 조회 → `compose.yaml` 수정 → `make check local-up local-verify` → 사용자 확인 → `make backup`(롤백 지점) → `make deploy verify` → 롤백은 이전 `image:` 줄 + `make restore BACKUP=<롤백 지점>`(이미지와 데이터를 함께 되돌림. 이후 쓴 노트는 사라진다는 점을 먼저 알림) |
-| `bm-recover` | VM이 회수·손상됐을 때 | `docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md`대로 VM 재생성(사용자 작업) → `make vm-bootstrap` → 사용자 확인 → `make deploy restore BACKUP=<파일>` (restore가 끝에 verify를 실행) |
+| `bm-recover` | VM이 회수·손상됐을 때 | OCI VM 런북(`rbk-2026-10-12-vebvx40g-oci-vm.md`, [docs-skills 계획](../plans/plan-2026-10-07-hydaxf15-docs-skills.md)에서 GCP VM 런북으로 바뀜)대로 VM 재생성(사용자 작업) → `make vm-bootstrap` → 사용자 확인 → `make deploy restore BACKUP=<파일>` (restore가 끝에 verify를 실행) |
 | `bm-diagnose` | 연결·MCP 문제가 있을 때 | 읽기 전용: `tailscale status`, `make status`, `make logs`, `make probe`만 실행해 원인을 좁힘. 노트를 쓰거나 무언가를 시작하는 명령(`make verify`, `make local-up` 등)은 사용자에게 제안만 함 |
 
 ## 6. Make 타깃

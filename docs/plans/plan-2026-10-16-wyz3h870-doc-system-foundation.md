@@ -1,3 +1,8 @@
+---
+status: completed
+spec: docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md
+---
+
 # wyz3h870 Doc System Foundation Implementation Plan
 
 > **For agentic workers:** Implement the tasks in order, one at a time: with a fresh subagent and a review per task where the tool supports it (superpowers:subagent-driven-development), otherwise in one session (superpowers:executing-plans). Nothing here touches the VM or cloud resources. Task 2 and Task 4 change `AGENTS.md` only with the wording the user approved in the start section. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -35,7 +40,7 @@
 
 1. **다른 에이전트가 push만 한 계획 번호를 건너뜀.** 원격 추적 브랜치에만 있는 계획 09가 있으면 새 계획은 10이어야 한다. → Task 3 번호 테스트의 `refs/remotes/origin/plan/09-remote`.
 2. **08·09 같은 번호를 8진수로 읽다가 실패함.** → Task 3 번호 테스트가 09를 최대값 후보로 둔다.
-3. **ADR 폴더의 날짜로 시작하는 파일이 번호를 부풀림.** `2026-10-01-draft.md`를 ADR 2026으로 읽으면 다음 ADR이 2027이 된다. → Task 3 번호 테스트의 `docs/decisions/2026-10-01-draft.md`, 기대값 0007.
+3. **ADR 폴더의 날짜로 시작하는 파일이 번호를 부풀림.** `2026-10-01-draft.md`를 ADR 2026으로 읽으면 다음 ADR이 2027이 된다. → Task 3 번호 테스트의 ADR 폴더 `2026-10-01-draft.md`, 기대값 0007.
 4. **slug로 폴더 밖에 쓰거나 같은 날 같은 slug로 덮어씀.** `../escape`, 대문자, 이미 있는 파일. → Task 3 거부 테스트가 작업 트리에 첫 파일 하나만 남고 그 내용이 그대로인지 본다.
 5. **레지스트리 표가 깨져 엉뚱한 위치나 템플릿을 씀.** 셀 하나가 빠지거나 비면 열이 밀린다. → Task 1 파서 테스트가 행 번호와 함께 실패하는지 본다.
 
@@ -1090,7 +1095,7 @@ git push
 | 2026-10-16 | Verified | Task 2: RED `make test`에서 `AGENTS.md and README.md list every skill`과 함께 문서 경로 검사도 실패함. 계획의 SKILL.md Gotchas 줄에 쓴 예시 경로 표기를 검사가 없는 파일로 읽음 → "docs Markdown path"로 바꿈(계획 결함). `README.md`를 고친 뒤 남은 실패는 `AGENTS.md:doc-authoring` 하나. |
 | 2026-10-16 | Verified | Task 2 Step 7 스킬 시험(Codex `codex exec --sandbox read-only`, 이 worktree): (1) 새 ADR → `doc-authoring`, fetch 후 `make new-doc TYPE=adr`, 새 이름 `adr-YYYY-MM-DD-NNNN-<slug>.md`. (2) [doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md) → `doc-authoring`, `make new-doc TYPE=plan`, `status: backlog`(폴더 아님). (3) 근접 오답 → `skill-authoring`. 세 경우 모두 기대대로. Claude Code도 세션 중 `doc-authoring`을 스킬 목록에 올림. |
 | 2026-10-16 | Verified | Task 2 `7927d93`: `make check` exit 0, 201 ok, 0 not ok, 커버리지 94.89%. |
-| 2026-10-16 | Verified | Task 3: RED `make test` exit 2(`create-doc.bats` 세 테스트, 스크립트 없음), GREEN `make check` exit 0, 204 ok, 0 not ok, 커버리지 95.12%(`create-doc.sh` 100%, `docs.sh` 63.27%). macOS(bash 3.2, BSD sed·date)에서 `make new-doc TYPE=research SLUG=plan13-smoke` → `docs/research/rsch-2026-10-16-plan13-smoke.md`, `status: snapshot`, `{{date}}`가 날짜로 바뀜, 확인 뒤 지움. |
+| 2026-10-16 | Verified | Task 3: RED `make test` exit 2(`create-doc.bats` 세 테스트, 스크립트 없음), GREEN `make check` exit 0, 204 ok, 0 not ok, 커버리지 95.12%(`create-doc.sh` 100%, `docs.sh` 63.27%). macOS(bash 3.2, BSD sed·date)에서 `make new-doc TYPE=research SLUG=plan13-smoke` → 조사 폴더의 `rsch-2026-10-16-plan13-smoke.md`(확인 뒤 지움), `status: snapshot`, `{{date}}`가 날짜로 바뀜, 확인 뒤 지움. |
 | 2026-10-16 | Verified | Task 3 `0d07d32`: `make check` exit 0, 204 ok, 커버리지 95.12%. |
 | 2026-10-16 | Verified | Task 4: RED `make test` exit 2(`Gemini CLI reads AGENTS.md through .gemini/settings.json`만 실패, 크기 검사는 처음부터 통과), GREEN `make check` exit 0, 206 ok, 0 not ok, 커버리지 95.12%. `git fetch origin` 뒤 `make new-doc TYPE=adr SLUG=structure-checks` → `docs/decisions/adr-2026-10-16-q36rwq5s-structure-checks.md`(번호 0007). `AGENTS.md` 9,080바이트(한도 24,000). `make help`에 `new-doc`. |
 | 2026-10-16 | Assumption | Gemini CLI가 `.gemini/settings.json`으로 `AGENTS.md`를 읽는다(근거 조사 §1의 설정 문서 기준). Gemini CLI는 이 Mac에 설치돼 있으나 `/memory show` 확인은 대화형이라 사용자 선택으로 남김. |
