@@ -79,12 +79,22 @@ setup() {
   assert_line "docs/decisions/adr-$TODAY-0007-next-adr.md"
 }
 
-@test "refuses an unknown type, a type that takes no new documents, a slug that is not lowercase-hyphen and an existing file, and writes nothing" {
+@test "refuses a type whose 새 문서 cell is 금지 even when its template exists" {
+  # Retire research in this copy of the registry; its template stays, so only the 새 문서 check can refuse it.
+  awk -F'|' 'BEGIN { OFS = "|" } $2 == " research " { $8 = " 금지 " } { print }' docs/README.md >"$BATS_TEST_TMPDIR/README.md"
+  cp "$BATS_TEST_TMPDIR/README.md" docs/README.md
+  run "$CREATE" research late-note
+  assert_failure
+  assert_output --partial "no longer created"
+  [[ ! -e docs/research ]] || fail "a retired type wrote into docs/research"
+}
+
+@test "refuses an unknown type, a slug that is not lowercase-hyphen and an existing file, and writes nothing" {
   local args
   run "$CREATE" spec same-name
   assert_success
   printf 'edited\n' >>"docs/specs/spec-$TODAY-same-name.md"
-  for args in "memo note" "review late-record" "spec Bad_Slug" "spec ../escape" "spec same-name"; do
+  for args in "memo note" "spec Bad_Slug" "spec ../escape" "spec same-name"; do
     # shellcheck disable=SC2086 # two words: the type and the slug
     run "$CREATE" $args
     assert_failure
