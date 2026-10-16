@@ -3,7 +3,7 @@ status: backlog
 spec: none
 ---
 
-# 07 IPv6 Egress Plan (backlog)
+# 07 IPv6 Egress Plan
 
 > 계획 05([완료된 계획](plan-2026-10-07-05-vm-rollout.md))가 머지된 뒤에 brainstorming → 스펙 → 계획 순서를 거쳐야 실행할 수 있습니다. 이 문서는 실행 계획이 아니라 조사 결과와 질문 목록입니다.
 
@@ -45,7 +45,7 @@ spec: none
 
 ## 영향 범위
 
-외부 IPv4를 전제하는 위치(2026-10-13 `grep` 결과, 이 브랜치 기준):
+외부 IPv4를 전제하는 위치(2026-10-13 `grep` 결과, 이 브랜치 기준). 줄 번호는 그때 기준이고 이후 변경(계획 14가 문서에 단 front matter 포함)으로 밀렸으므로, 설계 때 다시 확인한다:
 
 - `.env.example:10-12` (`BM_VM_PUBLIC_IP` 설명과 값)
 - `Makefile:13` (`export ... BM_VM_PUBLIC_IP`), `Makefile:69` (`vm-bootstrap`, `HOST=<public-ip>`)

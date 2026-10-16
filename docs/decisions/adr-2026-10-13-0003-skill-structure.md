@@ -5,7 +5,6 @@ date: 2026-10-13
 
 # ADR 0003: 스킬 구조와 작성 규칙
 
-
 ## 맥락
 
 이 저장소의 스킬은 Claude Code, Codex, Gemini CLI, Antigravity가 함께 씁니다. 정본은 `.agents/skills/`에 두고, Claude Code용 링크는 `.claude/skills/`에 둡니다. 2026-10-13 기준으로 스킬 5개가 모두 `SKILL.md` 한 파일이었습니다. 문제는 세 가지였습니다.
