@@ -31,6 +31,22 @@ write_registry() {
   assert_line --index 1 "$(printf 'review\trev\t없음\tdocs/reviews/\tfinal\tstatus\t금지\t없음')"
 }
 
+@test "doc_types fails when the header row's columns are reordered or the separator row is missing" {
+  local top
+  # Swapping two columns in the header and in every row keeps the cell counts, so only the header can catch it.
+  for top in \
+    '| 타입 | 코드 | 위치 | 번호 | 상태 값 | 필수 키 | 새 문서 | 성격 | 언어 | 템플릿 |\n|---|---|---|---|---|---|---|---|---|---|' \
+    '| 타입 | 코드 | 번호 | 위치 | 상태 값 | 필수 키 | 새 문서 | 성격 | 언어 | 템플릿 |'; do
+    {
+      printf '## 문서 타입\n\n%b\n' "$top"
+      printf '%s\n' '| spec | spec | `docs/specs/` | 없음 | draft | status | 허용 | 기록 | 한국어 | `a/spec.md` |'
+    } >"$REGISTRY"
+    run doc_types "$REGISTRY"
+    assert_failure
+    assert_output --partial "header"
+  done
+}
+
 @test "doc_types fails and names the row when a row lost a cell or has an empty one" {
   local row
   for row in \

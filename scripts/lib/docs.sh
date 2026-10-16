@@ -8,22 +8,33 @@
 #   next_doc_number ROOT LOCATION CODE WIDTH -> the next free document number, zero-padded
 
 readonly DOC_TYPES_HEADING="## 문서 타입"
-# Registry columns: 타입, 코드, 번호, 위치, 상태 값, 필수 키, 새 문서, 성격, 언어, 템플릿.
-readonly DOC_TYPES_COLUMNS=10
+# Registry columns in order, as the header row names them. The parser reads cells by position, so the header must match.
+readonly DOC_TYPES_HEADER="타입|코드|번호|위치|상태 값|필수 키|새 문서|성격|언어|템플릿"
 readonly DOC_DATE_PATTERN='[0-9]{4}-[0-9]{2}-[0-9]{2}'
 
 # doc_types REGISTRY -> one line per row of the table under DOC_TYPES_HEADING, tab-separated: type, code, number
 # (없음|NN|NNNN), location, statuses, required keys, new (허용|금지), template. Backticks and the spaces around each
-# cell are dropped. Dies when the table is missing, a row has the wrong cell count or a cell is empty, because a
-# shifted column would put a document in the wrong place.
+# cell are dropped. Dies when the table is missing, its header differs from DOC_TYPES_HEADER, the separator row is
+# missing, a row has the wrong cell count or a cell is empty, because a shifted column would put a document in the
+# wrong place.
 doc_types() {
   local registry="$1" rows status=0
   [[ -f "$registry" ]] || die "missing $registry: it holds the document type registry"
-  rows="$(awk -F'|' -v heading="$DOC_TYPES_HEADING" -v want="$DOC_TYPES_COLUMNS" '
+  rows="$(awk -F'|' -v heading="$DOC_TYPES_HEADING" -v header="$DOC_TYPES_HEADER" '
+    BEGIN { want = split(header, names, "|") }
     /^## / { inside = ($0 == heading); next }
     !inside || !/^\|/ { next }
     { seen++ }
-    seen <= 2 { next }
+    seen == 1 {
+      got = ""
+      for (i = 2; i < NF; i++) { c = $i; gsub(/^ +| +$/, "", c); got = got (i > 2 ? "|" : "") c }
+      if (got != header) { printf "the header row must name the columns %s in this order, not: %s\n", header, $0 > "/dev/stderr"; bad = 1 }
+      next
+    }
+    seen == 2 {
+      if ($0 !~ /^\|( *:?-+:? *\|)+ *$/) { printf "the separator row (|---|) must follow the header, not: %s\n", $0 > "/dev/stderr"; bad = 1 }
+      next
+    }
     NF - 2 != want {
       printf "row %d has %d cells (want %d): %s\n", seen - 2, NF - 2, want, $0 > "/dev/stderr"
       bad = 1
