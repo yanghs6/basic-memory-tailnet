@@ -36,13 +36,16 @@ Active work: `docs/plans/active/` (upcoming plans wait in `docs/plans/backlog/`)
 - A reviewer from another vendor reviews each PR read-only and the reports go to PR comments. Only the human approves and squash-merges; agents never approve, merge or press Update branch (keep a branch current with `git merge origin/main`).
 
 ## Notes and language
-- Label repository notes `Verified`, `Command`, `Assumption`, or `Open question`.
-- Code, comments, script messages, this file and skills are English. README, runbooks, ARCHITECTURE and ADRs are Korean.
+- Label repository notes `Verified`, `Command`, `Assumption`, `Open question` or `Reported` (second-hand), as `**Verified:**` at the start of a paragraph or list item, or in the label column of a table.
+- Code, comments, script messages, this file, skills, front matter and plan headings are English. README, `docs/README.md`, runbooks, ARCHITECTURE, ADRs, specs, research and plan bodies are Korean; review records stay as written.
 - Record evidence (command + result) in the active plan's Progress log or an ADR in `docs/decisions/`.
+- Create specs, plans, ADRs, runbooks and research notes with `make new-doc TYPE=<type> SLUG=<slug>` in the folders `docs/README.md` lists; this overrides tool and plugin default paths such as `docs/superpowers/`.
 
 ## Map
 - `scripts/` lifecycle scripts; `scripts/lib/common.sh` shared helpers.
 - `tests/` bats tests; `tools/` test image and coverage gate.
+- `docs/README.md` document map and type registry; templates in `.agents/skills/doc-authoring/assets/`.
+- `CLAUDE.md` (Claude Code) and `.gemini/settings.json` (Gemini CLI) load this file; Codex and Antigravity read it directly.
 - `docs/specs/`, `docs/plans/{active,backlog,completed}/`.
 - `.agents/skills/` canonical skills (Codex, Gemini CLI, Antigravity; rules in `tests/skills.bats`); `.claude/skills/<name>` symlinks and `.claude/agents/branch-reviewer.md` for Claude Code.
 - `docs/reviews/` review records (template in its README).
