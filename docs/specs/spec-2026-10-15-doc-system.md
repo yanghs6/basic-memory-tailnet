@@ -37,6 +37,9 @@ Claude Code, Codex, Gemini CLI, Antigravity 중 어느 에이전트든 플러그
 - N3. `README.md`, `docs/README.md`, `docs/ARCHITECTURE.md`, `docs/reviews/README.md`는 이름을 바꾸지 않는다. GitHub이 폴더를 열 때 보여 주는 이름이고, `ARCHITECTURE.md`는 널리 쓰는 고정 이름이다.
 - N4. 이름에 날짜가 없던 문서(ADR, 런북, 리뷰)는 그 파일이 처음 커밋된 날을 쓴다. 스펙은 타입 코드가 뜻을 말하므로 `-design` 꼬리를 뗀다.
 
+**사용자 결정 (2026-10-16, 계획 15 범위)**
+- D9. 기존 문서의 절 구성(이름, 순서, 번호)은 바꾸지 않고, 템플릿은 새 문서에 쓴다. 이유: 다른 문서가 절 번호와 제목으로 인용하고(리뷰를 빼고 177행·16파일, 2026-10-16), 스크립트와 스킬이 런북 제목과 번호를 가리키며, 옛 ADR에 없는 절은 내용을 지어내야 한다. 계획 15는 레이블 표기(6.2절)와 README의 중복만 정리하고, 리뷰 기록과 조사 문서(5.5절)는 레이블도 그대로 둔다.
+
 **범위 밖**
 - 스크립트·테스트 구조: 함께 읽기의 스펙
 - 스킬의 구조와 규칙: ADR 0003, `skill-authoring` 스킬, `tests/skills.bats`
@@ -54,7 +57,7 @@ Claude Code, Codex, Gemini CLI, Antigravity 중 어느 에이전트든 플러그
 
 ## 2. 근거가 된 사실 (2026-10-16, `main` 87e86d4)
 
-**Verified (저장소)**
+**Verified (저장소):**
 - `AGENTS.md`를 읽는 도구는 Claude Code(`CLAUDE.md`의 `@AGENTS.md`), Codex, Antigravity다. Gemini CLI는 기본 파일이 `GEMINI.md`인데 저장소에 `.gemini/settings.json`이 없어 읽지 않는다(근거 조사 §1).
 - 저장소가 가진 템플릿은 세 개다: `.agents/skills/skill-authoring/assets/skill-template.md`, `docs/reviews/README.md`의 리뷰 기록 템플릿, `.github/pull_request_template.md`. 스펙, 계획, ADR, 런북, 조사 문서의 템플릿은 없다.
 - 계획 골격(Goal, Architecture, Global Constraints, `### Task N`, `- [ ] **Step N`)은 superpowers 6.4.1 writing-plans 스킬의 헤더를 따른다. 이 플러그인은 Claude Code에만 있다.
@@ -218,7 +221,7 @@ amended-by: docs/specs/spec-2026-10-13-github-pr-workflow.md
 - 어휘: `Verified`(직접 확인), `Command`(실행한 명령), `Assumption`(확인하지 않은 전제), `Open question`(사람이 정할 일), `Reported`(2차 보도). `Reported`는 지금 조사 문서만 쓰는 것을 정식으로 받아들인다.
 - 표기: 문단이나 목록 항목 첫머리에 `**Verified:**`처럼 굵게 쓰고 쌍점을 붙인다. 날짜가 필요하면 `**Verified (2026-10-15):**`. 표에서는 `표기` 열에 레이블만 쓴다.
 - 범위: 한국어 문서에서 외부 시스템, 환경, 도구 동작에 대한 사실을 적을 때 쓴다. `README.md`, `AGENTS.md`, 스킬에는 쓰지 않아도 된다.
-- 검사하지 않는다(결정 2). 기존 문서의 옛 표기는 계획 15가 이 형식으로 바꾼다(D1, 9절). 리뷰는 바꾸지 않는다.
+- 검사하지 않는다(결정 2). 기존 문서의 옛 표기는 계획 15가 이 형식으로 바꾼다(D1, 9절). 리뷰 기록과 조사 문서는 바꾸지 않는다(D9).
 
 ### 6.3 증거를 남기는 곳
 
@@ -308,7 +311,7 @@ amended-by: docs/specs/spec-2026-10-13-github-pr-workflow.md
 | 모든 타입 문서(단일 파일 제외) | 3.1절의 이름으로 `git mv`, 저장소 안 모든 참조 갱신 | 14 |
 | 모든 계획 | `docs/plans/{backlog,completed}/`에서 `docs/plans/`로 옮김 | 14 |
 | 모든 타입 문서와 ARCHITECTURE | front matter 추가, 본문의 상태 줄 삭제, 낡은 경로와 상태 문구(2절의 예) 수정 | 14 |
-| 리뷰를 뺀 모든 타입 문서, ARCHITECTURE, 루트 README | 본문의 절 이름과 순서를 템플릿에 맞춤, 레이블 표기 통일(6.2절), `AGENTS.md`와 겹치는 문장 삭제(README) | 15 |
+| 리뷰와 조사를 뺀 모든 타입 문서, ARCHITECTURE, 루트 README | 레이블 표기 통일(6.2절), `AGENTS.md`와 겹치는 문장 정리(README). 절 구성은 그대로 둔다(D9) | 15 |
 | 리뷰 | 이름과 front matter(`status: final`)만. 본문은 그때의 영어 기록 그대로 | 14 |
 
 **바꾸지 않는 것** (바꾸면 기록이 사실과 달라진다)
@@ -325,7 +328,7 @@ amended-by: docs/specs/spec-2026-10-13-github-pr-workflow.md
 - 지워진 문서를 가리키는 기록 문서의 경로는 현재 경로로 고친다. 대상이 없으면 경로 표기를 풀어 쓴다.
 
 **본문을 옮길 때 내용을 잃지 않게**
-- 계획 15는 절 재배치와 레이블 통일을 다른 커밋으로 나눈다. 절 재배치 커밋은 제목 줄을 뺀 나머지 줄의 정렬 목록이 전후로 같아야 한다. 레이블 커밋은 레이블 표기만 바뀌어야 한다(`git diff --word-diff`로 확인).
+- 계획 15는 절을 옮기지 않는다(D9). 레이블 커밋은 레이블과 그 괄호 내용의 위치만 바뀌어야 한다(`git diff --word-diff`로 확인).
 - 옛 형식이 다시 퍼지는 문제는 템플릿, 스킬의 "옆 문서를 복사하지 않는다", `make new-doc`으로 막는다(6.6절).
 
 ## 10. 계획 분할과 순서
@@ -334,7 +337,7 @@ amended-by: docs/specs/spec-2026-10-13-github-pr-workflow.md
 |---|---|---|
 | 13 문서 체계 기반 | `.gemini/settings.json`과 `tests/repo.bats`의 두 검사(8.3절 7·8), `docs/README.md`(레지스트리), 템플릿 다섯 개, `doc-authoring` 스킬, `scripts/create-doc.sh`와 `make new-doc`과 테스트, 새 ADR, `AGENTS.md`의 지도·언어·레이블·경로 우선 문장 | 계획 11 병합 뒤(D5). 충족됨 |
 | 14 이름·메타데이터 소급과 검사 | 모든 문서 이름 변경과 참조 갱신, 계획 폴더 통합, front matter, 낡은 경로, `tests/repo-docs.bats`(8.3절 1~6), 6.3절의 증거 위치 변경과 함께 바뀌는 스킬·PR 템플릿·`AGENTS.md` | 계획 13과 계획 12 결과 PR(Task 8) 병합 뒤 |
-| 15 본문 소급 | 9절 표의 본문 행: 템플릿 절 구성, 레이블 통일, README의 중복 삭제 | 계획 14 병합 뒤 |
+| 15 본문 소급 | 9절 표의 본문 행: 레이블 통일, README의 중복 정리(절 구성은 D9로 제외) | 계획 14 병합 뒤 |
 
 - 계획 11(PR #6, `4c84dba`)과 계획 12의 문서(PR #7, `4a184f1`)와 코드(PR #8, `87e86d4`)는 병합됐다.
 - 계획 12의 Task 8(VM 이전)은 결과 PR(`plan/12-access-mode-migration`)로 남는다. 그 PR은 계획 12 파일을 completed로 옮기고 ADR 0006, 접속 방식 설계, `rbk-2026-10-12-operations.md`, `rbk-2026-10-12-gcp-vm.md`를 고친다. 계획 14가 같은 파일의 이름을 바꾸므로 계획 14는 그 PR이 병합된 뒤에 시작한다. 계획 13은 기존 문서를 옮기지 않으므로 지금 시작할 수 있다.
