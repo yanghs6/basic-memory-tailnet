@@ -38,7 +38,7 @@ Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, co
 ## Notes and language
 - Label repository notes `Verified`, `Command`, `Assumption`, `Open question` or `Reported` (second-hand), as `**Verified:**` at the start of a paragraph or list item, or in the label column of a table.
 - Code, comments, script messages, this file, skills, front matter and plan headings are English. README, `docs/README.md`, runbooks, ARCHITECTURE, ADRs, specs, research and plan bodies are Korean; review records stay as written.
-- Record evidence (command + result) in the active plan's Progress log or an ADR in `docs/decisions/`; record the pull request's CI results in its body (Verification), which needs no commit.
+- Record evidence (command + result) in the active plan's Progress log, or on a work branch in the PR body's Verification; record decisions in an ADR in `docs/decisions/`. The pull request's CI results go in its body (Verification), which needs no commit.
 - Create specs, plans, ADRs, runbooks and research notes with `make new-doc TYPE=<type> SLUG=<slug>` in the folders `docs/README.md` lists; this overrides tool and plugin default paths such as `docs/superpowers/`.
 
 ## Map
