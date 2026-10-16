@@ -1,3 +1,8 @@
+---
+status: completed
+spec: docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md
+---
+
 # 05 VM Rollout Plan
 
 > **For agentic workers:** 이 계획은 사용자 계정과 클라우드 자원을 다룬다. 서브에이전트에 맡기지 말고 사용자와 같은 세션에서 진행하며(superpowers:executing-plans), 각 단계 전에 사용자 확인을 받는다. Steps use checkbox (`- [ ]`) syntax for tracking.

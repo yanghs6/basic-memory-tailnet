@@ -1,3 +1,8 @@
+---
+status: current
+reviewed: 2026-10-15
+---
+
 # 계정 준비: GCP와 Tailscale
 
 2~5단계(Tailscale)는 `BM_ACCESS=tailscale`일 때만 합니다. `BM_ACCESS=ssh`는 Tailscale 계정이 필요 없고, 7단계의 IAP 권한을 씁니다.

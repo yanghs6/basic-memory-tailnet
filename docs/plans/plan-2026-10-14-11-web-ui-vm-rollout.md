@@ -1,3 +1,8 @@
+---
+status: completed
+spec: docs/specs/spec-2026-10-14-silverbullet-web-ui.md
+---
+
 # 11 Web UI VM Rollout Implementation Plan
 
 > **For agentic workers:** Tasks 1-3 change code and docs only: use superpowers:subagent-driven-development or superpowers:executing-plans. Task 4 changes the VM: run it in the main session with the user (superpowers:executing-plans), never in a subagent, and get the user's OK before each VM-changing step. Steps use checkbox (`- [ ]`) syntax for tracking.

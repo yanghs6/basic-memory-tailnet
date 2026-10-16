@@ -1,11 +1,17 @@
+---
+status: approved
+date: 2026-10-12
+amended-by: [docs/specs/spec-2026-10-15-access-modes.md, docs/specs/spec-2026-10-15-doc-system.md]
+---
+
 # Basic Memory on GCP Free Tier + Tailscale — 설계
 
-- 상태: 승인됨 (2026-10-12). [OCI 설계](spec-2026-10-07-basic-memory-oci-tailscale.md)를 대체한다. 모든 계획은 [git·리뷰 정책](spec-2026-10-07-git-review-policy.md)을 따른다. 접속 방식은 [접속 방식 설계](spec-2026-10-15-access-modes.md)로 넓혔다(VM마다 Tailscale 또는 SSH 터널).
-- 구현 계획 (진행 중은 `docs/plans/active/`, 대기는 `docs/plans/backlog/`, 완료는 `docs/plans/completed/`):
+- [OCI 설계](spec-2026-10-07-basic-memory-oci-tailscale.md)를 대체한다. 모든 계획은 [git·리뷰 정책](spec-2026-10-07-git-review-policy.md)을 따른다. 접속 방식은 [접속 방식 설계](spec-2026-10-15-access-modes.md)로 넓혔다(VM마다 Tailscale 또는 SSH 터널).
+- 구현 계획 (계획은 `docs/plans/`, 상태는 각 계획의 front matter):
   1. `plan-2026-10-07-01-local-foundation.md` (완료): 도구 체인, compose, 로컬 MCP 검증, AGENTS.md 기본판
   2. `plan-2026-10-07-02-git-review-tooling.md` (완료): `make check-git`, `make review`, 리뷰어 에이전트, git·리뷰 스킬
   3. `plan-2026-10-07-03-vm-scripts.md` (완료): 부트스트랩, 배포·검증·상태·로그, 백업·복원
-  4. `plan-2026-10-07-04-docs-skills.md` (진행 중, 이 설계로 확장): GCP 전환 코드 변경, worktree 백업 보호(C1), 이미지 불일치 점검(I3), 운영 스킬, README, 아키텍처, 런북, ADR, 로컬 전체 검증
+  4. `plan-2026-10-07-04-docs-skills.md` (완료, 이 설계로 확장): GCP 전환 코드 변경, worktree 백업 보호(C1), 이미지 불일치 점검(I3), 운영 스킬, README, 아키텍처, 런북, ADR, 로컬 전체 검증
   5. `plan-2026-10-07-05-vm-rollout.md` (다시 씀): 실제 VM 배포(사용자와 함께)
 - 범위: 첫 목표 `GCP 무료 e2-micro + Tailscale + Basic Memory`
 - 출처: OCI 설계, 2026-10-12 사용자와의 브레인스토밍, 같은 날 공식 문서와 실제 프로젝트에서 확인한 사실

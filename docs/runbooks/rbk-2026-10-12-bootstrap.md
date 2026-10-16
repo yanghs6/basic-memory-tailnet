@@ -1,3 +1,8 @@
+---
+status: current
+reviewed: 2026-10-15
+---
+
 # 부트스트랩: VM을 tailnet에 올리고 배포하기
 
 `make vm-bootstrap`, `make deploy`, `make restore`는 VM을 바꾸므로 에이전트는 사용자의 OK를 받은 뒤에만 실행합니다. 인증 키 프롬프트처럼 터미널 입력이 필요한 명령은 사용자가 자기 터미널에서 직접 실행합니다.

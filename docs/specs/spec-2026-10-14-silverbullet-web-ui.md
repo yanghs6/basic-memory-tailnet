@@ -1,7 +1,13 @@
+---
+status: approved
+date: 2026-10-14
+amended-by: docs/specs/spec-2026-10-15-access-modes.md
+---
+
 # Basic Memory 웹 UI (SilverBullet) — 설계
 
-- 상태: 승인 (2026-10-14). [GCP 설계](spec-2026-10-12-basic-memory-gcp-tailscale.md)에 웹 UI를 더한다. 모든 계획은 [GitHub PR 워크플로](spec-2026-10-13-github-pr-workflow.md)와 [git·리뷰 정책](spec-2026-10-07-git-review-policy.md)을 따른다.
-- 구현 계획 (대기는 `docs/plans/backlog/`):
+- [GCP 설계](spec-2026-10-12-basic-memory-gcp-tailscale.md)에 웹 UI를 더한다. 모든 계획은 [GitHub PR 워크플로](spec-2026-10-13-github-pr-workflow.md)와 [git·리뷰 정책](spec-2026-10-07-git-review-policy.md)을 따른다.
+- 구현 계획:
   1. `plan-2026-10-14-10-web-ui-local.md`: compose 서비스, 공간 파일, 스크립트, `deploy`·`restore`의 `SB_USER` 처리, 테스트, 문서. VM에서는 아무것도 실행하지 않고 모두 로컬과 스텁으로 검증한다. `compose.yaml`에 SilverBullet이 들어가는 순간 VM `.env`에도 `SB_USER`가 있어야 하므로, `deploy`·`restore` 변경을 이 계획에 넣어 `main`을 계속 배포할 수 있는 상태로 둔다.
   2. `plan-2026-10-14-11-web-ui-vm-rollout.md`: `verify`·`probe`의 SilverBullet·Serve 검사, 부트스트랩의 Serve 8443, 실제 배포(사용자와 함께). 계획 10이 병합된 뒤 시작한다. 계획 05(PR #2, `f0b4f9c`)와 계획 08(`d59bfed`)은 병합됐다.
 - 범위: tailnet 안의 브라우저에서 Basic Memory 노트를 읽고 편집하고(B), 백링크와 그래프로 탐색한다(C).

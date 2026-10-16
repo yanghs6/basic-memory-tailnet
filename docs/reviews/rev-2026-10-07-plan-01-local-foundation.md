@@ -1,3 +1,7 @@
+---
+status: final
+---
+
 # Review: plan/01-local-foundation
 
 Cross-vendor review per `docs/specs/spec-2026-10-07-git-review-policy.md`, section 5. Author: claude-code (Claude Opus controller, Sonnet/Haiku implementers). Reviewer: codex. Run by hand because `make review` arrives in plan 02.

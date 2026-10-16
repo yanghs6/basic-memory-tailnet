@@ -6,6 +6,10 @@ load helpers
 
 # Files under docs/ that keep their names and belong to no type (spec section 3.1).
 SINGLE_FILES="docs/README.md docs/ARCHITECTURE.md docs/reviews/README.md"
+ALLOWED_KEYS="status date spec reviewed superseded-by amended-by"
+DATE_PATTERN='^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+# docs/ARCHITECTURE.md is outside the registry but carries status and reviewed (spec section 3.2).
+ARCHITECTURE_ROW="$(printf 'architecture\tarch\t없음\tdocs/\tcurrent\tstatus, reviewed\t금지\t없음')"
 
 setup() {
   # shellcheck source=../scripts/lib/common.sh
@@ -102,4 +106,71 @@ docs_paths() {
   done <<<"$(sort -u <<<"$paths")"
   ((count > 0)) || fail "no docs paths were checked"
   [[ -z "$missing" ]] || fail "these paths name no file; point them at the current file, or spell out a deleted one:$missing"
+}
+
+# front_value FILE KEY: the value of KEY in the front matter of FILE.
+front_value() {
+  frontmatter "$1" | sed -n "s/^$2: *//p"
+}
+
+# front_problems FILE ROW: one line per front matter problem of FILE against its registry ROW.
+front_problems() {
+  local file="$1" row="$2" type statuses keys key value status path
+  IFS=$'\t' read -r type _ _ _ statuses keys _ <<<"$row"
+  if [[ -z "$(frontmatter "$REPO_DIR/$file")" ]]; then
+    printf '%s: no front matter (--- block at the top)\n' "$file"
+    return 0
+  fi
+  for key in $(frontmatter "$REPO_DIR/$file" | sed -n 's/^\([^:]*\):.*/\1/p'); do
+    case " $ALLOWED_KEYS " in *" $key "*) ;; *) printf '%s: key %s is not one of: %s\n' "$file" "$key" "$ALLOWED_KEYS" ;; esac
+  done
+  for key in $(tr ',' ' ' <<<"$keys"); do
+    [[ -n "$(front_value "$REPO_DIR/$file" "$key")" ]] || printf '%s: %s needs %s\n' "$file" "$type" "$key"
+  done
+  status="$(front_value "$REPO_DIR/$file" status)"
+  [[ ", $statuses," == *", $status,"* ]] || printf '%s: status %s is not one of: %s\n' "$file" "$status" "$statuses"
+  for key in date reviewed; do
+    value="$(front_value "$REPO_DIR/$file" "$key")"
+    [[ -z "$value" || "$value" =~ $DATE_PATTERN ]] || printf '%s: %s %s is not YYYY-MM-DD\n' "$file" "$key" "$value"
+  done
+  for key in spec superseded-by amended-by; do
+    value="$(front_value "$REPO_DIR/$file" "$key" | tr -d '[]' | tr ',' ' ')"
+    for path in $value; do
+      if [[ "$path" == none && "$key" == spec ]]; then
+        continue
+      fi
+      [[ -f "$REPO_DIR/$path" ]] || printf '%s: %s %s names no file\n' "$file" "$key" "$path"
+    done
+  done
+  if [[ "$status" == superseded && -z "$(front_value "$REPO_DIR/$file" superseded-by)" ]]; then
+    printf '%s: superseded needs superseded-by\n' "$file"
+  fi
+}
+
+@test "every typed document and ARCHITECTURE has front matter with the allowed and required keys and valid values" {
+  local file row bad=""
+  while IFS= read -r file; do
+    if [[ "$file" == docs/ARCHITECTURE.md ]]; then
+      row="$ARCHITECTURE_ROW"
+    else
+      case " $SINGLE_FILES " in *" $file "*) continue ;; esac
+      row="$(type_row "$file")"
+      [[ -n "$row" ]] || continue
+    fi
+    bad="$bad$(front_problems "$file" "$row")"$'\n'
+  done <<<"$(doc_files)"
+  bad="$(grep -v '^$' <<<"$bad" || true)"
+  [[ -z "$bad" ]] || fail "fix the front matter (keys and values: docs/README.md, 메타데이터):"$'\n'"$bad"
+}
+
+@test "no typed document keeps a template blank outside code" {
+  local file bad=""
+  while IFS= read -r file; do
+    case " $SINGLE_FILES " in *" $file "*) continue ;; esac
+    [[ -n "$(type_row "$file")" ]] || continue
+    if outside_code "$REPO_DIR/$file" | sed 's/`[^`]*`//g' | grep -q '{{'; then
+      bad="$bad $file"
+    fi
+  done <<<"$(doc_files)"
+  [[ -z "$bad" ]] || fail "fill each {{...}} blank or delete its line in:$bad"
 }

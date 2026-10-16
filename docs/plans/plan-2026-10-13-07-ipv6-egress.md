@@ -1,6 +1,11 @@
+---
+status: backlog
+spec: none
+---
+
 # 07 IPv6 Egress Plan (backlog)
 
-> **상태:** 백로그. 계획 05([완료된 계획](plan-2026-10-07-05-vm-rollout.md))가 머지된 뒤에 brainstorming → 스펙 → 계획 순서를 거쳐야 실행할 수 있습니다. 이 문서는 실행 계획이 아니라 조사 결과와 질문 목록입니다.
+> 계획 05([완료된 계획](plan-2026-10-07-05-vm-rollout.md))가 머지된 뒤에 brainstorming → 스펙 → 계획 순서를 거쳐야 실행할 수 있습니다. 이 문서는 실행 계획이 아니라 조사 결과와 질문 목록입니다.
 
 **Goal:** 유료 외부 IPv4를 없애고, 무료인 외부 IPv6만으로 VM이 계속 동작하게 한다(Tailscale, apt, Docker, 이미지 업데이트, 모델 다운로드, 복구).
 

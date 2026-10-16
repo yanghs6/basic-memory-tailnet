@@ -1,3 +1,8 @@
+---
+status: completed
+spec: docs/specs/spec-2026-10-15-doc-system.md
+---
+
 # 13 Doc System Foundation Implementation Plan
 
 > **For agentic workers:** Implement the tasks in order, one at a time: with a fresh subagent and a review per task where the tool supports it (superpowers:subagent-driven-development), otherwise in one session (superpowers:executing-plans). Nothing here touches the VM or cloud resources. Task 2 and Task 4 change `AGENTS.md` only with the wording the user approved in the start section. Steps use checkbox (`- [ ]`) syntax for tracking.
