@@ -58,8 +58,10 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 | `compose.yaml` | 명령을 실행한 체크아웃 루트(`make deploy`가 그 파일을 올림) | `/opt/basic-memory/` |
 | `.env` | main 체크아웃 루트 | `/opt/basic-memory/` (VM용 `.env`는 `make deploy`가 생성) |
 | 스왑 | 해당 없음 | `/swapfile` (1GB, `/etc/fstab`에 등록) |
+| 컨테이너 로그 (`make logs`) | Docker Desktop 안 | `/var/lib/docker/containers/<id>/<id>-json.log`. 두 경우 모두 `compose.yaml`의 `x-logging`이 컨테이너당 10MB × 3개(최대 30MB)로 제한 |
+| Basic Memory 앱 로그 | `.local-data/config/basic-memory.log` | `/srv/basic-memory/config/basic-memory.log`. Basic Memory가 10MB마다 교체하고 5개를 보관 |
 
-기본 프로젝트 `main`은 `/app/data/basic-memory`에 생성됩니다(**Verified**, 0.23.2).
+기본 프로젝트 `main`은 `/app/data/basic-memory`에 생성됩니다(**Verified**, 0.23.2). Basic Memory 앱 로그의 교체 주기도 0.23.2 소스(`src/basic_memory/utils.py`의 `setup_logging`)에서 확인했습니다(**Verified**).
 
 `.env`와 `backups/`는 main 체크아웃에만 둡니다(`.local-data/`는 `make local-up`을 실행한 체크아웃마다 생기는 로컬 테스트 데이터). Makefile은 어느 체크아웃에서 실행하든 main 체크아웃의 `.env`를 읽고, `backup`은 main 체크아웃의 `backups/`에 저장합니다.
 
