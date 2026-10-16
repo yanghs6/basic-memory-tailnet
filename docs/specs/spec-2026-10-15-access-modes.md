@@ -45,7 +45,7 @@ date: 2026-10-15
 | 터널 실행 | `make tunnel`이 터미널 앞단에서 `ssh -N -L`을 실행한다. 끊기면 다시 붙지 않고 종료 코드를 그대로 낸다 | 플랫폼을 가리지 않고 실패가 숨지 않는다. bats로 시험할 수 있다 |
 | 로컬 포트 | `make tunnel`은 18737(MCP)·13000(웹 UI), `verify`의 임시 터널은 28737·23000 | 로컬 컨테이너(8737·3000, `bm-local`)와 서로 겹치지 않는다 |
 | MCP 이름 | 클라이언트마다 `basic-memory` 하나. URL만 모드에 따라 다르다 | VM마다 모드가 하나이므로 이름도 하나다 |
-| Windows | WSL2에서 Make 타깃, PowerShell에서 터널 명령 한 줄. 미검증(Assumption) | 스크립트를 두 벌로 만들지 않는다. 이 저장소의 사람이 Windows 기기로 확인하지 못했다 |
+| Windows | **Assumption:** WSL2에서 Make 타깃, PowerShell에서 터널 명령 한 줄. 미검증 | 스크립트를 두 벌로 만들지 않는다. 이 저장소의 사람이 Windows 기기로 확인하지 못했다 |
 | 지금 VM | 계획 12 Task 8에서 `ssh` 모드로 옮기고 VM의 Tailscale은 로그아웃한다 | 사무실에서 쓰는 것이 이번 작업의 출발점이다. 모드 하나 원칙대로 tailnet 경로를 닫는다 |
 | 이전 자동화 | 하지 않는다. 런북 명령으로 한 번 한다 | 부트스트랩이 Tailscale을 자동으로 끄면, Tailscale SSH로 실행하던 중에 연결이 끊긴다 |
 | `ssh` 모드의 sshd | `verify`가 `sshd -T`로 암호 로그인과 키보드 대화형 인증이 꺼져 있는지 본다 | `ssh` 모드에서는 sshd가 정문이다 |
@@ -313,7 +313,8 @@ AGENTS.md                    사용자 승인 후 (§12)
   - `%USERPROFILE%\.ssh\config`에 별칭을 넣는다. `ProxyCommand`에는 `gcloud.cmd`를 쓴다.
   - PowerShell에서 `make tunnel`이 출력하는 ssh 명령을 그대로 실행한다.
   - Windows용 Claude Code·Codex에는 같은 `http://127.0.0.1:18737/mcp`를 등록한다.
-- **WSL2에서 터널을 띄우는 경우:** Windows 앱이 그 포트에 닿는지는 WSL2 localhost 포워딩에 달려 있다(Assumption).
+- **WSL2에서 터널을 띄우는 경우:**
+  - **Assumption:** Windows 앱이 그 포트에 닿는지는 WSL2 localhost 포워딩에 달려 있다.
 
 ### 10.3 접속 방식 바꾸기 (`tailscale` → `ssh`)
 
