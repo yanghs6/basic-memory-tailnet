@@ -68,4 +68,5 @@ Load the matching skill before you act; when two match, use both.
 - Updating, bumping, patching or rolling back the Basic Memory image: `bm-upgrade`.
 - VM stopped, deleted or unusable, or notes to restore onto a new VM (a stopped VM is only started): `bm-recover`.
 - Basic Memory unreachable, `make probe` or `make verify` failing, container or VM unhealthy (read-only): `bm-diagnose`.
+- Writing a spec, plan, ADR, runbook or research note, changing a document's status, or adding a document type: `doc-authoring`.
 - Adding, renaming or editing a skill: `skill-authoring`.

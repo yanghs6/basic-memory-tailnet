@@ -1082,3 +1082,8 @@ git push
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
+| 2026-10-16 | Command | 시작: `plan/13-doc-system-foundation`을 `origin/main` `16aa61f`(PR #9 병합)에서 만들고(worktree `repo-structure` 재사용) 계획을 `active/`로 옮김(`8995db9`). 초안 PR #11. 실행은 사용자 결정대로 네이티브(executing-plans). |
+| 2026-10-16 | Verified | 사용자가 `AGENTS.md` 문구 다섯 곳을 승인함(2026-10-16, `16aa61f` 기준 39·40행 교체, 41행 뒤 한 줄, 46행 앞 두 줄, 71행 앞 Skills 한 줄). 승인은 첫 커밋 뒤, 첫 `AGENTS.md` 수정(Task 2 Step 6) 전에 받음. |
+| 2026-10-16 | Verified | Task 1 `5675854`: RED `make test` exit 2(`lib-docs.bats` 두 테스트, `scripts/lib/docs.sh` 없음), GREEN `make check` exit 0, 201 ok, 0 not ok, 커버리지 94.89%(`docs.sh`는 bats 안에서 source만 해 28%, Task 3에서 스크립트가 부름). |
+| 2026-10-16 | Verified | Task 2: RED `make test`에서 `AGENTS.md and README.md list every skill`과 함께 문서 경로 검사도 실패함. 계획의 SKILL.md Gotchas 줄에 쓴 예시 경로 표기를 검사가 없는 파일로 읽음 → "docs Markdown path"로 바꿈(계획 결함). `README.md`를 고친 뒤 남은 실패는 `AGENTS.md:doc-authoring` 하나. |
+| 2026-10-16 | Verified | Task 2 Step 7 스킬 시험(Codex `codex exec --sandbox read-only`, 이 worktree): (1) 새 ADR → `doc-authoring`, fetch 후 `make new-doc TYPE=adr`, 새 이름 `adr-YYYY-MM-DD-NNNN-<slug>.md`. (2) 계획 14 → `doc-authoring`, `make new-doc TYPE=plan`, `status: backlog`(폴더 아님). (3) 근접 오답 → `skill-authoring`. 세 경우 모두 기대대로. Claude Code도 세션 중 `doc-authoring`을 스킬 목록에 올림. |
