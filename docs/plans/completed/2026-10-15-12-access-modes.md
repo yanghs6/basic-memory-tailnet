@@ -1823,3 +1823,5 @@ gh pr create --draft --base main --title "docs: record the move of the VM to the
 | 2026-10-16 | Verified | Step 10: `gcloud compute firewall-rules list --configuration=bm-personal ...` → `allow-iap-ssh`(`35.235.240.0/20`, `tcp:22`)와 `default-allow-internal`(`10.128.0.0/9`) 두 행뿐. `gcloud services list --enabled --configuration=bm-personal` → `compute`, `oslogin`, `iap.googleapis.com` 없음. 운영 런북 점검 기록과 Incident log에 행을 더함. |
 | 2026-10-16 | Command | 이전 Task 8 세션이 남긴 Basic Memory 테스트 노트 `tests/MCP 연결 테스트 2026-10-15`를 사용자 승인 후 `delete_note`로 지움. |
 | 2026-10-16 | Command | Step 11: ADR 0006 "이전 결과", 스펙 §3(확인 결과)·§14(1·3 풀림), gcp-vm 8단계 5·7번과 끝 문단, 운영 런북 Incident log·점검 기록을 고침. |
+| 2026-10-16 | Verified | Step 12: `make check`(`f28b4ce`의 작업 트리): exit 0, 208 ok, 0 not ok, 커버리지 94.51%. `make check-git` → `OK: git policy (1 commits since origin/main)`. `f28b4ce`를 push하고 초안 결과 PR #12를 엶. |
+| 2026-10-16 | Command | 결과 PR 마무리: 계획 파일을 `docs/plans/completed/`로 옮김. |
