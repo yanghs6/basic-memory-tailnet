@@ -1,6 +1,10 @@
 #!/usr/bin/env bats
 load helpers
 
+# Antigravity truncates a rule file at 24,000 bytes, the smallest limit of the four agents
+# (docs/research/rsch-2026-10-15-f20fshxg-agent-repo-conventions.md, section 1).
+AGENTS_MD_MAX_BYTES=24000
+
 shell_files() {
   git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*'
 }
@@ -143,6 +147,19 @@ compose_start_period_seconds() {
 @test "CLAUDE.md only imports AGENTS.md" {
   run cat "$REPO_DIR/CLAUDE.md"
   assert_output "@AGENTS.md"
+}
+
+@test "Gemini CLI reads AGENTS.md through .gemini/settings.json" {
+  run jq -e '.context.fileName | if type == "array" then index("AGENTS.md") != null else . == "AGENTS.md" end' \
+    "$REPO_DIR/.gemini/settings.json"
+  assert_success
+}
+
+@test "AGENTS.md fits the smallest rule file limit of the four agents" {
+  local bytes
+  bytes="$(wc -c <"$REPO_DIR/AGENTS.md")"
+  ((bytes <= AGENTS_MD_MAX_BYTES)) \
+    || fail "AGENTS.md has $bytes bytes (max $AGENTS_MD_MAX_BYTES; Antigravity drops the rest): move detail into docs/README.md or a skill"
 }
 
 @test ".env variants are git-ignored but .env.example is not" {

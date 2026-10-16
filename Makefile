@@ -28,7 +28,7 @@ COVERAGE_MIN := 80
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review review-post review-record vm-bootstrap deploy verify probe status logs sb-fonts backup restore access-check tunnel
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review review-post review-record vm-bootstrap deploy verify probe status logs sb-fonts backup restore access-check tunnel new-doc
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -84,6 +84,9 @@ tunnel: ## ssh mode: forward MCP and the web UI to 127.0.0.1:BM_TUNNEL_MCP_PORT 
 
 check-git: ## Check the git policy for the current branch against origin/main (name, commit trailers, worktree config)
 	scripts/check-git.sh origin/main
+
+new-doc: ## Create a document from its template: TYPE=<type> SLUG=<slug> (types and rules: docs/README.md)
+	scripts/create-doc.sh "$(TYPE)" "$(SLUG)"
 
 review: ## Read-only review by another vendor: BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<sha>]
 	scripts/review.sh "$(BRANCH)" "$(REVIEWER)" "$(or $(ROUND),1)"

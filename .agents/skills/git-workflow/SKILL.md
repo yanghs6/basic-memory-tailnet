@@ -15,8 +15,8 @@ Policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md (pull requests
    - Codex app: the app already runs you in a detached worktree under `$CODEX_HOME/worktrees`; run `git switch -c plan/NN-slug --no-track origin/main` (or `work/slug`) there.
    - Codex CLI, Gemini CLI, Antigravity: they can write only inside the directory they were started in. From any directory of this repo, create the worktree next to the main checkout:
      `git -C "$(git rev-parse --path-format=absolute --git-common-dir)/.." worktree add --no-track -b plan/NN-slug ../027_agent_share_poc-wt/<slug> origin/main`
-     Then end this session and start the tool again inside that directory (`codex -C <dir>`, `cd <dir> && gemini`, or open the folder in Antigravity); `git worktree list` shows its absolute path.
-3. For a plan, make the first commit move the plan file from `docs/plans/backlog/` to `docs/plans/active/`.
+     Then end this session and start the tool again inside that directory (`codex -C <dir>`, `cd <dir> && gemini`, or open the folder in Antigravity); `git worktree list` shows its absolute path. If Gemini CLI asks whether to trust the folder, trust it: with folder trust on (off by default), an untrusted folder ignores `.gemini/settings.json`, so Gemini CLI would not read `AGENTS.md`.
+3. For a plan, make the first commit move the plan file from `docs/plans/backlog/` to `docs/plans/active/`. A plan that `make new-doc` created (`docs/plans/plan-<date>-<NN>-<slug>.md`) stays where it is: change its front matter `status` to `active` instead (`doc-authoring`).
 4. For work that belongs to no plan (an upgrade, a fix, a doc change), use a `work/<slug>` branch and write `Plan: none` and `Task: none` in every commit.
 
 ## Commit

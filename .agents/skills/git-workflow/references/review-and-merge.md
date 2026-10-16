@@ -4,7 +4,7 @@ The phases after the last task commit, in order. Policy: docs/specs/spec-2026-10
 
 ## Review
 
-1. Move a finished plan to `docs/plans/completed/` (commit with `Task: none`) and push.
+1. Move a finished plan to `docs/plans/completed/` (commit with `Task: none`) and push. A plan that `make new-doc` created stays where it is: set its front matter `status` to `completed` instead.
 2. Ask the other vendor to review; never review your own branch:
    - you are Claude Code: `make review BRANCH=<branch> REVIEWER=codex` (runs `codex exec review` with `-c 'sandbox_mode="read-only"'`; never use a writable sandbox)
    - you are Codex, Antigravity or Gemini: `make review BRANCH=<branch> REVIEWER=claude`

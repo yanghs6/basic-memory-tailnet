@@ -1,6 +1,7 @@
 # ADR a878ypj5: 테스트 범위 (꼭 필요한 테스트만 둡니다)
 
 - 상태: Accepted (2026-10-13)
+- 일부 대체: [structure-checks ADR](adr-2026-10-16-q36rwq5s-structure-checks.md)이 결정 2의 "문구·형식만 확인하는 테스트" 금지에서 구조 검사를 허용합니다.
 
 ## 맥락
 
