@@ -10,9 +10,15 @@ date: 2026-10-12
 
 ## 맥락
 
-**Verified:** 여러 기기의 에이전트가 같은 Basic Memory를 써야 합니다. 비용은 0원이어야 하고, Basic Memory HTTP 엔드포인트에는 인증이 없습니다.
+여러 기기의 에이전트가 같은 Basic Memory를 써야 합니다. 비용은 0원이어야 합니다.
 
-**Verified (docs.oracle.com, Always Free Resources: "…in any availability domain, except South Korea North (Chuncheon)"):** 처음에는 OCI Always Free A1 VM을 골랐지만 만들지 못했습니다. 사용자 콘솔에서 A1 생성이 "Out of capacity for shape VM.Standard.A1.Flex in availability domain AD-1"로 실패했고, 춘천 리전은 A1 자체가 없습니다. 사용자는 무료만 허용합니다.
+**Verified:** Basic Memory HTTP 엔드포인트에는 인증이 없습니다.
+
+처음에는 OCI Always Free A1 VM을 골랐지만 만들지 못했습니다. 사용자 콘솔에서 A1 생성이 "Out of capacity for shape VM.Standard.A1.Flex in availability domain AD-1"로 실패했습니다.
+
+**Verified (docs.oracle.com, Always Free Resources: "…in any availability domain, except South Korea North (Chuncheon)"):** 춘천 리전은 A1 자체가 없습니다.
+
+사용자는 무료만 허용합니다.
 
 ## 결정
 

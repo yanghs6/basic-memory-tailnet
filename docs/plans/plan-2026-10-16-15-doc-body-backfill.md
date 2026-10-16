@@ -49,8 +49,8 @@ spec: docs/specs/spec-2026-10-15-doc-system.md
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/15-doc-body-backfill` 브랜치를 만든다(`git-workflow` 스킬의 Start).
-- [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
+- [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/15-doc-body-backfill` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: 레이블 표기 통일
 
@@ -62,7 +62,7 @@ spec: docs/specs/spec-2026-10-15-doc-system.md
 - Consumes: 없음
 - Produces: 없음
 
-- [ ] **Step 1: 목록 만들기 (scratch 스크립트, 커밋하지 않음)**
+- [x] **Step 1: 목록 만들기 (scratch 스크립트, 커밋하지 않음)**
 
 저장소 밖 scratch 폴더에 `label-list.sh`를 두고 worktree를 인자로 실행한다. 6.2절과 다른 레이블이 있는 줄을 `파일:줄: 내용`으로 출력한다.
 
@@ -88,7 +88,7 @@ done
 
 2026-10-16 `eda0d92`에서 43줄이 나왔다. 그중 몇 줄은 이미 맞는 형식인데 정규식이 잡은 것이다(예: 괄호 안 출처에 쌍점이 있는 `**Verified (https://…):**`, 표의 `| Verified |`). 줄마다 아래 규칙에 맞는지 보고, 맞으면 그대로 둔다.
 
-- [ ] **Step 2: 규칙대로 고치기**
+- [x] **Step 2: 규칙대로 고치기**
 
 - L1 (블록 머리): 줄에 레이블만 있는 `**Verified**`, `**Verified (저장소)**`는 쌍점을 붙인다: `**Verified:**`, `**Verified (저장소):**`.
 - L2 (문장 속 괄호 레이블): `…없습니다(**Verified**).`, `…(**Verified**, 2026-10-12, 실제 …).`, `…(**Open question**).`는 레이블을 그 문단이나 목록 항목의 첫머리로 옮겨 `**Verified (2026-10-12, 실제 …):** …`로 쓰고 원래 괄호를 지운다. 괄호 안의 다른 내용(날짜, 버전, 출처)은 모두 레이블의 괄호로 옮긴다. 항목이 이미 다른 레이블로 시작하거나 레이블이 다른 사실이 섞여 있으면, 다른 낱말은 그대로 두고 사실마다 목록 항목을 나눈다. 레이블이 술어인 문장(`…는 **Open question**입니다.`)은 `**Open question:** …는 아직 정하지 않았다.`처럼 레이블을 앞으로 빼고 술어만 바꾼다.
@@ -98,7 +98,7 @@ done
 
 2026-10-16에 확인한 대상 파일: `docs/ARCHITECTURE.md`(4곳), ADR 0001·0003·0004·0005, 계획 02·05·08, 런북 accounts·bootstrap·gcp-vm·operations·github, 접속 방식 설계, 스크립트·테스트 구조 설계. 문서 체계 스펙은 Task 3이 고친다.
 
-- [ ] **Step 3: 확인**
+- [x] **Step 3: 확인**
 
 Run: scratch `label-list.sh`
 Expected: 남는 줄은 Step 1에서 "이미 맞는 형식"으로 판정한 줄뿐이다. 남긴 줄과 이유를 Progress log에 적는다.
@@ -109,7 +109,7 @@ Expected: 바뀐 낱말은 레이블, 옮긴 괄호 내용, L2의 술어("…입
 Run: `make check`
 Expected: exit 0.
 
-- [ ] **Step 4: 커밋**
+- [x] **Step 4: 커밋**
 
 ```bash
 git status --short
@@ -128,13 +128,13 @@ git push
 - Consumes: 없음
 - Produces: 없음
 
-- [ ] **Step 1: 중복 문장을 링크로 바꾸기**
+- [x] **Step 1: 중복 문장을 링크로 바꾸기**
 
 - "빠르게 시작하기"의 "`local-up`은 고정된 컨테이너 이름과 포트를 쓰므로 한 번에 한 작업 트리에서만 실행합니다." → "명령마다의 규칙(한 번에 한 worktree에서만 돌리는 명령, 승인이 필요한 명령)은 AGENTS.md의 Commands에 있습니다."(AGENTS.md는 루트의 그 파일로 가는 상대 링크로 쓴다)
 - "VM 구축 순서" 첫 문단 "VM이나 클라우드 자원을 바꾸는 명령(…)은 사람이 승인한 뒤에만 실행합니다. `.env`와 `backups/`는 main 체크아웃에만 둡니다(…)." → "VM이나 클라우드를 바꾸는 명령의 승인 규칙과 `.env`·`backups/`를 두는 곳은 AGENTS.md의 Safety에 있습니다."(같은 링크)
 - 실행 예시(코드 블록), 사전 요구사항, 웹 UI 안내, VM 구축 순서 목록, 스킬 목록은 그대로 둔다.
 
-- [ ] **Step 2: 확인과 커밋**
+- [x] **Step 2: 확인과 커밋**
 
 Run: `make check`
 Expected: exit 0.
@@ -155,7 +155,7 @@ git push
 - Consumes: 없음
 - Produces: 없음
 
-- [ ] **Step 1: 스펙 고치기**
+- [x] **Step 1: 스펙 고치기**
 
 - 1절 사용자 결정 목록 끝에 새 묶음을 더한다: "**사용자 결정 (2026-10-16, 계획 15 범위)**", "D9. 기존 문서의 절 구성(이름, 순서, 번호)은 바꾸지 않고, 템플릿은 새 문서에 쓴다. 이유: 다른 문서가 절 번호와 제목으로 인용하고(리뷰를 빼고 177행·16파일, 2026-10-16), 스크립트와 스킬이 런북 제목과 번호를 가리키며, 옛 ADR에 없는 절은 내용을 지어내야 한다. 계획 15는 레이블 표기(6.2절)와 README의 중복만 정리하고, 리뷰 기록과 조사 문서(5.5절)는 레이블도 그대로 둔다."
 - 6.2절 "기존 문서의 옛 표기는 계획 15가 이 형식으로 바꾼다. 리뷰는 바꾸지 않는다." → "기존 문서의 옛 표기는 계획 15가 이 형식으로 바꾼다. 리뷰 기록과 조사 문서는 바꾸지 않는다(D9)."
@@ -164,7 +164,7 @@ git push
 - 10절 표의 계획 15 행 범위 → "9절 표의 본문 행: 레이블 통일, README의 중복 정리(절 구성은 D9로 제외)".
 - 2절의 `**Verified (저장소)**` 블록 머리에 쌍점을 붙인다(L1). 같은 절의 옛 표기 예시(백틱 안)는 그대로 둔다.
 
-- [ ] **Step 2: 확인과 커밋**
+- [x] **Step 2: 확인과 커밋**
 
 Run: `make check`
 Expected: exit 0.
@@ -191,3 +191,9 @@ git push
 | 날짜 | 표기 | 내용 |
 |---|---|---|
 | 2026-10-16 | Command | 시작: `plan/15-doc-body-backfill`을 `origin/main` `eda0d92`(PR #13 병합)에서 만듦(worktree `repo-structure` 재사용). 범위는 사용자 결정대로 처음 A안(레이블, README, 스펙 D9; 새 ADR 없음). Codex도 같은 범위를 권함(새 ADR로 남기자는 수정은 사용자가 고르지 않음). 계획 파일은 따로 커밋하지 않고 첫 작업 커밋(Task 2)에 넣음(사용자 결정). 실행: Task 1은 별도 worktree의 서브에이전트, Task 2·3은 이 worktree에서 병렬. |
+| 2026-10-16 | Verified | Task 2 `5fb99ea`: README 30·47행이 되풀이하던 `AGENTS.md` Commands·Safety 규칙을 그 절을 가리키는 문장으로 바꿈. 이 계획 파일(`make new-doc TYPE=plan`으로 만듦)도 이 커밋에 넣음. |
+| 2026-10-16 | Verified | Task 3 `a5bdd7d`: 스펙 1절에 D9(사용자 결정 2026-10-16)를 적고, 2절 블록 머리에 L1을 적용하고, 6.2·9·10절을 D9에 맞춤. |
+| 2026-10-16 | Verified | Task 1(서브에이전트, 별도 worktree, Task 2·3과 병렬): `fc52ebe`를 cherry-pick해 `1a31a21`, 파일 16개, 레이블 37곳. `label-list.sh`에 남은 줄은 이미 맞는 형식(ADR 0002 16행, 계획 07 22·28~30행: 괄호 안의 쌍점이나 URL을 스크립트가 잘못 읽음)과 백틱 안의 예시(이 계획, 스펙 2절)뿐. |
+| 2026-10-16 | Verified | 판정(L2가 거칠었음): 레이블을 문단·항목 첫머리로 옮기자, 원래 한 문장만 덮던 레이블이 같은 문단의 지시문이나 결정까지 덮은 곳이 11곳(ADR 0001 2, ARCHITECTURE 신뢰 경계 1, accounts 4, github 2, gcp-vm 6절 1, operations 비용 점검 1). 레이블이 덮던 문장을 하위 항목이나 별도 문단으로 떼어 원래 범위로 되돌림. ADR 0001에서는 문장을 나누며 연결 어미 두 개("하고,", "실패했고,")가 바뀜. 모르는 사실에 붙은 술어는 L2의 "아직 정하지 않았다" 대신 "아직 확인하지 못했다"로 씀(ARCHITECTURE 1, operations 2). 정할 일인 accounts의 최소 권한 조합은 그대로 둠. 스펙 9절의 word-diff 문장을 이 범위에 맞춤. 틀렸을 때 비용: 문장 몇 개의 위치. |
+| 2026-10-16 | Verified | 판정(문단 가운데의 레이블): 이미 6.2절 표기로 쓴 레이블 27개가 문단, 항목, 표 칸, 괄호의 가운데에 있음(scratch `label-mid.sh`, 파일 9개). 그대로 둠: 스펙 2절이 꼽은 옛 표기가 아니고, 저마다 바로 뒤의 내용만 덮으며, 첫머리로 옮기면 범위가 넓어지고(Review Focus 1) 표 칸은 나눌 수 없음. 틀렸을 때 비용: 27곳을 나누는 작업 한 번. |
+| 2026-10-16 | Verified | 위 수정 뒤 `make check`: exit 0, 213 ok, 0 not ok, 커버리지 94.51%. `git diff 1a31a21^ --word-diff=plain`으로 바뀐 낱말이 레이블, 옮긴 괄호 내용, 목록 기호, 연결 어미 두 개, 술어뿐임을 확인. |
