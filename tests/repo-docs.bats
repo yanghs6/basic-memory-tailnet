@@ -84,28 +84,33 @@ docs_paths() {
 }
 
 @test "plan and ADR numbers are unique" {
-  local type code number location rest dups bad=""
+  local type code number location rest dups dup bad=""
   while IFS=$'\t' read -r type code number location rest; do
     [[ "$number" != "없음" ]] || continue
     dups="$(doc_files | grep "^$location$code-" | sed -E "s#^$location$code-[0-9]{4}-[0-9]{2}-[0-9]{2}-([0-9]+)-.*#\1#" | sort | uniq -d)"
-    [[ -z "$dups" ]] || bad="$bad"$'\n'"  $type: $dups"
+    for dup in $dups; do
+      bad="$bad"$'\n'"  $type $dup: $(doc_files | grep -E "^$location$code-[0-9]{4}-[0-9]{2}-[0-9]{2}-$dup-" | tr '\n' ' ')"
+    done
   done <<<"$TYPES"
   [[ -z "$bad" ]] || fail "renumber one document of each pair with git mv (make new-doc picks the next free number):$bad"
 }
 
 @test "every docs path named in scripts, skills, AGENTS.md or outside code in tracked Markdown exists" {
-  local path paths missing="" count=0
-  paths="$(
+  local file path pairs missing="" count=0
+  # One "source<TAB>path" line per docs path, so a failure names the file to fix.
+  pairs="$(
     cd "$REPO_DIR" || exit 1
-    cat AGENTS.md $(git ls-files scripts .agents/skills) | docs_paths
+    for file in AGENTS.md $(git ls-files scripts .agents/skills); do
+      docs_paths <"$file" | awk -v f="$file" '{ print f "\t" $0 }'
+    done
     git ls-files --cached --others --exclude-standard -- '*.md' | grep -vE '^(AGENTS[.]md|[.]agents/skills/)' |
-      while IFS= read -r file; do outside_code "$file" | docs_paths; done
+      while IFS= read -r file; do outside_code "$file" | docs_paths | awk -v f="$file" '{ print f "\t" $0 }'; done
   )" || fail "could not collect the docs paths"
-  while IFS= read -r path; do
+  while IFS=$'\t' read -r file path; do
     [[ -n "$path" ]] || continue
     count=$((count + 1))
-    [[ -f "$REPO_DIR/$path" ]] || missing="$missing $path"
-  done <<<"$(sort -u <<<"$paths")"
+    [[ -f "$REPO_DIR/$path" ]] || missing="$missing"$'\n'"  $file: $path"
+  done <<<"$(sort -u <<<"$pairs")"
   ((count > 0)) || fail "no docs paths were checked"
   [[ -z "$missing" ]] || fail "these paths name no file; point them at the current file, or spell out a deleted one:$missing"
 }
