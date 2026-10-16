@@ -1,7 +1,7 @@
 ---
 status: approved
 date: 2026-10-12
-amended-by: [docs/specs/spec-2026-10-15-access-modes.md, docs/specs/spec-2026-10-15-doc-system.md]
+amended-by: [docs/specs/spec-2026-10-15-access-modes.md, docs/specs/spec-2026-10-15-doc-system.md, docs/specs/spec-2026-10-15-script-test-layout.md]
 ---
 
 # Basic Memory on GCP Free Tier + Tailscale — 설계
