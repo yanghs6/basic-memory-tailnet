@@ -178,9 +178,9 @@ git push
 ### Finish: review and hand-off
 
 - [x] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
-- [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
-- [ ] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
-- [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
+- [x] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
+- [x] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
+- [x] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
 
 ## Follow-ups
 
@@ -206,3 +206,5 @@ git push
 | 2026-10-16 | Verified | 미룬 Minor(사용자가 정함): M3 gcp-vm 2절 표의 이미지 행은 칸에 레이블만 있어 쌍점 뒤가 빔. M4 ADR 0004의 `**Verified (2026-10-13):**` 블록 머리와 다음 줄 `**Command:**` 사이에 빈 줄이 없어 한 줄로 보임. |
 | 2026-10-16 | Verified | 리뷰 수정 뒤 `make check`: exit 0, 213 ok, 0 not ok, 커버리지 94.51%. |
 | 2026-10-20 | Verified | 사용자 결정: 미룬 Minor M3·M4를 병합 전에 고침. M3 수정(`Review-Finding: SDD-final-M3`): gcp-vm 2절 표의 이미지 행 칸에서 괄호 안에 있던 `Command:`와 명령을 꺼내, `**Verified (2026-10-12):**` 뒤에 `**Command:**`와 명령을 둠. 낱말은 그대로임. 칸은 나눌 수 없어, 가운데에 레이블이 남는 표 칸은 3곳에서 4곳이 됨. |
+| 2026-10-20 | Verified | M4 수정(`Review-Finding: SDD-final-M4`): ADR 0004 결과 절의 블록 머리 `**Verified (2026-10-13):**` 뒤에 빈 줄을 넣어, 다음 줄 `**Command:**`가 따로 된 문단으로 보임. ADR 0005와 접속 방식 스펙의 블록 머리와 같은 모양. |
+| 2026-10-20 | Verified | M3·M4 수정 뒤 `make check`: exit 0, 213 ok, 0 not ok, 커버리지 94.51%. |
