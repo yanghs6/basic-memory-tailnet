@@ -17,7 +17,8 @@ readonly PUBLIC_PROBE_TIMEOUT_SECONDS=5
 readonly SB_HTTPS_PORT=8443
 readonly PUBLIC_PROBE_PORTS="22 80 443 $SB_HTTPS_PORT"
 
-# ssh access mode: local ends of the verify tunnel, apart from make tunnel's 18737/13000 so both can run at once.
+# ssh access mode: local ends of the verify tunnel, apart from make tunnel's DEFAULT_TUNNEL_MCP_PORT and
+# DEFAULT_TUNNEL_WEB_PORT (scripts/tunnel.sh) so both can run at once.
 readonly VERIFY_TUNNEL_MCP_PORT=28737
 readonly VERIFY_TUNNEL_WEB_PORT=23000
 readonly TUNNEL_READY_TIMEOUT_SECONDS=20
@@ -170,14 +171,14 @@ check_public_closed() {
 }
 
 main() {
-  local port="${BM_PORT:-8737}" sb_port="${SB_PORT:-3000}" mode url sb_url
+  local port="${BM_PORT:-$DEFAULT_BM_PORT}" sb_port="${SB_PORT:-$DEFAULT_SB_PORT}" mode url sb_url
   case "${1:-}" in
     "" | --read-only) ;;
     *) die "usage: verify-vm.sh [--read-only]" ;;
   esac
+  require_vm curl jq nc
   mode="$(access_mode)" || exit 1
-  require_cmd ssh curl jq nc
-  require_env BM_VM_HOST BM_VM_USER BM_VM_PUBLIC_IP
+  require_env BM_VM_PUBLIC_IP
   validate_public_ip "$BM_VM_PUBLIC_IP"
   if [[ "$mode" == ssh ]]; then
     open_verify_tunnel "$port" "$sb_port"

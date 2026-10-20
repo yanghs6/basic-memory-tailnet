@@ -33,9 +33,9 @@ main() {
   fi
   write_notes_file "$local_dir" .gitignore <"$SOURCE_DIR/notes.gitignore" || die "could not write .gitignore in $where"
 
-  pending="$(in_notes_dir "$local_dir" "if [ -e $SB_GITIGNORE_PENDING ]; then echo yes; else echo no; fi" </dev/null)" \
+  pending="$(notes_file_state "$local_dir" "$SB_GITIGNORE_PENDING")" \
     || die "could not check for $SB_GITIGNORE_PENDING in $where"
-  if [[ "$pending" == yes ]]; then
+  if [[ "$pending" == present ]]; then
     # A running Basic Memory would index the pages under the old patterns and keep them after the recreate.
     log "the notes .gitignore changed since Basic Memory started: it must be recreated to load it"
     echo changed
@@ -43,7 +43,7 @@ main() {
   fi
 
   write_notes_file "$local_dir" "$LIBRARY_PAGE" <"$SOURCE_DIR/agent-hub.md" || die "could not write $LIBRARY_PAGE in $where"
-  state="$(in_notes_dir "$local_dir" 'if [ -e index.md ]; then echo present; else echo absent; fi' </dev/null)" \
+  state="$(notes_file_state "$local_dir" index.md)" \
     || die "could not check for index.md in $where, so it was not written"
   if [[ "$state" == absent ]]; then
     write_notes_file "$local_dir" index.md <"$SOURCE_DIR/index.md" || die "could not write index.md in $where"

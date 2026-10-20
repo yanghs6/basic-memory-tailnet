@@ -47,14 +47,14 @@ main() {
   require_cmd curl
   log "this network only: run it on every network your clients use"
 
-  state="$(url_state "$TAILSCALE_CONTROL_URL")"
+  state="$(url_state "$TAILSCALE_CONTROL_URL")" || exit 1
   log "tailscale control plane: $state"
   if [[ "$state" == reachable* ]]; then
     tailscale_ok=yes
   fi
 
   if [[ -n "${BM_ACCESS_CHECK_URL:-}" ]]; then
-    state="$(url_state "$BM_ACCESS_CHECK_URL")"
+    state="$(url_state "$BM_ACCESS_CHECK_URL")" || exit 1
     log "tunnel endpoint $BM_ACCESS_CHECK_URL: $state"
     tunnel_ok=no
     if [[ "$state" == reachable* ]]; then
@@ -65,8 +65,7 @@ main() {
   fi
 
   if [[ "$mode" == ssh ]]; then
-    require_cmd ssh
-    require_env BM_VM_HOST BM_VM_USER
+    require_vm
     if remote true; then
       ssh_ok=yes
       log "ssh $BM_VM_USER@$BM_VM_HOST: ok"

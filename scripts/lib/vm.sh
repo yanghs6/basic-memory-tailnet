@@ -3,10 +3,13 @@
 # Sources common.sh. Must stay compatible with macOS bash 3.2.
 #   access_mode -> tailscale or ssh (BM_ACCESS); dies on any other value
 #   access_hint -> what to check when SSH to the VM fails, for the current access mode
+#   require_vm [CMD...] -> dies unless the access mode, ssh, every CMD and the VM settings are there
 #   require_free_port NAME PORT [HINT] -> dies unless PORT is a free unprivileged port on 127.0.0.1
 #   forward_spec LOCAL_PORT REMOTE_PORT -> an ssh -L argument bound to 127.0.0.1 on both ends
-#   remote CMD -> run CMD on the VM over SSH
-#   remote_compose ARGS -> docker compose ARGS in the VM app dir
+#   remote CMD -> run CMD on the VM over SSH (after require_vm)
+#   remote_compose [--if-deployed] ARGS -> docker compose ARGS in the VM app dir
+#   exists_cmd PATH -> a sh command that prints present or absent for PATH
+#   remote_exists PATH -> present or absent for PATH on the VM; fails when the VM does not answer
 #   vm_tailscale_logged_in -> exit 0 when Tailscale on the VM is logged in, 1 when it is not
 #   vm_env -> the .env content for the VM
 #   manifest_cmd DIR -> a command printing "<sha256>  ./<path>" for every data file under DIR
@@ -42,11 +45,23 @@ access_mode() {
 
 # access_hint -> what to check when SSH to the VM fails, for the current access mode.
 access_hint() {
-  if [[ "${BM_ACCESS:-tailscale}" == ssh ]]; then
+  local mode
+  mode="$(access_mode)" || return 1
+  if [[ "$mode" == ssh ]]; then
     printf 'check the ProxyCommand for %s in ~/.ssh/config and its login (docs/runbooks/rbk-2026-10-12-gcp-vm.md)\n' "$BM_VM_HOST"
   else
     printf 'is %s reachable over Tailscale SSH? (ssh %s@%s true)\n' "$BM_VM_HOST" "$BM_VM_USER" "$BM_VM_HOST"
   fi
+}
+
+# require_vm [CMD...] -> dies unless BM_ACCESS is a known mode, ssh and every CMD are installed, and BM_VM_HOST and
+# BM_VM_USER are set. Every script that reaches the VM calls it first, so a typo in BM_ACCESS stops it before any
+# ssh, also when the script never reads the mode.
+# shellcheck disable=SC2120  # CMD... is optional: most callers need only ssh
+require_vm() {
+  access_mode >/dev/null
+  require_cmd ssh "$@"
+  require_env BM_VM_HOST BM_VM_USER
 }
 
 readonly MIN_LOCAL_PORT=1024
@@ -70,16 +85,33 @@ forward_spec() {
   printf '127.0.0.1:%s:127.0.0.1:%s\n' "$1" "$2"
 }
 
-# remote CMD -> run CMD on the VM over SSH: Tailscale SSH, or the ssh access mode's host alias. It checks BM_ACCESS
-# first, so a typo there stops every VM target before it reaches the VM, also the ones that never read the mode.
+# remote CMD -> run CMD on the VM over SSH: Tailscale SSH, or the ssh access mode's host alias. Callers run require_vm
+# first, which checks BM_ACCESS and the VM settings.
 remote() {
-  access_mode >/dev/null
   ssh -o BatchMode=yes -o ConnectTimeout="$SSH_CONNECT_TIMEOUT_SECONDS" "${BM_VM_USER}@${BM_VM_HOST}" "$@"
 }
 
-# remote_compose ARGS -> docker compose ARGS inside the VM app dir.
+# remote_compose [--if-deployed] ARGS -> docker compose ARGS inside the VM app dir. With --if-deployed it does nothing,
+# and succeeds, while the app dir has no compose.yaml yet (a recreated VM). No bare `return` here: restore's rollback
+# trap calls it, and in a trap a bare return gives the status from before the trap.
 remote_compose() {
-  remote "cd $BM_REMOTE_APP_DIR && docker compose $*"
+  if [[ "${1:-}" == --if-deployed ]]; then
+    shift
+    remote "if [ -e $BM_REMOTE_APP_DIR/compose.yaml ]; then cd $BM_REMOTE_APP_DIR && docker compose $*; fi"
+  else
+    remote "cd $BM_REMOTE_APP_DIR && docker compose $*"
+  fi
+}
+
+# exists_cmd PATH -> a sh command that prints present or absent for PATH (no spaces or quotes in PATH).
+exists_cmd() {
+  printf 'if [ -e %s ]; then echo present; else echo absent; fi' "$1"
+}
+
+# remote_exists PATH -> present or absent for PATH on the VM. Fails when the VM does not answer, so a lost connection
+# never reads as absent. Use: state="$(remote_exists PATH)" || <handle the failure>
+remote_exists() {
+  remote "$(exists_cmd "$1")"
 }
 
 # vm_tailscale_logged_in -> exit 0 when Tailscale on the VM is logged in (BackendState Running), 1 when it is not
@@ -101,10 +133,10 @@ vm_tailscale_logged_in() {
 # vm_env -> the .env content for the VM: loopback ports, absolute data paths and the SilverBullet login (shared by
 # deploy and restore; both run require_sb_user first).
 vm_env() {
-  printf 'BM_PORT=%s\n' "${BM_PORT:-8737}"
+  printf 'BM_PORT=%s\n' "${BM_PORT:-$DEFAULT_BM_PORT}"
   printf 'BM_KNOWLEDGE_DIR=%s/knowledge\n' "$BM_REMOTE_DATA_ROOT"
   printf 'BM_CONFIG_DIR=%s/config\n' "$BM_REMOTE_DATA_ROOT"
-  printf 'SB_PORT=%s\n' "${SB_PORT:-3000}"
+  printf 'SB_PORT=%s\n' "${SB_PORT:-$DEFAULT_SB_PORT}"
   printf 'SB_USER=%s\n' "$SB_USER"
 }
 

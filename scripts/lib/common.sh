@@ -9,6 +9,7 @@
 #   require_cmd CMD... -> dies unless every command is installed
 #   require_env NAME... -> dies unless every variable is set and not empty
 #   mask VALUE -> first 4 characters + ****, for printing secrets and ids
+#   utc_stamp -> the current UTC time as YYYYMMDDTHHMMSSZ
 #   main_checkout_root [DIR] -> the main checkout that DIR belongs to
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
 
@@ -21,6 +22,11 @@ readonly COMMON_LIB_DIR
 # Root of the repo holding these scripts. Never read from the environment: the tests export their own REPO_DIR.
 REPO_DIR="$(dirname "$(dirname "$COMMON_LIB_DIR")")" || exit 1
 readonly REPO_DIR
+# Loopback ports of Basic Memory and SilverBullet when .env sets none (the Makefile repeats them for make).
+readonly DEFAULT_BM_PORT=8737
+readonly DEFAULT_SB_PORT=3000
+# Suffix of a file still being written; it gets its final name only when complete.
+readonly PARTIAL_SUFFIX=".partial"
 
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*" >&2; }
 
@@ -54,6 +60,9 @@ mask() {
     printf '%s****' "${value:0:4}"
   fi
 }
+
+# utc_stamp -> the current UTC time as YYYYMMDDTHHMMSSZ, the stamp in backup and restore names and verify notes.
+utc_stamp() { date -u +%Y%m%dT%H%M%SZ; }
 
 # main_checkout_root [DIR] -> absolute path of the main checkout that DIR (default: the repo holding these
 # scripts) belongs to. Linked worktrees share the main checkout's .git, so its parent is the main root.

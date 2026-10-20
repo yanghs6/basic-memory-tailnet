@@ -16,7 +16,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ROOT="$BM_REMOTE_DATA_ROOT"
 NAME="$(basename "$ROOT")"
-STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+STAMP="$(utc_stamp)" || exit 1
 STAGE="$ROOT.restore-$STAMP"
 PREV="$ROOT.prev-$STAMP"
 COMPOSE_FILE="$BM_REMOTE_APP_DIR/compose.yaml"
@@ -72,7 +72,7 @@ rollback() {
   fi
   # --force-recreate: with an unchanged compose.yaml and .env, plain `up -d` keeps the running container, whose
   # bind mount still points at the restored data now renamed to .failed-*.
-  if remote "if [ -e $COMPOSE_FILE ]; then cd $BM_REMOTE_APP_DIR && docker compose up -d --force-recreate --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS; fi"; then
+  if remote_compose --if-deployed "up -d --force-recreate --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS"; then
     log "rolled back: the previous data is live again"
   else
     log "WARNING: the container did not come back after rollback; run 'make status' and 'make logs'"
@@ -85,10 +85,10 @@ rollback() {
 # shellcheck disable=SC2317  # invoked from the rollback trap
 report_no_previous_data() {
   local state where
-  state="$(remote "if [ -e $ROOT ]; then echo present; fi")" || state=unknown
+  state="$(remote_exists "$ROOT")" || state=unknown
   case "$state" in
     present) where="the restored data is now at $ROOT" ;;
-    "") where="$ROOT does not exist (the restored copy was removed)" ;;
+    absent) where="$ROOT does not exist (the restored copy was removed)" ;;
     *) where="the state of $ROOT is unknown (the VM did not answer)" ;;
   esac
   log "nothing rolled back: $BM_VM_HOST had no data before this restore; $where. Next: run 'make status' and 'make logs', fix the cause, then rerun 'make restore BACKUP=<archive>'"
@@ -125,14 +125,13 @@ main() {
   [[ -f "$archive" ]] || die "backup not found: $archive (archives from 'make backup' are in <main checkout>/backups/; pass the full path if you are in another checkout)"
   [[ -f "$archive.sha256" ]] || die "checksum file missing: $archive.sha256 (restore only archives made by 'make backup')"
   [[ -f "$archive.manifest" ]] || die "manifest missing: $archive.manifest (restore only archives made by 'make backup')"
-  require_cmd ssh
-  require_env BM_VM_HOST BM_VM_USER
+  require_vm
   require_sb_user
   verify_checksum "$archive"
   check_archive_entries "$archive"
   confirm "Replace $ROOT, $COMPOSE_FILE and $ENV_FILE on $BM_VM_HOST with $(basename "$archive") and this repo's compose.yaml? Current data moves to $PREV. Type 'yes': "
 
-  present="$(remote "if [ -e $ROOT ]; then echo present; fi")" \
+  present="$(remote_exists "$ROOT")" \
     || die "could not reach $BM_VM_HOST: $(access_hint)"
   if [[ "$present" == present ]]; then
     HAD_PREVIOUS_DATA=1
@@ -142,7 +141,7 @@ main() {
   STOP_ATTEMPTED=1
   step "stop container"
   # A recreated VM has no compose.yaml yet, so there is nothing to stop.
-  remote "if [ -e $COMPOSE_FILE ]; then cd $BM_REMOTE_APP_DIR && docker compose stop; fi" \
+  remote_compose --if-deployed stop \
     || die "could not confirm the container stopped"
 
   step "extract into $STAGE"

@@ -9,6 +9,7 @@ GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir 
 # Outside git there is no main checkout to find, so fall back to the current directory.
 MAIN_ROOT := $(if $(GIT_COMMON_DIR),$(abspath $(GIT_COMMON_DIR)/..),$(CURDIR))
 -include $(MAIN_ROOT)/.env
+# Same defaults as DEFAULT_BM_PORT and DEFAULT_SB_PORT in scripts/lib/common.sh.
 BM_PORT := $(or $(BM_PORT),8737)
 SB_PORT := $(or $(SB_PORT),3000)
 export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT SB_PORT BM_ACCESS BM_ACCESS_CHECK_URL BM_TUNNEL_MCP_PORT BM_TUNNEL_WEB_PORT

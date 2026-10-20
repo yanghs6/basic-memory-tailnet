@@ -70,7 +70,7 @@ main() {
     }
 
   step "run bootstrap on the VM (access: $mode)"
-  remote_env="BM_ACCESS=$mode BM_PORT=${BM_PORT:-8737} SB_PORT=${SB_PORT:-3000} BM_REMOTE_DATA_ROOT=$BM_REMOTE_DATA_ROOT BM_REMOTE_APP_DIR=$BM_REMOTE_APP_DIR"
+  remote_env="BM_ACCESS=$mode BM_PORT=${BM_PORT:-$DEFAULT_BM_PORT} SB_PORT=${SB_PORT:-$DEFAULT_SB_PORT} BM_REMOTE_DATA_ROOT=$BM_REMOTE_DATA_ROOT BM_REMOTE_APP_DIR=$BM_REMOTE_APP_DIR"
   remote_env="$remote_env ADMIN_USER=$user TS_HOSTNAME=$TS_HOSTNAME"
   printf '%s\n' "$key" | ssh_public "$user@$host" "sudo $remote_env bash $remote_script" \
     || {

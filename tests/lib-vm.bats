@@ -16,15 +16,41 @@ setup() {
   assert_output "ssh -o BatchMode=yes -o ConnectTimeout=10 ubuntu@agent-hub echo hi"
 }
 
-@test "remote checks BM_ACCESS before it runs ssh, so no VM target reaches the VM with a typo there" {
-  BM_ACCESS=SSH run remote true
+@test "require_vm stops on an unknown BM_ACCESS, a missing command or missing VM settings, before any ssh" {
+  BM_ACCESS=SSH run require_vm
   assert_failure
   assert_output --partial "BM_ACCESS must be tailscale or ssh (got 'SSH')"
+  run require_vm no-such-command
+  assert_failure
+  assert_output --partial "missing command 'no-such-command'"
+  BM_VM_USER= run require_vm
+  assert_failure
+  assert_output --partial "missing env BM_VM_USER"
   run grep -F 'ssh ' "$STUB_LOG"
   assert_failure
-  BM_ACCESS=ssh run remote "echo hi"
+  BM_ACCESS=ssh run require_vm
   assert_success
-  assert_output "hi"
+}
+
+@test "remote_exists and remote_compose --if-deployed follow what is on the VM, and remote_exists fails when the VM does not answer" {
+  local file="$BM_REMOTE_APP_DIR/compose.yaml"
+  run remote_exists "$file"
+  assert_success
+  assert_output absent
+  run remote_compose --if-deployed stop
+  assert_success
+  run grep '^docker ' "$STUB_LOG"
+  assert_failure
+  touch "$file"
+  run remote_exists "$file"
+  assert_output present
+  run remote_compose --if-deployed stop
+  assert_success
+  run grep -Fx 'docker compose stop' "$STUB_LOG"
+  assert_success
+  SSH_STUB_FAIL_MATCH="-e $file" run remote_exists "$file"
+  assert_failure
+  refute_line absent
 }
 
 @test "manifest_cmd lists every file's sha256 sorted by path" {

@@ -13,8 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 main() {
   local gitignore_state env_file="$BM_REMOTE_APP_DIR/.env"
-  require_cmd ssh
-  require_env BM_VM_HOST BM_VM_USER
+  require_vm
   require_sb_user
 
   step "upload compose.yaml to $BM_VM_HOST:$BM_REMOTE_APP_DIR"

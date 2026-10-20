@@ -225,7 +225,7 @@ setup() {
 - Produces (`sb.sh`): `notes_file_state LOCAL_DIR PATH` → 노트 폴더(`in_notes_dir`)에서 `present`나 `absent`를 출력한다. `notes_dir_arg`의 VM 쪽은 `require_vm`을 부른다.
 - Produces (`verify-mcp.sh`): `readonly RESPONSE_PREVIEW_BYTES=300`.
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 `tests/lib-vm.bats`: 옮겨 온 "remote checks BM_ACCESS …" 테스트를 아래로 바꾼다(P3).
 
@@ -281,9 +281,9 @@ setup() {
 }
 ```
 
-- [ ] **Step 2: 실패 확인** — `make test`. 새 테스트 세 개가 실패한다(함수 없음, `remote`가 아직 모드를 확인하므로 `require_vm`도 없음).
+- [x] **Step 2: 실패 확인** — `make test`. 새 테스트 세 개가 실패한다(함수 없음, `remote`가 아직 모드를 확인하므로 `require_vm`도 없음).
 
-- [ ] **Step 3: 구현** (위치는 `e648d5a` 기준)
+- [x] **Step 3: 구현** (위치는 `e648d5a` 기준)
 
 | 위치 | 바뀌는 것 |
 |---|---|
@@ -304,7 +304,7 @@ setup() {
 | `restore.sh:87`, `restore.sh:134` | `remote_exists "$ROOT"`. `report_no_previous_data`의 case는 `present`, `absent`, 실패 시 `unknown` |
 | `sb-space.sh:37-38`, `sb-space.sh:47-48` | `notes_file_state`. 표지는 `present`이면 changed, `index.md`는 `absent`이면 쓴다. 실패 메시지는 그대로 |
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run: `make check`. 그리고 Review Focus 2의 점검:
 
@@ -316,7 +316,7 @@ done
 
 Expected: `make check` exit 0. 점검은 두 파일만 출력한다. `scripts/bootstrap-vm.sh`는 `remote/` 경로와 주석의 "remote"에 걸리지만 VM에는 `ssh_public HOST`로 가고 `access_mode`를 스스로 확인한다. `scripts/create-doc.sh`는 "remote-tracking"에 걸린다. 테스트 이름 목록에서는 "remote checks BM_ACCESS …"가 "require_vm stops …"로 바뀌고, 두 개가 늘어난다. Progress log에 적는다.
 
-- [ ] **Step 5: 커밋** — `refactor: check the VM settings once and share constants and existence checks` (`Task: 3`)
+- [x] **Step 5: 커밋** — `refactor: check the VM settings once and share constants and existence checks` (`Task: 3`)
 
 ### Task 4: sb 공간 적용을 함수 하나로 (중복 3, P1, P2)
 
@@ -480,3 +480,6 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 | 2026-10-20 | Verified | Task 1: RED `make test` exit 2(`lib-vm.bats` 3개, `lib-sb.bats` 1개 실패: `scripts/lib/vm.sh`, `sb.sh` 없음). GREEN `make check` exit 0, 214개, not ok 0, 커버리지 94.56%(`common.sh` 100%, `vm.sh` 95.45%, `sb.sh` 93.10%). 테스트 이름 목록: 새 테스트 1개만 늘었고, `common.bats`에서 옮긴 세 개는 이름이 같다. |
 | 2026-10-20 | Verified | Task 1 계획 수정: `lib-sb.bats`의 자식 셸을 `bash -c` 대신 임시 스크립트 파일로 실행한다. `make coverage`에서 kcov가 export한 `PS4`가 `BASH_SOURCE`를 읽는데, `bash -c`의 최상위에서는 그 값이 없어 `set -u`로 멈췄다(`BASH_SOURCE: unbound variable`). macOS bash 3.2와 `make test`에서는 통과했다. 검사 내용은 같다. |
 | 2026-10-20 | Verified | Task 2: RED `make test` exit 2(`lib-git.bats` 2개 실패: `scripts/lib/git.sh` 없음). GREEN `make check` exit 0, 216개, not ok 0, 커버리지 94.44%. 테스트 이름 목록: `lib-git.bats`의 2개만 늘었다. check-git, check-pr, review, post-review는 `git.sh`를 source하고, review와 post-review의 맨 위 `MAIN_ROOT`·`OUT_DIR`·`WORKTREE_PARENT`(규칙 위반 `readonly X="$(…)"` 포함)는 `main`에서 구한다. |
+| 2026-10-20 | Verified | Task 3: RED `make test` exit 2(새 테스트 3개 실패: `require_vm`, `remote_exists`, `notes_file_state` 없음). GREEN `make check` exit 0, 218개, not ok 0, 커버리지 94.55%. 테스트 이름 목록: "remote checks BM_ACCESS …"가 "require_vm stops …"로 바뀌고(P3) 2개가 더 늘었다(`remote_exists …`, `notes_file_state …`). Review Focus 2 점검은 계획대로 `scripts/bootstrap-vm.sh`, `scripts/create-doc.sh`만 출력했다. |
+| 2026-10-20 | Verified | Task 3 중 발견: `remote_compose`의 인자 없는 `return`이 restore 롤백(EXIT trap) 안에서 trap 직전 상태(die의 1)를 돌려줘, `backup_restore.bats`의 롤백 테스트 3개(18, 25, 28번)가 실패했다. bash는 trap 핸들러에서 실행된 인자 없는 `return`의 상태를 trap 전 마지막 명령에서 가져온다. if/else로 바꾸고 함수 주석에 이유를 적었다. 기존 롤백 테스트가 회귀를 잡는다. |
+| 2026-10-20 | Verified | Task 3 계획 수정: (1) `lib-vm.bats`의 "docker를 부르지 않음" 검사는 `grep '^docker '`로 한다. ssh 스텁 로그 줄에도 원격 명령 글자 `docker compose`가 들어 있기 때문이다. (2) `require_vm` 정의에 `# shellcheck disable=SC2120`과 이유를 둔다(CMD는 선택 인자). (3) `backup.sh`의 `.partial` 네 곳(101, 105, 107, 108행)을 모두 `$PARTIAL_SUFFIX`로 바꿨다. (4) `restore.sh`의 `STAMP`는 주변 전역값처럼 readonly 없이 `\|\| exit 1`만 붙였다. |

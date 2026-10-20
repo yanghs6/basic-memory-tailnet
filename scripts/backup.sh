@@ -9,7 +9,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib/vm.sh"
 
 readonly BACKUPS_DIRNAME="backups"
-readonly PARTIAL_SUFFIX=".partial"
 ARCHIVE=""
 IS_RESERVED=0
 IS_FINALIZED=0
@@ -83,11 +82,11 @@ restart_container() {
 }
 
 main() {
-  local parent name digest
-  require_cmd ssh
-  require_env BM_VM_HOST BM_VM_USER
+  local parent name digest stamp
+  require_vm
   BACKUP_DIR="$(resolve_backup_dir)" || exit 1
-  ARCHIVE="$BACKUP_DIR/bm-$(date -u +%Y%m%dT%H%M%SZ).tgz"
+  stamp="$(utc_stamp)" || exit 1
+  ARCHIVE="$BACKUP_DIR/bm-$stamp.tgz"
   parent="$(dirname "$BM_REMOTE_DATA_ROOT")"
   name="$(basename "$BM_REMOTE_DATA_ROOT")"
   # Reserve the name before the trap and the stop: a taken name stops here with the container untouched.
@@ -95,17 +94,17 @@ main() {
 
   trap restart_container EXIT
   step "stop container (a brief stop keeps SQLite consistent)"
-  remote_compose "stop" || die "could not confirm the container stopped; restarting it and writing no backup"
+  remote_compose "stop" || die "could not confirm the container stopped: $(access_hint); restarting it and writing no backup"
 
   step "record a checksum manifest of every data file"
-  remote "$(manifest_cmd "$BM_REMOTE_DATA_ROOT")" >"$ARCHIVE.manifest.partial" \
+  remote "$(manifest_cmd "$BM_REMOTE_DATA_ROOT")" >"$ARCHIVE.manifest$PARTIAL_SUFFIX" \
     || die "could not build the data manifest; no backup was written"
 
   step "stream $BM_REMOTE_DATA_ROOT from $BM_VM_HOST"
-  remote "sudo -n tar -C $parent --exclude=$name/$BM_MODEL_CACHE_REL_PATH -czf - $name" >"$ARCHIVE.partial" \
+  remote "sudo -n tar -C $parent --exclude=$name/$BM_MODEL_CACHE_REL_PATH -czf - $name" >"$ARCHIVE$PARTIAL_SUFFIX" \
     || die "backup stream failed; no archive was written"
-  digest="$(sha256_of "$ARCHIVE.partial")" || exit 1
-  printf '%s  %s\n' "$digest" "$(basename "$ARCHIVE")" >"$ARCHIVE.sha256.partial" \
+  digest="$(sha256_of "$ARCHIVE$PARTIAL_SUFFIX")" || exit 1
+  printf '%s  %s\n' "$digest" "$(basename "$ARCHIVE")" >"$ARCHIVE.sha256$PARTIAL_SUFFIX" \
     || die "could not write the checksum; no backup was kept"
   finalize_run
   log "backup saved: $ARCHIVE (+ .sha256, .manifest)"

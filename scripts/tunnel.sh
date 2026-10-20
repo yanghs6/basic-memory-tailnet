@@ -22,14 +22,13 @@ main() {
   mode="$(access_mode)" || exit 1
   [[ "$mode" == ssh ]] \
     || die "make tunnel is for BM_ACCESS=ssh; in tailscale mode clients use https://<host>.<tailnet>.ts.net/mcp (docs/runbooks/rbk-2026-10-12-operations.md)"
-  require_cmd ssh nc
-  require_env BM_VM_HOST BM_VM_USER
+  require_vm nc
   require_free_port BM_TUNNEL_MCP_PORT "$mcp_port"
   require_free_port BM_TUNNEL_WEB_PORT "$web_port"
 
   cmd=(ssh -N -o ExitOnForwardFailure=yes -o "ServerAliveInterval=$SERVER_ALIVE_INTERVAL_SECONDS"
     -o "ServerAliveCountMax=$SERVER_ALIVE_COUNT_MAX"
-    -L "$(forward_spec "$mcp_port" "${BM_PORT:-8737}")" -L "$(forward_spec "$web_port" "${SB_PORT:-3000}")"
+    -L "$(forward_spec "$mcp_port" "${BM_PORT:-$DEFAULT_BM_PORT}")" -L "$(forward_spec "$web_port" "${SB_PORT:-$DEFAULT_SB_PORT}")"
     "$BM_VM_USER@$BM_VM_HOST")
   log "running: ${cmd[*]}"
   log "MCP: http://127.0.0.1:$mcp_port/mcp  web UI: http://127.0.0.1:$web_port  (Ctrl-C stops the tunnel)"

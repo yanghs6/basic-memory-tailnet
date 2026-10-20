@@ -6,6 +6,7 @@
 #   notes_dir_arg [--local] -> the local notes folder for --local, nothing (the VM) without an argument
 #   in_notes_dir LOCAL_DIR CMD -> run CMD inside the notes folder, locally or on the VM as the container user
 #   write_notes_file LOCAL_DIR PATH -> replace PATH in the notes folder with stdin
+#   notes_file_state LOCAL_DIR PATH -> present or absent for PATH in the notes folder
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
 
 [ -n "${_BM_LIB_SB:-}" ] && return 0
@@ -58,10 +59,7 @@ require_sb_user_matches_env_file() {
 # checking the VM settings. Any other argument dies with the usage. Use: local_dir="$(notes_dir_arg "$@")" || exit 1
 notes_dir_arg() {
   case "${1:-}" in
-    "")
-      require_cmd ssh
-      require_env BM_VM_HOST BM_VM_USER
-      ;;
+    "") require_vm ;;
     --local) printf '%s' "$SB_LOCAL_NOTES_DIR" ;;
     *) die "usage: $(basename "$0") [--local]" ;;
   esac
@@ -81,4 +79,10 @@ in_notes_dir() {
 # write_notes_file LOCAL_DIR PATH -> replace PATH (relative to the notes folder, without spaces) with stdin.
 write_notes_file() {
   in_notes_dir "$1" "mkdir -p $(dirname "$2") && cat > $2"
+}
+
+# notes_file_state LOCAL_DIR PATH -> present or absent for PATH (relative to the notes folder, without spaces) through
+# in_notes_dir. Fails when the folder cannot be read.
+notes_file_state() {
+  in_notes_dir "$1" "$(exists_cmd "$2")" </dev/null
 }

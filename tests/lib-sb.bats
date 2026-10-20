@@ -23,3 +23,12 @@ EOF
   assert_success
   assert_output "$REPO_DIR|$BM_REMOTE_DATA_ROOT/knowledge/basic-memory"
 }
+
+@test "notes_file_state tells present from absent in the local notes folder" {
+  run notes_file_state "$SB_LOCAL_NOTES_DIR" index.md
+  assert_success
+  assert_output absent
+  touch "$SB_LOCAL_NOTES_DIR/index.md"
+  run notes_file_state "$SB_LOCAL_NOTES_DIR" index.md
+  assert_output present
+}
