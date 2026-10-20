@@ -262,7 +262,11 @@ SB_PORT=3000
 SB_USER=
 ```
 
-`Makefile:12-13`을 바꾼다. `SB_USER`는 전역 export 목록에 넣지 않는다. 전역 export는 모든 레시피에 들어가 `make review`가 실행하는 `codex exec`·`claude -p`(`scripts/review.sh:129-141`)도 환경에서 비밀값을 보게 된다. make 3.81에서 타깃별 export는 이름을 적은 타깃에만 닿는다(Verified, 사전 점검). 레시피 인자로 넘기면 make가 명령을 출력하므로 그렇게 하지 않는다.
+`Makefile:12-13`을 바꾼다. `SB_USER`는 전역 export 목록에 넣지 않는다. 전역 export는 모든 레시피에 들어가 `make review`가 실행하는 `codex exec`·`claude -p`(`scripts/review.sh:129-141`)도 환경에서 비밀값을 보게 된다.
+
+**Verified (사전 점검):** make 3.81에서 타깃별 export는 이름을 적은 타깃에만 닿는다.
+
+레시피 인자로 넘기면 make가 명령을 출력하므로 그렇게 하지 않는다.
 
 ```make
 BM_PORT := $(or $(BM_PORT),8737)
@@ -1125,7 +1129,8 @@ local-up: ## Start Basic Memory and SilverBullet locally (127.0.0.1:BM_PORT, SB_
 	$(COMPOSE) up -d --wait
 ```
 
-- macOS의 GNU make 3.81은 `.SHELLFLAGS`(3.82부터)를 적용하지 않아 레시피 줄이 `-e` 없이 돈다(Verified, 사전 점검: `x="$$(false)"; echo still-ran`이 `still-ran`을 출력). 그래서 첫 `sb-space.sh` 대입 뒤에 `|| exit 1`을 붙여, 실패하면 SilverBullet을 띄우기 전에 레시피를 멈춘다.
+- **Verified (사전 점검: `x="$$(false)"; echo still-ran`이 `still-ran`을 출력):** macOS의 GNU make 3.81은 `.SHELLFLAGS`(3.82부터)를 적용하지 않아 레시피 줄이 `-e` 없이 돈다.
+- 그래서 첫 `sb-space.sh` 대입 뒤에 `|| exit 1`을 붙여, 실패하면 SilverBullet을 띄우기 전에 레시피를 멈춘다.
 - `[[ "$(…)" == … ]]`처럼 조건 안에서 명령 치환을 쓰면 실패가 조용히 넘어가므로 그렇게 쓰지 않는다.
 - `if` 안은 `&&` 사슬이다. 재생성, 표시 파일 삭제, 페이지를 쓰는 두 번째 `sb-space.sh`(`unchanged`여야 함) 중 하나라도 실패하면 `if`의 종료 코드가 0이 아니게 되어 그 줄이 실패하고 레시피가 멈춘다. 재생성이 실패하면 표시 파일이 남아 다음 `local-up`이 다시 재생성한다.
 

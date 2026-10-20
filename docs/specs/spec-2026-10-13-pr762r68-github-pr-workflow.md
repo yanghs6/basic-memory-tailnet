@@ -102,7 +102,8 @@ Plan: k93wjt1a
 
 - 작업에 참여한 도구가 여럿이면 `Assisted-by`를 도구마다 한 줄씩 쓴다.
 - 저장소 설정에서 squash 커밋 메시지를 "PR 제목 + PR 본문"으로 정한다. 그러면 `main` 커밋마다 `Assisted-by`와 `Plan`이 남는다. 조회 명령: `git log --format='%h %s | %(trailers:key=Assisted-by,key=Plan,valueonly,separator=%x2C )' main`
-- `Task`와 `Review-Finding`은 PR 안의 커밋에만 남는다. **Assumption:** GitHub은 브랜치를 지운 뒤에도 PR의 커밋(`refs/pull/<N>/head`)을 보존한다.
+- `Task`와 `Review-Finding`은 PR 안의 커밋에만 남는다.
+  - **Assumption:** GitHub은 브랜치를 지운 뒤에도 PR의 커밋(`refs/pull/<N>/head`)을 보존한다.
 
 ## 6. CI
 

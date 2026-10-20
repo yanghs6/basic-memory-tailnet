@@ -64,13 +64,14 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 | `.env` | main 체크아웃 루트 | `/opt/basic-memory/` (VM용 `.env`는 `make deploy`가 생성) |
 | 스왑 | 해당 없음 | `/swapfile` (1GB, `/etc/fstab`에 등록) |
 
-기본 프로젝트 `main`은 `/app/data/basic-memory`에 생성됩니다(**Verified**, 0.23.2).
+**Verified (0.23.2):** 기본 프로젝트 `main`은 `/app/data/basic-memory`에 생성됩니다.
 
 `.env`와 `backups/`는 main 체크아웃에만 둡니다(`.local-data/`는 `make local-up`을 실행한 체크아웃마다 생기는 로컬 테스트 데이터). Makefile은 어느 체크아웃에서 실행하든 main 체크아웃의 `.env`를 읽고, `backup`은 main 체크아웃의 `backups/`에 저장합니다.
 
 ## 신뢰 경계
 
-- Basic Memory에는 인증이 없습니다(**Verified**). 접근 제어는 `tailscale` 모드에서는 전적으로 Tailscale의 기기 인증과 정책에 맡기고, `ssh` 모드에서는 클라우드 IAM과 SSH 키에 맡깁니다.
+- **Verified:** Basic Memory에는 인증이 없습니다.
+- 접근 제어는 `tailscale` 모드에서는 전적으로 Tailscale의 기기 인증과 정책에 맡기고, `ssh` 모드에서는 클라우드 IAM과 SSH 키에 맡깁니다.
 - 컨테이너 포트는 `127.0.0.1`에만 바인딩하고, Serve는 tailnet 전용(Funnel off)이며, GCP 방화벽에는 VPC 밖의 소스를 허용하는 인바운드 규칙이 없습니다. `default-allow-rdp`·`default-allow-icmp`는 지우고, `default-allow-ssh`는 Tailscale SSH를 확인한 뒤 지웁니다. `default-allow-internal`은 VPC 내부(`10.128.0.0/9`) 전용이라 둡니다.
 - `ssh` 모드는 Tailscale을 쓰지 않습니다. VPC 밖 인바운드는 IAP 대역의 22번 하나이고, 인증은 Google 계정 IAM과 SSH 키입니다. 모든 터널은 기기의 `127.0.0.1`에만 열리고, `verify`가 VM의 Tailscale 꺼짐과 sshd 키 전용을 검사합니다. 한 VM에서 두 모드를 함께 쓰지 않습니다([access-modes ADR](decisions/adr-2026-10-15-cz8c26gp-access-modes.md)).
 - 자동 검증 범위: `tests/repo.bats`(설정 파일)와 `make verify`/`make probe`(8737·3000 바인딩, Serve 포트별 대상과 Funnel, SilverBullet 로그인·셸 꺼짐, 공인 IP의 22·80·443·8443·8737·3000). `ssh` 모드의 `verify`는 Serve 검사 대신 VM의 Tailscale 꺼짐과 sshd 키 전용을 임시 터널로 검사합니다. 방화벽 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit으로 수동 점검합니다.
@@ -80,9 +81,9 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 ## 자원과 비용
 
 - 1GB RAM에 스왑 1GB입니다. 부트스트랩이 스왑 파일을 만들고 `make status`는 스왑이 없으면 경고합니다([vm-sizing ADR](decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)).
-- 무료 등급 조건: e2-micro 1대, 30GB 표준 영구 디스크, 월 1GB 아웃바운드(**Verified**, 2026-10-12). Spot VM과 balanced 디스크는 무료가 아닙니다.
+- **Verified (2026-10-12):** 무료 등급 조건: e2-micro 1대, 30GB 표준 영구 디스크, 월 1GB 아웃바운드. Spot VM과 balanced 디스크는 무료가 아닙니다.
 - 정지 후 시작하면 외부 IP가 바뀝니다. `.env`의 `BM_VM_PUBLIC_IP`를 갱신해야 `verify`가 맞는 IP를 검사합니다.
-- 외부 IPv4 요금이 무료 등급에 포함되는지는 **Open question**입니다. 배포 다음 날 SKU별 청구를 확인합니다([운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 비용 점검).
+- **Open question:** 외부 IPv4 요금이 무료 등급에 포함되는지는 아직 확인하지 못했습니다. 배포 다음 날 SKU별 청구를 확인합니다([운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 비용 점검).
 
 ## 주요 흐름
 

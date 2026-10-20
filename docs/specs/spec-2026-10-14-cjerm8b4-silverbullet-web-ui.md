@@ -91,11 +91,12 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
 - **Verified (`libraries/Library/Std/Widgets/Widgets.md`, `silverbulletmd/silverbullet/docs/API/view.md:39-58`, 스파이크):** 사용자 뷰는 `view.define`으로 등록하고 `lhs`·`rhs`·`page-top` 등에 둔다. `frame = "minimal"`인 `page-top` 뷰는 제목줄 없이 본문처럼 보이고 내용이 없으면 숨는다. Linked Tasks는 다른 페이지의 작업을 체크·상태 변경이 되는 채로 `page-top`에 보여 주며 기본으로 열려 있다.
 - **Verified (스파이크, 2026-10-14):**
   - 색인 객체의 필드: 페이지 `lastModified`는 `2026-10-14T11:49:06.750`처럼 로컬 시각 문자열이고, 프론트매터의 `permalink`도 들어 있다. 목록 항목은 `text`·`tags`·`ref`(`페이지@위치`), 헤더는 `name`·`ref`다. 관찰 줄은 목록 항목이 아니라 작업(`index.tasks()`, `state`·`name`·`tags`)으로 색인된다.
-  - 문단은 `config.set("index.paragraph.all", true)`가 있어야 색인된다. 스파이크에서는 이미 색인한 브라우저와 처음 연 브라우저 모두 `Space: Reindex`를 한 번 실행한 뒤에야 문단이 검색됐다. [web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md)(2026-10-15)에서는 관리 페이지가 처음부터 있는 공간을 새 origin(`sb.localhost:3000`)으로 열었을 때 Reindex 없이 문단이 검색됐다. 스파이크의 누락은 설정을 나중에 더한 데서 생긴 것으로 본다(Assumption). 문단이 안 나올 때의 Reindex 안내는 그대로 둔다.
+  - 문단은 `config.set("index.paragraph.all", true)`가 있어야 색인된다. 스파이크에서는 이미 색인한 브라우저와 처음 연 브라우저 모두 `Space: Reindex`를 한 번 실행한 뒤에야 문단이 검색됐다. [web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md)(2026-10-15)에서는 관리 페이지가 처음부터 있는 공간을 새 origin(`sb.localhost:3000`)으로 열었을 때 Reindex 없이 문단이 검색됐다. 문단이 안 나올 때의 Reindex 안내는 그대로 둔다.
+    - **Assumption:** 스파이크의 누락은 설정을 나중에 더한 데서 생긴 것으로 본다.
   - Space Lua에서 `query[[…]][1]`처럼 질의 결과를 바로 인덱싱하면 블록 전체가 파싱 오류가 된다. 변수에 담은 뒤 인덱싱한다.
   - `memory://main/projects/agent-hub`를 Basic Memory `build_context`에 넘기면 그 노트와 관찰·관계가 돌아온다.
   - 검색 패널이 트리를 밀어낸 상태에서 Esc로 닫으면 트리가 돌아온다. 검색 패널을 연 채로 새로고침하면 검색이 그 칸의 주인이 되어, 닫으면 칸이 비고 Cmd-O로 트리를 다시 연다.
-  - ([web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md), Verified) 왼쪽 칸의 뷰들은 입력칸 하나를 함께 쓴다. 노트 검색어는 닫은 뒤에도 남아 트리와 Cmd-K 페이지 검색을 거르고, 지우면 원래대로 돌아온다(SilverBullet 내장 동작).
+  - **Verified ([web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md)):** 왼쪽 칸의 뷰들은 입력칸 하나를 함께 쓴다. 노트 검색어는 닫은 뒤에도 남아 트리와 Cmd-K 페이지 검색을 거르고, 지우면 원래대로 돌아온다(SilverBullet 내장 동작).
 - **Verified (`obsidianmd/obsidian-releases` 통계, 2026-10-14):** Obsidian 커뮤니티 플러그인 다운로드 상위는 Excalidraw 850만, Templater 590만, Dataview 514만, Tasks 441만, Git 329만, Advanced Tables 328만, Calendar 319만이고, 전체 텍스트 검색 Omnisearch는 200만, Homepage 138만, Recent Files 121만이다. 코어 플러그인에는 Outline, Backlinks, Outgoing links, Search, Word count, Random note, Tags view 등이 있다(obsidian.md/help/plugins).
 - **Verified (VS Code Marketplace 공개 API, 2026-10-14):** 테마 확장 설치 수는 GitHub Theme 20,347,397, One Dark Pro 12,829,109, Dracula 11,049,248, Tokyo Night 2,975,536, Catppuccin 1,449,733, Nord 1,293,571이다. One Dark Pro와 Dracula는 어두운 테마만 있다. GitHub 색값은 `@primer/primitives` 10.7.0(MIT)의 `dist/css/functional/themes/{light,dark}.css`에서 가져왔다.
 - **Verified (스파이크):** 숨김 파일은 SilverBullet API로 읽거나 쓸 수 없다(404).

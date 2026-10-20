@@ -53,7 +53,7 @@ date: 2026-10-16
 
 ### 2.1 스크립트
 
-**Verified**
+**Verified:**
 - `scripts/`에는 실행 스크립트 19개, `scripts/remote/bootstrap.sh`, `scripts/lib/common.sh`(224행, source 전용)가 있다. 20개 실행 스크립트는 모두 `main "$@"` 구조다.
 - 관심사별로 묶으면 다음과 같다.
   - VM 준비: `bootstrap-vm.sh`, `remote/bootstrap.sh`
@@ -76,7 +76,7 @@ date: 2026-10-16
 
 ### 2.2 테스트
 
-**Verified**
+**Verified:**
 - bats 파일 20개, 테스트 199개, 2,846행이다. `make test`는 `bats tests`로 최상위 파일만 실행한다(`Makefile:46-47`). 커버리지는 kcov가 `scripts/`를 대상으로 재고(`tools/coverage.sh:11`), 실행 권한이 있는 모든 스크립트가 어떤 테스트에서든 한 번은 실행돼야 한다(`tools/coverage.sh:20-29`).
 - 파일과 스크립트의 대응이 세 가지로 섞여 있다.
   - 스크립트 하나: `check_git.bats`, `verify_mcp.bats`, `sb_space.bats` 등. 하이픈을 밑줄로 바꿨다.

@@ -123,7 +123,8 @@ docs/decisions/                  ADR (예: 0001-basic-memory-on-oci.md, adr-2026
 
 **스킬**
 
-- 정본은 `.agents/skills/<name>/SKILL.md`에 둔다(Codex·Antigravity). Claude용으로 `.claude/skills/<name>`을 스킬별 심볼릭 링크로 만든다(**Verified:** Claude Code는 스킬 폴더 심볼릭 링크를 따라간다).
+- 정본은 `.agents/skills/<name>/SKILL.md`에 둔다(Codex·Antigravity). Claude용으로 `.claude/skills/<name>`을 스킬별 심볼릭 링크로 만든다.
+  - **Verified:** Claude Code는 스킬 폴더 심볼릭 링크를 따라간다.
 - frontmatter는 Agent Skills 표준 필드(`name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`)만 쓴다. 표준에 `disable-model-invocation`이 없으므로, VM을 바꾸는 단계는 본문에 "실행 전 사용자 확인"을 명시한다.
 - 스킬은 Make 타깃을 순서대로 엮고 판단 기준을 더할 뿐이다. 실제 동작은 Make 타깃과 스크립트에 있다.
 
@@ -191,7 +192,8 @@ docs/decisions/                  ADR (예: 0001-basic-memory-on-oci.md, adr-2026
 1. 공식 apt 저장소로 Docker Engine과 compose 플러그인을 설치하고, `ubuntu` 사용자를 docker 그룹에 추가한다.
 2. Tailscale을 설치하고, 로그인되어 있지 않으면 `tailscale up --hostname=bm-node --ssh`를 실행한다. 인증 키 처리는 다음과 같다.
    - 숨김 입력(`read -s`)이나 `TS_AUTHKEY`로 받아 **stdin으로만** 원격에 넘긴다.
-   - 원격 스크립트는 키를 `/run`(tmpfs)의 0600 임시 파일에 써서 `--auth-key=file:<경로>`로 넘기고 즉시 삭제한다(**Verified:** tailscale.com/kb/1241).
+   - 원격 스크립트는 키를 `/run`(tmpfs)의 0600 임시 파일에 써서 `--auth-key=file:<경로>`로 넘기고 즉시 삭제한다.
+     - **Verified:** tailscale.com/kb/1241
    - 로컬과 원격 어디에서도 명령 인자나 디스크에 남기지 않는다.
    - 이미 tailnet에 있으면 키 없이 `tailscale set --hostname=bm-node --ssh`만 실행한다.
 3. `/srv/basic-memory/{knowledge,config}`를 만들어 1000:1000으로 소유권을 주고, `/opt/basic-memory`는 `ubuntu` 소유로 만든다.
@@ -216,7 +218,8 @@ curl과 jq로 MCP streamable HTTP를 직접 검증한다.
 - `local-verify`는 이 스크립트를 두 번 실행한다. 기본 실행 한 번, `--host-header bm-node.example.ts.net`으로 한 번이다.
 - VM용 `verify`와 `probe`(`verify-vm.sh [--read-only]`)는 tailnet HTTPS URL로 실행하고, 이어서 다음을 확인한다.
   - 원격 `ss -lnt`로 8737이 `127.0.0.1`에만 열려 있다.
-  - `tailscale serve status`가 `tailnet only`이고 `Funnel on`이 아니다. **Assumption:** 출력 문구는 [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 실제 VM으로 확인한다.
+  - `tailscale serve status`가 `tailnet only`이고 `Funnel on`이 아니다.
+    - **Assumption:** 출력 문구는 [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 실제 VM으로 확인한다.
   - `BM_VM_PUBLIC_IP`(필수)의 22·80·443·8737이 Mac에서 연결되지 않는다.
 - OCI 인바운드 규칙과 tailnet 정책은 VM에서 읽을 수 없으므로 운영 런북의 Exposure audit으로 수동 점검한다.
 
@@ -291,7 +294,8 @@ SQLite 파일이 쓰는 도중에 복사되지 않도록 잠시 정지한다. �
   - 이미지가 digest로 고정돼 있고, `.env`가 git에 추적되지 않는다.
   - 모든 스킬에 Claude용 링크가 있고, frontmatter는 표준 필드만 쓰며, `SKILL.md`는 500줄 이하다.
   - 실패 메시지에는 고치는 방법을 포함한다.
-- **커버리지:** kcov로 `scripts/` 라인 커버리지 80% 이상이어야 하고, `scripts/` 아래 모든 실행 스크립트가 최소 한 테스트에서 실행돼야 한다. **Verified (2026-10-07 spike):** kcov 컨테이너는 bats가 실행하거나 source한 스크립트의 라인 커버리지를 수집한다.
+- **커버리지:** kcov로 `scripts/` 라인 커버리지 80% 이상이어야 하고, `scripts/` 아래 모든 실행 스크립트가 최소 한 테스트에서 실행돼야 한다.
+  - **Verified (2026-10-07 spike):** kcov 컨테이너는 bats가 실행하거나 source한 스크립트의 라인 커버리지를 수집한다.
 - **통합 (로컬, 실제 컨테이너):** `make local-up local-verify`. Host 헤더 시나리오를 포함한다. 이 단계에서 컨테이너 메모리 사용량을 측정해 VM 메모리 크기를 [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)로 확정한다. 기준은 평소 사용률이 20% 이상이 되는 크기다.
 - **E2E (VM, 수동):** `make deploy verify status`와 외부 노출 점검을 실행하고, 결과를 `docs/plans/` 진행 로그에 `Verified` / `Command` 표기로 기록한다. 계정이 필요하므로 CI로 자동화하지 않는다.
 

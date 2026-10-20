@@ -9,9 +9,11 @@ reviewed: 2026-10-15
 
 ## 1. GCP 가입과 gcloud 설정
 
-1. **개인** Google 계정으로 https://console.cloud.google.com 에 가입하고 결제 계정을 만듭니다. 무료 등급(e2-micro 1대 등)도 결제 계정이 필요합니다(**Verified**, docs.cloud.google.com/free/docs/free-cloud-features). 회사 Google 계정과 회사 프로젝트는 쓰지 않습니다.
+1. **개인** Google 계정으로 https://console.cloud.google.com 에 가입하고 결제 계정을 만듭니다. 회사 Google 계정과 회사 프로젝트는 쓰지 않습니다.
+   - **Verified (docs.cloud.google.com/free/docs/free-cloud-features):** 무료 등급(e2-micro 1대 등)도 결제 계정이 필요합니다.
 2. 이 저장소 전용 프로젝트를 만들고 프로젝트 ID를 적어 둡니다.
-3. **VM을 만들기 전에** Budget 알림을 만듭니다: 월 예산 $1, 알림 임계값(예: 50%, 100%). **Assumption:** 콘솔 메뉴 이름(Billing → Budgets & alerts)은 바뀔 수 있습니다.
+3. **VM을 만들기 전에** Budget 알림을 만듭니다: 월 예산 $1, 알림 임계값(예: 50%, 100%).
+   - **Assumption:** 콘솔 메뉴 이름(Billing → Budgets & alerts)은 바뀔 수 있습니다.
 4. Mac에 Google Cloud SDK를 설치합니다(공식 설치 안내: cloud.google.com/sdk/docs/install).
 5. 이 Mac의 활성 gcloud 설정은 회사 계정일 수 있습니다. 먼저 현재 상태를 확인하고, 활성이 아닌 설정 `bm-personal`을 따로 만들어 씁니다.
 
@@ -31,16 +33,20 @@ Expected: 첫 명령에서 회사 설정이 계속 `IS_ACTIVE=True`입니다. �
 
 ## 2. Tailscale 가입
 
-1. https://login.tailscale.com/start 에서 **개인 계정**으로 가입합니다. 회사 도메인 이메일로 가입하면 tailnet이 회사 소유가 됩니다(**Verified**).
+1. https://login.tailscale.com/start 에서 **개인 계정**으로 가입합니다.
+   - **Verified:** 회사 도메인 이메일로 가입하면 tailnet이 회사 소유가 됩니다.
 2. **Open question:** 회사 Mac을 개인 tailnet에 참여시키는 것이 회사 보안 정책과 Tailscale Personal 약관(비상업 용도)에 맞는지 직접 확인하세요.
 3. 이 Mac에 Tailscale 앱을 설치하고 로그인합니다(`brew install --cask tailscale` 또는 App Store).
-4. 터미널에서 `tailscale version`이 동작하는지 확인합니다. 스킬 `bm-diagnose`가 `tailscale status`를 씁니다. **Assumption:** 앱만 설치하면 `tailscale` 명령이 PATH에 없을 수 있습니다. 없으면 Tailscale 문서의 CLI 설치 안내를 따라 명령을 쓸 수 있게 합니다.
+4. 터미널에서 `tailscale version`이 동작하는지 확인합니다. 스킬 `bm-diagnose`가 `tailscale status`를 씁니다.
+   - **Assumption:** 앱만 설치하면 `tailscale` 명령이 PATH에 없을 수 있습니다. 없으면 Tailscale 문서의 CLI 설치 안내를 따라 명령을 쓸 수 있게 합니다.
 
 ## 3. DNS와 HTTPS
 
 Admin console → **DNS**에서 다음을 켭니다.
 - **MagicDNS**
-- **HTTPS Certificates**: 인증서가 발급된 기기 이름은 공개 Certificate Transparency 로그에 기록됩니다(**Verified**). 그래서 기기 이름을 일반적인 `agent-hub`로 씁니다.
+- **HTTPS Certificates**:
+  - **Verified:** 인증서가 발급된 기기 이름은 공개 Certificate Transparency 로그에 기록됩니다.
+  - 그래서 기기 이름을 일반적인 `agent-hub`로 씁니다.
 
 먼저 **main 체크아웃**의 루트에서 설정 파일을 만듭니다(이미 있으면 건너뜁니다).
 
@@ -58,7 +64,8 @@ Admin console → **Access controls**에서 정책 파일을 편집합니다.
 
 1. `tagOwners`에 서버 태그를 추가합니다.
 2. `ssh`에 태그 서버로의 접속 규칙을 추가합니다. 기본 규칙의 `autogroup:self`는 태그가 붙은 기기를 포함하지 않으므로 별도 규칙이 필요합니다.
-3. **Funnel 사용 권한이 없는지 확인합니다**: Funnel은 기본 비활성입니다(**Verified**, tailscale.com/docs/features/tailscale-funnel). 누군가 `tailscale funnel`을 실행해 승인하면 정책 `nodeAttrs`에 `"funnel"` 속성이 추가됩니다. 이 속성이 있으면 지웁니다. 기기가 실제로 공개 중인지는 `make verify`/`make probe`가 `tailscale serve status`로 따로 확인합니다.
+3. **Funnel 사용 권한이 없는지 확인합니다**: 누군가 `tailscale funnel`을 실행해 승인하면 정책 `nodeAttrs`에 `"funnel"` 속성이 추가됩니다. 이 속성이 있으면 지웁니다. 기기가 실제로 공개 중인지는 `make verify`/`make probe`가 `tailscale serve status`로 따로 확인합니다.
+   - **Verified (tailscale.com/docs/features/tailscale-funnel):** Funnel은 기본 비활성입니다.
 
 ```json
 {
@@ -95,4 +102,8 @@ Settings → **Keys** → **Generate auth key**:
 
 ## 7. IAP 터널 권한 (`BM_ACCESS=ssh`)
 
-프로젝트 소유자는 IAP 터널 권한을 이미 가집니다. 다른 사람이 같은 VM에 붙어야 하면 그 Google 계정에 `roles/iap.tunnelResourceAccessor`를 주고, 그 사람의 공개키를 인스턴스 메타데이터 `ssh-keys`에 더합니다(둘 다 클라우드 변경이므로 사용자 OK 후). 최소 권한 조합은 **Open question**입니다. 터널 설정은 [VM 런북](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 8단계에 있습니다.
+프로젝트 소유자는 IAP 터널 권한을 이미 가집니다. 다른 사람이 같은 VM에 붙어야 하면 그 Google 계정에 `roles/iap.tunnelResourceAccessor`를 주고, 그 사람의 공개키를 인스턴스 메타데이터 `ssh-keys`에 더합니다(둘 다 클라우드 변경이므로 사용자 OK 후).
+
+**Open question:** 최소 권한 조합은 아직 정하지 않았습니다.
+
+터널 설정은 [VM 런북](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 8단계에 있습니다.

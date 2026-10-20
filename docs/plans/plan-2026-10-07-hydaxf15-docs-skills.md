@@ -2334,7 +2334,7 @@ git commit -m "feat: add swap to bootstrap, report swap in status, drop cloud na
 
 **위험과 메모:**
 - `ensure_swap`을 가장 먼저 두는 것은 스펙 §7.4 순서와 다르다. Step 10이 스펙을 맞춘다. 순서를 엄격히 지키려면 `ensure_docker_group` 다음으로 옮기고 `sets up swap before installing docker` 테스트를 지운다.
-- 실제 VM에서는 `fallocate`가 ext4 루트에서 동작한다고 가정한다(Assumption, [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 확인). 실패하면 `could not create` 메시지로 멈춘다.
+- **Assumption ([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 확인):** 실제 VM에서는 `fallocate`가 ext4 루트에서 동작한다고 가정한다. 실패하면 `could not create` 메시지로 멈춘다.
 - zram 같은 다른 활성 스왑이 있어도 건너뛴다. 의도한 동작이다.
 - `status.sh`의 awk는 `free`의 `available` 열(7번째 필드)을 쓴다. 이 열이 없는 아주 오래된 procps에서는 사용률이 100%로 나온다. Ubuntu 26.04에는 있다.
 - `status`는 스왑이 없어도 성공(종료 코드 0)한다. 스펙은 경고만 요구한다.

@@ -1004,7 +1004,7 @@ git commit -m "docs: complete the git-review-tooling plan" --trailer "Assisted-b
 ```
 
 - [ ] 1차 리뷰(작성자와 다른 벤더): 작성 도구가 Claude Code면 `make review BRANCH=plan/qq4h1djv-git-review-tooling REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
-  **Assumption 확인:** 두 원문 파일이 실제 리뷰 내용을 담았는지, 리뷰 뒤 `git status`가 깨끗하고 `git worktree list`에 리뷰 worktree가 남지 않았는지 확인한다. 어긋나면 그 내용을 리뷰 기록에 P1로 적고 고친다.
+  **Assumption:** (이 Step에서 확인) 두 원문 파일이 실제 리뷰 내용을 담았는지, 리뷰 뒤 `git status`가 깨끗하고 `git worktree list`에 리뷰 worktree가 남지 않았는지 확인한다. 어긋나면 그 내용을 리뷰 기록에 P1로 적고 고친다.
 - [ ] 원문을 `docs/reviews/rev-2026-10-08-tscgvpsz-git-review-tooling.md`로 옮겨 적고(`docs/reviews/README.md` 형식) 커밋한다.
 
 ```bash

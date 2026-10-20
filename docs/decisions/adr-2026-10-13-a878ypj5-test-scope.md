@@ -34,7 +34,9 @@ amended-by: docs/decisions/adr-2026-10-16-q36rwq5s-structure-checks.md
 3. 입력값만 다른 경우는 대표 테스트 하나의 반복문으로 씁니다. 테스트 이름은 반복문이 무엇을 모두 검사하는지 드러냅니다.
 4. 문서 문구를 되풀이하던 검사는 지웁니다: AGENTS.md 줄 수, 런북 섹션 이름, OCI 잔재, AGENTS.md 안전 문구. 상대 링크 검사와 문서 경로 검사는 둡니다. [skill-structure ADR](adr-2026-10-13-m0xvj6rr-skill-structure.md) 결정 7이 `tests/skills.bats`에 맡긴 스킬 규칙 검사도 모두 둡니다. [test-pruning 계획](../plans/plan-2026-10-13-g57mry4b-test-pruning.md)에서 두 가지 모두 추천안으로 정했습니다.
 
-## 결과 (Verified, 2026-10-13)
+## 결과
+
+**Verified (2026-10-13):**
 
 **Command:** `make check` (계획 브랜치 `plan/g57mry4b-test-pruning`, 1a495b5)
 

@@ -27,7 +27,7 @@ make local-up local-verify         # 로컬 컨테이너로 MCP 왕복 확인
 make local-down
 ```
 
-`local-up`은 고정된 컨테이너 이름과 포트를 쓰므로 한 번에 한 작업 트리에서만 실행합니다.
+명령마다의 규칙(한 번에 한 worktree에서만 돌리는 명령, 승인이 필요한 명령)은 [AGENTS.md](AGENTS.md)의 Commands에 있습니다.
 
 테스트는 불변식, 데이터 안전, 대표 성공 경로, 조용한 실패, Git 정책을 지키는 것만 둡니다. 기준은 [test-scope ADR](docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md)에 있습니다.
 
@@ -44,7 +44,7 @@ make local-down
 
 ## VM 구축 순서
 
-VM이나 클라우드 자원을 바꾸는 명령(`vm-bootstrap`, `deploy`, `restore`, gcloud 명령)은 사람이 승인한 뒤에만 실행합니다. `.env`와 `backups/`는 main 체크아웃에만 둡니다(`git worktree remove`가 worktree 안의 git ignore 파일을 경고 없이 지우기 때문입니다).
+VM이나 클라우드를 바꾸는 명령의 승인 규칙과 `.env`·`backups/`를 두는 곳은 [AGENTS.md](AGENTS.md)의 Safety에 있습니다.
 
 0. 접속 방식 정하기: 클라이언트가 쓸 네트워크마다 `make access-check`, 결과에 따라 `.env`의 `BM_ACCESS`([부트스트랩 런북](docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md))
 1. [계정 준비](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md): GCP 프로젝트·Budget 알림·gcloud `bm-personal`, Tailscale, 정책. `tailscale` 모드면 Tailscale 계정·정책이 필요하고 인증 키는 부트스트랩 직전에 발급합니다(accounts 5단계, 만료 1일). `ssh` 모드는 인증 키가 필요 없습니다.
