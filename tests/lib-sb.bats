@@ -32,3 +32,21 @@ EOF
   run notes_file_state "$SB_LOCAL_NOTES_DIR" index.md
   assert_output present
 }
+
+@test "sb_space_apply recreates Basic Memory between the .gitignore and the pages, and asks again after a failed recreate" {
+  setup_stubs docker
+  local page="$SB_LOCAL_NOTES_DIR/Library/agent-hub/agent-hub.md"
+  run sb_space_apply local "rerun 'make local-up'" false
+  assert_failure
+  assert_output --partial "rerun 'make local-up'"
+  [[ -e "$SB_LOCAL_NOTES_DIR/.gitignore.pending" && ! -e "$page" ]] \
+    || fail "a failed recreate must keep the marker and write no pages"
+  run sb_space_apply local "rerun 'make local-up'" docker compose up -d --force-recreate basic-memory
+  assert_success
+  [[ ! -e "$SB_LOCAL_NOTES_DIR/.gitignore.pending" && -e "$page" ]] \
+    || fail "the retry must recreate, remove the marker and write the pages"
+  run sb_space_apply local "rerun 'make local-up'" false
+  assert_success
+  run grep -c '^docker compose up -d --force-recreate basic-memory$' "$STUB_LOG"
+  assert_output 1
+}

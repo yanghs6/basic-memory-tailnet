@@ -103,22 +103,6 @@ upload_vm_file() {
   remote "umask 077 && mkdir -p $BM_REMOTE_APP_DIR && { if [ -e $target ]; then cp $target $prev.partial && mv $prev.partial $prev; fi && cat > $tmp && mv $tmp $target; } || { rm -f $tmp $prev.partial; exit 1; }"
 }
 
-# write_space_files ARCHIVE: write the SilverBullet space files into the restored notes folder while Basic Memory is
-# stopped. It reads the notes .gitignore when it starts, so a changed .gitignore needs no recreate here: the marker is
-# removed at once and sb-space.sh runs again to write the pages. A failure here rolls back like the other steps.
-write_space_files() {
-  local archive="$1" state
-  state="$("$SCRIPT_DIR/sb-space.sh")" \
-    || die "could not write the SilverBullet space files into the restored notes folder: fix the error above, then rerun 'make restore BACKUP=$archive'"
-  [[ "$state" == changed ]] || return 0
-  in_notes_dir "" "rm -f $SB_GITIGNORE_PENDING" </dev/null \
-    || die "could not remove $SB_GITIGNORE_PENDING from the restored notes folder: rerun 'make restore BACKUP=$archive'"
-  state="$("$SCRIPT_DIR/sb-space.sh")" \
-    || die "could not write the SilverBullet pages into the restored notes folder: fix the error above, then rerun 'make restore BACKUP=$archive'"
-  [[ "$state" == unchanged ]] \
-    || die "the notes .gitignore changed again during the restore, so the SilverBullet pages were not written: rerun 'make restore BACKUP=$archive'"
-}
-
 main() {
   local archive="${1:-}" actual expected present
   [[ -n "$archive" ]] || die "usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz"
@@ -164,8 +148,10 @@ main() {
   remote "if [ -e $ROOT ]; then sudo -n mv $ROOT $PREV; fi" || die "could not move the current data aside"
   remote "sudo -n mv $STAGE/$NAME $ROOT && sudo -n rmdir $STAGE" || die "could not swap the restored data into place"
 
+  # Basic Memory is stopped and reads the notes .gitignore when it starts, so a changed .gitignore needs no recreate.
+  # A failure here rolls back like the other steps.
   step "write the SilverBullet space files while Basic Memory is stopped"
-  write_space_files "$archive"
+  sb_space_apply vm "rerun 'make restore BACKUP=$archive'"
 
   step "start container"
   remote_compose "up -d --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS" \

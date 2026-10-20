@@ -333,7 +333,7 @@ Expected: `make check` exit 0. 점검은 두 파일만 출력한다. `scripts/bo
   - 순서: `"$REPO_DIR/scripts/sb-space.sh" [--local]` → `changed`가 아니면 끝 → `RECREATE_CMD`(실패하면 "could not recreate Basic Memory to load the new notes .gitignore: RERUN") → 표지 삭제 → 쓰기 다시 → `unchanged`가 아니면 죽는다.
   - 메시지(`where`는 local이면 그 폴더, vm이면 `$BM_VM_HOST:$SB_REMOTE_NOTES_DIR`): "could not write the SilverBullet space files in WHERE: fix the error above, then RERUN", "could not remove $SB_GITIGNORE_PENDING in WHERE: RERUN", "could not write the SilverBullet pages in WHERE: fix the error above, then RERUN", "the notes .gitignore changed again while the pages waited, so they were not written: RERUN".
 
-- [ ] **Step 1: 실패하는 테스트 작성 (`tests/lib-sb.bats`, Review Focus 4)**
+- [x] **Step 1: 실패하는 테스트 작성 (`tests/lib-sb.bats`, Review Focus 4)**
 
 ```bash
 @test "sb_space_apply recreates Basic Memory between the .gitignore and the pages, and asks again after a failed recreate" {
@@ -355,18 +355,18 @@ Expected: `make check` exit 0. 점검은 두 파일만 출력한다. `scripts/bo
 }
 ```
 
-- [ ] **Step 2: 실패 확인** — `make test`. 이 테스트가 실패한다(`sb_space_apply` 없음).
+- [x] **Step 2: 실패 확인** — `make test`. 이 테스트가 실패한다(`sb_space_apply` 없음).
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 - `deploy.sh`: compose 업로드 → `.env` → `pull -q` → `sb_space_apply vm "run 'make deploy' again" recreate_basic_memory` → `up -d --wait …`. `recreate_basic_memory`는 deploy.sh의 함수다. `:34-36`의 step, 명령, die를 그대로 옮긴다. 머리 주석(`:2-5`)도 새 순서에 맞춘다.
 - `restore.sh`: `write_space_files`(`:105-119`)를 지우고, `:168` → `sb_space_apply vm "rerun 'make restore BACKUP=$archive'"`. die가 rollback trap을 부르는 것은 지금과 같다.
 - `Makefile`: `:56-57`(`SB_LOCAL_PENDING`과 그 주석)을 지운다. `:62-65` → `. scripts/lib/sb.sh && sb_space_apply local "rerun 'make local-up'" $(COMPOSE) up -d --wait --force-recreate basic-memory`.
 - `docs/ARCHITECTURE.md:90`(배포): "compose와 VM용 `.env` 전송 → `docker compose pull` → 공간 파일 쓰기(노트 `.gitignore`가 바뀌었으면 `.gitignore`만 쓰고 Basic Memory만 다시 만든 뒤 관리 페이지·`index.md` 쓰기) → `up -d --wait`".
 
-- [ ] **Step 4: 통과 확인** — `make check` exit 0. `vm_ops.bats:58-90`, `backup_restore.bats:215-252`, `main_checkout.bats:46-63`이 그대로 통과한다. 테스트 이름 목록에는 하나만 늘어난다.
+- [x] **Step 4: 통과 확인** — `make check` exit 0. `vm_ops.bats:58-90`, `backup_restore.bats:215-252`, `main_checkout.bats:46-63`이 그대로 통과한다. 테스트 이름 목록에는 하나만 늘어난다.
 
-- [ ] **Step 5: 커밋** — `refactor: apply the SilverBullet space through one function` (`Task: 4`)
+- [x] **Step 5: 커밋** — `refactor: apply the SilverBullet space through one function` (`Task: 4`)
 
 ### Task 5: 터널 명령과 포트 확인 하나로 (중복 8, P7)
 
@@ -483,3 +483,4 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 | 2026-10-20 | Verified | Task 3: RED `make test` exit 2(새 테스트 3개 실패: `require_vm`, `remote_exists`, `notes_file_state` 없음). GREEN `make check` exit 0, 218개, not ok 0, 커버리지 94.55%. 테스트 이름 목록: "remote checks BM_ACCESS …"가 "require_vm stops …"로 바뀌고(P3) 2개가 더 늘었다(`remote_exists …`, `notes_file_state …`). Review Focus 2 점검은 계획대로 `scripts/bootstrap-vm.sh`, `scripts/create-doc.sh`만 출력했다. |
 | 2026-10-20 | Verified | Task 3 중 발견: `remote_compose`의 인자 없는 `return`이 restore 롤백(EXIT trap) 안에서 trap 직전 상태(die의 1)를 돌려줘, `backup_restore.bats`의 롤백 테스트 3개(18, 25, 28번)가 실패했다. bash는 trap 핸들러에서 실행된 인자 없는 `return`의 상태를 trap 전 마지막 명령에서 가져온다. if/else로 바꾸고 함수 주석에 이유를 적었다. 기존 롤백 테스트가 회귀를 잡는다. |
 | 2026-10-20 | Verified | Task 3 계획 수정: (1) `lib-vm.bats`의 "docker를 부르지 않음" 검사는 `grep '^docker '`로 한다. ssh 스텁 로그 줄에도 원격 명령 글자 `docker compose`가 들어 있기 때문이다. (2) `require_vm` 정의에 `# shellcheck disable=SC2120`과 이유를 둔다(CMD는 선택 인자). (3) `backup.sh`의 `.partial` 네 곳(101, 105, 107, 108행)을 모두 `$PARTIAL_SUFFIX`로 바꿨다. (4) `restore.sh`의 `STAMP`는 주변 전역값처럼 readonly 없이 `\|\| exit 1`만 붙였다. |
+| 2026-10-20 | Verified | Task 4: RED `make test` exit 2(`sb_space_apply: command not found`). GREEN `make test` exit 0, 그 뒤 `make check` exit 0, 219개, not ok 0, 커버리지 94.48%. 테스트 이름 목록: 1개만 늘었다. 그대로 둔 `vm_ops.bats`의 deploy 테스트(pull 실패 뒤 재시도, 건강하지 않은 컨테이너 포함), `backup_restore.bats`의 공간 파일 테스트 두 개, `main_checkout.bats`의 local-up 테스트가 통과했다. deploy는 pull 다음에 공간 파일을 쓴다(P2). |

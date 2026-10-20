@@ -54,16 +54,11 @@ check: lint coverage ## Lint + all tests + coverage gate (run before every commi
 
 COMPOSE := docker compose -f compose.yaml
 LOCAL_DATA_DIRS := .local-data/knowledge .local-data/config
-# SB_LOCAL_NOTES_DIR/SB_GITIGNORE_PENDING in scripts/lib/sb.sh: removed only after Basic Memory was recreated.
-SB_LOCAL_PENDING := .local-data/knowledge/basic-memory/.gitignore.pending
 
 local-up: ## Start Basic Memory and SilverBullet locally (127.0.0.1:BM_PORT, SB_PORT) and wait until healthy
 	. scripts/lib/sb.sh && require_sb_user
 	mkdir -p $(LOCAL_DATA_DIRS)
-	gitignore_state="$$(scripts/sb-space.sh --local)" || exit 1; \
-	  if [[ "$$gitignore_state" == changed ]]; then \
-	    $(COMPOSE) up -d --wait --force-recreate basic-memory && rm -f $(SB_LOCAL_PENDING) \
-	      && gitignore_state="$$(scripts/sb-space.sh --local)" && [[ "$$gitignore_state" == unchanged ]]; fi
+	. scripts/lib/sb.sh && sb_space_apply local "rerun 'make local-up'" $(COMPOSE) up -d --wait --force-recreate basic-memory
 	$(COMPOSE) up -d --wait
 
 local-down: ## Stop the local containers (data in .local-data/ is kept)

@@ -7,6 +7,7 @@
 #   in_notes_dir LOCAL_DIR CMD -> run CMD inside the notes folder, locally or on the VM as the container user
 #   write_notes_file LOCAL_DIR PATH -> replace PATH in the notes folder with stdin
 #   notes_file_state LOCAL_DIR PATH -> present or absent for PATH in the notes folder
+#   sb_space_apply WHERE RERUN [RECREATE_CMD...] -> write the space files, recreating Basic Memory when needed
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
 
 [ -n "${_BM_LIB_SB:-}" ] && return 0
@@ -85,4 +86,31 @@ write_notes_file() {
 # in_notes_dir. Fails when the folder cannot be read.
 notes_file_state() {
   in_notes_dir "$1" "$(exists_cmd "$2")" </dev/null
+}
+
+# sb_space_apply WHERE RERUN [RECREATE_CMD...] -> write the SilverBullet space files with sb-space.sh, in the local
+# notes folder (WHERE local) or on the VM (WHERE vm). sb-space.sh writes only .gitignore while it reports "changed":
+# Basic Memory reads .gitignore only at start, so RECREATE_CMD runs then (omit it while Basic Memory is stopped), the
+# marker is removed only after it succeeded (a failed run asks again), and sb-space.sh writes the pages. Every failure
+# dies with RERUN, the user's next step, for example "run 'make deploy' again".
+sb_space_apply() {
+  local mode="$1" rerun="$2" local_dir="" where state
+  shift 2
+  case "$mode" in
+    local) local_dir="$SB_LOCAL_NOTES_DIR" where="$SB_LOCAL_NOTES_DIR" ;;
+    vm) where="$BM_VM_HOST:$SB_REMOTE_NOTES_DIR" ;;
+    *) die "sb_space_apply: WHERE must be local or vm (got '$mode')" ;;
+  esac
+  state="$("$REPO_DIR/scripts/sb-space.sh" ${local_dir:+--local})" \
+    || die "could not write the SilverBullet space files in $where: fix the error above, then $rerun"
+  [[ "$state" == changed ]] || return 0
+  if (($#)); then
+    "$@" || die "could not recreate Basic Memory to load the new notes .gitignore: $rerun"
+  fi
+  in_notes_dir "$local_dir" "rm -f $SB_GITIGNORE_PENDING" </dev/null \
+    || die "could not remove $SB_GITIGNORE_PENDING in $where: $rerun"
+  state="$("$REPO_DIR/scripts/sb-space.sh" ${local_dir:+--local})" \
+    || die "could not write the SilverBullet pages in $where: fix the error above, then $rerun"
+  [[ "$state" == unchanged ]] \
+    || die "the notes .gitignore changed again while the pages waited, so they were not written: $rerun"
 }

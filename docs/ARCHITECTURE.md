@@ -87,7 +87,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 
 ## 주요 흐름
 
-- **배포:** `make deploy` → compose와 VM용 `.env`(권한 600, `SB_USER` 포함) 전송 → 공간 파일 쓰기(`sb-space.sh`, 노트 `.gitignore`가 바뀌었으면 `.gitignore`만) → `docker compose pull` → `.gitignore`가 바뀌었으면 Basic Memory만 먼저 다시 만든 뒤 관리 페이지·`index.md` 쓰기 → `up -d --wait`
+- **배포:** `make deploy` → compose와 VM용 `.env`(권한 600, `SB_USER` 포함) 전송 → `docker compose pull` → 공간 파일 쓰기(`sb-space.sh`. 노트 `.gitignore`가 바뀌었으면 `.gitignore`만 쓰고 Basic Memory만 다시 만든 뒤 관리 페이지·`index.md` 쓰기) → `up -d --wait`
 - **검증:** `make verify` → tailnet URL(`ssh` 모드는 임시 터널 `127.0.0.1:28737`·`23000`)로 MCP 왕복(initialize, tools/list, 쓰기·읽기·삭제) → 8443의 SilverBullet 로그인·쿠키·셸 꺼짐 → 포트 바인딩(8737, 3000) → Serve 포트별 대상, tailnet 전용 → 공인 IP 포트 차단. `make probe`는 노트를 쓰지 않고 SilverBullet에 로그인하지 않습니다.
 - **백업:** `make backup` → 컨테이너 정지(재시작은 정지 전에 예약) → 파일별 체크섬 manifest → `/srv/basic-memory`를 tar로 받아옴(임베딩 모델 캐시 `config/fastembed_cache/`는 제외하며, 복원 뒤 첫 사용 때 Basic Memory가 다시 내려받음) → sha256 저장 → 세 파일을 최종 이름으로 rename → 컨테이너 재시작. 아카이브는 main 체크아웃의 `backups/`에 저장됩니다.
 - **복원:** `make restore` → 정지 → 임시 경로에 압축 해제 → manifest 대조 → 저장소 compose.yaml 적용 → 데이터 교체(기존은 `.prev-*`) → Basic Memory가 멈춘 동안 공간 파일 쓰기(`sb-space.sh`) → 기동 → verify. 정지 이후 실패하면 이전 데이터와 compose로 자동 롤백
