@@ -194,8 +194,8 @@ compose_start_period_seconds() {
   assert_line '    - matcher: "Bash"'
   assert_line "      hooks:"
   assert_line "        - type: command"
-  assert_line "          command: '\"\$CLAUDE_PROJECT_DIR\"/scripts/review-bash-guard.sh || exit 2'"
-  [[ -x "$REPO_DIR/scripts/review-bash-guard.sh" ]] || fail "scripts/review-bash-guard.sh must exist and be executable"
+  assert_line "          command: '\"\$CLAUDE_PROJECT_DIR\"/scripts/guard-reviewer-bash.sh || exit 2'"
+  [[ -x "$REPO_DIR/scripts/guard-reviewer-bash.sh" ]] || fail "scripts/guard-reviewer-bash.sh must exist and be executable"
   run grep -F "git status" "$agent"
   assert_failure 1
 }

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Print recent Basic Memory container logs from the VM.
+# Usage: make logs
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

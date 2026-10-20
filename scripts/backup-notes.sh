@@ -2,6 +2,7 @@
 # Download a consistent backup of the VM data root into the main checkout's backups/: archive, .sha256 and a .manifest of every
 # data file. The container is stopped briefly so SQLite files are not copied mid-write; the restart is
 # registered before the stop, so it runs even if the stop's reply is lost.
+# Usage: make backup
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

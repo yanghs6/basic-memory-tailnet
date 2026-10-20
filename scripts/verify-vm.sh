@@ -6,7 +6,7 @@
 # (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit).
 # In the ssh access mode it runs the same checks through a temporary SSH tunnel on 127.0.0.1 and, instead of Serve,
 # checks that Tailscale does not expose the VM and that sshd accepts keys only.
-# Usage: verify-vm.sh [--read-only]
+# Usage: make verify, or make probe (read-only)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -18,7 +18,7 @@ readonly SB_HTTPS_PORT=8443
 readonly PUBLIC_PROBE_PORTS="22 80 443 $SB_HTTPS_PORT"
 
 # ssh access mode: local ends of the verify tunnel, apart from make tunnel's DEFAULT_TUNNEL_MCP_PORT and
-# DEFAULT_TUNNEL_WEB_PORT (scripts/tunnel.sh) so both can run at once.
+# DEFAULT_TUNNEL_WEB_PORT (scripts/open-tunnel.sh) so both can run at once.
 readonly VERIFY_TUNNEL_MCP_PORT=28737
 readonly VERIFY_TUNNEL_WEB_PORT=23000
 readonly TUNNEL_READY_TIMEOUT_SECONDS=20
@@ -173,7 +173,7 @@ main() {
   local port="${BM_PORT:-$DEFAULT_BM_PORT}" sb_port="${SB_PORT:-$DEFAULT_SB_PORT}" mode url sb_url
   case "${1:-}" in
     "" | --read-only) ;;
-    *) die "usage: verify-vm.sh [--read-only]" ;;
+    *) die "usage: make verify, or make probe (read-only)" ;;
   esac
   require_vm curl jq nc
   mode="$(access_mode)" || exit 1

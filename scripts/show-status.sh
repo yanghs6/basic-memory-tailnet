@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Show VM container state, memory and swap use, and how the VM is reached: tailscale serve config, or in the ssh
 # access mode whether Tailscale is still logged in on the VM.
+# Usage: make status
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ssh access mode: forward Basic Memory and the web UI on the VM to 127.0.0.1 on this machine over the SSH host alias,
 # in the foreground (Ctrl-C stops it). It does not reconnect: when ssh ends, it fails with ssh's exit code; rerun it.
-# Usage: tunnel.sh
+# Usage: make tunnel
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

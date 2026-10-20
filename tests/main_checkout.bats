@@ -14,7 +14,7 @@ make_host() {
   env -u SHELLOPTS -u PS4 -u BASH_ENV make --no-print-directory --eval='show-host: ; @echo "[$(BM_VM_HOST)]"' show-host
 }
 
-# use_backup_env: stubs and a fake VM for backup.sh. BACKUP_DIR stays unset: the default location is under test.
+# use_backup_env: stubs and a fake VM for backup-notes.sh. BACKUP_DIR stays unset: the default location is under test.
 use_backup_env() {
   setup_stubs ssh docker sudo
   use_vm_env
@@ -82,7 +82,7 @@ make_in() {
   use_backup_env
   cp -R "$REPO_DIR/scripts" "$LINKED_WT/scripts"
   cd "$LINKED_WT"
-  run "$LINKED_WT/scripts/backup.sh"
+  run "$LINKED_WT/scripts/backup-notes.sh"
   assert_success
   assert_output --partial "backup saved: $MAIN_REPO/backups/bm-"
   run ls "$MAIN_REPO/backups"
@@ -93,7 +93,7 @@ make_in() {
 
 @test "backup defaults to backups/ in the main checkout that git reports" {
   use_backup_env
-  GIT_DIR="$MAIN_REPO/.git" run "$REPO_DIR/scripts/backup.sh"
+  GIT_DIR="$MAIN_REPO/.git" run "$REPO_DIR/scripts/backup-notes.sh"
   assert_success
   assert_output --partial "backup saved: $MAIN_REPO/backups/bm-"
   run ls "$MAIN_REPO/backups"
@@ -102,7 +102,7 @@ make_in() {
 
 @test "backup fails with an actionable message when the main checkout cannot be found" {
   use_backup_env
-  GIT_DIR="$BATS_TEST_TMPDIR/missing-repo" run "$REPO_DIR/scripts/backup.sh"
+  GIT_DIR="$BATS_TEST_TMPDIR/missing-repo" run "$REPO_DIR/scripts/backup-notes.sh"
   assert_failure
   assert_output --partial "cannot find the main checkout"
   assert_output --partial "set BACKUP_DIR"

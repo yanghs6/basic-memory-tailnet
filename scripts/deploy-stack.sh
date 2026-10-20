@@ -2,6 +2,7 @@
 # Copy compose.yaml and a generated .env to the VM, pull the images, write the SilverBullet space files, then start
 # Basic Memory and SilverBullet. When the notes .gitignore changed, sb_space_apply (scripts/lib/sb.sh) recreates Basic
 # Memory first, because it reads .gitignore only at start, and writes the pages only after that.
+# Usage: make deploy
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

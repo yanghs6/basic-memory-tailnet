@@ -3,7 +3,7 @@
 # SilverBullet login. Sources common.sh and vm.sh. Must stay compatible with macOS bash 3.2.
 #   require_sb_user -> dies unless SB_USER is set and looks like <user>:<password>
 #   require_sb_user_matches_env_file -> dies when make changed SB_USER while it read .env
-#   notes_dir_arg [--local] -> the local notes folder for --local, nothing (the VM) without an argument
+#   notes_dir_arg USAGE [--local] -> the local notes folder for --local, nothing (the VM) without an argument
 #   in_notes_dir LOCAL_DIR CMD -> run CMD inside the notes folder, locally or on the VM as the container user
 #   write_notes_file LOCAL_DIR PATH -> replace PATH in the notes folder with stdin
 #   notes_file_state LOCAL_DIR PATH -> present or absent for PATH in the notes folder
@@ -24,7 +24,7 @@ readonly SB_REMOTE_NOTES_DIR="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory"
 # Where the managed library page (silverbullet/agent-hub.md) loads the WOFF2 fonts from.
 readonly SB_FONTS_REL_DIR="Library/agent-hub/fonts"
 # Marker in the notes folder: Basic Memory has not loaded the current .gitignore yet (it reads it only at start).
-# sb-space.sh creates it before changing .gitignore and writes no pages while it exists; callers remove it only after
+# sync-sb-space.sh creates it before changing .gitignore and writes no pages while it exists; callers remove it only after
 # recreating Basic Memory. Basic Memory skips dotfiles (default pattern .*) and SilverBullet cannot read them.
 readonly SB_GITIGNORE_PENDING=".gitignore.pending"
 
@@ -56,13 +56,16 @@ require_sb_user_matches_env_file() {
     || die "SB_USER in $SB_ENV_FILE holds characters that make changes when it reads .env (#, \$, spaces or quotes), so the scripts got a different value: write it as SB_USER=<user>:<password> with only letters, digits and ._~+/=- in the password"
 }
 
-# notes_dir_arg [--local] -> the local notes folder for --local; nothing (meaning the VM) without an argument, after
-# checking the VM settings. Any other argument dies with the usage. Use: local_dir="$(notes_dir_arg "$@")" || exit 1
+# notes_dir_arg USAGE [--local] -> the local notes folder for --local; nothing (meaning the VM) without an argument,
+# after checking the VM settings. Any other argument dies with "usage: USAGE".
+# Use: local_dir="$(notes_dir_arg "<usage>" "$@")" || exit 1
 notes_dir_arg() {
+  local usage="$1"
+  shift
   case "${1:-}" in
     "") require_vm ;;
     --local) printf '%s' "$SB_LOCAL_NOTES_DIR" ;;
-    *) die "usage: $(basename "$0") [--local]" ;;
+    *) die "usage: $usage" ;;
   esac
 }
 
@@ -88,10 +91,10 @@ notes_file_state() {
   in_notes_dir "$1" "$(exists_cmd "$2")" </dev/null
 }
 
-# sb_space_apply WHERE RERUN [RECREATE_CMD...] -> write the SilverBullet space files with sb-space.sh, in the local
-# notes folder (WHERE local) or on the VM (WHERE vm). sb-space.sh writes only .gitignore while it reports "changed":
+# sb_space_apply WHERE RERUN [RECREATE_CMD...] -> write the SilverBullet space files with sync-sb-space.sh, in the local
+# notes folder (WHERE local) or on the VM (WHERE vm). sync-sb-space.sh writes only .gitignore while it reports "changed":
 # Basic Memory reads .gitignore only at start, so RECREATE_CMD runs then (omit it while Basic Memory is stopped), the
-# marker is removed only after it succeeded (a failed run asks again), and sb-space.sh writes the pages. Every failure
+# marker is removed only after it succeeded (a failed run asks again), and sync-sb-space.sh writes the pages. Every failure
 # dies with RERUN, the user's next step, for example "run 'make deploy' again".
 sb_space_apply() {
   local mode="$1" rerun="$2" local_dir="" where state
@@ -101,7 +104,7 @@ sb_space_apply() {
     vm) where="$BM_VM_HOST:$SB_REMOTE_NOTES_DIR" ;;
     *) die "sb_space_apply: WHERE must be local or vm (got '$mode')" ;;
   esac
-  state="$("$REPO_DIR/scripts/sb-space.sh" ${local_dir:+--local})" \
+  state="$("$REPO_DIR/scripts/sync-sb-space.sh" ${local_dir:+--local})" \
     || die "could not write the SilverBullet space files in $where: fix the error above, then $rerun"
   [[ "$state" == changed ]] || return 0
   if (($#)); then
@@ -109,7 +112,7 @@ sb_space_apply() {
   fi
   in_notes_dir "$local_dir" "rm -f $SB_GITIGNORE_PENDING" </dev/null \
     || die "could not remove $SB_GITIGNORE_PENDING in $where: $rerun"
-  state="$("$REPO_DIR/scripts/sb-space.sh" ${local_dir:+--local})" \
+  state="$("$REPO_DIR/scripts/sync-sb-space.sh" ${local_dir:+--local})" \
     || die "could not write the SilverBullet pages in $where: fix the error above, then $rerun"
   [[ "$state" == unchanged ]] \
     || die "the notes .gitignore changed again while the pages waited, so they were not written: $rerun"

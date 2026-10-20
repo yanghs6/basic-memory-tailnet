@@ -3,7 +3,7 @@ load helpers
 
 setup() {
   setup_stubs gh
-  RECORD="$REPO_DIR/scripts/review-record.sh"
+  RECORD="$REPO_DIR/scripts/post-review-record.sh"
   FINDINGS="$BATS_TEST_TMPDIR/findings.md"
   printf '| ID | Sev | Location | Summary | Status |\n|---|---|---|---|---|\n| R1-F1 | P1 | scripts/x.sh:1 | breaks | open |\n' >"$FINDINGS"
 }

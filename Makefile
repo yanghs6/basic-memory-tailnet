@@ -73,10 +73,10 @@ local-verify: ## Verify the local MCP endpoint (plain and *.ts.net Host header) 
 	scripts/verify-sb.sh "http://127.0.0.1:$(SB_PORT)"
 
 access-check: ## Report which access path (tailscale or ssh) works on this network; run it on every network you use
-	scripts/access-check.sh
+	scripts/check-access.sh
 
 tunnel: ## ssh mode: forward MCP and the web UI to 127.0.0.1:BM_TUNNEL_MCP_PORT and BM_TUNNEL_WEB_PORT (Ctrl-C stops)
-	scripts/tunnel.sh
+	scripts/open-tunnel.sh
 
 check-git: ## Check the git policy for the current branch against origin/main (name, commit trailers, worktree config)
 	scripts/check-git.sh origin/main
@@ -85,19 +85,19 @@ new-doc: ## Create a document from its template: TYPE=<type> SLUG=<slug> (types 
 	scripts/create-doc.sh "$(TYPE)" "$(SLUG)"
 
 review: ## Read-only review by another vendor: BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<sha>]
-	scripts/review.sh "$(BRANCH)" "$(REVIEWER)" "$(or $(ROUND),1)"
+	scripts/review-branch.sh "$(BRANCH)" "$(REVIEWER)" "$(or $(ROUND),1)"
 
 review-post: ## Post a review round's reports to its PR: PR=<number> BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_MODEL=<model>]
 	scripts/post-review.sh "$(PR)" "$(BRANCH)" "$(REVIEWER)" "$(or $(ROUND),1)"
 
 review-record: ## Create or update the PR's Review record comment: PR=<number> FILE=<findings table file>
-	scripts/review-record.sh "$(PR)" "$(FILE)"
+	scripts/post-review-record.sh "$(PR)" "$(FILE)"
 
 vm-bootstrap: ## First-time VM setup (HOST=<public-ip>, or the SSH host alias in ssh mode; tailscale mode asks for an auth key)
 	scripts/bootstrap-vm.sh "$(HOST)"
 
-deploy: ## Copy compose.yaml to the VM and start Basic Memory (waits until healthy)
-	scripts/deploy.sh
+deploy: ## Copy compose.yaml, the VM .env and the SilverBullet space files to the VM, then start Basic Memory and SilverBullet (waits until healthy)
+	scripts/deploy-stack.sh
 
 verify: ## Full VM check: MCP write/read/delete, SilverBullet login, loopback binding, exposure (Serve in tailscale mode; Tailscale off and sshd key-only in ssh mode), closed public ports
 	scripts/verify-vm.sh
@@ -106,17 +106,17 @@ probe: ## Read-only VM check: same as verify but writes no notes and does not lo
 	scripts/verify-vm.sh --read-only
 
 status: ## Show VM containers, memory and swap use, and tailscale serve (ssh mode: whether Tailscale is off)
-	scripts/status.sh
+	scripts/show-status.sh
 
 logs: ## Show the last 200 lines of the VM container logs
-	scripts/logs.sh
+	scripts/show-logs.sh
 
 sb-fonts: ## Convert the D2Koding Nerd Font to WOFF2 and upload it to the VM notes folder (LOCAL=1: the local stack)
-	scripts/sb-fonts.sh $(if $(LOCAL),--local)
+	scripts/upload-sb-fonts.sh $(if $(LOCAL),--local)
 
 backup: ## Download a consistent backup of VM data into the main checkout's backups/ (brief container stop)
-	scripts/backup.sh
+	scripts/backup-notes.sh
 
 restore: ## Restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz to the VM (asks for yes), then verify
-	scripts/restore.sh "$(BACKUP)"
+	scripts/restore-notes.sh "$(BACKUP)"
 	scripts/verify-vm.sh

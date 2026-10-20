@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Create or update the single "Review record" comment of a pull request from a findings file
 # (docs/specs/spec-2026-10-13-github-pr-workflow.md, section 8; table format: docs/reviews/README.md).
-# Usage: review-record.sh PR FILE
+# Usage: make review-record PR=<number> FILE=<findings file>
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

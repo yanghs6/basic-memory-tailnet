@@ -161,7 +161,7 @@ vm_env() {
 }
 
 # manifest_cmd DIR -> a shell command (run it with `remote`) that prints "<sha256>  ./<path>" for every file
-# under DIR except the model cache, sorted by path. The one definition backup.sh, restore.sh and the tests share, so their
+# under DIR except the model cache, sorted by path. The one definition backup-notes.sh, restore-notes.sh and the tests share, so their
 # manifests cannot drift apart. pipefail makes a failing find fail the command instead of printing a short list.
 manifest_cmd() {
   printf 'set -o pipefail; cd %s && sudo -n find . -path ./%s -prune -o -type f -exec sha256sum {} + | LC_ALL=C sort -k2' "$1" "$BM_MODEL_CACHE_REL_PATH"

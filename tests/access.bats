@@ -6,8 +6,8 @@ setup() {
   use_vm_env
   unset BM_ACCESS
   export BM_ACCESS_CHECK_URL=https://tunnel.example.test/ CURL_STUB_HTTP_CODE=404
-  ACCESS_CHECK="$REPO_DIR/scripts/access-check.sh"
-  TUNNEL="$REPO_DIR/scripts/tunnel.sh"
+  ACCESS_CHECK="$REPO_DIR/scripts/check-access.sh"
+  TUNNEL="$REPO_DIR/scripts/open-tunnel.sh"
 }
 
 # --- access-check ---
@@ -65,7 +65,7 @@ setup() {
 
 @test "a VM target that never reads the mode still stops on a BM_ACCESS it does not know before it runs ssh" {
   export BM_ACCESS=Ssh
-  run "$REPO_DIR/scripts/logs.sh"
+  run "$REPO_DIR/scripts/show-logs.sh"
   assert_failure
   assert_output --partial "BM_ACCESS must be tailscale or ssh (got 'Ssh')"
   run grep -F 'ssh ' "$STUB_LOG"

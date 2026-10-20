@@ -399,9 +399,9 @@ Expected: `make check` exit 0. 점검은 두 파일만 출력한다. `scripts/bo
 - Rename (`git mv`): 스펙 4절 표의 13개 — `backup.sh`→`backup-notes.sh`, `restore.sh`→`restore-notes.sh`, `remote/bootstrap.sh`→`remote/provision-vm.sh`, `deploy.sh`→`deploy-stack.sh`, `status.sh`→`show-status.sh`, `logs.sh`→`show-logs.sh`, `sb-space.sh`→`sync-sb-space.sh`, `sb-fonts.sh`→`upload-sb-fonts.sh`, `review.sh`→`review-branch.sh`, `review-record.sh`→`post-review-record.sh`, `review-bash-guard.sh`→`guard-reviewer-bash.sh`, `access-check.sh`→`check-access.sh`, `tunnel.sh`→`open-tunnel.sh`
 - Modify: Step 2 명령이 찾는 모든 곳(`e648d5a` 기준 30개 파일, 79줄), 모든 실행 스크립트의 usage 줄, `Makefile:103`의 deploy 설명
 
-- [ ] **Step 1: 실패하는 테스트로 바꾸기** — 테스트 안의 스크립트 경로를 새 이름으로 바꾼다. `vm_ops.bats`, `backup_restore.bats`, `main_checkout.bats`, `access.bats`, `sb_space.bats`, `sb_fonts.bats`, `review.bats`, `review_record.bats`, `review_bash_guard.bats:5`, `bootstrap.bats:11`, `repo.bats:197-198`이다. 테스트 이름에 든 옛 스크립트 이름(`backup_restore.bats:467`의 "a backup made by backup.sh …")은 계획 17이 파일을 나눌 때 바꾼다. `review_bash_guard.bats:29`, `:89`의 `scripts/review.sh`, `scripts/?.sh`는 경로가 아니라 가드에 넣는 입력 문자열이므로 두지 않는다.
+- [x] **Step 1: 실패하는 테스트로 바꾸기** — 테스트 안의 스크립트 경로를 새 이름으로 바꾼다. `vm_ops.bats`, `backup_restore.bats`, `main_checkout.bats`, `access.bats`, `sb_space.bats`, `sb_fonts.bats`, `review.bats`, `review_record.bats`, `review_bash_guard.bats:5`, `bootstrap.bats:11`, `repo.bats:197-198`이다. 테스트 이름에 든 옛 스크립트 이름(`backup_restore.bats:467`의 "a backup made by backup.sh …")은 계획 17이 파일을 나눌 때 바꾼다. `review_bash_guard.bats:29`, `:89`의 `scripts/review.sh`, `scripts/?.sh`는 경로가 아니라 가드에 넣는 입력 문자열이므로 두지 않는다.
 
-- [ ] **Step 2: 실패 확인과 참조 목록**
+- [x] **Step 2: 실패 확인과 참조 목록**
 
 Run: `make test` → 경로를 바꾼 테스트가 실패한다(파일 없음).
 
@@ -413,7 +413,7 @@ git grep -nE "$P" -- . ':!docs/plans/plan-2026-10-0*' ':!docs/plans/plan-2026-10
   ':!docs/specs' ':!docs/decisions' ':!docs/reviews' ':!docs/research'
 ```
 
-- [ ] **Step 3: 이름 바꾸기와 참조 고치기**
+- [x] **Step 3: 이름 바꾸기와 참조 고치기**
 
 - `git mv` 13개(Files). 같은 커밋에서는 경로 참조와 usage 줄만 바꾼다.
 - 위 명령이 찾은 곳을 모두 고친다. Makefile 레시피, 스크립트 사이의 호출(`sb.sh`의 `sb_space_apply`가 부르는 경로, `bootstrap-vm.sh:66`), 스크립트 주석과 리뷰 프롬프트의 예(`review.sh:112`), `.claude/agents/branch-reviewer.md:12`의 훅 경로, `docs/ARCHITECTURE.md`(44, 46-48, 53, 90, 93행), 스킬(`bm-recover:55`, `branch-review:37`, `skill-authoring:37`), `compose.yaml:2`, `silverbullet/agent-hub.md:3`이다.
@@ -440,12 +440,12 @@ git grep -nE "$P" -- . ':!docs/plans/plan-2026-10-0*' ':!docs/plans/plan-2026-10
 
 - `Makefile:103`: `deploy: ## Copy compose.yaml, the VM .env and the SilverBullet space files to the VM, then start Basic Memory and SilverBullet (waits until healthy)`.
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run: `make check`, 그리고 Step 2의 `git grep`.
 Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`만 찾는다. 테스트 이름 목록은 같다. `git log --follow --oneline scripts/backup-notes.sh | head -3`이 옛 커밋까지 보여 준다.
 
-- [ ] **Step 5: 커밋** — `refactor: rename scripts to verb-object names` (`Task: 6`)
+- [x] **Step 5: 커밋** — `refactor: rename scripts to verb-object names` (`Task: 6`)
 
 ### Task 7: 로컬 스택과 VM에서 확인 (P6)
 
@@ -485,3 +485,5 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 | 2026-10-20 | Verified | Task 3 계획 수정: (1) `lib-vm.bats`의 "docker를 부르지 않음" 검사는 `grep '^docker '`로 한다. ssh 스텁 로그 줄에도 원격 명령 글자 `docker compose`가 들어 있기 때문이다. (2) `require_vm` 정의에 `# shellcheck disable=SC2120`과 이유를 둔다(CMD는 선택 인자). (3) `backup.sh`의 `.partial` 네 곳(101, 105, 107, 108행)을 모두 `$PARTIAL_SUFFIX`로 바꿨다. (4) `restore.sh`의 `STAMP`는 주변 전역값처럼 readonly 없이 `\|\| exit 1`만 붙였다. |
 | 2026-10-20 | Verified | Task 4: RED `make test` exit 2(`sb_space_apply: command not found`). GREEN `make test` exit 0, 그 뒤 `make check` exit 0, 219개, not ok 0, 커버리지 94.48%. 테스트 이름 목록: 1개만 늘었다. 그대로 둔 `vm_ops.bats`의 deploy 테스트(pull 실패 뒤 재시도, 건강하지 않은 컨테이너 포함), `backup_restore.bats`의 공간 파일 테스트 두 개, `main_checkout.bats`의 local-up 테스트가 통과했다. deploy는 pull 다음에 공간 파일을 쓴다(P2). |
 | 2026-10-20 | Verified | Task 5: RED `make test` exit 2("ssh mode: probe checks through a verify tunnel …"만 실패, 옵션 순서). GREEN `make check` exit 0, 219개, not ok 0, 커버리지 94.49%. 테스트 이름 목록은 같다. `access.bats`의 make tunnel 줄(`grep -Fx`)과 `vm_ops.bats`의 터널 정리 테스트("leaves no tunnel behind", "closes its tunnel even when a check fails")가 그대로 통과했다. |
+| 2026-10-20 | Verified | Task 6: RED `make test` exit 2(86개 실패: 테스트가 가리키는 새 이름의 스크립트가 아직 없음). `git mv` 13개, 참조 고치기, usage 줄 뒤 GREEN `make check` exit 0, 219개, not ok 0, 커버리지 94.50%. 참조 `git grep`(Step 2)은 계획대로 `tests/review_bash_guard.bats:29`(가드 입력 문자열)만 찾았다. |
+| 2026-10-20 | Verified | Task 6 계획 수정: `backup_restore.bats`의 테스트 이름 "a backup made by backup.sh restores with restore.sh …"도 새 이름으로 바꿨다. 없어지는 스크립트 이름을 남기지 않기 위해서다. 테스트 이름 목록의 차이는 이 한 줄이다. |

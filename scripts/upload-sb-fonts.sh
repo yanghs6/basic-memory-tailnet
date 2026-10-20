@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Convert the D2KodingLigature Nerd Font (Regular and Bold) to WOFF2 and write both files into the SilverBullet space,
 # where the managed library page loads them with @font-face. The fonts stay out of git (4.7 MB, Nerd Fonts licenses).
-# Usage: sb-fonts.sh [--local]   (reads the TTFs from $SB_FONT_DIR, default ~/Library/Fonts)
+# Usage: make sb-fonts [LOCAL=1]   (reads the TTFs from $SB_FONT_DIR, default ~/Library/Fonts)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,7 +16,7 @@ WORK=""
 
 main() {
   local local_dir font_dir="${SB_FONT_DIR:-$HOME/Library/Fonts}" style name
-  local_dir="$(notes_dir_arg "$@")" || exit 1
+  local_dir="$(notes_dir_arg "make sb-fonts [LOCAL=1]" "$@")" || exit 1
   for style in $FONT_STYLES; do
     [[ -f "$font_dir/$FONT_FILE_PREFIX-$style.ttf" ]] \
       || die "missing $font_dir/$FONT_FILE_PREFIX-$style.ttf: install the D2Coding Nerd Font from $FONT_RELEASES_URL or point SB_FONT_DIR at the folder that has it"

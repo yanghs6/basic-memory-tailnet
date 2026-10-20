@@ -5,7 +5,7 @@
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-plan.md   plan conformance per AGENTS.md Code Review Rules
 # It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs
 # that post-review.sh puts in the comment header.
-# Usage: review.sh BRANCH codex|claude [ROUND]
+# Usage: make review BRANCH=<plan/NN-slug|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]
 #   REVIEW_BASE=<ref>            base for the review (default main; the reviewed head for round 2)
 #   REVIEW_ALLOW_SAME_VENDOR=1   allow a reviewer from the author's vendor (prints a warning)
 set -euo pipefail
@@ -117,7 +117,7 @@ change_prompt() {
 Review the changes in git diff $BASE_BRANCH...HEAD on branch $BRANCH (commits: git log $BASE_BRANCH..HEAD).
 Follow the branch-review skill (.agents/skills/branch-review/SKILL.md) and its checklist, and look for bugs,
 security problems and unmet requirements that these changes introduce. Run git diff, git log and git show
-with plain arguments only (for example git diff $BASE_BRANCH...HEAD -- scripts/review.sh).
+with plain arguments only (for example git diff $BASE_BRANCH...HEAD -- scripts/review-branch.sh).
 EOF
   prompt_footer
 }

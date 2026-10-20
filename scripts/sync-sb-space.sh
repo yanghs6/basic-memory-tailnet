@@ -10,7 +10,7 @@
 # marker only after that succeeds, and runs this script again to write the pages. Without the marker it writes the
 # library page (and index.md when missing) and prints "unchanged". A run that failed in between (a pull, the
 # recreate) leaves the marker, so the next run asks again.
-# Usage: sb-space.sh [--local]
+# Usage: sync-sb-space.sh [--local]
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,7 +22,7 @@ readonly LIBRARY_PAGE=Library/agent-hub/agent-hub.md
 
 main() {
   local local_dir previous state pending where
-  local_dir="$(notes_dir_arg "$@")" || exit 1
+  local_dir="$(notes_dir_arg "sync-sb-space.sh [--local]" "$@")" || exit 1
   where="${local_dir:-$BM_VM_HOST:$SB_REMOTE_NOTES_DIR}"
 
   previous="$(in_notes_dir "$local_dir" 'cat .gitignore 2>/dev/null || true' </dev/null)" \

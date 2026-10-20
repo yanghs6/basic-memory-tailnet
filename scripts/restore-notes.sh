@@ -5,7 +5,7 @@
 # touched. Current data is moved aside, never deleted. This repo's SilverBullet space files are written into the
 # restored notes folder while the containers are stopped, so Basic Memory starts with the current notes .gitignore.
 # Any failure after the stop puts the previous data, compose.yaml and .env back and restarts the container.
-# Usage: restore.sh backups/bm-<stamp>.tgz   (asks the user to type yes)
+# Usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz   (asks the user to type yes)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
