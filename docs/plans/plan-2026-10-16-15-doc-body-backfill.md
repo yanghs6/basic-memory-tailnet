@@ -205,3 +205,4 @@ git push
 | 2026-10-16 | Verified | 판정(M2): Open question이나 Assumption 바로 뒤에서 그것을 어떻게 확인하는지, 틀리면 어떻게 되는지 말하는 문장은 그 레이블 안에 둠(ARCHITECTURE·ADR 0001·operations의 IPv4와 IAP 요금 질문, 계획 04의 `fallocate` 가정). 질문과 그 해소 방법은 한 묶음이다. 틀렸을 때 비용: 문장 몇 개의 위치. |
 | 2026-10-16 | Verified | 미룬 Minor(사용자가 정함): M3 gcp-vm 2절 표의 이미지 행은 칸에 레이블만 있어 쌍점 뒤가 빔. M4 ADR 0004의 `**Verified (2026-10-13):**` 블록 머리와 다음 줄 `**Command:**` 사이에 빈 줄이 없어 한 줄로 보임. |
 | 2026-10-16 | Verified | 리뷰 수정 뒤 `make check`: exit 0, 213 ok, 0 not ok, 커버리지 94.51%. |
+| 2026-10-20 | Verified | 사용자 결정: 미룬 Minor M3·M4를 병합 전에 고침. M3 수정(`Review-Finding: SDD-final-M3`): gcp-vm 2절 표의 이미지 행 칸에서 괄호 안에 있던 `Command:`와 명령을 꺼내, `**Verified (2026-10-12):**` 뒤에 `**Command:**`와 명령을 둠. 낱말은 그대로임. 칸은 나눌 수 없어, 가운데에 레이블이 남는 표 칸은 3곳에서 4곳이 됨. |
