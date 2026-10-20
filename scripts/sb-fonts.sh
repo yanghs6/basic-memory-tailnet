@@ -5,8 +5,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/sb.sh
+. "$SCRIPT_DIR/lib/sb.sh"
 
 readonly FONT_FILE_PREFIX=D2KodingLigatureNerdFont
 readonly FONT_STYLES="Regular Bold"

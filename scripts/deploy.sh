@@ -6,9 +6,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/vm.sh
+. "$SCRIPT_DIR/lib/vm.sh"
+# shellcheck source=lib/sb.sh
+. "$SCRIPT_DIR/lib/sb.sh"
 
 main() {
   local gitignore_state env_file="$BM_REMOTE_APP_DIR/.env"

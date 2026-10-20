@@ -76,7 +76,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 ### Start: branch, worktree, draft PR
 
 - [x] `git fetch origin` 뒤 `origin/main`에서 `plan/16-script-cleanup` 브랜치를 만든다(`git-workflow` 스킬의 Start). worktree `repo-structure`를 다시 쓴다(`.review-out/`에 계획 13~15의 리뷰 기록이 있으니 지우지 않는다).
-- [ ] 첫 커밋에서 이 파일의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다(`Task: none`).
+- [x] 첫 커밋에서 이 파일의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다(`Task: none`).
 - [x] 참조 목록(스펙 11절)을 Progress log에 적는다. 명령은 Task 6 Step 2와 같다.
 
 ### Task 1: common, vm, sb 라이브러리로 나누기
@@ -97,7 +97,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - Produces (source 관계): `vm.sh`는 `common.sh`를, `sb.sh`는 `common.sh`와 `vm.sh`를, `docs.sh`는 `common.sh`를 source한다. 경로는 `"${BASH_SOURCE[0]%/*}/<file>"`이고 그 위에 `# shellcheck source=<file>`를 둔다(`.shellcheckrc`가 `source-path=SCRIPTDIR`).
 - Produces (스크립트가 source하는 것): `vm.sh` — backup, status, logs, verify-vm, access-check, tunnel, bootstrap-vm. `vm.sh`와 `sb.sh` — deploy, restore. `sb.sh` — sb-space, sb-fonts, verify-sb. `common.sh` — verify-mcp, review-record, review-bash-guard, 그리고 Task 2 전까지의 check-git, check-pr, review, post-review. `docs.sh` — create-doc.
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 `tests/lib-vm.bats`: `setup`은 `setup_stubs ssh docker sudo`, `use_vm_env`, `. "$REPO_DIR/scripts/lib/vm.sh"`다. `tests/common.bats`의 테스트 세 개를 이름과 본문 그대로 옮긴다. "remote runs ssh in batch mode against BM_VM_USER@BM_VM_HOST", "remote checks BM_ACCESS before it runs ssh, so no VM target reaches the VM with a typo there", "manifest_cmd lists every file's sha256 sorted by path"이다. `tests/common.bats`에는 `mask` 테스트만 남기고, setup은 `common.sh`만 source한다.
 
@@ -125,12 +125,12 @@ setup() {
 
 `env REPO_DIR=/nowhere`는 `common.sh`가 물려받은 값이 아니라 자기 위치에서 `REPO_DIR`를 구하는지 확인한다. 검사에 쓰는 두 상수는 환경 값으로 덮어쓸 수 없는 것을 골랐다. `use_vm_env`가 `BM_REMOTE_*`를 export하기 때문이다.
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `make test`
 Expected: `lib-vm.bats`와 `lib-sb.bats`의 모든 테스트가 실패한다(`scripts/lib/vm.sh`, `scripts/lib/sb.sh`가 없다). 다른 파일은 통과한다.
 
-- [ ] **Step 3: 나누기**
+- [x] **Step 3: 나누기**
 
 - 위 표대로 정의를 옮긴다. 본문은 바꾸지 않는다. 머리 주석은 `docs.sh:1-8`의 꼴을 따른다(용도 한 줄, bash 3.2 한 줄, `#   name ARGS -> 한 줄` 색인).
 - `common.sh`: `REPO_DIR="$(dirname "$(dirname "$COMMON_LIB_DIR")")" || exit 1`과 `readonly REPO_DIR`. 환경의 `REPO_DIR`는 읽지 않는다(테스트가 `REPO_DIR`를 export한다). `SB_LOCAL_NOTES_DIR`는 이 값으로 구하므로, source할 때 하위 셸이 하나 줄어든다(스펙 2.1의 `common.sh:22`).
@@ -140,12 +140,12 @@ Expected: `lib-vm.bats`와 `lib-sb.bats`의 모든 테스트가 실패한다(`sc
 - `tests/backup_restore.bats:32`의 `local_manifest` → `scripts/lib/vm.sh`. `tests/repo.bats:104`가 `HEALTH_TIMEOUT_SECONDS`를 읽는 파일 → `scripts/lib/vm.sh`.
 - `docs/ARCHITECTURE.md:43`(`Makefile` + `scripts/` 행) 끝에 "공용 함수는 `scripts/lib/`(common, vm, sb, git, docs)에 있고, 파일마다 첫머리에 함수 색인이 있음"을 더한다. git은 Task 2에서 생긴다.
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run: `make check`
 Expected: exit 0, 커버리지 80% 이상. 테스트 이름 목록은 Task 전과 같고, `lib-sb.bats`의 새 테스트 하나만 늘어난다. 옮긴 세 테스트는 이름이 같다. Progress log에 적는다.
 
-- [ ] **Step 5: 커밋** — `refactor: split scripts/lib into common, vm and sb libraries` (`Task: 1`)
+- [x] **Step 5: 커밋** — `refactor: split scripts/lib into common, vm and sb libraries` (`Task: 1`)
 
 ### Task 2: git 도구 라이브러리 (중복 1, 4)
 
@@ -476,3 +476,6 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 | 2026-10-20 | Verified | 스펙 2.1과 5절의 위치를 `e648d5a`에서 다시 확인했다. 스펙 기준 `87e86d4` 뒤로 스크립트 줄은 바뀌지 않았다. 바뀐 것은 계획 13이 더한 `scripts/lib/docs.sh`(`common.sh`를 source하지 않고 방지 줄이 없음)와 `scripts/create-doc.sh`다. Task 1이 `docs.sh`를 맞춘다. |
 | 2026-10-20 | Verified | 참조 목록(Task 6 Step 2의 `git grep`): 30개 파일, 79줄. `Makefile` 12, `tests/vm_ops.bats` 14, `docs/ARCHITECTURE.md` 7, `tests/backup_restore.bats` 5, `scripts/deploy.sh`·`scripts/restore.sh`·`tests/main_checkout.bats` 각 4, `tests/access.bats` 3, `scripts/lib/common.sh`·`scripts/review.sh`·`tests/repo.bats`·`tests/review_bash_guard.bats` 각 2, 나머지 18개 파일 각 1(스킬 3, `.claude/agents/branch-reviewer.md`, `compose.yaml`, `silverbullet/agent-hub.md`, 스크립트 8, 테스트 4). |
 | 2026-10-20 | Verified | 사용자 결정: 계획과 Decisions P1~P7대로 진행하고, 실행 방식은 A(Native: 한 세션에서 구현, 끝에 브랜치 전체 리뷰 한 번)로 한다. |
+| 2026-10-20 | Verified | 초안 PR #15(draft)를 열었다. Start의 첫 커밋 `5eebe31`에서 `make check` exit 0, 213 ok, 커버리지 94.51%. |
+| 2026-10-20 | Verified | Task 1: RED `make test` exit 2(`lib-vm.bats` 3개, `lib-sb.bats` 1개 실패: `scripts/lib/vm.sh`, `sb.sh` 없음). GREEN `make check` exit 0, 214개, not ok 0, 커버리지 94.56%(`common.sh` 100%, `vm.sh` 95.45%, `sb.sh` 93.10%). 테스트 이름 목록: 새 테스트 1개만 늘었고, `common.bats`에서 옮긴 세 개는 이름이 같다. |
+| 2026-10-20 | Verified | Task 1 계획 수정: `lib-sb.bats`의 자식 셸을 `bash -c` 대신 임시 스크립트 파일로 실행한다. `make coverage`에서 kcov가 export한 `PS4`가 `BASH_SOURCE`를 읽는데, `bash -c`의 최상위에서는 그 값이 없어 `set -u`로 멈췄다(`BASH_SOURCE: unbound variable`). macOS bash 3.2와 `make test`에서는 통과했다. 검사 내용은 같다. |

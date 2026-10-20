@@ -29,7 +29,7 @@ pack_archive() {
 
 # local_manifest DIR -> the manifest of DIR, built by the same command backup.sh and restore.sh run on the VM.
 local_manifest() {
-  bash -c "$(. "$REPO_DIR/scripts/lib/common.sh" && manifest_cmd "$1")"
+  bash -c "$(. "$REPO_DIR/scripts/lib/vm.sh" && manifest_cmd "$1")"
 }
 
 # fail_command NAME -> put a NAME first on PATH that prints an error and exits 1.

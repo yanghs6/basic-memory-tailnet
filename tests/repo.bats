@@ -101,7 +101,7 @@ compose_start_period_seconds() {
 @test "deploy and restore wait longer than the healthcheck start_period" {
   local period timeout
   period="$(compose_start_period_seconds)"
-  timeout="$(sed -nE 's/^readonly HEALTH_TIMEOUT_SECONDS=([0-9]+)$/\1/p' "$REPO_DIR/scripts/lib/common.sh")"
+  timeout="$(sed -nE 's/^readonly HEALTH_TIMEOUT_SECONDS=([0-9]+)$/\1/p' "$REPO_DIR/scripts/lib/vm.sh")"
   [[ -n "$period" && -n "$timeout" ]] || fail "could not read start_period ('$period') or HEALTH_TIMEOUT_SECONDS ('$timeout')"
   ((timeout > period)) \
     || fail "HEALTH_TIMEOUT_SECONDS=$timeout must exceed start_period ${period}s, or --wait gives up inside the grace period"

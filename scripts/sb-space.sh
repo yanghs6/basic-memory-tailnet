@@ -14,9 +14,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/sb.sh
+. "$SCRIPT_DIR/lib/sb.sh"
 
 readonly SOURCE_DIR="$REPO_DIR/silverbullet"
 readonly LIBRARY_PAGE=Library/agent-hub/agent-hub.md

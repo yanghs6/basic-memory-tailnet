@@ -6,8 +6,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/sb.sh
+. "$SCRIPT_DIR/lib/sb.sh"
 
 readonly CURL_TIMEOUT_SECONDS=15
 readonly FONT_PATH="/.fs/$SB_FONTS_REL_DIR/D2KodingLigatureNerdFont-Regular.woff2"
