@@ -18,7 +18,6 @@ readonly TUNNEL_ENDED_EXIT=1
 main() {
   local mode status=0
   local mcp_port="${BM_TUNNEL_MCP_PORT:-$DEFAULT_TUNNEL_MCP_PORT}" web_port="${BM_TUNNEL_WEB_PORT:-$DEFAULT_TUNNEL_WEB_PORT}"
-  local -a cmd
   mode="$(access_mode)" || exit 1
   [[ "$mode" == ssh ]] \
     || die "make tunnel is for BM_ACCESS=ssh; in tailscale mode clients use https://<host>.<tailnet>.ts.net/mcp (docs/runbooks/rbk-2026-10-12-operations.md)"
@@ -26,13 +25,11 @@ main() {
   require_free_port BM_TUNNEL_MCP_PORT "$mcp_port"
   require_free_port BM_TUNNEL_WEB_PORT "$web_port"
 
-  cmd=(ssh -N -o ExitOnForwardFailure=yes -o "ServerAliveInterval=$SERVER_ALIVE_INTERVAL_SECONDS"
+  tunnel_args "$mcp_port" "$web_port" -o "ServerAliveInterval=$SERVER_ALIVE_INTERVAL_SECONDS" \
     -o "ServerAliveCountMax=$SERVER_ALIVE_COUNT_MAX"
-    -L "$(forward_spec "$mcp_port" "${BM_PORT:-$DEFAULT_BM_PORT}")" -L "$(forward_spec "$web_port" "${SB_PORT:-$DEFAULT_SB_PORT}")"
-    "$BM_VM_USER@$BM_VM_HOST")
-  log "running: ${cmd[*]}"
+  log "running: ssh ${TUNNEL_ARGS[*]}"
   log "MCP: http://127.0.0.1:$mcp_port/mcp  web UI: http://127.0.0.1:$web_port  (Ctrl-C stops the tunnel)"
-  "${cmd[@]}" || status=$?
+  ssh "${TUNNEL_ARGS[@]}" || status=$?
   # Not die: the exit code of ssh is the point, so scripts and callers can tell why the tunnel ended.
   printf "ERROR: tunnel closed (exit %s): rerun 'make tunnel'; %s\n" "$status" "$(access_hint)" >&2
   exit "$((status == 0 ? TUNNEL_ENDED_EXIT : status))"

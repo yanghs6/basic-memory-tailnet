@@ -69,8 +69,8 @@ close_verify_tunnel() {
   fi
 }
 
-# open_verify_tunnel BM_PORT SB_PORT -> forwards VERIFY_TUNNEL_MCP_PORT and VERIFY_TUNNEL_WEB_PORT on 127.0.0.1 to the
-# VM's loopback ports over the SSH alias, in the background until this script exits.
+# open_verify_tunnel -> forwards VERIFY_TUNNEL_MCP_PORT and VERIFY_TUNNEL_WEB_PORT on 127.0.0.1 to Basic Memory and
+# SilverBullet on the VM's loopback over the SSH alias, in the background until this script exits.
 open_verify_tunnel() {
   local waited=0 port
   # A listener already on these ports would pass the readiness check below while ssh is still connecting.
@@ -78,15 +78,14 @@ open_verify_tunnel() {
     require_free_port "verify tunnel port" "$port" "$VERIFY_TUNNEL_PORT_HINT"
   done
   step "open a verify tunnel to $BM_VM_USER@$BM_VM_HOST on 127.0.0.1:$VERIFY_TUNNEL_MCP_PORT and :$VERIFY_TUNNEL_WEB_PORT"
-  ssh -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ConnectTimeout="$SSH_CONNECT_TIMEOUT_SECONDS" \
-    -L "$(forward_spec "$VERIFY_TUNNEL_MCP_PORT" "$1")" -L "$(forward_spec "$VERIFY_TUNNEL_WEB_PORT" "$2")" \
-    "$BM_VM_USER@$BM_VM_HOST" &
+  tunnel_args "$VERIFY_TUNNEL_MCP_PORT" "$VERIFY_TUNNEL_WEB_PORT" -o BatchMode=yes -o ConnectTimeout="$SSH_CONNECT_TIMEOUT_SECONDS"
+  ssh "${TUNNEL_ARGS[@]}" &
   tunnel_pid=$!
   trap close_verify_tunnel EXIT
   while ((waited < TUNNEL_READY_TIMEOUT_SECONDS)); do
     kill -0 "$tunnel_pid" 2>/dev/null \
       || die "verify tunnel exited before it opened (is port $VERIFY_TUNNEL_MCP_PORT or $VERIFY_TUNNEL_WEB_PORT in use?): $(access_hint)"
-    if nc -z 127.0.0.1 "$VERIFY_TUNNEL_MCP_PORT" >/dev/null 2>&1; then
+    if local_port_open "$VERIFY_TUNNEL_MCP_PORT"; then
       log "verify tunnel is open"
       return 0
     fi
@@ -181,7 +180,7 @@ main() {
   require_env BM_VM_PUBLIC_IP
   validate_public_ip "$BM_VM_PUBLIC_IP"
   if [[ "$mode" == ssh ]]; then
-    open_verify_tunnel "$port" "$sb_port"
+    open_verify_tunnel
     url="http://127.0.0.1:$VERIFY_TUNNEL_MCP_PORT/mcp"
     sb_url="http://127.0.0.1:$VERIFY_TUNNEL_WEB_PORT"
   else

@@ -380,18 +380,18 @@ Expected: `make check` exit 0. 점검은 두 파일만 출력한다. `scripts/bo
   - `tunnel_args MCP_LOCAL_PORT WEB_LOCAL_PORT [SSH_OPTION...]` → 전역 배열 `TUNNEL_ARGS`를 ssh 인자로 채운다: `-N -o ExitOnForwardFailure=yes SSH_OPTION... -L "$(forward_spec MCP_LOCAL_PORT "${BM_PORT:-$DEFAULT_BM_PORT}")" -L "$(forward_spec WEB_LOCAL_PORT "${SB_PORT:-$DEFAULT_SB_PORT}")" "$BM_VM_USER@$BM_VM_HOST"`. 실행하지 않는다(P7). 배열은 항상 비어 있지 않으므로 bash 3.2의 빈 배열 문제가 없다.
 - `open_verify_tunnel`은 인자를 받지 않는다. 원격 포트는 `tunnel_args`가 읽는다.
 
-- [ ] **Step 1: 실패하는 테스트로 바꾸기** — `tests/vm_ops.bats:204`의 기대 줄을 `ssh -N -o ExitOnForwardFailure=yes -o BatchMode=yes -o ConnectTimeout=10 -L 127.0.0.1:28737:127.0.0.1:8737 -L 127.0.0.1:23000:127.0.0.1:3000 ubuntu@agent-hub-iap`로 바꾼다. 옵션 순서만 바뀌고, 옵션 집합과 바인딩은 같다.
+- [x] **Step 1: 실패하는 테스트로 바꾸기** — `tests/vm_ops.bats:204`의 기대 줄을 `ssh -N -o ExitOnForwardFailure=yes -o BatchMode=yes -o ConnectTimeout=10 -L 127.0.0.1:28737:127.0.0.1:8737 -L 127.0.0.1:23000:127.0.0.1:3000 ubuntu@agent-hub-iap`로 바꾼다. 옵션 순서만 바뀌고, 옵션 집합과 바인딩은 같다.
 
-- [ ] **Step 2: 실패 확인** — `make test`. "ssh mode: probe checks through a verify tunnel …"만 실패한다.
+- [x] **Step 2: 실패 확인** — `make test`. "ssh mode: probe checks through a verify tunnel …"만 실패한다.
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 - `verify-vm.sh`: `tunnel_args "$VERIFY_TUNNEL_MCP_PORT" "$VERIFY_TUNNEL_WEB_PORT" -o BatchMode=yes -o ConnectTimeout="$SSH_CONNECT_TIMEOUT_SECONDS"` 다음에 `ssh "${TUNNEL_ARGS[@]}" &`와 `tunnel_pid=$!`. 준비 확인(`:88`)은 `local_port_open`. `main`의 `open_verify_tunnel "$port" "$sb_port"` → `open_verify_tunnel`.
 - `tunnel.sh`: `cmd` 배열(`:21`, `:30-33`)을 `tunnel_args "$mcp_port" "$web_port" -o "ServerAliveInterval=$SERVER_ALIVE_INTERVAL_SECONDS" -o "ServerAliveCountMax=$SERVER_ALIVE_COUNT_MAX"`로 바꾼다. `:34`는 `log "running: ssh ${TUNNEL_ARGS[*]}"`, `:36`은 `ssh "${TUNNEL_ARGS[@]}" || status=$?`. 종료 처리(`:37-39`)는 그대로 둔다.
 
-- [ ] **Step 4: 통과 확인** — `make check` exit 0. 그대로 통과해야 하는 테스트: `access.bats:83`의 make tunnel 줄, `vm_ops.bats:195-231`(터널이 남지 않음, 포트 점유, 실패 뒤 터널 정리). 테스트 이름 목록은 같다.
+- [x] **Step 4: 통과 확인** — `make check` exit 0. 그대로 통과해야 하는 테스트: `access.bats:83`의 make tunnel 줄, `vm_ops.bats:195-231`(터널이 남지 않음, 포트 점유, 실패 뒤 터널 정리). 테스트 이름 목록은 같다.
 
-- [ ] **Step 5: 커밋** — `refactor: build the arguments of both SSH tunnels and the port check in scripts/lib/vm.sh` (`Task: 5`)
+- [x] **Step 5: 커밋** — `refactor: build the arguments of both SSH tunnels and the port check in scripts/lib/vm.sh` (`Task: 5`)
 
 ### Task 6: 스크립트 이름을 `<동사>-<대상>.sh`로 (스펙 4절 V2)
 
@@ -484,3 +484,4 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 | 2026-10-20 | Verified | Task 3 중 발견: `remote_compose`의 인자 없는 `return`이 restore 롤백(EXIT trap) 안에서 trap 직전 상태(die의 1)를 돌려줘, `backup_restore.bats`의 롤백 테스트 3개(18, 25, 28번)가 실패했다. bash는 trap 핸들러에서 실행된 인자 없는 `return`의 상태를 trap 전 마지막 명령에서 가져온다. if/else로 바꾸고 함수 주석에 이유를 적었다. 기존 롤백 테스트가 회귀를 잡는다. |
 | 2026-10-20 | Verified | Task 3 계획 수정: (1) `lib-vm.bats`의 "docker를 부르지 않음" 검사는 `grep '^docker '`로 한다. ssh 스텁 로그 줄에도 원격 명령 글자 `docker compose`가 들어 있기 때문이다. (2) `require_vm` 정의에 `# shellcheck disable=SC2120`과 이유를 둔다(CMD는 선택 인자). (3) `backup.sh`의 `.partial` 네 곳(101, 105, 107, 108행)을 모두 `$PARTIAL_SUFFIX`로 바꿨다. (4) `restore.sh`의 `STAMP`는 주변 전역값처럼 readonly 없이 `\|\| exit 1`만 붙였다. |
 | 2026-10-20 | Verified | Task 4: RED `make test` exit 2(`sb_space_apply: command not found`). GREEN `make test` exit 0, 그 뒤 `make check` exit 0, 219개, not ok 0, 커버리지 94.48%. 테스트 이름 목록: 1개만 늘었다. 그대로 둔 `vm_ops.bats`의 deploy 테스트(pull 실패 뒤 재시도, 건강하지 않은 컨테이너 포함), `backup_restore.bats`의 공간 파일 테스트 두 개, `main_checkout.bats`의 local-up 테스트가 통과했다. deploy는 pull 다음에 공간 파일을 쓴다(P2). |
+| 2026-10-20 | Verified | Task 5: RED `make test` exit 2("ssh mode: probe checks through a verify tunnel …"만 실패, 옵션 순서). GREEN `make check` exit 0, 219개, not ok 0, 커버리지 94.49%. 테스트 이름 목록은 같다. `access.bats`의 make tunnel 줄(`grep -Fx`)과 `vm_ops.bats`의 터널 정리 테스트("leaves no tunnel behind", "closes its tunnel even when a check fails")가 그대로 통과했다. |

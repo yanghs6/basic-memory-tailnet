@@ -4,8 +4,10 @@
 #   access_mode -> tailscale or ssh (BM_ACCESS); dies on any other value
 #   access_hint -> what to check when SSH to the VM fails, for the current access mode
 #   require_vm [CMD...] -> dies unless the access mode, ssh, every CMD and the VM settings are there
+#   local_port_open PORT -> exit 0 when something listens on 127.0.0.1:PORT
 #   require_free_port NAME PORT [HINT] -> dies unless PORT is a free unprivileged port on 127.0.0.1
 #   forward_spec LOCAL_PORT REMOTE_PORT -> an ssh -L argument bound to 127.0.0.1 on both ends
+#   tunnel_args MCP_LOCAL_PORT WEB_LOCAL_PORT [SSH_OPTION...] -> set TUNNEL_ARGS to the ssh arguments of a tunnel
 #   remote CMD -> run CMD on the VM over SSH (after require_vm)
 #   remote_compose [--if-deployed] ARGS -> docker compose ARGS in the VM app dir
 #   exists_cmd PATH -> a sh command that prints present or absent for PATH
@@ -67,6 +69,11 @@ require_vm() {
 readonly MIN_LOCAL_PORT=1024
 readonly MAX_LOCAL_PORT=65535
 
+# local_port_open PORT -> exit 0 when something listens on 127.0.0.1:PORT.
+local_port_open() {
+  nc -z 127.0.0.1 "$1" >/dev/null 2>&1
+}
+
 # require_free_port NAME PORT [HINT] -> dies unless PORT is an unprivileged port number that nothing on 127.0.0.1
 # listens on. HINT (default: another 'make tunnel'? or set NAME in .env) says what to do about a port in use.
 require_free_port() {
@@ -74,7 +81,7 @@ require_free_port() {
   if ! [[ "$port" =~ ^[1-9][0-9]*$ ]] || ((port < MIN_LOCAL_PORT || port > MAX_LOCAL_PORT)); then
     die "$name must be a port number from $MIN_LOCAL_PORT to $MAX_LOCAL_PORT (got '$port')"
   fi
-  if nc -z 127.0.0.1 "$port" >/dev/null 2>&1; then
+  if local_port_open "$port"; then
     die "port $port is in use on 127.0.0.1: $hint"
   fi
 }
@@ -83,6 +90,19 @@ require_free_port() {
 # REMOTE_PORT on the VM's loopback. Every -L goes through here, so no tunnel listens beyond this machine.
 forward_spec() {
   printf '127.0.0.1:%s:127.0.0.1:%s\n' "$1" "$2"
+}
+
+# tunnel_args MCP_LOCAL_PORT WEB_LOCAL_PORT [SSH_OPTION...] -> set the array TUNNEL_ARGS to the ssh arguments of a
+# tunnel that forwards MCP_LOCAL_PORT and WEB_LOCAL_PORT on 127.0.0.1 (forward_spec) to Basic Memory and SilverBullet
+# on the VM's loopback, with SSH_OPTION... after ExitOnForwardFailure (ssh exits at once when a forward cannot bind).
+# It does not run ssh: the caller does, so `ssh "${TUNNEL_ARGS[@]}" &` leaves the pid of ssh itself in $!.
+tunnel_args() {
+  local mcp_port="$1" web_port="$2"
+  shift 2
+  TUNNEL_ARGS=(-N -o ExitOnForwardFailure=yes "$@"
+    -L "$(forward_spec "$mcp_port" "${BM_PORT:-$DEFAULT_BM_PORT}")"
+    -L "$(forward_spec "$web_port" "${SB_PORT:-$DEFAULT_SB_PORT}")"
+    "$BM_VM_USER@$BM_VM_HOST")
 }
 
 # remote CMD -> run CMD on the VM over SSH: Tailscale SSH, or the ssh access mode's host alias. Callers run require_vm

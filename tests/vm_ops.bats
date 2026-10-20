@@ -201,7 +201,7 @@ teardown() {
   assert_output --partial "OK: sshd accepts keys only"
   assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8443 8737 3000"
   assert_output --partial "OK: automated VM checks passed (access: ssh)"
-  run grep -Fx 'ssh -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ConnectTimeout=10 -L 127.0.0.1:28737:127.0.0.1:8737 -L 127.0.0.1:23000:127.0.0.1:3000 ubuntu@agent-hub-iap' "$STUB_LOG"
+  run grep -Fx 'ssh -N -o ExitOnForwardFailure=yes -o BatchMode=yes -o ConnectTimeout=10 -L 127.0.0.1:28737:127.0.0.1:8737 -L 127.0.0.1:23000:127.0.0.1:3000 ubuntu@agent-hub-iap' "$STUB_LOG"
   assert_success
   run grep -F 'tailscale serve' "$STUB_LOG"
   assert_failure
