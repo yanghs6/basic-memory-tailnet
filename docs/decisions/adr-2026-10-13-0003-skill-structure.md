@@ -11,12 +11,15 @@ date: 2026-10-13
 
 - **배포 값이 여러 스킬에 흩어져 있었습니다.**
   - 호스팅 전환(`a82df1c`)에서 스킬 3개를, Tailscale 노드 이름 변경(`d15506b`)에서 스킬 2개를 고쳐야 했습니다.
-  - 남아 있던 하드코딩은 `agent-hub` 11곳과 zone `us-west1-b` 3곳이고, 클라우드 CLI 명령도 스킬 안에 있었습니다(**Command:** `grep -n -oE 'us-west1-b|agent-hub' .agents/skills/*/SKILL.md`).
-- **본문이 길고 문단 단위로 뭉쳐 있었습니다.** 150단어가 넘는 단계가 여러 개였고, 스킬 전체 합계는 3,322단어였습니다(**Command:** `wc -w`). 그래서 한 단계만 고쳐도 문단 전체가 diff에 잡혔고, 병렬 브랜치끼리 충돌하기 쉬웠습니다.
+  - 남아 있던 하드코딩은 `agent-hub` 11곳과 zone `us-west1-b` 3곳이고, 클라우드 CLI 명령도 스킬 안에 있었습니다.
+    - **Command:** `grep -n -oE 'us-west1-b|agent-hub' .agents/skills/*/SKILL.md`
+- **본문이 길고 문단 단위로 뭉쳐 있었습니다.** 150단어가 넘는 단계가 여러 개였고, 스킬 전체 합계는 3,322단어였습니다. 그래서 한 단계만 고쳐도 문단 전체가 diff에 잡혔고, 병렬 브랜치끼리 충돌하기 쉬웠습니다.
+  - **Command:** `wc -w`
 - **새 스킬을 추가하는 규칙이 문서로 없었습니다.** 테스트는 표준 frontmatter 키, 이름과 폴더 일치, 링크, 500줄만 검사했습니다. 이 결정 이전 상태로 실험해 보니 에이전트가 README 목록, "Not for" 경계, 클라우드 명령 위치를 놓쳤습니다(아래 "검증").
 
-## 근거 (Verified, 2026-10-13 웹 조사)
+## 근거
 
+**Verified (2026-10-13 웹 조사):**
 - **Agent Skills 명세**([agentskills.io/specification](https://agentskills.io/specification))
   - frontmatter 키는 여섯 개뿐입니다.
     - `name`: 1~64자, 소문자·숫자·하이픈, 폴더명과 일치
@@ -91,7 +94,11 @@ date: 2026-10-13
 | 업그레이드 직후 verify 실패(마이그레이션 있음) | — | `references/rollback.md`를 찾음. 사용자 동의를 받고, 사용자가 직접 `yes`를 입력하게 하고, 새 고정값은 커밋하지 않음. |
 | Codex 역할로 리뷰·머지 준비 | — | `references/review-and-merge.md`를 찾음. `REVIEWER=claude`, 머지 메시지 파일, 정리 순서를 정확히 따름. |
 
-**검사의 실효성:** 위반 13가지를 섞은 임시 스킬을 넣고 `make test`를 실행했습니다(**Command:** `make test`). 위반 13가지는 다음과 같습니다.
+**검사의 실효성:** 위반 13가지를 섞은 임시 스킬을 넣고 `make test`를 실행했습니다.
+
+**Command:** `make test`
+
+위반 13가지는 다음과 같습니다.
 
 - 비표준 키 `when_to_use`
 - 이름의 대문자·밑줄
