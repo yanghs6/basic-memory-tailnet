@@ -6,23 +6,12 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/git.sh
+. "$SCRIPT_DIR/lib/git.sh"
 
 readonly BRANCH_PATTERN='^(plan/[0-9]{2}-[a-z0-9-]+|work/[a-z0-9-]+)$'
-readonly ASSISTED_BY_PATTERN='^(claude-code|codex|antigravity|gemini-cli) [^ ]+$'
-readonly PLAN_PATTERN='^([0-9]{2}|none)$'
-readonly TASK_PATTERN='^([0-9]+|review|none)$'
-readonly FORBIDDEN_TRAILERS="Co-authored-by Signed-off-by"
 readonly GIT_CONFIG_KEY_MISSING=1
 readonly POLICY_HINT="see AGENTS.md, Git; ask the human before rewriting history"
-
-PROBLEMS=""
-
-add_problem() {
-  PROBLEMS="${PROBLEMS}  - $*
-"
-}
 
 # trailer COMMIT KEY -> the trailer's values joined by commas; empty when absent.
 trailer() {
@@ -53,7 +42,7 @@ check_branch() {
 # check_trailer WHERE COMMIT KEY PATTERN FORMAT
 check_trailer() {
   local where="$1" sha="$2" key="$3" pattern="$4" format="$5" value
-  value="$(trailer "$sha" "$key")"
+  value="$(trailer "$sha" "$key")" || exit 1
   if [[ -z "$value" ]]; then
     add_problem "$where: missing trailer '$key: $format' ($POLICY_HINT)"
   elif [[ ! "$value" =~ $pattern ]]; then
@@ -63,7 +52,7 @@ check_trailer() {
 
 check_commit() {
   local sha="$1" where key
-  where="$(git log -1 --format='%h "%s"' "$sha")"
+  where="$(git log -1 --format='%h "%s"' "$sha")" || exit 1
   check_trailer "$where" "$sha" Assisted-by "$ASSISTED_BY_PATTERN" "<claude-code|codex|antigravity|gemini-cli> <model>"
   check_trailer "$where" "$sha" Plan "$PLAN_PATTERN" "<NN|none>"
   check_trailer "$where" "$sha" Task "$TASK_PATTERN" "<N|review|none>"
@@ -90,10 +79,7 @@ main() {
     check_commit "$sha"
     count=$((count + 1))
   done
-  if [[ -n "$PROBLEMS" ]]; then
-    printf 'git policy violations:\n%s' "$PROBLEMS" >&2
-    exit 1
-  fi
+  report_problems "git policy violations"
   log "OK: git policy ($count commits since $base)"
 }
 

@@ -162,7 +162,7 @@ Expected: exit 0, 커버리지 80% 이상. 테스트 이름 목록은 Task 전�
   - `review_out_dir` → `REVIEW_OUT_DIR`가 있으면 그 값, 없으면 `$(main_checkout_root "$PWD")/.review-out`. main checkout을 찾지 못하면 "cannot find the main checkout from $PWD: run it inside a checkout of this repo, or set REVIEW_OUT_DIR"로 죽는다. 지금처럼 현재 디렉터리의 저장소를 기준으로 한다.
   - `review_report_prefix BRANCH ROUND REVIEWER` → `<review_out_dir>/<branch_slug>-r<ROUND>-<REVIEWER>`.
 
-- [ ] **Step 1: 실패하는 테스트 작성 (`tests/lib-git.bats`)**
+- [x] **Step 1: 실패하는 테스트 작성 (`tests/lib-git.bats`)**
 
 ```bash
 setup() {
@@ -193,18 +193,18 @@ setup() {
 }
 ```
 
-- [ ] **Step 2: 실패 확인** — `make test`. `lib-git.bats` 두 테스트가 실패한다(`git.sh` 없음).
+- [x] **Step 2: 실패 확인** — `make test`. `lib-git.bats` 두 테스트가 실패한다(`git.sh` 없음).
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 - `check-git.sh`: `git.sh`를 source한다. `:13-16`의 공용 패턴과 `:20-25`를 지운다(`BRANCH_PATTERN`, `GIT_CONFIG_KEY_MISSING`, `POLICY_HINT`는 남긴다). `:93-96` → `report_problems "git policy violations"`. 규칙 위반 `:56`, `:66`에 `|| exit 1`을 붙인다.
 - `check-pr.sh`: `git.sh`를 source한다. `:13-15`의 공용 패턴과 `:18-23`을 지운다(`TITLE_PATTERN`, `SESSION_LINK_PATTERN`은 남긴다). `:71-74` → `report_problems "PR rule violations"`. `:44`에 `|| exit 1`을 붙인다.
 - `review.sh`: `git.sh`를 source한다. 맨 위의 `MAIN_ROOT`, `OUT_DIR`, `WORKTREE_PARENT`(`:17-19`, 규칙 위반 `readonly X="$(…)"`)를 지우고 `main`에서 구한다. `out_dir="$(review_out_dir)" || exit 1`, 절대 경로 검사 메시지 끝은 "unset it to use the main checkout's .review-out"이다. worktree 부모는 `REVIEW_WORKTREE_PARENT`가 없을 때만 `main_checkout_root "$PWD"`로 구한다. `:164`의 slug → `branch_slug`, `:178-180` → `prefix="$(review_report_prefix "$BRANCH" "$round" "$REVIEWER")" || exit 1`.
 - `post-review.sh`: `:13-14`를 지운다. `:49-50` → `prefix="$(review_report_prefix "$branch" "$round" "$reviewer")" || exit 1`.
 
-- [ ] **Step 4: 통과 확인** — `make check` exit 0. 테스트 이름 목록에는 `lib-git.bats`의 두 개만 늘어난다.
+- [x] **Step 4: 통과 확인** — `make check` exit 0. 테스트 이름 목록에는 `lib-git.bats`의 두 개만 늘어난다.
 
-- [ ] **Step 5: 커밋** — `refactor: share the trailer rules and review paths in scripts/lib/git.sh` (`Task: 2`)
+- [x] **Step 5: 커밋** — `refactor: share the trailer rules and review paths in scripts/lib/git.sh` (`Task: 2`)
 
 ### Task 3: VM 사전 점검, 공용 값, 존재 확인 (중복 2, 5, 6, 7과 규칙 위반)
 
@@ -479,3 +479,4 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 | 2026-10-20 | Verified | 초안 PR #15(draft)를 열었다. Start의 첫 커밋 `5eebe31`에서 `make check` exit 0, 213 ok, 커버리지 94.51%. |
 | 2026-10-20 | Verified | Task 1: RED `make test` exit 2(`lib-vm.bats` 3개, `lib-sb.bats` 1개 실패: `scripts/lib/vm.sh`, `sb.sh` 없음). GREEN `make check` exit 0, 214개, not ok 0, 커버리지 94.56%(`common.sh` 100%, `vm.sh` 95.45%, `sb.sh` 93.10%). 테스트 이름 목록: 새 테스트 1개만 늘었고, `common.bats`에서 옮긴 세 개는 이름이 같다. |
 | 2026-10-20 | Verified | Task 1 계획 수정: `lib-sb.bats`의 자식 셸을 `bash -c` 대신 임시 스크립트 파일로 실행한다. `make coverage`에서 kcov가 export한 `PS4`가 `BASH_SOURCE`를 읽는데, `bash -c`의 최상위에서는 그 값이 없어 `set -u`로 멈췄다(`BASH_SOURCE: unbound variable`). macOS bash 3.2와 `make test`에서는 통과했다. 검사 내용은 같다. |
+| 2026-10-20 | Verified | Task 2: RED `make test` exit 2(`lib-git.bats` 2개 실패: `scripts/lib/git.sh` 없음). GREEN `make check` exit 0, 216개, not ok 0, 커버리지 94.44%. 테스트 이름 목록: `lib-git.bats`의 2개만 늘었다. check-git, check-pr, review, post-review는 `git.sh`를 source하고, review와 post-review의 맨 위 `MAIN_ROOT`·`OUT_DIR`·`WORKTREE_PARENT`(규칙 위반 `readonly X="$(…)"` 포함)는 `main`에서 구한다. |
