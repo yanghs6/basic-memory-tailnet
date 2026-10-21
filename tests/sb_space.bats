@@ -5,7 +5,7 @@ setup() {
   setup_stubs ssh sudo
   use_vm_env
   export SB_LOCAL_NOTES_DIR="$BATS_TEST_TMPDIR/local-notes"
-  SB_SPACE="$REPO_DIR/scripts/sb-space.sh"
+  SB_SPACE="$REPO_DIR/scripts/sync-sb-space.sh"
   SRC="$REPO_DIR/silverbullet"
   VM_NOTES="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory"
 }

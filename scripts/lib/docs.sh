@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 # Document helpers for scripts/*.sh: read the document type registry (the table under "## 문서 타입" in
-# docs/README.md) and number new documents. Source scripts/lib/common.sh first (die, log).
+# docs/README.md) and number new documents. Sources common.sh.
 # Must stay compatible with macOS bash 3.2. Spec: docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md, sections 3 and 8.2.
 #   doc_types REGISTRY -> every type row as tab-separated fields
 #   doc_type_row REGISTRY TYPE -> the row of TYPE
 #   doc_paths ROOT LOCATION -> file paths under LOCATION on every branch and in the working tree
 #   next_doc_number ROOT LOCATION CODE WIDTH -> the next free document number, zero-padded
+
+[ -n "${_BM_LIB_DOCS:-}" ] && return 0
+readonly _BM_LIB_DOCS=1
+
+# shellcheck source=common.sh
+. "${BASH_SOURCE[0]%/*}/common.sh"
 
 readonly DOC_TYPES_HEADING="## 문서 타입"
 # Registry columns in order, as the header row names them. The parser reads cells by position, so the header must match.

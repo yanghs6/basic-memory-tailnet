@@ -6,21 +6,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/git.sh
+. "$SCRIPT_DIR/lib/git.sh"
 
 readonly TITLE_PATTERN='^(feat|fix|refactor|docs|test|chore|perf|ci): [^ ]'
-readonly ASSISTED_BY_PATTERN='^(claude-code|codex|antigravity|gemini-cli) [^ ]+$'
-readonly PLAN_PATTERN='^([0-9]{2}|none)$'
-readonly FORBIDDEN_TRAILERS="Co-authored-by Signed-off-by"
 readonly SESSION_LINK_PATTERN='claude.ai/code/session'
-
-PROBLEMS=""
-
-add_problem() {
-  PROBLEMS="${PROBLEMS}  - $*
-"
-}
 
 # trailer_values KEY TRAILERS -> the values of KEY (matched case-insensitively, like git), one per line.
 trailer_values() {
@@ -41,7 +31,7 @@ check_assisted_by() {
 
 check_plan() {
   local value
-  value="$(trailer_values Plan "$1" | tr '\n' ',' | sed 's/,$//')"
+  value="$(trailer_values Plan "$1" | tr '\n' ',' | sed 's/,$//')" || exit 1
   if [[ -z "$value" ]]; then
     add_problem "missing trailer 'Plan: <NN|none>' in the last paragraph of the PR body"
   elif [[ ! "$value" =~ $PLAN_PATTERN ]]; then
@@ -68,10 +58,7 @@ main() {
   done
   [[ "${PR_BODY:-}" != *"$SESSION_LINK_PATTERN"* ]] \
     || add_problem "the PR body must not carry a Claude Code session link: the squash commit would publish it"
-  if [[ -n "$PROBLEMS" ]]; then
-    printf 'PR rule violations:\n%s' "$PROBLEMS" >&2
-    exit 1
-  fi
+  report_problems "PR rule violations"
   log "OK: PR title and trailers"
 }
 

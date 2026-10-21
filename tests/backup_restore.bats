@@ -6,8 +6,8 @@ setup() {
   use_vm_env
   export BACKUP_DIR="$BATS_TEST_TMPDIR/backups"
   echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  BACKUP="$REPO_DIR/scripts/backup.sh"
-  RESTORE="$REPO_DIR/scripts/restore.sh"
+  BACKUP="$REPO_DIR/scripts/backup-notes.sh"
+  RESTORE="$REPO_DIR/scripts/restore-notes.sh"
 }
 
 # make_archive NOTE -> creates $ARCHIVE (+ .sha256, .manifest) holding basic-memory/knowledge/restored.md
@@ -27,9 +27,9 @@ pack_archive() {
   printf '%s  %s\n' "$(sha256sum "$ARCHIVE" | awk '{ print $1 }')" "$(basename "$ARCHIVE")" >"$ARCHIVE.sha256"
 }
 
-# local_manifest DIR -> the manifest of DIR, built by the same command backup.sh and restore.sh run on the VM.
+# local_manifest DIR -> the manifest of DIR, built by the same command backup-notes.sh and restore-notes.sh run on the VM.
 local_manifest() {
-  bash -c "$(. "$REPO_DIR/scripts/lib/common.sh" && manifest_cmd "$1")"
+  bash -c "$(. "$REPO_DIR/scripts/lib/vm.sh" && manifest_cmd "$1")"
 }
 
 # fail_command NAME -> put a NAME first on PATH that prints an error and exits 1.
@@ -134,7 +134,7 @@ add_model_cache() {
   assert_output ""
 }
 
-# fix_backup_stamp STAMP -> make backup.sh name its archive bm-STAMP.tgz.
+# fix_backup_stamp STAMP -> make backup-notes.sh name its archive bm-STAMP.tgz.
 fix_backup_stamp() {
   mkdir -p "$BATS_TEST_TMPDIR/datebin" "$BACKUP_DIR"
   printf '#!/usr/bin/env bash\necho %s\n' "$1" >"$BATS_TEST_TMPDIR/datebin/date"
@@ -464,7 +464,7 @@ compose.yaml"
 
 # --- round trip (spec completion criterion 3) ---
 
-@test "a backup made by backup.sh restores with restore.sh and matches its manifest" {
+@test "a backup made by backup-notes.sh restores with restore-notes.sh and matches its manifest" {
   # A deployed VM already holds the current space files, which the restore writes again unchanged.
   local notes="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory"
   mkdir -p "$notes/Library/agent-hub"

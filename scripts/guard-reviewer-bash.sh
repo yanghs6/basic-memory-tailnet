@@ -4,6 +4,7 @@
 # Contract (code.claude.com/docs/en/hooks): the hook input JSON arrives on stdin and the command is
 # .tool_input.command; exit 0 allows the call, exit 2 blocks it and shows stderr to the agent.
 # Any other exit code does NOT block, so every failure below is turned into exit 2 (fail closed).
+# Usage: the branch-reviewer agent's PreToolUse hook (hook input JSON on stdin)
 set -euo pipefail
 
 readonly BLOCK_EXIT=2
@@ -27,7 +28,7 @@ readonly ALLOWED_PATTERN='^git (diff|log|show)( [A-Za-z0-9._/:@^~=+,-]+)*$'
 # --output writes a file; git also accepts unambiguous abbreviations of long options (--outp=, --ou=).
 readonly WRITE_OPTION_PATTERN='(^| )--ou'
 # --ext-diff and --textconv run helper programs from git config; block every abbreviation (--ext, --textc)
-# while --text (treat files as text) stays allowed. review.sh also hides user and system git config.
+# while --text (treat files as text) stays allowed. review-branch.sh also hides user and system git config.
 readonly HELPER_OPTION_PATTERN='(^| )--(ext|textc)'
 
 block() {

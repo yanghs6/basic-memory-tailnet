@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Show VM container state, memory and swap use, and how the VM is reached: tailscale serve config, or in the ssh
 # access mode whether Tailscale is still logged in on the VM.
+# Usage: make status
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/vm.sh
+. "$SCRIPT_DIR/lib/vm.sh"
 
 # memory_swap_summary -> "<memory used %> <swap used MB> <swap total MB>" from one `free -m` run on the VM.
 # Memory used is total minus available. Exits 1 when free prints no Mem: or no Swap: line, or a zero memory total.
@@ -32,15 +33,15 @@ show_access() {
 
 main() {
   local summary used swap_used swap_total mode
+  require_vm
   mode="$(access_mode)" || exit 1
-  require_cmd ssh
-  require_env BM_VM_HOST BM_VM_USER
 
   step "containers"
   remote_compose "ps" || die "could not query containers on $BM_VM_HOST: $(access_hint)"
 
   step "memory and swap"
-  summary="$(memory_swap_summary)" || die "could not read memory usage on $BM_VM_HOST (try: ssh $BM_VM_USER@$BM_VM_HOST free -m)"
+  summary="$(memory_swap_summary)" \
+    || die "could not read memory usage on $BM_VM_HOST: run 'ssh $BM_VM_USER@$BM_VM_HOST free -m' and check its Mem: and Swap: lines; if SSH fails, $(access_hint)"
   read -r used swap_used swap_total <<<"$summary"
   log "memory used: ${used}%"
   log "swap used: ${swap_used}/${swap_total} MB"

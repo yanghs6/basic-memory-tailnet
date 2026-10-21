@@ -3,12 +3,12 @@
 # tunnel endpoint (BM_ACCESS_CHECK_URL) and, with BM_ACCESS=ssh, the SSH host alias. The recommendation covers this
 # network only: run it on every network your clients use, then set BM_ACCESS (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md).
 # Exits 1 only when BM_ACCESS is set and that mode does not work here.
-# Usage: access-check.sh
+# Usage: make access-check
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/vm.sh
+. "$SCRIPT_DIR/lib/vm.sh"
 
 readonly TAILSCALE_CONTROL_URL=https://controlplane.tailscale.com/
 readonly ACCESS_CHECK_TIMEOUT_SECONDS=8
@@ -47,14 +47,14 @@ main() {
   require_cmd curl
   log "this network only: run it on every network your clients use"
 
-  state="$(url_state "$TAILSCALE_CONTROL_URL")"
+  state="$(url_state "$TAILSCALE_CONTROL_URL")" || exit 1
   log "tailscale control plane: $state"
   if [[ "$state" == reachable* ]]; then
     tailscale_ok=yes
   fi
 
   if [[ -n "${BM_ACCESS_CHECK_URL:-}" ]]; then
-    state="$(url_state "$BM_ACCESS_CHECK_URL")"
+    state="$(url_state "$BM_ACCESS_CHECK_URL")" || exit 1
     log "tunnel endpoint $BM_ACCESS_CHECK_URL: $state"
     tunnel_ok=no
     if [[ "$state" == reachable* ]]; then
@@ -65,8 +65,7 @@ main() {
   fi
 
   if [[ "$mode" == ssh ]]; then
-    require_cmd ssh
-    require_env BM_VM_HOST BM_VM_USER
+    require_vm
     if remote true; then
       ssh_ok=yes
       log "ssh $BM_VM_USER@$BM_VM_HOST: ok"

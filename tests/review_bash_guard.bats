@@ -2,7 +2,7 @@
 load helpers
 
 setup() {
-  GUARD="$REPO_DIR/scripts/review-bash-guard.sh"
+  GUARD="$REPO_DIR/scripts/guard-reviewer-bash.sh"
 }
 
 # payload COMMAND: the PreToolUse hook input Claude Code sends for a Bash call.

@@ -8,7 +8,7 @@ setup() {
   mkdir -p "$SB_FONT_DIR"
   echo ttf >"$SB_FONT_DIR/D2KodingLigatureNerdFont-Regular.ttf"
   echo ttf >"$SB_FONT_DIR/D2KodingLigatureNerdFont-Bold.ttf"
-  SB_FONTS="$REPO_DIR/scripts/sb-fonts.sh"
+  SB_FONTS="$REPO_DIR/scripts/upload-sb-fonts.sh"
   FONTS="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/Library/agent-hub/fonts"
 }
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs ON the VM as root (uploaded by scripts/bootstrap-vm.sh). Safe to run repeatedly.
 # stdin: first line is the Tailscale auth key; it may be empty when the VM is already on the tailnet.
+# Usage: uploaded and run by make vm-bootstrap (scripts/bootstrap-vm.sh)
 set -euo pipefail
 
 readonly TS_HOSTNAME="${TS_HOSTNAME:-agent-hub}"

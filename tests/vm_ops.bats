@@ -31,7 +31,7 @@ teardown() {
 
 @test "deploy uploads compose.yaml, an owner-only VM .env with SB_USER and the space files, then pulls and waits for healthy" {
   install -m 644 /dev/null "$BM_REMOTE_APP_DIR/.env"
-  run "$REPO_DIR/scripts/deploy.sh"
+  run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_success
   assert_output --partial "deployed. Next: make verify"
   refute_output --partial "test-password"
@@ -56,7 +56,7 @@ teardown() {
 }
 
 @test "deploy recreates Basic Memory before starting SilverBullet only when the notes .gitignore changed, and writes the pages after the recreate" {
-  run "$REPO_DIR/scripts/deploy.sh"
+  run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_success
   run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
   assert_output "1"
@@ -65,7 +65,7 @@ teardown() {
   # The first write of the library page comes after the recreate, so the old Basic Memory never indexes it.
   run awk '/^docker compose .*--force-recreate basic-memory$/ { r = NR } /^sudo .*Library\/agent-hub\/agent-hub\.md/ && !p { p = NR } END { exit !(r && p && r < p) }' "$STUB_LOG"
   assert_success
-  run "$REPO_DIR/scripts/deploy.sh"
+  run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_success
   run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
   assert_output "1"
@@ -74,13 +74,13 @@ teardown() {
 @test "deploy still recreates Basic Memory on the retry after the image pull failed behind a new notes .gitignore" {
   local page="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/Library/agent-hub/agent-hub.md"
   export DOCKER_STUB_FAIL_MATCH="pull -q"
-  run "$REPO_DIR/scripts/deploy.sh"
+  run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_failure
   run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
   assert_output "0"
   [[ ! -e "$page" ]] || fail "the pages must wait until Basic Memory was recreated"
   unset DOCKER_STUB_FAIL_MATCH
-  run "$REPO_DIR/scripts/deploy.sh"
+  run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_success
   run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
   assert_output "1"
@@ -91,7 +91,7 @@ teardown() {
 
 @test "deploy leaves the VM untouched without a valid SB_USER" {
   unset SB_USER
-  run "$REPO_DIR/scripts/deploy.sh"
+  run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_failure
   run grep -c '^ssh ' "$STUB_LOG"
   assert_output "0"
@@ -99,14 +99,14 @@ teardown() {
 
 @test "deploy reports an unhealthy container" {
   export DOCKER_STUB_FAIL_MATCH="up -d"
-  run "$REPO_DIR/scripts/deploy.sh"
+  run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_failure
   assert_output --partial "did not become healthy within 360s"
 }
 
 @test "deploy requires the VM settings from .env" {
   unset BM_VM_HOST
-  run "$REPO_DIR/scripts/deploy.sh"
+  run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_failure
   assert_output --partial "missing env BM_VM_HOST"
   assert_output --partial "set it in .env in the main checkout"
@@ -201,7 +201,7 @@ teardown() {
   assert_output --partial "OK: sshd accepts keys only"
   assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8443 8737 3000"
   assert_output --partial "OK: automated VM checks passed (access: ssh)"
-  run grep -Fx 'ssh -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ConnectTimeout=10 -L 127.0.0.1:28737:127.0.0.1:8737 -L 127.0.0.1:23000:127.0.0.1:3000 ubuntu@agent-hub-iap' "$STUB_LOG"
+  run grep -Fx 'ssh -N -o ExitOnForwardFailure=yes -o BatchMode=yes -o ConnectTimeout=10 -L 127.0.0.1:28737:127.0.0.1:8737 -L 127.0.0.1:23000:127.0.0.1:3000 ubuntu@agent-hub-iap' "$STUB_LOG"
   assert_success
   run grep -F 'tailscale serve' "$STUB_LOG"
   assert_failure
@@ -310,7 +310,7 @@ teardown() {
 # --- status ---
 
 @test "status shows containers, memory use and tailscale serve" {
-  run "$REPO_DIR/scripts/status.sh"
+  run "$REPO_DIR/scripts/show-status.sh"
   assert_success
   assert_output --partial "basic-memory-server"
   assert_output --partial "memory used: 23%"
@@ -318,7 +318,7 @@ teardown() {
   assert_output --partial "proxy http://127.0.0.1:8737"
   refute_output --partial "WARNING"
   export FREE_STUB_SWAP_USED_MB=200
-  run "$REPO_DIR/scripts/status.sh"
+  run "$REPO_DIR/scripts/show-status.sh"
   assert_success
   assert_output --partial "swap used: 200/1023 MB"
   refute_output --partial "WARNING"
@@ -326,22 +326,28 @@ teardown() {
 
 @test "status warns to rerun vm-bootstrap when no swap is active" {
   export FREE_STUB_SWAP_TOTAL_MB=0
-  run "$REPO_DIR/scripts/status.sh"
+  run "$REPO_DIR/scripts/show-status.sh"
   assert_success
   assert_output --partial "swap used: 0/0 MB"
   assert_output --partial "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"
   assert_output --partial "proxy http://127.0.0.1:8737"
 }
 
+@test "status points to free -m on the VM when it cannot read the memory use" {
+  SSH_STUB_FAIL_MATCH="free -m" run "$REPO_DIR/scripts/show-status.sh"
+  assert_failure
+  assert_output --partial "could not read memory usage on $BM_VM_HOST: run 'ssh $BM_VM_USER@$BM_VM_HOST free -m' and check its Mem: and Swap: lines"
+}
+
 @test "ssh mode: status shows the access mode instead of Serve and warns while Tailscale is logged in on the VM" {
   use_ssh_mode
-  run "$REPO_DIR/scripts/status.sh"
+  run "$REPO_DIR/scripts/show-status.sh"
   assert_success
   assert_output --partial "access: ssh"
   assert_output --partial "tailscale: not installed or logged out"
   refute_output --partial "proxy http://127.0.0.1:8737"
   export TS_STUB_BACKEND_STATE=Running
-  run "$REPO_DIR/scripts/status.sh"
+  run "$REPO_DIR/scripts/show-status.sh"
   assert_success
   assert_output --partial "WARNING: Tailscale is still logged in on the VM; BM_ACCESS=ssh expects it off"
 }
@@ -349,7 +355,7 @@ teardown() {
 # --- logs ---
 
 @test "logs prints the last 200 lines from the VM" {
-  run "$REPO_DIR/scripts/logs.sh"
+  run "$REPO_DIR/scripts/show-logs.sh"
   assert_success
   run grep -F 'docker compose logs --tail=200' "$STUB_LOG"
   assert_success

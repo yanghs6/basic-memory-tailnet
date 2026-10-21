@@ -8,22 +8,21 @@
 # already indexed. Before changing .gitignore, this script creates the $SB_GITIGNORE_PENDING marker. While the marker
 # exists it writes only .gitignore and prints "changed": the caller recreates the Basic Memory container, removes the
 # marker only after that succeeds, and runs this script again to write the pages. Without the marker it writes the
-# library page (and index.md when missing) and prints "unchanged". A run that failed in between (a pull, the
-# recreate) leaves the marker, so the next run asks again.
-# Usage: sb-space.sh [--local]
+# library page (and index.md when missing) and prints "unchanged". A run that failed in between (the recreate, or
+# removing the marker) leaves the marker, so the next run asks again.
+# Usage: sync-sb-space.sh [--local]
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/sb.sh
+. "$SCRIPT_DIR/lib/sb.sh"
 
 readonly SOURCE_DIR="$REPO_DIR/silverbullet"
 readonly LIBRARY_PAGE=Library/agent-hub/agent-hub.md
 
 main() {
   local local_dir previous state pending where
-  local_dir="$(notes_dir_arg "$@")" || exit 1
+  local_dir="$(notes_dir_arg "sync-sb-space.sh [--local]" "$@")" || exit 1
   where="${local_dir:-$BM_VM_HOST:$SB_REMOTE_NOTES_DIR}"
 
   previous="$(in_notes_dir "$local_dir" 'cat .gitignore 2>/dev/null || true' </dev/null)" \
@@ -34,9 +33,9 @@ main() {
   fi
   write_notes_file "$local_dir" .gitignore <"$SOURCE_DIR/notes.gitignore" || die "could not write .gitignore in $where"
 
-  pending="$(in_notes_dir "$local_dir" "if [ -e $SB_GITIGNORE_PENDING ]; then echo yes; else echo no; fi" </dev/null)" \
+  pending="$(notes_file_state "$local_dir" "$SB_GITIGNORE_PENDING")" \
     || die "could not check for $SB_GITIGNORE_PENDING in $where"
-  if [[ "$pending" == yes ]]; then
+  if [[ "$pending" == present ]]; then
     # A running Basic Memory would index the pages under the old patterns and keep them after the recreate.
     log "the notes .gitignore changed since Basic Memory started: it must be recreated to load it"
     echo changed
@@ -44,7 +43,7 @@ main() {
   fi
 
   write_notes_file "$local_dir" "$LIBRARY_PAGE" <"$SOURCE_DIR/agent-hub.md" || die "could not write $LIBRARY_PAGE in $where"
-  state="$(in_notes_dir "$local_dir" 'if [ -e index.md ]; then echo present; else echo absent; fi' </dev/null)" \
+  state="$(notes_file_state "$local_dir" index.md)" \
     || die "could not check for index.md in $where, so it was not written"
   if [[ "$state" == absent ]]; then
     write_notes_file "$local_dir" index.md <"$SOURCE_DIR/index.md" || die "could not write index.md in $where"

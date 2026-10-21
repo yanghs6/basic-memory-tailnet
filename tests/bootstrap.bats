@@ -8,7 +8,7 @@ setup() {
   export OS_RELEASE="$REPO_DIR/tests/fixtures/os-release" ADMIN_USER=root
   export SWAP_FILE="$BATS_TEST_TMPDIR/swapfile"
   mkdir -p "$RUN_DIR" "$ETC_DIR"
-  BOOTSTRAP="$REPO_DIR/scripts/remote/bootstrap.sh"
+  BOOTSTRAP="$REPO_DIR/scripts/remote/provision-vm.sh"
   WRAPPER="$REPO_DIR/scripts/bootstrap-vm.sh"
 }
 

@@ -5,17 +5,18 @@
 # touched. Current data is moved aside, never deleted. This repo's SilverBullet space files are written into the
 # restored notes folder while the containers are stopped, so Basic Memory starts with the current notes .gitignore.
 # Any failure after the stop puts the previous data, compose.yaml and .env back and restarts the container.
-# Usage: restore.sh backups/bm-<stamp>.tgz   (asks the user to type yes)
+# Usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz   (asks the user to type yes)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/vm.sh
+. "$SCRIPT_DIR/lib/vm.sh"
+# shellcheck source=lib/sb.sh
+. "$SCRIPT_DIR/lib/sb.sh"
 
 ROOT="$BM_REMOTE_DATA_ROOT"
 NAME="$(basename "$ROOT")"
-STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+STAMP="$(utc_stamp)" || exit 1
 STAGE="$ROOT.restore-$STAMP"
 PREV="$ROOT.prev-$STAMP"
 COMPOSE_FILE="$BM_REMOTE_APP_DIR/compose.yaml"
@@ -71,7 +72,7 @@ rollback() {
   fi
   # --force-recreate: with an unchanged compose.yaml and .env, plain `up -d` keeps the running container, whose
   # bind mount still points at the restored data now renamed to .failed-*.
-  if remote "if [ -e $COMPOSE_FILE ]; then cd $BM_REMOTE_APP_DIR && docker compose up -d --force-recreate --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS; fi"; then
+  if remote_compose --if-deployed "up -d --force-recreate --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS"; then
     log "rolled back: the previous data is live again"
   else
     log "WARNING: the container did not come back after rollback; run 'make status' and 'make logs'"
@@ -84,10 +85,10 @@ rollback() {
 # shellcheck disable=SC2317  # invoked from the rollback trap
 report_no_previous_data() {
   local state where
-  state="$(remote "if [ -e $ROOT ]; then echo present; fi")" || state=unknown
+  state="$(remote_exists "$ROOT")" || state=unknown
   case "$state" in
     present) where="the restored data is now at $ROOT" ;;
-    "") where="$ROOT does not exist (the restored copy was removed)" ;;
+    absent) where="$ROOT does not exist (the restored copy was removed)" ;;
     *) where="the state of $ROOT is unknown (the VM did not answer)" ;;
   esac
   log "nothing rolled back: $BM_VM_HOST had no data before this restore; $where. Next: run 'make status' and 'make logs', fix the cause, then rerun 'make restore BACKUP=<archive>'"
@@ -102,36 +103,19 @@ upload_vm_file() {
   remote "umask 077 && mkdir -p $BM_REMOTE_APP_DIR && { if [ -e $target ]; then cp $target $prev.partial && mv $prev.partial $prev; fi && cat > $tmp && mv $tmp $target; } || { rm -f $tmp $prev.partial; exit 1; }"
 }
 
-# write_space_files ARCHIVE: write the SilverBullet space files into the restored notes folder while Basic Memory is
-# stopped. It reads the notes .gitignore when it starts, so a changed .gitignore needs no recreate here: the marker is
-# removed at once and sb-space.sh runs again to write the pages. A failure here rolls back like the other steps.
-write_space_files() {
-  local archive="$1" state
-  state="$("$SCRIPT_DIR/sb-space.sh")" \
-    || die "could not write the SilverBullet space files into the restored notes folder: fix the error above, then rerun 'make restore BACKUP=$archive'"
-  [[ "$state" == changed ]] || return 0
-  in_notes_dir "" "rm -f $SB_GITIGNORE_PENDING" </dev/null \
-    || die "could not remove $SB_GITIGNORE_PENDING from the restored notes folder: rerun 'make restore BACKUP=$archive'"
-  state="$("$SCRIPT_DIR/sb-space.sh")" \
-    || die "could not write the SilverBullet pages into the restored notes folder: fix the error above, then rerun 'make restore BACKUP=$archive'"
-  [[ "$state" == unchanged ]] \
-    || die "the notes .gitignore changed again during the restore, so the SilverBullet pages were not written: rerun 'make restore BACKUP=$archive'"
-}
-
 main() {
   local archive="${1:-}" actual expected present
   [[ -n "$archive" ]] || die "usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz"
   [[ -f "$archive" ]] || die "backup not found: $archive (archives from 'make backup' are in <main checkout>/backups/; pass the full path if you are in another checkout)"
   [[ -f "$archive.sha256" ]] || die "checksum file missing: $archive.sha256 (restore only archives made by 'make backup')"
   [[ -f "$archive.manifest" ]] || die "manifest missing: $archive.manifest (restore only archives made by 'make backup')"
-  require_cmd ssh
-  require_env BM_VM_HOST BM_VM_USER
+  require_vm
   require_sb_user
   verify_checksum "$archive"
   check_archive_entries "$archive"
   confirm "Replace $ROOT, $COMPOSE_FILE and $ENV_FILE on $BM_VM_HOST with $(basename "$archive") and this repo's compose.yaml? Current data moves to $PREV. Type 'yes': "
 
-  present="$(remote "if [ -e $ROOT ]; then echo present; fi")" \
+  present="$(remote_exists "$ROOT")" \
     || die "could not reach $BM_VM_HOST: $(access_hint)"
   if [[ "$present" == present ]]; then
     HAD_PREVIOUS_DATA=1
@@ -141,7 +125,7 @@ main() {
   STOP_ATTEMPTED=1
   step "stop container"
   # A recreated VM has no compose.yaml yet, so there is nothing to stop.
-  remote "if [ -e $COMPOSE_FILE ]; then cd $BM_REMOTE_APP_DIR && docker compose stop; fi" \
+  remote_compose --if-deployed stop \
     || die "could not confirm the container stopped"
 
   step "extract into $STAGE"
@@ -164,8 +148,10 @@ main() {
   remote "if [ -e $ROOT ]; then sudo -n mv $ROOT $PREV; fi" || die "could not move the current data aside"
   remote "sudo -n mv $STAGE/$NAME $ROOT && sudo -n rmdir $STAGE" || die "could not swap the restored data into place"
 
+  # Basic Memory is stopped and reads the notes .gitignore when it starts, so a changed .gitignore needs no recreate.
+  # A failure here rolls back like the other steps.
   step "write the SilverBullet space files while Basic Memory is stopped"
-  write_space_files "$archive"
+  sb_space_apply vm "rerun 'make restore BACKUP=$archive'"
 
   step "start container"
   remote_compose "up -d --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS" \
