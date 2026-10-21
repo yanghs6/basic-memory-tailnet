@@ -453,8 +453,8 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 
 - [x] **Step 1: 로컬 스택** — `docker ps`로 다른 로컬 스택이 없는지 본다(컨테이너 이름이 고정됨). 그 뒤 `make local-up local-verify local-down`. 이 worktree의 `.local-data/`는 새로 생긴다. `make local-up`이 `sb_space_apply local`을 거쳐 Basic Memory를 한 번 다시 만들고, 두 번째 실행에서는 다시 만들지 않는지 로그로 본다.
 - [x] **Step 2: OK가 필요 없는 VM 확인** — `make access-check probe status logs`, `make backup`(컨테이너를 잠시 멈춘다), `make verify`(테스트 노트를 쓰고 지운다). `make tunnel`은 백그라운드로 열어, `scripts/verify-mcp.sh --read-only http://127.0.0.1:18737/mcp`와 `http://127.0.0.1:13000/.ping`이 응답하는지 본 뒤 닫는다.
-- [ ] **Step 3: 사용자 OK 뒤 deploy** — `origin/main`이 움직였으면(PR #10 병합 등) 먼저 `git merge origin/main`을 하고 `make check`를 다시 돌린다. 그다음 `make deploy verify`. 공간 파일이 바뀌지 않았으면 Basic Memory를 다시 만들지 않는다. 관리 페이지만 새 스크립트 이름으로 바뀐다.
-- [ ] **Step 4: 기록** — 명령과 결과(IP와 세션 id 없이)를 Progress log에 `Verified`로 적고 커밋한다(`Task: 7`).
+- [x] **Step 3: 사용자 OK 뒤 deploy** — `origin/main`이 움직였으면(PR #10 병합 등) 먼저 `git merge origin/main`을 하고 `make check`를 다시 돌린다. 그다음 `make deploy verify`. 공간 파일이 바뀌지 않았으면 Basic Memory를 다시 만들지 않는다. 관리 페이지만 새 스크립트 이름으로 바뀐다.
+- [x] **Step 4: 기록** — 명령과 결과(IP와 세션 id 없이)를 Progress log에 `Verified`로 적고 커밋한다(`Task: 7`).
 
 ### Finish: review and hand-off
 
@@ -467,6 +467,8 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 
 - 계획 17(테스트 정리와 생성 규칙): 테스트 파일 이름 변경과 분할(`common.bats` → `lib-common.bats` 포함), 픽스처 이동, 테스트 도우미와 중복 정리, `.bats` lint, 검사 1~5, `script-authoring` 스킬과 `make new-script`, `AGENTS.md`의 Invariants·Skills·Map(P5).
 - 계획 12의 미룬 작은 개선(`make tunnel`의 같은 포트 안내, Ctrl-C INT trap 등)은 이 계획의 범위 밖이다. 계획 12 파일의 Follow-ups에 남아 있다.
+- 최종 리뷰 M4(원래 있던 동작, 사용자 결정으로 미룸): `scripts/restore-notes.sh:118-122`는 VM의 답이 `present`가 아니면 모두 "이전 데이터 없음"으로 읽는다. `present`·`absent` 외의 답이면 멈추도록 테스트를 먼저 쓰고 고친다.
+- `bm-diagnose`의 `references/failure-messages.md`에는 `<step>: request to <url> failed` 앞에 `curl: (28) Operation timed out`이 찍히는 경우(서버가 30초 안에 답하지 못함)의 행이 없다. 2026-10-21 배포 직후 `make verify`에서 나왔다(Progress log). 행 추가를 검토한다.
 
 ## Progress log
 
@@ -492,3 +494,6 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 | 2026-10-21 | Verified | 최종 리뷰(새 컨텍스트의 Opus, 범위 `e648d5a..6887739`): Critical 0, Important 0, Minor 4, 머지 가능. 리뷰어가 Review Focus 다섯 가지를 macOS bash 3.2에서 직접 실행해 확인했다. 리뷰어가 판단을 보류한 12개 항목은 모두 그대로 두기로 판정했다(스펙 범위 밖이거나 원래 있던 동작). |
 | 2026-10-21 | Verified | 사용자 결정: Minor 중 M1~M3만 지금 고치고, M4(`scripts/restore-notes.sh:118-122`가 `present`·`absent` 외의 답을 "이전 데이터 없음"으로 읽음, 원래 있던 동작)는 테스트와 함께 후속 작업으로 둔다. 이 브랜치에서 `make deploy verify`를 실행하고, Codex 교차 리뷰를 PR #15에 게시한다. |
 | 2026-10-21 | Verified | 최종 리뷰 수정: M1 `scripts/sync-sb-space.sh` 머리 주석의 중간 실패 원인을 "pull, recreate"에서 "recreate, marker 제거"로 고쳤다(P2 뒤로 pull은 marker 전에 끝난다). M2 `scripts/show-status.sh`의 메모리 읽기 실패 안내에 `ssh … free -m` 확인을 되살리고 `access_hint`는 SSH 실패 때의 안내로 남겼다. RED `make test` exit 2(새 테스트 "status points to free -m …" 하나만 실패), GREEN `make check` exit 0, 220개, not ok 0, 커버리지 94.50%. M3 계획 07의 `scripts/status.sh:34`를 `scripts/show-status.sh:34`로 고쳤다. |
+| 2026-10-21 | Verified | Task 7 Step 3(사용자 OK, 이 브랜치 `f594154`, `origin/main`은 `e648d5a` 그대로여서 merge 없음): `make deploy verify`의 deploy 부분은 성공했다. compose.yaml과 VM `.env`를 올리고, 고정 digest 이미지 두 개를 pull(Pulled)한 뒤 공간 파일을 썼다(`changed` 없음, Basic Memory 다시 만들기 없음). `up -d --wait`에서 두 컨테이너는 Running에서 Healthy가 됐고 다시 만들어지지 않았다. 이어진 `make verify`는 `tools/list`에서 `curl: (28) Operation timed out after 30002 milliseconds with 0 bytes received`로 멈췄다(make exit 2). 같은 실행에서 `initialize`도 14초 걸렸고, Basic Memory 로그에는 그 요청이 `200 OK`로 남았다. 이 브랜치는 `scripts/verify-mcp.sh`의 요청 경로와 시간 제한(`REQUEST_TIMEOUT_SECONDS=30`)을 바꾸지 않았다. |
+| 2026-10-21 | Assumption | 첫 verify의 시간 초과 원인: 배포가 관리 페이지를 다시 쓴 직후 Basic Memory가 파일을 다시 색인하느라 1GB VM에서 응답이 30초를 넘겼다. 확인하지 않았다. |
+| 2026-10-21 | Verified | 2분 뒤(`bm-diagnose` 순서): `make access-check` exit 0(`ssh ubuntu@agent-hub-iap: ok`), `make status` exit 0(memory 62%, swap 508/1023 MB, 두 컨테이너 healthy, `access: ssh`, `tailscale: not installed or logged out`), `make probe` exit 0(`initialize` 1초, `tools/list ok`, 나머지 검사 모두 OK). 다시 돌린 `make verify` exit 0: MCP 쓰기·읽기·삭제, SilverBullet 로그인·쿠키·셸 꺼짐, 두 포트 loopback, Tailscale 꺼짐, sshd 키 전용, 공인 IP 포트 6개 닫힘. |
