@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2030,SC2031 # bats runs each @test in a subshell; exports there stay in that test
 load helpers
 
 setup() {
@@ -98,6 +99,7 @@ run_bootstrap_with_key() {
   local case
   setup_stubs docker
   for case in "TS_STUB_SERVE_EMPTY=1" "TS_STUB_SERVE_8443="; do
+    # shellcheck disable=SC2016 # $0 expands in the inner bash, not here
     run env "$case" bash -c 'printf "\n" | "$0"' "$BOOTSTRAP"
     assert_failure
     assert_output --partial "Serve is not active"

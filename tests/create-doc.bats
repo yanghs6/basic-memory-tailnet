@@ -8,7 +8,7 @@ setup() {
   mkdir -p "$WORK/docs" "$WORK/.agents/skills/doc-authoring"
   cp "$REPO_DIR/docs/README.md" "$WORK/docs/README.md"
   cp -R "$REPO_DIR/.agents/skills/doc-authoring/assets" "$WORK/.agents/skills/doc-authoring/assets"
-  cd "$WORK"
+  cd "$WORK" || return
   git config user.email agent@example.com
   git config user.name agent
   git add -A
@@ -22,8 +22,8 @@ setup() {
 }
 
 @test "creates a document of every type that takes new ones, named, placed and with front matter as its registry row says" {
-  local type code number location statuses keys new template path expected doc_status key checked=0
-  while IFS=$'\t' read -r type code number location statuses keys new template; do
+  local type code number location statuses keys new path expected doc_status key checked=0
+  while IFS=$'\t' read -r type code number location statuses keys new _; do
     [[ "$new" == "허용" ]] || continue
     checked=$((checked + 1))
     path="$("$CREATE" "$type" "check-$code" 2>/dev/null)" || fail "create-doc.sh failed for $type"

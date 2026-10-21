@@ -148,6 +148,7 @@ bundled_files() {
 
 @test "skills never rely on an exported AGENT_ID surviving between commands" {
   # Agent shells often start fresh per command; an unset $AGENT_ID writes an empty Assisted-by trailer.
+  # shellcheck disable=SC2016 # the grep pattern matches the literal text $AGENT_ID
   run grep -rnE 'export AGENT_ID|\$AGENT_ID|\$\{AGENT_ID\}' "$REPO_DIR/.agents/skills"
   assert_failure 1
 }

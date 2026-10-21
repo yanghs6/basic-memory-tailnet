@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2030,SC2031 # bats runs each @test in a subshell; exports there stay in that test
 load helpers
 
 setup() {
@@ -414,6 +415,7 @@ fix_backup_stamp() {
   echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
   # A cp that dies midway (disk full): it leaves a partial destination file and fails.
   mkdir -p "$BATS_TEST_TMPDIR/failbin"
+  # shellcheck disable=SC2016 # the fake cp script body must keep ${@: -1} literal
   printf '#!/usr/bin/env bash\nprintf partial >"${@: -1}"\nexit 1\n' >"$BATS_TEST_TMPDIR/failbin/cp"
   chmod +x "$BATS_TEST_TMPDIR/failbin/cp"
   export PATH="$BATS_TEST_TMPDIR/failbin:$PATH"

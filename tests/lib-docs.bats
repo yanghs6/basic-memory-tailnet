@@ -16,11 +16,13 @@ write_registry() {
     printf '| 타입 | 코드 | 번호 | 위치 | 상태 값 | 필수 키 | 새 문서 | 성격 | 언어 | 템플릿 |\n'
     printf '|---|---|---|---|---|---|---|---|---|---|\n'
     printf '%s\n' "$@"
+    # shellcheck disable=SC2016 # the backticks are literal Markdown in the registry text
     printf '\n## 메타데이터\n\n| 키 | 값 |\n|---|---|\n| `status` | 상태 |\n'
   } >"$REGISTRY"
 }
 
 @test "doc_types reads only the type table, one tab-separated line per row without backticks" {
+  # shellcheck disable=SC2016 # the backticks are literal Markdown in the registry rows
   write_registry \
     '| spec | spec | 없음 | `docs/specs/` | draft, approved | status, date | 허용 | 기록 | 한국어 | `a/spec.md` |' \
     '| review | rev | 없음 | `docs/reviews/` | final | status | 금지 | 동결 | 영어 | 없음 |'
@@ -39,6 +41,7 @@ write_registry() {
     '| 타입 | 코드 | 번호 | 위치 | 상태 값 | 필수 키 | 새 문서 | 성격 | 언어 | 템플릿 |'; do
     {
       printf '## 문서 타입\n\n%b\n' "$top"
+      # shellcheck disable=SC2016 # the backticks are literal Markdown in the registry row
       printf '%s\n' '| spec | spec | `docs/specs/` | 없음 | draft | status | 허용 | 기록 | 한국어 | `a/spec.md` |'
     } >"$REGISTRY"
     run doc_types "$REGISTRY"
@@ -49,6 +52,7 @@ write_registry() {
 
 @test "doc_types fails and names the row when a row lost a cell or has an empty one" {
   local row
+  # shellcheck disable=SC2016 # the backticks are literal Markdown in the registry rows
   for row in \
     '| spec | spec | 없음 | `docs/specs/` | draft | status | 허용 | 기록 | `a/spec.md` |' \
     '| spec | spec | 없음 | `docs/specs/` | draft | status | 허용 | 기록 | | `a/spec.md` |'; do

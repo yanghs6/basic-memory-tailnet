@@ -27,7 +27,7 @@ SHFMT_IMAGE := mvdan/shfmt:v3.12.0@sha256:307d265ffd25ce832899ae17c93ed5062fc337
 TOOLS_IMAGE := bm-tools:local
 COVERAGE_MIN := 80
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
-SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*')
+SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' '*.bats' 'tests/stubs/*')
 
 .PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review review-post review-record vm-bootstrap deploy verify probe status logs sb-fonts backup restore access-check tunnel new-doc
 

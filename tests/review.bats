@@ -5,7 +5,7 @@ setup() {
   setup_stubs codex claude
   WORK="$BATS_TEST_TMPDIR/work"
   git init -q -b main "$WORK"
-  cd "$WORK"
+  cd "$WORK" || return
   git config user.email agent@example.com
   git config user.name agent
   git commit -q --allow-empty -m "chore: init"

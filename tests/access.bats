@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2030,SC2031 # bats runs each @test in a subshell; exports there stay in that test
 load helpers
 
 setup() {

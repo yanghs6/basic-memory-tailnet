@@ -103,8 +103,8 @@ docs_paths() {
     for file in AGENTS.md $(git ls-files scripts .agents/skills); do
       docs_paths <"$file" | awk -v f="$file" '{ print f "\t" $0 }'
     done
-    git ls-files --cached --others --exclude-standard -- '*.md' | grep -vE '^(AGENTS[.]md|[.]agents/skills/)' |
-      while IFS= read -r file; do outside_code "$file" | docs_paths | awk -v f="$file" '{ print f "\t" $0 }'; done
+    git ls-files --cached --others --exclude-standard -- '*.md' | grep -vE '^(AGENTS[.]md|[.]agents/skills/)' \
+      | while IFS= read -r file; do outside_code "$file" | docs_paths | awk -v f="$file" '{ print f "\t" $0 }'; done
   )" || fail "could not collect the docs paths"
   while IFS=$'\t' read -r file path; do
     [[ -n "$path" ]] || continue
@@ -175,6 +175,7 @@ front_problems() {
   while IFS= read -r file; do
     case " $SINGLE_FILES " in *" $file "*) continue ;; esac
     [[ -n "$(type_row "$file")" ]] || continue
+    # shellcheck disable=SC2016 # the backticks are a literal sed pattern for Markdown code spans
     if outside_code "$REPO_DIR/$file" | sed 's/`[^`]*`//g' | grep -q '{{'; then
       bad="$bad $file"
     fi

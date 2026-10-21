@@ -40,7 +40,7 @@ setup() {
 }
 
 @test "stops instead of creating a second record when gh reports no login" {
-  GH_STUB_LOGIN= run "$RECORD" 12 "$FINDINGS"
+  GH_STUB_LOGIN='' run "$RECORD" 12 "$FINDINGS"
   assert_failure
   assert_output --partial "gh returned no login"
   run grep -cE 'POST|PATCH' "$STUB_LOG"

@@ -11,7 +11,7 @@ cloud_name_matches() {
   local matches rc=0
   matches="$(grep -rniwE "$CLOUD_NAMES" "$1")" || rc=$?
   ((rc <= 1)) || return "$rc"
-  sed "s#${ALLOWED_RUNBOOK}##g" <<<"$matches" | grep -iwE "$CLOUD_NAMES" || true
+  grep -iwE "$CLOUD_NAMES" <<<"${matches//$ALLOWED_RUNBOOK/}" || true
 }
 
 @test "the scan flags a provider name and ignores only the runbook path" {

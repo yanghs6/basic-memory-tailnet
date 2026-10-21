@@ -43,6 +43,7 @@ assert_blocked() {
 
 @test "blocks shell operators in an allowed git command" {
   local cmd
+  # shellcheck disable=SC2016 # the commands are the literal text the guard must refuse, not run here
   for cmd in \
     "git diff; rm -rf scripts" \
     "git diff && touch x" \

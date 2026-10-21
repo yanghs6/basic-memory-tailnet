@@ -19,6 +19,7 @@ setup() {
   assert_output 2
   run cat "$STUB_LOG.body"
   assert_line "## Agent review R1: codex (gpt-6.1-sol)"
+  # shellcheck disable=SC2016 # the backticks are literal Markdown, not a command substitution
   assert_line 'Base `1111111`, reviewed head `2222222`.'
   assert_line "### Change review"
   assert_line "Verdict: mergeable"

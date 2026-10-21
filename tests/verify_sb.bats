@@ -57,6 +57,7 @@ setup() {
 
 @test "rejects an SB_USER that make or docker compose would change, before contacting the server" {
   local value
+  # shellcheck disable=SC2016 # 'admin:pa$ss' is a literal password with a dollar sign
   for value in "" "admin" "admin:pa ss" 'admin:pa$ss' "admin:pa#ss" "admin:pa'ss" 'admin:pa"ss' "ad min:secret123"; do
     SB_USER="$value" run "$VERIFY_SB" http://127.0.0.1:3000
     [[ "$status" -ne 0 ]] || fail "expected SB_USER '$value' to be rejected"
@@ -72,6 +73,7 @@ setup() {
 @test "rejects an SB_USER that make changed while reading the env file, naming the file but neither value" {
   local env_file="$BATS_TEST_TMPDIR/main.env" pair raw passed
   # Each pair: the raw .env value | what GNU make passes on (# starts a comment, $o expands to nothing).
+  # shellcheck disable=SC2016 # 'admin:Tr4mp$oline' is a literal .env value with a dollar sign
   for pair in 'admin:Tr4mp#oline|admin:Tr4mp' 'admin:Tr4mp$oline|admin:Tr4mpline'; do
     IFS='|' read -r raw passed <<<"$pair"
     printf 'BM_PORT=8737\nSB_USER=%s\n' "$raw" >"$env_file"

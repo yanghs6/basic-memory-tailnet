@@ -122,12 +122,14 @@ compose_start_period_seconds() {
   [[ -n "$sb" && -n "$bm" ]] || fail "compose.yaml must define the basic-memory and silverbullet services"
   grep -qE '^ +image: ghcr\.io/silverbulletmd/silverbullet:[0-9.]+-slim@sha256:[0-9a-f]{64}$' <<<"$sb" \
     || fail "pin the silverbullet -slim image by digest"
+  # shellcheck disable=SC2016 # the compose text ${SB_USER:?...} is matched literally
   grep -qF 'SB_USER: ${SB_USER:?' <<<"$sb" \
     || fail 'SB_USER must read ${SB_USER:?...} so compose refuses to start SilverBullet without a login'
   grep -qxF '      SB_SHELL_BACKEND: "off"' <<<"$sb" || fail 'silverbullet must set SB_SHELL_BACKEND: "off"'
   grep -qxF '      SB_RUNTIME_API: "0"' <<<"$sb" || fail 'silverbullet must set SB_RUNTIME_API: "0"'
   grep -qxF '    networks: [silverbullet]' <<<"$sb" || fail "silverbullet must use only its own network"
   grep -qxF '    networks: [basic-memory]' <<<"$bm" || fail "basic-memory must use only its own network"
+  # shellcheck disable=SC2016 # the compose text ${BM_KNOWLEDGE_DIR...} is matched literally
   grep -qxF '      - "${BM_KNOWLEDGE_DIR:-./.local-data/knowledge}/basic-memory:/data"' <<<"$sb" \
     || fail "silverbullet must mount the notes folder at /data"
   if grep -q 'BM_CONFIG_DIR' <<<"$sb"; then
@@ -273,4 +275,3 @@ markdown_links() {
   ((checked > 0)) || fail "no gcloud commands were checked"
   [[ -z "$missing" ]] || fail "gcloud commands without --configuration=bm-personal:$missing"
 }
-

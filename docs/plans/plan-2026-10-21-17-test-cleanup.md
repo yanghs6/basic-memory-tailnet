@@ -106,10 +106,10 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - Modify: `Makefile:30` (`SH_FILES`에 `'*.bats'`), `.editorconfig:9` (`[*.{sh,bash}]` → `[*.{sh,bash,bats}]`)
 - Modify: `tests/*.bats` (shfmt 서식, shellcheck 지적)
 
-- [ ] **Step 1: lint 대상에 `.bats`를 더한다.** `.editorconfig`에는 dialect 키를 두지 않는다. shfmt v3.12.0이 확장자로 bats를 알아본다(Progress log 2026-10-21). 스펙 7.4절의 `language_dialect`는 필요 없다.
-- [ ] **Step 2: 실패 확인.** Run: `make lint`. Expected: exit 2. 지적은 SC2031 102, SC2030 30, SC2016 16, SC2164 6, SC1007 4, SC2034 2, SC2086 1, SC2001 1이고, 파싱 오류는 없다.
-- [ ] **Step 3: `make fmt`.** Expected: `tests/repo-docs.bats`(2줄)와 `tests/repo.bats`(1줄)만 바뀐다.
-- [ ] **Step 4: shellcheck 지적 고치기.**
+- [x] **Step 1: lint 대상에 `.bats`를 더한다.** `.editorconfig`에는 dialect 키를 두지 않는다. shfmt v3.12.0이 확장자로 bats를 알아본다(Progress log 2026-10-21). 스펙 7.4절의 `language_dialect`는 필요 없다.
+- [x] **Step 2: 실패 확인.** Run: `make lint`. Expected: exit 2. 지적은 SC2031 102, SC2030 30, SC2016 16, SC2164 6, SC1007 4, SC2034 2, SC2086 1, SC2001 1이고, 파싱 오류는 없다.
+- [x] **Step 3: `make fmt`.** Expected: `tests/repo-docs.bats`(2줄)와 `tests/repo.bats`(1줄)만 바뀐다.
+- [x] **Step 4: shellcheck 지적 고치기.**
   - SC2030·SC2031은 bats가 `@test`마다 하위 셸을 쓰기 때문에 생기는 오탐이다. 이 둘이 나오는 파일(`access`, `backup_restore`, `bootstrap`, `vm_ops`)에만, shebang 바로 다음 줄에 파일 전체에 적용되는 지시문을 둔다: `# shellcheck disable=SC2030,SC2031 # bats runs each @test in a subshell; exports there stay in that test`. 저장소 전체 `.shellcheckrc`에는 넣지 않는다. 스크립트에서는 이 둘이 진짜 경고이기 때문이다.
   - 나머지는 코드로 고친다.
     - SC2164: `cd … || return`
@@ -118,8 +118,8 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
     - SC2086: 따옴표
     - SC2001: 같은 결과의 `${var//…/…}`
   - SC2016은 줄마다 본다. 의도한 작은따옴표면 그 줄에 `# shellcheck disable=SC2016 # <왜 리터럴인지>`를 단다.
-- [ ] **Step 5: 통과 확인.** Run: `make check`. Expected: exit 0, 220개, not ok 0. 이름 목록이 `tests-base.tsv`와 같다.
-- [ ] **Step 6: 커밋** `test: lint the bats files with shellcheck and shfmt` (`Task: 1`).
+- [x] **Step 5: 통과 확인.** Run: `make check`. Expected: exit 0, 220개, not ok 0. 이름 목록이 `tests-base.tsv`와 같다.
+- [x] **Step 6: 커밋** `test: lint the bats files with shellcheck and shfmt` (`Task: 1`).
 
 ### Task 2: Rename the single-subject test files
 
@@ -481,3 +481,4 @@ Task 6~9는 아래 Step을 각 Task의 표에 대해 같은 순서로 밟는다.
 | 2026-10-21 | Verified | 테스트 220개를 세 묶음(VM·웹·접속 83개, 데이터·git·문서 도구 89개, 저장소 전체 48개)으로 나눠 하나씩 분류했다(읽기 전용 서브에이전트 셋). 테스트마다 대상, 조건, 단언, 그 동작을 만드는 lib 함수, ADR 0004 결정 1의 분류를 적었다. 비슷한 묶음은 97개(VM 41, 데이터·git 28, 저장소 28)이고, 강한·중간 묶음을 Task 6~9의 표로 옮겼다. |
 | 2026-10-21 | Verified | 분류 중 찾은 기존 테스트의 결함(원래 있던 것): `vm_ops.bats:100` "deploy reports an unhealthy container"는 새 notes 폴더에서 `recreate_basic_memory`의 `up -d … --force-recreate`에서 먼저 실패한다. 그래서 이름이 말하는 마지막 시작(`scripts/deploy-stack.sh:43`)의 분기를 지나가지 않는다. `vm_ops.bats:74`는 pull(`deploy-stack.sh:36`)이 공간 파일(`:39`)보다 먼저라서, 첫 실행의 단언이 언제나 참이다. |
 | 2026-10-21 | Verified | `scripts/review-branch.sh:129`, `.claude/agents/branch-reviewer.md:15`, `.agents/skills/branch-review/SKILL.md:16`이 `AGENTS.md`의 "Code Review Rules"를 이름으로 가리킨다(D8의 근거). `repo.bats`의 `git status` 단언은 guard hook을 도입한 `dc423de`가 더했다(D7). |
+| 2026-10-21 | Verified | Task 1: `Makefile`의 `SH_FILES`와 `.editorconfig`에 `.bats`를 더한 뒤 `make lint`: exit 2, 지적 162건(SC2031 102, SC2030 30, SC2016 16, SC2164 6, SC1007 4, SC2034 2, SC2086 1, SC2001 1), 파싱 오류 없음. `make fmt`가 바꾼 파일은 `tests/repo-docs.bats`(2줄)와 `tests/repo.bats`(1줄)뿐이다. 수정 뒤 `make lint` exit 0, `make check` exit 0, ok 220개, not ok 0, 총 줄 커버리지 94.50%(최소 80%). 이름 목록(`tests-t1.tsv`)은 `tests-base.tsv`와 같다. SC2086(`vm_ops.bats`)은 한 경우에 `VAR=값` 단어가 둘이라 따옴표 대신 disable 주석으로 처리했다. |

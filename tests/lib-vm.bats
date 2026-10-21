@@ -23,7 +23,7 @@ setup() {
   run require_vm no-such-command
   assert_failure
   assert_output --partial "missing command 'no-such-command'"
-  BM_VM_USER= run require_vm
+  BM_VM_USER='' run require_vm
   assert_failure
   assert_output --partial "missing env BM_VM_USER"
   run grep -F 'ssh ' "$STUB_LOG"

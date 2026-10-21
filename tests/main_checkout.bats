@@ -8,9 +8,10 @@ setup() {
 
 # make_host DIR -> the BM_VM_HOST value make sees when it runs in DIR, printed as [value].
 make_host() {
-  cd "$1"
+  cd "$1" || return
   # make coverage runs bats under kcov, which exports xtrace settings that break make's `bash -u` shell
   # (same reason as tests/repo.bats:65-66), so every make call here drops them.
+  # shellcheck disable=SC2016 # $(BM_VM_HOST) is make syntax, not shell
   env -u SHELLOPTS -u PS4 -u BASH_ENV make --no-print-directory --eval='show-host: ; @echo "[$(BM_VM_HOST)]"' show-host
 }
 
@@ -39,7 +40,7 @@ use_backup_env() {
 
 # make_in DIR TARGET -> run make TARGET in DIR (same kcov workaround as make_host).
 make_in() {
-  cd "$1"
+  cd "$1" || return
   env -u SHELLOPTS -u PS4 -u BASH_ENV make --no-print-directory "$2"
 }
 
@@ -65,6 +66,7 @@ make_in() {
 @test "make verify hands SB_USER and the env file path to the VM check; make probe hands neither" {
   unset SB_USER SB_ENV_FILE
   mkdir -p "$LINKED_WT/scripts"
+  # shellcheck disable=SC2016 # the generated script must keep ${SB_USER-unset} literal
   printf '#!/usr/bin/env bash\necho "[${SB_USER-unset}] [${SB_ENV_FILE-unset}] $*"\n' >"$LINKED_WT/scripts/verify-vm.sh"
   chmod +x "$LINKED_WT/scripts/verify-vm.sh"
   printf 'SB_USER=admin:Tr4mpoline\n' >"$MAIN_REPO/.env"

@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+# shellcheck disable=SC2030,SC2031 # bats runs each @test in a subshell; exports there stay in that test
 load helpers
 
 setup() {
@@ -173,6 +174,7 @@ teardown() {
   local case
   for case in "TS_STUB_SERVE_8443=" "TS_STUB_SERVE_8443=http://127.0.0.1:8737" "TS_STUB_SERVE_EMPTY=1" \
     "TS_STUB_FUNNEL=on TS_STUB_FUNNEL_PORT=8443"; do
+    # shellcheck disable=SC2086 # a case may hold several VAR=value words; env needs them split
     run env $case "$REPO_DIR/scripts/verify-vm.sh" --read-only
     [[ "$status" -ne 0 ]] || fail "expected a failure with $case; got: $output"
   done
@@ -251,7 +253,7 @@ teardown() {
 
   # The failed tunnel also leaves the local port closed, or nc could report it open before the stub exits (the runs
   # above left tunnel pids behind, so the open-after-tunnel mode is off here).
-  SSH_STUB_TUNNEL_EXIT=255 NC_STUB_OPEN_AFTER_TUNNEL= run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  SSH_STUB_TUNNEL_EXIT=255 NC_STUB_OPEN_AFTER_TUNNEL='' run "$REPO_DIR/scripts/verify-vm.sh" --read-only
   assert_failure
   assert_output --partial "verify tunnel exited before it opened"
 }
