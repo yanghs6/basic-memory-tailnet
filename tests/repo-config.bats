@@ -20,17 +20,17 @@ compose_services() {
 }
 
 @test "every compose image is pinned by digest" {
-  local services service images bad=""
+  local services service images line bad=""
   services="$(compose_services)"
   [[ -n "$services" ]] || fail "compose.yaml defines no services"
   for service in $services; do
-    images="$(service_block "$service" | grep -E '^ +image:')" || [[ $? -eq 1 ]]
-    if [[ -z "$images" ]]; then
-      bad="$bad"$'\n'"  $service: no image line"
-    elif grep -vqE "$PINNED_IMAGE" <<<"$images"; then
-      bad="$bad"$'\n'"  $service: $images"
-    fi
+    service_block "$service" | grep -qE '^ +image:' || bad="$bad"$'\n'"  $service: no image line"
   done
+  # Every image line of the file, so a service the name pattern above skips is checked too.
+  images="$(grep -nE '^ +image:' "$REPO_DIR/compose.yaml")" || fail "compose.yaml has no image lines"
+  while IFS= read -r line; do
+    [[ "${line#*:}" =~ $PINNED_IMAGE ]] || bad="$bad"$'\n'"  compose.yaml:$line"
+  done <<<"$images"
   [[ -z "$bad" ]] || fail "pin every image by digest (image: <name>:<version>@sha256:<digest>):$bad"
 }
 
@@ -43,10 +43,12 @@ compose_services() {
   fi
 }
 
-@test "basic-memory serves streamable-http on /mcp, probes port 8000 without --version, has a start_period of at least 240 s that HEALTH_TIMEOUT_SECONDS exceeds, restarts unless-stopped and uses only its own network" {
+@test "basic-memory runs the basicmachines-co image, serves streamable-http on /mcp, probes port 8000 without --version, has a start_period of at least 240 s that HEALTH_TIMEOUT_SECONDS exceeds, restarts unless-stopped and uses only its own network" {
   local bm healthcheck period timeout
   bm="$(service_block basic-memory)"
   [[ -n "$bm" ]] || fail "compose.yaml must define the basic-memory service"
+  grep -qE '^ +image: ghcr\.io/basicmachines-co/basic-memory:' <<<"$bm" \
+    || fail "basic-memory must run the ghcr.io/basicmachines-co/basic-memory image"
   # The image's default command serves SSE.
   grep -qF '"--transport", "streamable-http"' <<<"$bm" || fail "basic-memory must run with --transport streamable-http"
   grep -qF '"--path", "/mcp"' <<<"$bm" || fail "basic-memory must serve --path /mcp"

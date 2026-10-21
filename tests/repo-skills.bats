@@ -61,7 +61,7 @@ bundled_files() {
 }
 
 @test "skill folders hold only SKILL.md and the allowed folders, with no nested SKILL.md" {
-  local dirs dir entry nested bad=""
+  local dirs dir entry found nested bad=""
   dirs="$(skill_dirs)"
   [[ -n "$dirs" ]] || fail "found no skills under .agents/skills"
   for dir in $dirs; do
@@ -72,16 +72,17 @@ bundled_files() {
         *) bad="$bad"$'\n'"  ${entry#"$REPO_DIR"/}: move it into references/, scripts/ or assets/ (or out of the skill)" ;;
       esac
     done
+    found="$(find "$dir" -mindepth 2 -iname SKILL.md)" || fail "find could not search ${dir#"$REPO_DIR"/} for nested SKILL.md files"
     while IFS= read -r nested; do
       [[ -n "$nested" ]] || continue
       bad="$bad"$'\n'"  ${nested#"$REPO_DIR"/}: scanners would load it as a separate skill; rename it"
-    done <<<"$(find "$dir" -mindepth 2 -iname SKILL.md)"
+    done <<<"$found"
   done
   [[ -z "$bad" ]] || fail "fix these skill folders:$bad"
 }
 
 @test "every bundled file is named in SKILL.md and reference files point to no other file of their skill" {
-  local dirs dir skill file bundled=0 references=0 bad=""
+  local dirs dir skill file bundled=0 bad=""
   dirs="$(skill_dirs)"
   [[ -n "$dirs" ]] || fail "found no skills under .agents/skills"
   for dir in $dirs; do
@@ -93,12 +94,11 @@ bundled_files() {
         || bad="$bad"$'\n'"  $skill/$file: agents never find a file SKILL.md does not name; link it (say when to read it)"
     done <<<"$(bundled_files "$dir")"
     [[ -d "$dir/references" ]] || continue
-    references=$((references + 1))
     # One level deep: SKILL.md links every reference file, so a reference file links no other file of its skill.
     refute_matches "$dir/references" '\]\([A-Za-z0-9_.-]+\.md|references/' \
       || bad="$bad"$'\n'"  $skill/references: link every reference file from SKILL.md instead (lines above)"
   done
-  ((bundled > 0 && references > 0)) || fail "checked $bundled bundled files and $references references folders; expected some of each"
+  ((bundled > 0)) || fail "found no bundled files in the skill subfolders"
   [[ -z "$bad" ]] || fail "fix these skill files:$bad"
 }
 

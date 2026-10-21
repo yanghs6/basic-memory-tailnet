@@ -9,11 +9,19 @@ ALLOWED_RUNBOOK='docs/runbooks/rbk-2026-10-12-gcp-vm\.md'
 # It scans a copy of DIR without the allowed runbook path, so the lines it prints name files under
 # $BATS_TEST_TMPDIR/scan/<the last part of DIR>.
 cloud_scan() {
-  local copy="$BATS_TEST_TMPDIR/scan/${1##*/}" file
+  local copy="$BATS_TEST_TMPDIR/scan/${1##*/}" files file
   rm -rf "$copy" && mkdir -p "$copy" && cp -R "$1/." "$copy" || return 1
+  if ! files="$(find "$copy" -type f)"; then
+    fail "find could not list the files copied from $1"
+    return 1
+  fi
+  if [[ -z "$files" ]]; then
+    fail "found no files under $1"
+    return 1
+  fi
   while IFS= read -r file; do
     sed "s#$ALLOWED_RUNBOOK##g" "$file" >"$file.tmp" && mv "$file.tmp" "$file" || return 1
-  done <<<"$(find "$copy" -type f)"
+  done <<<"$files"
   refute_matches "$copy" "$CLOUD_NAMES" -i -w
 }
 
