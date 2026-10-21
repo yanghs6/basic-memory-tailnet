@@ -3,22 +3,11 @@ load helpers
 
 setup() {
   setup_stubs codex claude
-  WORK="$BATS_TEST_TMPDIR/work"
-  git init -q -b main "$WORK"
-  cd "$WORK" || return
-  git config user.email agent@example.com
-  git config user.name agent
-  git commit -q --allow-empty -m "chore: init"
+  init_git_repo
   git switch -q -c plan/02-git-review-tooling
   export REVIEW_OUT_DIR="$BATS_TEST_TMPDIR/out" REVIEW_WORKTREE_PARENT="$BATS_TEST_TMPDIR/wt"
   REVIEW="$REPO_DIR/scripts/review-branch.sh"
   OUT="$REVIEW_OUT_DIR/plan-02-git-review-tooling"
-}
-
-# author_commit TOOL: a commit authored by TOOL (claude-code, codex, ...).
-author_commit() {
-  git commit -q --allow-empty -m "feat: change by $1" \
-    --trailer "Assisted-by: $1 model-x" --trailer "Plan: 02" --trailer "Task: 1"
 }
 
 worktree_count() {
@@ -26,17 +15,15 @@ worktree_count() {
 }
 
 @test "codex reviews a claude-authored branch in a detached worktree and writes both reports" {
-  author_commit claude-code
+  agent_commit claude-code "feat: change by claude-code"
   run "$REVIEW" plan/02-git-review-tooling codex
   assert_success
   run cat "$OUT-r1-codex-diff.md"
   assert_output "codex diff review"
   run cat "$OUT-r1-codex-plan.md"
   assert_output "codex plan review"
-  run grep -F 'codex exec review -c sandbox_mode="read-only" --base main :: cwd='"$REVIEW_WORKTREE_PARENT"'/review-plan-02-git-review-tooling-r1' "$STUB_LOG"
-  assert_success
-  run grep -F "codex exec --sandbox read-only -o $OUT-r1-codex-plan.md" "$STUB_LOG"
-  assert_success
+  assert_stub_called -F 'codex exec review -c sandbox_mode="read-only" --base main :: cwd='"$REVIEW_WORKTREE_PARENT"'/review-plan-02-git-review-tooling-r1'
+  assert_stub_called -F "codex exec --sandbox read-only -o $OUT-r1-codex-plan.md"
   run worktree_count
   assert_output 1
   run ls "$REVIEW_OUT_DIR"
@@ -49,7 +36,7 @@ plan-02-git-review-tooling-r1-codex-plan.md"
 }
 
 @test "both claude reviews run as the guarded branch-reviewer agent in plan mode" {
-  author_commit codex
+  agent_commit codex "feat: change by codex"
   run "$REVIEW" plan/02-git-review-tooling claude
   assert_success
   run cat "$OUT-r1-claude-plan.md"
@@ -61,7 +48,7 @@ plan-02-git-review-tooling-r1-codex-plan.md"
 }
 
 @test "claude reviews run without user or system git config, so no external diff or textconv helper loads" {
-  author_commit codex
+  agent_commit codex "feat: change by codex"
   run "$REVIEW" plan/02-git-review-tooling claude
   assert_success
   run grep -c " git_config_global=/dev/null git_config_nosystem=1$" "$STUB_LOG"
@@ -69,7 +56,7 @@ plan-02-git-review-tooling-r1-codex-plan.md"
 }
 
 @test "refuses a reviewer from the same vendor as the author" {
-  author_commit claude-code
+  agent_commit claude-code "feat: change by claude-code"
   run "$REVIEW" plan/02-git-review-tooling claude
   assert_failure
   assert_output --partial "reviewer claude (claude-code) also authored commits on plan/02-git-review-tooling"
@@ -78,28 +65,25 @@ plan-02-git-review-tooling-r1-codex-plan.md"
 }
 
 @test "tells the reviewer only when the human allowed a same-vendor review" {
-  author_commit claude-code
+  agent_commit claude-code "feat: change by claude-code"
   REVIEW_ALLOW_SAME_VENDOR=1 run "$REVIEW" plan/02-git-review-tooling claude
   assert_success
   assert_output --partial "WARNING: claude-code also authored commits"
-  run grep -F "The human set REVIEW_ALLOW_SAME_VENDOR=1" "$STUB_LOG"
-  assert_success
+  assert_stub_called -F "The human set REVIEW_ALLOW_SAME_VENDOR=1"
   : >"$STUB_LOG"
   run "$REVIEW" plan/02-git-review-tooling codex
   assert_success
-  run grep -F "REVIEW_ALLOW_SAME_VENDOR" "$STUB_LOG"
-  assert_failure 1
+  refute_stub_called -F "REVIEW_ALLOW_SAME_VENDOR"
 }
 
 @test "round 2 reviews only commits after the reviewed head and leaves no temporary branch" {
-  author_commit codex
+  agent_commit codex "feat: change by codex"
   local reviewed
   reviewed="$(git rev-parse HEAD)"
-  author_commit codex
+  agent_commit codex "feat: change by codex"
   REVIEW_BASE="$reviewed" run "$REVIEW" plan/02-git-review-tooling claude 2
   assert_success
-  run grep -F "Review the changes in git diff review-base/plan-02-git-review-tooling-r2...HEAD" "$STUB_LOG"
-  assert_success
+  assert_stub_called -F "Review the changes in git diff review-base/plan-02-git-review-tooling-r2...HEAD"
   run test -f "$OUT-r2-claude-diff.md"
   assert_success
   run cat "$OUT-r2-claude-meta.txt"
@@ -109,7 +93,7 @@ plan-02-git-review-tooling-r1-codex-plan.md"
 }
 
 @test "removes the worktree and this round's earlier reports even when the reviewer fails" {
-  author_commit claude-code
+  agent_commit claude-code "feat: change by claude-code"
   mkdir -p "$REVIEW_OUT_DIR"
   echo stale >"$OUT-r1-codex-diff.md"
   echo stale >"$OUT-r1-codex-plan.md"
@@ -125,7 +109,7 @@ plan-02-git-review-tooling-r1-codex-plan.md"
 }
 
 @test "refuses to reuse a stale review worktree and leaves it alone" {
-  author_commit claude-code
+  agent_commit claude-code "feat: change by claude-code"
   mkdir -p "$REVIEW_WORKTREE_PARENT/review-plan-02-git-review-tooling-r1"
   run "$REVIEW" plan/02-git-review-tooling codex
   assert_failure
@@ -135,10 +119,10 @@ plan-02-git-review-tooling-r1-codex-plan.md"
 }
 
 @test "refuses a leftover review-base branch and never deletes it" {
-  author_commit codex
+  agent_commit codex "feat: change by codex"
   local reviewed
   reviewed="$(git rev-parse HEAD)"
-  author_commit codex
+  agent_commit codex "feat: change by codex"
   git branch review-base/plan-02-git-review-tooling-r2 "$reviewed"
   REVIEW_BASE="$reviewed" run "$REVIEW" plan/02-git-review-tooling claude 2
   assert_failure
@@ -150,7 +134,7 @@ plan-02-git-review-tooling-r1-codex-plan.md"
 }
 
 @test "a failed plan review leaves no half pair of reports" {
-  author_commit claude-code
+  agent_commit claude-code "feat: change by claude-code"
   mkdir -p "$REVIEW_OUT_DIR"
   echo stale >"$OUT-r1-codex-plan.md"
   CODEX_STUB_PLAN_EXIT=1 run "$REVIEW" plan/02-git-review-tooling codex
@@ -163,7 +147,7 @@ plan-02-git-review-tooling-r1-codex-plan.md"
 }
 
 @test "rejects a relative REVIEW_OUT_DIR" {
-  author_commit claude-code
+  agent_commit claude-code "feat: change by claude-code"
   REVIEW_OUT_DIR=out run "$REVIEW" plan/02-git-review-tooling codex
   assert_failure
   assert_output --partial "REVIEW_OUT_DIR must be an absolute path"

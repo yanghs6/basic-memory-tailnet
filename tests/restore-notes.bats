@@ -74,12 +74,9 @@ add_model_cache() {
   assert_output "original"
   run stat -c '%u' "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
   assert_output "1000"
-  run grep -F 'tar --no-same-owner --no-same-permissions -C' "$STUB_LOG"
-  assert_success
-  run grep -F 'compose up -d --wait --wait-timeout 360' "$STUB_LOG"
-  assert_success
-  run diff "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
-  assert_success
+  assert_stub_called -F 'tar --no-same-owner --no-same-permissions -C'
+  assert_stub_called -F 'compose up -d --wait --wait-timeout 360'
+  assert_same_file "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
   run bash -c 'ls -d "$0".restore-* "$1"/compose.yaml.prev-* 2>/dev/null' "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_APP_DIR"
   assert_failure
   run cat "$BM_REMOTE_APP_DIR/.env"
@@ -99,10 +96,8 @@ add_model_cache() {
   echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
   restore_with_answer yes
   assert_success
-  run diff "$REPO_DIR/silverbullet/notes.gitignore" "$notes/.gitignore"
-  assert_success
-  run diff "$REPO_DIR/silverbullet/agent-hub.md" "$notes/Library/agent-hub/agent-hub.md"
-  assert_success
+  assert_same_file "$REPO_DIR/silverbullet/notes.gitignore" "$notes/.gitignore"
+  assert_same_file "$REPO_DIR/silverbullet/agent-hub.md" "$notes/Library/agent-hub/agent-hub.md"
   run cat "$notes/index.md"
   assert_output "my dashboard"
   [[ ! -e "$notes/.gitignore.pending" ]] \
@@ -123,8 +118,7 @@ add_model_cache() {
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
   assert_output "original"
   # Only the rollback starts the containers (on the previous data); the half-written space never runs.
-  run grep -E '^docker compose up -d --wait' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -E '^docker compose up -d --wait'
 }
 
 @test "restore aborts without touching the VM unless the user types yes" {
@@ -132,8 +126,7 @@ add_model_cache() {
   restore_with_answer no
   assert_failure
   assert_output --partial "aborted: you must type 'yes'"
-  run grep -F 'ssh' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F 'ssh'
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
   assert_output "original"
 }
@@ -143,8 +136,7 @@ add_model_cache() {
   unset SB_USER
   restore_with_answer yes
   assert_failure
-  run grep -F 'ssh' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F 'ssh'
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
   assert_output "original"
 }
@@ -155,8 +147,7 @@ add_model_cache() {
   restore_with_answer yes
   assert_failure
   assert_output --partial "checksum mismatch"
-  run grep -F 'ssh' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F 'ssh'
 }
 
 @test "restore refuses an archive holding a symlink before touching the VM" {
@@ -167,8 +158,7 @@ add_model_cache() {
   assert_failure
   assert_output --partial "unsafe archive"
   assert_output --partial "not a regular file or directory"
-  run grep -F 'ssh' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F 'ssh'
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
   assert_output "original"
 }
@@ -186,8 +176,7 @@ add_model_cache() {
     assert_failure
     assert_output --partial "unsafe archive"
     assert_output --partial "$reason"
-    run grep -F 'ssh' "$STUB_LOG"
-    assert_failure
+    refute_stub_called -F 'ssh'
   done
 }
 
@@ -262,12 +251,10 @@ add_model_cache() {
   assert_failure
   assert_output --partial "container did not become healthy with the restored data"
   assert_output --partial "rolled back: the previous data is live again"
-  run grep -F 'docker compose up -d --force-recreate --wait --wait-timeout 360' "$STUB_LOG"
-  assert_success
+  assert_stub_called -F 'docker compose up -d --force-recreate --wait --wait-timeout 360'
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
   assert_output "original"
-  run diff "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
-  assert_success
+  assert_same_file "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
 }
 
 @test "restore on a VM without previous data says the restored data stays when the start fails" {
@@ -289,11 +276,9 @@ add_model_cache() {
   echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
   echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
   # A cp that dies midway (disk full): it leaves a partial destination file and fails.
-  mkdir -p "$BATS_TEST_TMPDIR/failbin"
   # shellcheck disable=SC2016 # the fake cp script body must keep ${@: -1} literal
-  printf '#!/usr/bin/env bash\nprintf partial >"${@: -1}"\nexit 1\n' >"$BATS_TEST_TMPDIR/failbin/cp"
-  chmod +x "$BATS_TEST_TMPDIR/failbin/cp"
-  export PATH="$BATS_TEST_TMPDIR/failbin:$PATH"
+  fake_cmd cp 'printf partial >"${@: -1}"
+exit 1'
   restore_with_answer yes
   assert_failure
   assert_output --partial "could not upload compose.yaml"

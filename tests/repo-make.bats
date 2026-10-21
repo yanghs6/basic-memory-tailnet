@@ -60,8 +60,7 @@ make_in() {
   assert_failure
   assert_output --partial "SB_USER in $MAIN_REPO/.env"
   refute_output --partial "Tr4mp"
-  run grep -c '^docker ' "$STUB_LOG"
-  assert_output 0
+  refute_stub_called '^docker '
 
   printf 'SB_USER=admin:Tr4mpoline\n' >"$MAIN_REPO/.env"
   run make_in "$LINKED_WT" local-up

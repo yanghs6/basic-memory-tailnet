@@ -7,8 +7,7 @@ setup() {
   use_vm_env
   export BM_VM_PUBLIC_IP=203.0.113.10
   export VERIFY_ID=test1
-  cp -R "$REPO_DIR/tests/fixtures/mcp-sse" "$BATS_TEST_TMPDIR/fixtures"
-  export CURL_FIXTURES="$BATS_TEST_TMPDIR/fixtures"
+  use_mcp_fixtures sse
   export CURL_SB_COOKIE="set-cookie: auth_agent-hub=stub-session-token; Path=/; SameSite=Lax; HttpOnly; Secure"
 }
 
@@ -30,8 +29,7 @@ teardown() {
   assert_output --partial "port 3000 listens on 127.0.0.1 only"
   assert_output --partial "443 -> 127.0.0.1:8737, 8443 -> 127.0.0.1:3000"
   assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8443 8737 3000"
-  run grep -F 'https://agent-hub.example.ts.net/mcp' "$STUB_LOG"
-  assert_success
+  assert_stub_called -F 'https://agent-hub.example.ts.net/mcp'
   run grep -c '^nc ' "$STUB_LOG"
   assert_output 6
 }
@@ -47,8 +45,7 @@ teardown() {
   export UNAME_STUB_OUTPUT=Darwin
   run "$REPO_DIR/scripts/verify-vm.sh"
   assert_success
-  run grep -Fx 'nc -z -G 5 -w 5 203.0.113.10 22' "$STUB_LOG"
-  assert_success
+  assert_stub_called -Fx 'nc -z -G 5 -w 5 203.0.113.10 22'
   run grep -c '^nc -z -G 5 -w 5 ' "$STUB_LOG"
   assert_output 6
 
@@ -56,10 +53,8 @@ teardown() {
   export UNAME_STUB_OUTPUT=Linux
   run "$REPO_DIR/scripts/verify-vm.sh"
   assert_success
-  run grep -Fx 'nc -z -w 5 203.0.113.10 22' "$STUB_LOG"
-  assert_success
-  run grep -F -- '-G' "$STUB_LOG"
-  assert_failure
+  assert_stub_called -Fx 'nc -z -w 5 203.0.113.10 22'
+  refute_stub_called -F -- '-G'
 }
 
 @test "verify requires the public IP so exposure is always checked" {
@@ -96,8 +91,7 @@ teardown() {
   assert_output --partial "public IP 203.0.113.10 refuses"
   run grep -F '"method":"tools/call"' "$STUB_LOG.requests"
   assert_failure
-  run grep -F '/.auth' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F '/.auth'
 }
 
 @test "ssh mode: probe checks through a verify tunnel on 127.0.0.1 and leaves no tunnel behind" {
@@ -109,10 +103,8 @@ teardown() {
   assert_output --partial "OK: sshd accepts keys only"
   assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8443 8737 3000"
   assert_output --partial "OK: automated VM checks passed (access: ssh)"
-  run grep -Fx 'ssh -N -o ExitOnForwardFailure=yes -o BatchMode=yes -o ConnectTimeout=10 -L 127.0.0.1:28737:127.0.0.1:8737 -L 127.0.0.1:23000:127.0.0.1:3000 ubuntu@agent-hub-iap' "$STUB_LOG"
-  assert_success
-  run grep -F 'tailscale serve' "$STUB_LOG"
-  assert_failure
+  assert_stub_called -Fx 'ssh -N -o ExitOnForwardFailure=yes -o BatchMode=yes -o ConnectTimeout=10 -L 127.0.0.1:28737:127.0.0.1:8737 -L 127.0.0.1:23000:127.0.0.1:3000 ubuntu@agent-hub-iap'
+  refute_stub_called -F 'tailscale serve'
   run kill -0 "$(cat "$STUB_LOG.tunnel-pids")"
   assert_failure
 }
@@ -123,8 +115,7 @@ teardown() {
   run "$REPO_DIR/scripts/verify-vm.sh" --read-only
   assert_failure
   assert_output --partial "port 28737 is in use on 127.0.0.1"
-  run grep -F 'ssh -N' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F 'ssh -N'
 }
 
 @test "ssh mode: verify closes its tunnel even when a check fails" {
@@ -170,8 +161,7 @@ teardown() {
     BM_ACCESS=$value run "$REPO_DIR/scripts/verify-vm.sh"
     assert_failure
     assert_output --partial "BM_ACCESS must be tailscale or ssh (got '$value')"
-    run grep -E '^(ssh|curl|nc) ' "$STUB_LOG"
-    assert_failure
+    refute_stub_called -E '^(ssh|curl|nc) '
   done
 }
 
@@ -192,8 +182,7 @@ teardown() {
       assert_output --partial "BM_VM_PUBLIC_IP must be the VM's public IPv4"
     fi
   done
-  run grep -c '^nc ' "$STUB_LOG"
-  assert_output 0
+  refute_stub_called '^nc '
 }
 
 @test "verify fails when nc rejects its options instead of probing" {

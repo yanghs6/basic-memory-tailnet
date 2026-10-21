@@ -39,7 +39,7 @@ use_ssh_mode() {
 use_provision_env() {
   use_vm_env
   export ETC_DIR="$BATS_TEST_TMPDIR/etc" RUN_DIR="$BATS_TEST_TMPDIR/run"
-  export OS_RELEASE="$REPO_DIR/tests/fixtures/os-release" ADMIN_USER=root
+  export OS_RELEASE="$REPO_DIR/tests/fixtures/remote-provision-vm/os-release" ADMIN_USER=root
   export SWAP_FILE="$BATS_TEST_TMPDIR/swapfile"
   mkdir -p "$RUN_DIR" "$ETC_DIR"
 }
@@ -65,4 +65,87 @@ skill_dirs() {
 # frontmatter FILE: the YAML lines between the opening and closing --- of FILE.
 frontmatter() {
   awk 'NR == 1 && $0 == "---" { inside = 1; next } inside && $0 == "---" { exit } inside { print }' "$1"
+}
+
+# init_git_repo: a git repository on main in $BATS_TEST_TMPDIR/work with one empty commit by agent, and cd into it. Sets WORK.
+init_git_repo() {
+  WORK="$BATS_TEST_TMPDIR/work"
+  git init -q -b main "$WORK"
+  cd "$WORK" || return
+  git config user.email agent@example.com
+  git config user.name agent
+  git commit -q --allow-empty -m "chore: init"
+}
+
+# agent_commit TOOL SUBJECT [GIT_COMMIT_ARG...]: an empty commit with the trailers the git policy requires (Assisted-by TOOL).
+agent_commit() {
+  local tool="$1" subject="$2"
+  shift 2
+  git commit -q --allow-empty -m "$subject" \
+    --trailer "Assisted-by: $tool model-x" --trailer "Plan: 02" --trailer "Task: 1" "$@"
+}
+
+# use_mcp_fixtures sse|json: copy tests/fixtures/verify-mcp/<kind> to the test tmpdir and point the curl stub at the copy.
+use_mcp_fixtures() {
+  local kind="$1"
+  cp -R "$REPO_DIR/tests/fixtures/verify-mcp/$kind" "$BATS_TEST_TMPDIR/mcp-$kind"
+  export CURL_FIXTURES="$BATS_TEST_TMPDIR/mcp-$kind"
+}
+
+# fake_cmd NAME BODY: a new executable $STUB_BIN/NAME running BODY. Call after setup_stubs. The old file is removed first
+# because NAME may be a symlink to a stub in tests/stubs and writing through it would overwrite the stub.
+fake_cmd() {
+  rm -f "$STUB_BIN/$1"
+  printf '#!/usr/bin/env bash\n%s\n' "$2" >"$STUB_BIN/$1"
+  chmod +x "$STUB_BIN/$1"
+}
+
+# assert_stub_called GREP_ARG...: succeed when grep GREP_ARG... finds a line in $STUB_LOG; fail when it finds none or grep errors.
+assert_stub_called() {
+  local status=0
+  grep "$@" "$STUB_LOG" >/dev/null || status=$?
+  if [[ "$status" -eq 0 ]]; then
+    return 0
+  fi
+  if [[ "$status" -eq 1 ]]; then
+    fail "expected a stub log line matching: $*"$'\n'"stub log:"$'\n'"$(cat "$STUB_LOG")"
+  fi
+  fail "grep failed with exit $status on the stub log: $*"
+}
+
+# refute_stub_called GREP_ARG...: succeed when grep GREP_ARG... finds no line in $STUB_LOG; fail when it finds one or grep errors.
+refute_stub_called() {
+  local status=0 found
+  found="$(grep "$@" "$STUB_LOG")" || status=$?
+  if [[ "$status" -eq 1 ]]; then
+    return 0
+  fi
+  if [[ "$status" -eq 0 ]]; then
+    fail "expected no stub log line matching: $*"$'\n'"found:"$'\n'"$found"
+  fi
+  fail "grep failed with exit $status on the stub log: $*"
+}
+
+# assert_log_order TEXT...: the first $STUB_LOG line containing each TEXT (fixed string) comes after the one of the previous TEXT.
+assert_log_order() {
+  local text line previous=0
+  for text in "$@"; do
+    line="$(grep -nF -m1 -- "$text" "$STUB_LOG" | cut -d: -f1)"
+    if [[ -z "$line" ]]; then
+      fail "no stub log line contains: $text"$'\n'"stub log:"$'\n'"$(cat "$STUB_LOG")"
+    fi
+    if [[ "$line" -le "$previous" ]]; then
+      fail "stub log line $line ($text) does not come after line $previous"$'\n'"stub log:"$'\n'"$(cat "$STUB_LOG")"
+    fi
+    previous="$line"
+  done
+}
+
+# assert_same_file EXPECTED ACTUAL: fail with the diff when the two files differ or either is missing.
+assert_same_file() {
+  local difference status=0
+  difference="$(diff "$1" "$2" 2>&1)" || status=$?
+  if [[ "$status" -ne 0 ]]; then
+    fail "files differ: $1 $2"$'\n'"$difference"
+  fi
 }

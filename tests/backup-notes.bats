@@ -12,18 +12,14 @@ setup() {
 
 # fail_command NAME -> put a NAME first on PATH that prints an error and exits 1.
 fail_command() {
-  mkdir -p "$BATS_TEST_TMPDIR/failbin"
-  printf '#!/usr/bin/env bash\necho "%s: simulated failure" >&2\nexit 1\n' "$1" >"$BATS_TEST_TMPDIR/failbin/$1"
-  chmod +x "$BATS_TEST_TMPDIR/failbin/$1"
-  export PATH="$BATS_TEST_TMPDIR/failbin:$PATH"
+  fake_cmd "$1" "echo \"$1: simulated failure\" >&2
+exit 1"
 }
 
 # fix_backup_stamp STAMP -> make backup-notes.sh name its archive bm-STAMP.tgz.
 fix_backup_stamp() {
-  mkdir -p "$BATS_TEST_TMPDIR/datebin" "$BACKUP_DIR"
-  printf '#!/usr/bin/env bash\necho %s\n' "$1" >"$BATS_TEST_TMPDIR/datebin/date"
-  chmod +x "$BATS_TEST_TMPDIR/datebin/date"
-  export PATH="$BATS_TEST_TMPDIR/datebin:$PATH"
+  mkdir -p "$BACKUP_DIR"
+  fake_cmd date "echo $1"
 }
 
 @test "backup stores a checksummed archive of the data root and restarts the container" {
@@ -52,15 +48,11 @@ fix_backup_stamp() {
   assert_output --partial "backup stream failed"
   run ls -A "$BACKUP_DIR"
   assert_output ""
-  run grep -F 'compose start' "$STUB_LOG"
-  assert_success
+  assert_stub_called -F 'compose start'
 }
 
 @test "backup publishes no file of its run when the checksum cannot be written, and spares earlier backups" {
-  mkdir -p "$BACKUP_DIR" "$BATS_TEST_TMPDIR/datebin"
-  printf '#!/usr/bin/env bash\necho 20261008T000000Z\n' >"$BATS_TEST_TMPDIR/datebin/date"
-  chmod +x "$BATS_TEST_TMPDIR/datebin/date"
-  export PATH="$BATS_TEST_TMPDIR/datebin:$PATH"
+  fix_backup_stamp 20261008T000000Z
   echo old >"$BACKUP_DIR/bm-20261007T000000Z.tgz"
   echo old >"$BACKUP_DIR/bm-20261007T000000Z.tgz.sha256"
   echo old >"$BACKUP_DIR/bm-20261007T000000Z.tgz.manifest"
@@ -73,8 +65,7 @@ fix_backup_stamp() {
   assert_output "$(printf '%s\n' bm-20261007T000000Z.tgz bm-20261007T000000Z.tgz.manifest bm-20261007T000000Z.tgz.sha256)"
   run cat "$BACKUP_DIR/bm-20261007T000000Z.tgz"
   assert_output "old"
-  run grep -F 'docker compose start' "$STUB_LOG"
-  assert_success
+  assert_stub_called -F 'docker compose start'
 }
 
 @test "backup still restarts the container when the stop cannot be confirmed" {
@@ -82,8 +73,7 @@ fix_backup_stamp() {
   run "$BACKUP"
   assert_failure
   assert_output --partial "could not confirm the container stopped"
-  run grep -F 'docker compose start' "$STUB_LOG"
-  assert_success
+  assert_stub_called -F 'docker compose start'
   run ls -A "$BACKUP_DIR"
   assert_output ""
 }
@@ -104,8 +94,7 @@ fix_backup_stamp() {
   done
   # The name check runs after the exclusive reservation, so the run must release its own reservation.
   [[ ! -e "$BACKUP_DIR/bm-20261008T000000Z.tgz.partial" ]]
-  run grep -F 'compose stop' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F 'compose stop'
 }
 
 @test "backup refuses while another run holds the same name and leaves its files alone" {
@@ -116,8 +105,7 @@ fix_backup_stamp() {
   assert_output --partial "another backup"
   run cat "$BACKUP_DIR/bm-20261008T000000Z.tgz.partial"
   assert_output "other"
-  run grep -F 'compose stop' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F 'compose stop'
 }
 
 @test "backup fails and writes nothing when listing the data files fails" {
@@ -127,8 +115,7 @@ fix_backup_stamp() {
   assert_output --partial "could not build the data manifest"
   run ls -A "$BACKUP_DIR"
   assert_output ""
-  run grep -F 'docker compose start' "$STUB_LOG"
-  assert_success
+  assert_stub_called -F 'docker compose start'
 }
 
 @test "backup from a linked worktree saves into the main checkout's backups/" {
@@ -162,6 +149,5 @@ fix_backup_stamp() {
   assert_failure
   assert_output --partial "cannot find the main checkout"
   assert_output --partial "set BACKUP_DIR"
-  run grep -F 'docker compose' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F 'docker compose'
 }

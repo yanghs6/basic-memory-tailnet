@@ -13,8 +13,7 @@ setup() {
   assert_success
   assert_output --partial "deployed. Next: make verify"
   refute_output --partial "test-password"
-  run diff "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
-  assert_success
+  assert_same_file "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
   run cat "$BM_REMOTE_APP_DIR/.env"
   assert_line "BM_PORT=8737"
   assert_line "BM_KNOWLEDGE_DIR=$BM_REMOTE_DATA_ROOT/knowledge"
@@ -23,14 +22,10 @@ setup() {
   assert_line "SB_USER=admin:test-password"
   run stat -c '%a' "$BM_REMOTE_APP_DIR/.env"
   assert_output "600"
-  run diff "$REPO_DIR/silverbullet/notes.gitignore" "$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/.gitignore"
-  assert_success
-  run diff "$REPO_DIR/silverbullet/agent-hub.md" "$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/Library/agent-hub/agent-hub.md"
-  assert_success
-  run grep -F 'docker compose pull -q' "$STUB_LOG"
-  assert_success
-  run grep -F 'docker compose up -d --wait --wait-timeout 360' "$STUB_LOG"
-  assert_success
+  assert_same_file "$REPO_DIR/silverbullet/notes.gitignore" "$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/.gitignore"
+  assert_same_file "$REPO_DIR/silverbullet/agent-hub.md" "$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/Library/agent-hub/agent-hub.md"
+  assert_stub_called -F 'docker compose pull -q'
+  assert_stub_called -F 'docker compose up -d --wait --wait-timeout 360'
 }
 
 @test "deploy recreates Basic Memory before starting SilverBullet only when the notes .gitignore changed, and writes the pages after the recreate" {
@@ -54,8 +49,7 @@ setup() {
   export DOCKER_STUB_FAIL_MATCH="pull -q"
   run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_failure
-  run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
-  assert_output "0"
+  refute_stub_called '^docker compose .*--force-recreate basic-memory$'
   [[ ! -e "$page" ]] || fail "the pages must wait until Basic Memory was recreated"
   unset DOCKER_STUB_FAIL_MATCH
   run "$REPO_DIR/scripts/deploy-stack.sh"
@@ -71,8 +65,7 @@ setup() {
   unset SB_USER
   run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_failure
-  run grep -c '^ssh ' "$STUB_LOG"
-  assert_output "0"
+  refute_stub_called '^ssh '
 }
 
 @test "deploy reports an unhealthy container" {

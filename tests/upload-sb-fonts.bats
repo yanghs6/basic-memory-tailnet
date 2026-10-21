@@ -19,8 +19,7 @@ setup() {
   assert_output "woff2 D2KodingLigatureNerdFont-Regular.ttf"
   run cat "$FONTS/D2KodingLigatureNerdFont-Bold.woff2"
   assert_output "woff2 D2KodingLigatureNerdFont-Bold.ttf"
-  run grep -F 'sudo -n -u #1000 sh -c' "$STUB_LOG"
-  assert_success
+  assert_stub_called -F 'sudo -n -u #1000 sh -c'
 }
 
 @test "writes nothing when a font file or fontTools is missing" {
@@ -32,7 +31,6 @@ setup() {
   PYTHON3_STUB_NO_MODULES=1 run "$SB_FONTS"
   assert_failure
   assert_output --partial "pip install --user fonttools brotli"
-  run grep -c '^ssh ' "$STUB_LOG"
-  assert_output 0
+  refute_stub_called '^ssh '
   [[ ! -e "$FONTS" ]] || fail "nothing may be written when a check fails: $FONTS exists"
 }

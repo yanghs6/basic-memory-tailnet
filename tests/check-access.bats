@@ -18,10 +18,8 @@ setup() {
   assert_output --partial "tailscale control plane: blocked (timeout)"
   assert_output --partial "tunnel endpoint https://tunnel.example.test/: reachable (HTTP 404)"
   assert_output --partial "recommendation for this network: ssh"
-  run grep -F 'curl -sS -o /dev/null --max-time 8 -w %{http_code} https://controlplane.tailscale.com/' "$STUB_LOG"
-  assert_success
-  run grep -F 'ssh ' "$STUB_LOG"
-  assert_failure
+  assert_stub_called -F 'curl -sS -o /dev/null --max-time 8 -w %{http_code} https://controlplane.tailscale.com/'
+  refute_stub_called -F 'ssh '
 }
 
 @test "access-check asks for BM_ACCESS_CHECK_URL instead of calling the network hopeless when Tailscale is blocked and the tunnel was not checked" {

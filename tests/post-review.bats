@@ -32,8 +32,7 @@ setup() {
   run "$POST" 12 plan/09-review-posting codex
   assert_failure
   assert_output --partial "missing $PREFIX-plan.md"
-  run grep -c '^gh ' "$STUB_LOG"
-  assert_output 0
+  refute_stub_called '^gh '
 }
 
 @test "posts nothing when either report is too long for one GitHub comment" {
@@ -41,6 +40,5 @@ setup() {
   run "$POST" 12 plan/09-review-posting codex
   assert_failure
   assert_output --partial "over GitHub's 65536 limit"
-  run grep -c '^gh ' "$STUB_LOG"
-  assert_output 0
+  refute_stub_called '^gh '
 }

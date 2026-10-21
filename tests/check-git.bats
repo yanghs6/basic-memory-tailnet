@@ -2,26 +2,13 @@
 load helpers
 
 setup() {
-  WORK="$BATS_TEST_TMPDIR/work"
-  git init -q -b main "$WORK"
-  cd "$WORK" || return
-  git config user.email agent@example.com
-  git config user.name agent
-  git commit -q --allow-empty -m "chore: init"
+  init_git_repo
   CHECK="$REPO_DIR/scripts/check-git.sh"
-}
-
-# agent_commit SUBJECT [extra git commit args...]: a policy-compliant agent commit.
-agent_commit() {
-  local subject="$1"
-  shift
-  git commit -q --allow-empty -m "$subject" \
-    --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: 02" --trailer "Task: 1" "$@"
 }
 
 @test "passes on a plan branch whose commits carry every trailer" {
   git switch -q -c plan/02-git-review-tooling
-  agent_commit "feat: add check"
+  agent_commit claude-code "feat: add check"
   run "$CHECK"
   assert_success
   assert_output --partial "OK: git policy (1 commits since main)"
@@ -78,7 +65,7 @@ agent_commit() {
 
 @test "rejects Co-authored-by and Signed-off-by" {
   git switch -q -c work/attribution
-  agent_commit "feat: attributed" --trailer "Co-authored-by: Bot <bot@example.com>" --signoff
+  agent_commit claude-code "feat: attributed" --trailer "Co-authored-by: Bot <bot@example.com>" --signoff
   run "$CHECK"
   assert_failure
   assert_output --partial "agents never add 'Co-authored-by'"
@@ -99,7 +86,7 @@ agent_commit() {
 
 @test "ignores merge commits brought into the branch" {
   git switch -q -c plan/02-merge
-  agent_commit "feat: on branch"
+  agent_commit claude-code "feat: on branch"
   git switch -q main
   git commit -q --allow-empty -m "chore: on main"
   git switch -q plan/02-merge
@@ -118,7 +105,7 @@ agent_commit() {
 
 @test "checks an explicit branch from a detached HEAD" {
   git switch -q -c plan/02-git-review-tooling
-  agent_commit "feat: add check"
+  agent_commit claude-code "feat: add check"
   git checkout -q --detach main
   run "$CHECK" main plan/02-git-review-tooling
   assert_success
@@ -127,7 +114,7 @@ agent_commit() {
 
 @test "applies the branch-name rule to an explicit branch" {
   git switch -q -c feature/x
-  agent_commit "feat: on a badly named branch"
+  agent_commit claude-code "feat: on a badly named branch"
   git checkout -q --detach main
   run "$CHECK" main feature/x
   assert_failure

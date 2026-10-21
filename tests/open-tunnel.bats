@@ -16,8 +16,7 @@ setup() {
   assert_failure 255
   assert_output --partial "MCP: http://127.0.0.1:18737/mcp  web UI: http://127.0.0.1:13000"
   assert_output --partial "tunnel closed (exit 255): rerun 'make tunnel'; check the ProxyCommand for agent-hub-iap"
-  run grep -Fx 'ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L 127.0.0.1:18737:127.0.0.1:8737 -L 127.0.0.1:13000:127.0.0.1:3000 ubuntu@agent-hub-iap' "$STUB_LOG"
-  assert_success
+  assert_stub_called -Fx 'ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L 127.0.0.1:18737:127.0.0.1:8737 -L 127.0.0.1:13000:127.0.0.1:3000 ubuntu@agent-hub-iap'
 }
 
 @test "tunnel refuses the tailscale mode, a privileged port and a local port in use, before it runs ssh" {
@@ -34,6 +33,5 @@ setup() {
   assert_failure
   assert_output --partial "port 13000 is in use on 127.0.0.1: another 'make tunnel'? or set BM_TUNNEL_WEB_PORT in .env"
 
-  run grep -F 'ssh -N' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F 'ssh -N'
 }

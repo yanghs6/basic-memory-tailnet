@@ -213,16 +213,16 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
   - `assert_log_order TEXT...`: TEXT마다 `$STUB_LOG`에서 처음 나오는 줄 번호(`grep -nF -m1`)가 순서대로 커지지 않거나 없으면, 그 로그를 출력하며 실패한다.
   - `assert_same_file EXPECTED ACTUAL`: 두 파일이 다르면 `diff`를 출력하며 실패한다.
 
-- [ ] **Step 1: 도우미를 쓰기 전에 대상 위치를 다시 만든다.** 조사(2026-10-21, 47dbbc7)에서 찾은 곳은 다음과 같다. Task 1~4로 줄 번호가 바뀌었으므로 같은 grep으로 다시 찾는다.
+- [x] **Step 1: 도우미를 쓰기 전에 대상 위치를 다시 만든다.** 조사(2026-10-21, 47dbbc7)에서 찾은 곳은 다음과 같다. Task 1~4로 줄 번호가 바뀌었으므로 같은 grep으로 다시 찾는다.
   - 임시 git 저장소 두 곳
   - 그 자리의 가짜 명령 다섯 곳: `fail_command`, `datebin`(같은 파일 `fix_backup_stamp`의 복사본이므로 `fix_backup_stamp` 호출로 바꾼다), 부분 쓰기 `cp`, `fakebin`의 `mktemp`, `fix_backup_stamp` 본문
   - "스텁이 불리지 않음" 40곳: `run grep … "$STUB_LOG"` 뒤 `assert_failure`, `grep -c` 뒤 `assert_output 0`
   - `run diff` 15곳
   - 로그 순서 4곳
-- [ ] **Step 2: 도우미를 더하고 위치마다 바꾼다.** 픽스처를 옮기고, `verify-mcp`·`verify-vm`은 `use_mcp_fixtures`, `use_provision_env`는 새 `os-release` 경로를 쓰게 한다. `$STUB_LOG.requests`처럼 다른 로그를 보는 검사는 그대로 둔다.
-- [ ] **Step 3: 목록 비교.** Run: 이름 목록 명령 → `tests-t5.tsv`, `diff "$WS/tests-t4.tsv" "$WS/tests-t5.tsv"`. Expected: 이름은 같고, 단언 수는 로그 순서를 바꾼 테스트에서만 다르다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 219개, not ok 0. 파일별 커버리지를 `$WS/coverage-t5.txt`로 남긴다(Task 6~9의 기준).
-- [ ] **Step 5: 도우미 실패 경로 확인(커밋하지 않음).** `tests/zz-helper-probe.bats`를 임시로 만든다. 아래 경우마다 테스트를 하나씩 둔다.
+- [x] **Step 2: 도우미를 더하고 위치마다 바꾼다.** 픽스처를 옮기고, `verify-mcp`·`verify-vm`은 `use_mcp_fixtures`, `use_provision_env`는 새 `os-release` 경로를 쓰게 한다. `$STUB_LOG.requests`처럼 다른 로그를 보는 검사는 그대로 둔다.
+- [x] **Step 3: 목록 비교.** Run: 이름 목록 명령 → `tests-t5.tsv`, `diff "$WS/tests-t4.tsv" "$WS/tests-t5.tsv"`. Expected: 이름은 같고, 단언 수는 로그 순서를 바꾼 테스트에서만 다르다.
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 219개, not ok 0. 파일별 커버리지를 `$WS/coverage-t5.txt`로 남긴다(Task 6~9의 기준).
+- [x] **Step 5: 도우미 실패 경로 확인(커밋하지 않음).** `tests/zz-helper-probe.bats`를 임시로 만든다. 아래 경우마다 테스트를 하나씩 둔다.
   - `assert_stub_called`에 없는 줄
   - `refute_stub_called`에 있는 줄(옵션 `-F` 포함)
   - `assert_log_order`의 뒤바뀐 순서와 없는 TEXT
@@ -230,7 +230,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
   - `fake_cmd ssh 'exit 0'`을 `setup_stubs ssh` 뒤에 부른 뒤 `tests/stubs/ssh`가 바뀌지 않았는지 보는 테스트(이것은 통과해야 함)
 
   Run: `make test`. Expected: 처음 다섯 개만 not ok이고 도우미의 메시지가 보인다. 그다음 `git status --short tests/stubs`에 출력이 없다. 확인한 뒤 probe 파일을 지운다.
-- [ ] **Step 6: 커밋** `test: share the repeated test setup and checks through helpers.bash` (`Task: 5`).
+- [x] **Step 6: 커밋** `test: share the repeated test setup and checks through helpers.bash` (`Task: 5`).
 
 ### Task 6~9의 공통 Step
 
@@ -485,3 +485,6 @@ Task 6~9는 아래 Step을 각 Task의 표에 대해 같은 순서로 밟는다.
 | 2026-10-21 | Verified | Task 2: 이름 변경 14개를 `git mv`로 했다(유사도 100%): `check_git`→`check-git`, `check_pr`→`check-pr`, `verify_mcp`→`verify-mcp`, `verify_sb`→`verify-sb`, `post_review`→`post-review`, `sb_space`→`sync-sb-space`, `sb_fonts`→`upload-sb-fonts`, `review`→`review-branch`, `review_record`→`post-review-record`, `review_bash_guard`→`guard-reviewer-bash`, `common`→`lib-common`, `skills`→`repo-skills`, `github`→`repo-github`, `cloud_neutral`→`repo-cloud-neutral`. 참조 네 곳(`AGENTS.md:50`, `README.md:57`, `docs/ARCHITECTURE.md:53`, `.agents/skills/skill-authoring/SKILL.md:8`)의 `tests/skills.bats`를 `tests/repo-skills.bats`로 바꿨다. 이 밖에 고친 참조는 없다. Step 2 grep(기록 문서 제외)은 처음에 이 네 곳만 찾았고, 고친 뒤 출력이 없다. 이름 목록(`tests-t2.tsv`, 220줄)은 `tests-t1.tsv` 및 `tests-base.tsv`와 diff가 없다. `make check`: exit 0, ok 220, not ok 0, 총 줄 커버리지 94.50%(최소 80%). |
 | 2026-10-21 | Verified | Task 3: 여러 스크립트를 묶었던 `vm_ops`, `backup_restore`, `bootstrap`, `access`(.bats)를 짝 파일 열 개로 나눴다(`deploy-stack` 6, `verify-vm` 16, `show-status` 4, `show-logs` 2, `backup-notes` 7, `restore-notes` 19, `bootstrap-vm` 5, `remote-provision-vm` 12, `check-access` 4, `open-tunnel` 2). `use_ssh_mode`와 `use_provision_env`는 `tests/helpers.bash`로 옮겼다. 이름 목록(`tests-t3.tsv`, 220줄)은 `tests-t2.tsv`와 diff가 없다(이름과 단언 수 같음). `make check`: exit 0, ok 220, not ok 0, 총 줄 커버리지 94.50%, 파일별 커버리지는 Task 2(`t2-check3.log`)와 차이가 없다. |
 | 2026-10-21 | Verified | Task 4: `repo.bats`와 `main_checkout.bats`를 `repo-scripts`(3), `repo-make`(5), `repo-config`(17)로 나누고, `repo-docs`(+2)와 `backup-notes`(+3)로 옮겼다. 이름 목록(`tests-t4.tsv`, 219줄)은 `tests-t3.tsv`에서 "git-workflow cleanup checks the worktree's backups before git worktree remove" 한 줄만 빠졌고 나머지는 이름과 단언 수가 같다. Step 3 grep은 출력이 없다. `make check`: exit 0, ok 219, not ok 0, 총 줄 커버리지 94.50%, 파일별 커버리지는 Task 2(`t2-check3.log`)와 차이가 없다. 옮긴 backup 테스트 셋은 `unset BACKUP_DIR`와 `make_worktree_fixture`를 부르고, 나머지 스텁과 환경(ssh docker sudo, `use_vm_env`, `a.md`)은 `backup-notes.bats`의 setup이 만든다. |
+| 2026-10-21 | Verified | Task 5 위치 다시 세기(`89df5f4`, grep): "스텁이 불리지 않음/불림" `run grep … "$STUB_LOG"` 98곳 중 `refute_stub_called` 45곳(assert_failure 32곳 + 개수 0 13곳; backup-notes 3, bootstrap-vm 4, check-access 1, deploy-stack 2, lib-vm 2, open-tunnel 1, post-review-record 3, post-review 2, remote-provision-vm 6, repo-make 1, restore-notes 6, review-branch 1, show-logs 1, sync-sb-space 1, upload-sb-fonts 1, verify-sb 4, verify-vm 6)와 `assert_stub_called` 39곳(backup-notes 4, bootstrap-vm 2, check-access 1, deploy-stack 2, lib-vm 1, open-tunnel 1, post-review-record 3, remote-provision-vm 11, restore-notes 3, review-branch 4, show-logs 1, upload-sb-fonts 1, verify-sb 1, verify-vm 4)을 바꿨다. 남긴 곳 14곳: 개수가 0이 아닌 `grep -c`(deploy-stack 39·48·63, lib-sb 50, post-review 18, repo-make 70, review-branch 57·59·67, verify-mcp 18·45, verify-vm 35·52), `grep -E '^docker compose (stop\|start)'` 뒤 `assert_line --index 0`(backup-notes 43). 다른 로그(`$STUB_LOG.requests`, `.body`)를 보는 곳과 `total="$(grep -c …)"` 변수 대입(sync-sb-space 75·76)도 그대로다. `run diff` 15곳(deploy-stack 3, restore-notes 4, sync-sb-space 8)은 모두 `assert_same_file`로 바꿨다. 임시 git 저장소는 check-git·review-branch 2곳을 `init_git_repo`로 바꾸고, create-doc은 커밋 전에 파일을 복사하므로 남겼다. 가짜 명령 5곳(`fail_command`, `fix_backup_stamp`, `datebin` 복사본, 부분 쓰기 `cp`, `mktemp`)은 `fake_cmd`로 바꿨다. 로그 순서 4곳 중 remote-provision-vm 1곳만 `assert_log_order`로 바꿨다. deploy-stack 2곳(정규식 앵커와 마지막 줄 비교)은 고정 문자열 첫 줄 비교로 바꾸면 ssh 줄에 먼저 걸려 실패해 awk를 되돌렸고, restore-notes 111(여러 조건)은 그대로다. |
+| 2026-10-21 | Verified | Task 5 이름 목록: `diff tests-t4.tsv tests-t5.tsv` 219줄, 이름은 모두 같고 한 줄만 다르다: "installs tailscale with the official script and sets up swap before it installs docker from the official apt repo" 단언 수 7→8(`((swap_line < apt_line))`가 단언으로 세어지지 않다가 `assert_log_order` 한 줄이 된 것). 픽스처는 `verify-mcp/{json,sse}`, `remote-provision-vm/os-release`로 `git mv`했다. `make check`: exit 0, ok 219, not ok 0, 총 줄 커버리지 94.50%. 파일별 커버리지(`coverage-t5.txt`)는 Task 2(`t2-check3.log`)와 같다(show-status 출력의 시각 줄만 다름). |
+| 2026-10-21 | Verified | Task 5 도우미 실패 경로(`tests/zz-helper-probe.bats`, 커밋하지 않음, 지움): 없는 줄 `assert_stub_called`, 있는 줄 `refute_stub_called -F 'ssh '`, 뒤바뀐 `assert_log_order`, 없는 TEXT `assert_log_order`, 다른 파일 `assert_same_file`, grep 오류(`-E '('`, exit 2) `assert_stub_called`/`refute_stub_called` 일곱 개가 모두 not ok이고 도우미 메시지가 나왔다. `setup_stubs ssh` 뒤 `fake_cmd ssh 'exit 0'`은 ok였고 `git status --short tests/stubs` 출력이 없다. 좋은 입력 통과 확인도 ok. |

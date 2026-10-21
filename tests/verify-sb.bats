@@ -14,12 +14,10 @@ setup() {
   refute_output --partial "WARNING"
   refute_output --partial "test-password"
   refute_output --partial "stub-session-token"
-  run grep -F "test-password" "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F "test-password"
   run cat "$STUB_LOG.stdin"
   assert_output "test-password"
-  run grep -F "http://127.0.0.1:3000/.logout" "$STUB_LOG"
-  assert_success
+  assert_stub_called -F "http://127.0.0.1:3000/.logout"
 
   CURL_SB_FONT_STATUS=404 run "$VERIFY_SB" http://127.0.0.1:3000
   assert_success
@@ -51,8 +49,7 @@ setup() {
   unset SB_USER
   run "$VERIFY_SB" --read-only http://127.0.0.1:3000
   assert_success
-  run grep -F "/.auth" "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F "/.auth"
 }
 
 @test "rejects an SB_USER that make or docker compose would change, before contacting the server" {
@@ -66,8 +63,7 @@ setup() {
       refute_output --partial "${value#*:}"
     fi
   done
-  run grep -c '^curl ' "$STUB_LOG"
-  assert_output 0
+  refute_stub_called '^curl '
 }
 
 @test "rejects an SB_USER that make changed while reading the env file, naming the file but neither value" {
@@ -82,8 +78,7 @@ setup() {
     assert_output --partial "SB_USER in $env_file"
     refute_output --partial "Tr4mp"
   done
-  run grep -c '^curl ' "$STUB_LOG"
-  assert_output 0
+  refute_stub_called '^curl '
 
   # The last SB_USER line wins, and a CRLF line ending is not part of the value.
   printf 'SB_USER=admin:old-password\nSB_USER=admin:test-password\r\n' >"$env_file"

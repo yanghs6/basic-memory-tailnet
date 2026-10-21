@@ -18,16 +18,11 @@ run_bootstrap_with_key() {
   export CURL_STUB_SCRIPT="ln -s $REPO_DIR/tests/stubs/tailscale $STUB_BIN/tailscale"
   run_bootstrap_with_key tskey-auth-test123
   assert_success
-  run grep -F 'curl -fsSL https://tailscale.com/install.sh' "$STUB_LOG"
-  assert_success
+  assert_stub_called -F 'curl -fsSL https://tailscale.com/install.sh'
   run cat "$STUB_LOG"
   assert_line --index 0 "swapon --show --noheadings"
-  local swap_line apt_line
-  swap_line="$(grep -nF "swapon $SWAP_FILE" "$STUB_LOG" | head -n 1 | cut -d: -f1)"
-  apt_line="$(grep -nF "apt-get" "$STUB_LOG" | head -n 1 | cut -d: -f1)"
-  ((swap_line < apt_line))
-  run grep -F 'apt-get -o DPkg::Lock::Timeout=300 install -y -q docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin' "$STUB_LOG"
-  assert_success
+  assert_log_order "swapon $SWAP_FILE" "apt-get"
+  assert_stub_called -F 'apt-get -o DPkg::Lock::Timeout=300 install -y -q docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin'
   # Every apt-get call waits for the dpkg lock that unattended-upgrades holds right after first boot.
   run bash -c 'grep "^apt-get " "$0" | grep -vF -- "apt-get -o DPkg::Lock::Timeout=300 "' "$STUB_LOG"
   assert_failure
@@ -43,10 +38,8 @@ run_bootstrap_with_key() {
   assert_success
   run cat "$STUB_LOG.authkey"
   assert_output "tskey-auth-secret987"
-  run grep -F 'tskey-auth-secret987' "$STUB_LOG"
-  assert_failure
-  run grep -E 'tailscale up --auth-key=file:.* --hostname=agent-hub --ssh' "$STUB_LOG"
-  assert_success
+  refute_stub_called -F 'tskey-auth-secret987'
+  assert_stub_called -E 'tailscale up --auth-key=file:.* --hostname=agent-hub --ssh'
   run ls -A "$RUN_DIR"
   assert_output ""
 }
@@ -74,20 +67,14 @@ run_bootstrap_with_key() {
   run_bootstrap_with_key ""
   assert_success
   assert_output --partial "docker already installed"
-  run grep -F 'docker-ce' "$STUB_LOG"
-  assert_failure
-  run grep -F 'tailscale set --hostname=agent-hub --ssh' "$STUB_LOG"
-  assert_success
-  run grep -F 'tailscale up' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F 'docker-ce'
+  assert_stub_called -F 'tailscale set --hostname=agent-hub --ssh'
+  refute_stub_called -F 'tailscale up'
   run stat -c '%u:%g' "$BM_REMOTE_DATA_ROOT/knowledge"
   assert_output "1000:1000"
-  run grep -F 'tailscale serve --bg http://127.0.0.1:8737' "$STUB_LOG"
-  assert_success
-  run grep -F 'tailscale serve --bg --https=8443 http://127.0.0.1:3000' "$STUB_LOG"
-  assert_success
-  run grep -Fx 'tailscale serve status' "$STUB_LOG"
-  assert_success
+  assert_stub_called -F 'tailscale serve --bg http://127.0.0.1:8737'
+  assert_stub_called -F 'tailscale serve --bg --https=8443 http://127.0.0.1:3000'
+  assert_stub_called -Fx 'tailscale serve status'
 }
 
 @test "fails with HTTPS guidance when Serve is not active after setup, also when only the 8443 mapping is missing" {
@@ -117,10 +104,8 @@ run_bootstrap_with_key() {
   run_bootstrap_with_key ""
   assert_success
   assert_output --partial "access mode ssh: skipping Tailscale"
-  run grep -E '^tailscale |tailscale\.com/install\.sh' "$STUB_LOG"
-  assert_failure
-  run grep -F 'docker-ce' "$STUB_LOG"
-  assert_success
+  refute_stub_called -E '^tailscale |tailscale\.com/install\.sh'
+  assert_stub_called -F 'docker-ce'
   run stat -c '%u:%g' "$BM_REMOTE_DATA_ROOT/knowledge"
   assert_output "1000:1000"
 }
@@ -129,12 +114,9 @@ run_bootstrap_with_key() {
   setup_stubs docker
   run_bootstrap_with_key ""
   assert_success
-  run grep -F "fallocate -l 1024M $SWAP_FILE" "$STUB_LOG"
-  assert_success
-  run grep -F "mkswap $SWAP_FILE" "$STUB_LOG"
-  assert_success
-  run grep -F "swapon $SWAP_FILE" "$STUB_LOG"
-  assert_success
+  assert_stub_called -F "fallocate -l 1024M $SWAP_FILE"
+  assert_stub_called -F "mkswap $SWAP_FILE"
+  assert_stub_called -F "swapon $SWAP_FILE"
   [[ "$(stat -c %a "$SWAP_FILE")" == 600 ]]
   run cat "$ETC_DIR/fstab"
   assert_output "$SWAP_FILE none swap sw 0 0"
@@ -146,10 +128,8 @@ run_bootstrap_with_key() {
   run_bootstrap_with_key ""
   assert_success
   assert_output --partial "swap already active"
-  run grep -E 'fallocate|mkswap' "$STUB_LOG"
-  assert_failure
-  run grep -F "swapon $SWAP_FILE" "$STUB_LOG"
-  assert_failure
+  refute_stub_called -E 'fallocate|mkswap'
+  refute_stub_called -F "swapon $SWAP_FILE"
   [[ ! -e "$ETC_DIR/fstab" ]]
 }
 

@@ -26,8 +26,7 @@ setup() {
   BM_VM_USER='' run require_vm
   assert_failure
   assert_output --partial "missing env BM_VM_USER"
-  run grep -F 'ssh ' "$STUB_LOG"
-  assert_failure
+  refute_stub_called -F 'ssh '
   BM_ACCESS=ssh run require_vm
   assert_success
 }
@@ -39,15 +38,13 @@ setup() {
   assert_output absent
   run remote_compose --if-deployed stop
   assert_success
-  run grep '^docker ' "$STUB_LOG"
-  assert_failure
+  refute_stub_called '^docker '
   touch "$file"
   run remote_exists "$file"
   assert_output present
   run remote_compose --if-deployed stop
   assert_success
-  run grep -Fx 'docker compose stop' "$STUB_LOG"
-  assert_success
+  assert_stub_called -Fx 'docker compose stop'
   SSH_STUB_FAIL_MATCH="-e $file" run remote_exists "$file"
   assert_failure
   refute_line absent
