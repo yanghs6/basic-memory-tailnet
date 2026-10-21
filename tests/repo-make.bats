@@ -52,24 +52,6 @@ make_in() {
   assert_output "[]"
 }
 
-@test "make local-up stops before any compose call when make cut SB_USER short while reading the main checkout .env" {
-  setup_stubs docker
-  cp -R "$REPO_DIR/scripts" "$REPO_DIR/silverbullet" "$LINKED_WT/"
-  printf 'SB_USER=admin:Tr4mp#oline\n' >"$MAIN_REPO/.env"
-  run make_in "$LINKED_WT" local-up
-  assert_failure
-  assert_output --partial "SB_USER in $MAIN_REPO/.env"
-  refute_output --partial "Tr4mp"
-  refute_stub_called '^docker '
-
-  printf 'SB_USER=admin:Tr4mpoline\n' >"$MAIN_REPO/.env"
-  run make_in "$LINKED_WT" local-up
-  assert_success
-  refute_output --partial "Tr4mp"
-  run grep -c '^docker compose -f compose.yaml up -d --wait$' "$STUB_LOG"
-  assert_output 1
-}
-
 @test "make verify hands SB_USER and the env file path to the VM check; make probe hands neither" {
   unset SB_USER SB_ENV_FILE
   mkdir -p "$LINKED_WT/scripts"

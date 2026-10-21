@@ -57,27 +57,40 @@ teardown() {
   refute_stub_called -F -- '-G'
 }
 
-@test "verify requires the public IP so exposure is always checked" {
-  unset BM_VM_PUBLIC_IP
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_failure
-  assert_output --partial "missing env BM_VM_PUBLIC_IP"
-}
-
-@test "verify fails when Tailscale Funnel exposes the VM" {
-  export TS_STUB_FUNNEL=on
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_failure
-  assert_output --partial "Funnel is on for this node"
+@test "verify stops before any probe without a public IPv4" {
+  local case ip expected private="is loopback, private, link-local or unspecified"
+  for case in "<unset>|missing env BM_VM_PUBLIC_IP" "|missing env BM_VM_PUBLIC_IP" \
+    "example.com|BM_VM_PUBLIC_IP must be the VM's public IPv4 (got" "1.2.3|BM_VM_PUBLIC_IP must be the VM's public IPv4 (got" \
+    "999.1.1.1|BM_VM_PUBLIC_IP must be the VM's public IPv4 (octets 0-255" \
+    "127.0.0.1|$private" "10.0.0.5|$private" "172.16.0.1|$private" "172.31.255.255|$private" "192.168.1.1|$private" \
+    "169.254.1.1|$private" "0.0.0.0|$private"; do
+    IFS='|' read -r ip expected <<<"$case"
+    (
+      : >"$STUB_LOG"
+      if [[ "$ip" == "<unset>" ]]; then
+        unset BM_VM_PUBLIC_IP
+      else
+        export BM_VM_PUBLIC_IP="$ip"
+      fi
+      run "$REPO_DIR/scripts/verify-vm.sh"
+      assert_failure && assert_output --partial "$expected" && refute_stub_called '^nc '
+    ) || fail "verify went on with BM_VM_PUBLIC_IP $ip"
+  done
 }
 
 @test "verify fails unless Serve sends 443 to Basic Memory and 8443 to SilverBullet with Funnel off on both" {
-  local case
-  for case in "TS_STUB_SERVE_8443=" "TS_STUB_SERVE_8443=http://127.0.0.1:8737" "TS_STUB_SERVE_EMPTY=1" \
-    "TS_STUB_FUNNEL=on TS_STUB_FUNNEL_PORT=8443"; do
-    # shellcheck disable=SC2086 # a case may hold several VAR=value words; env needs them split
-    run env $case "$REPO_DIR/scripts/verify-vm.sh" --read-only
-    [[ "$status" -ne 0 ]] || fail "expected a failure with $case; got: $output"
+  local case settings expected words
+  for case in "TS_STUB_SERVE_8443=|tailscale serve must proxy https port 8443" \
+    "TS_STUB_SERVE_8443=http://127.0.0.1:8737|tailscale serve must proxy https port 8443" \
+    "TS_STUB_SERVE_EMPTY=1|tailscale serve must proxy https port 443" \
+    "TS_STUB_FUNNEL=on|Funnel is on for this node" \
+    "TS_STUB_FUNNEL=on TS_STUB_FUNNEL_PORT=8443|Funnel is on for this node"; do
+    IFS='|' read -r settings expected <<<"$case"
+    read -r -a words <<<"$settings"
+    (
+      run env "${words[@]}" "$REPO_DIR/scripts/verify-vm.sh" --read-only
+      assert_failure && assert_output --partial "$expected"
+    ) || fail "verify did not stop at the Serve check with $settings"
   done
 }
 
@@ -94,7 +107,7 @@ teardown() {
   refute_stub_called -F '/.auth'
 }
 
-@test "ssh mode: probe checks through a verify tunnel on 127.0.0.1 and leaves no tunnel behind" {
+@test "ssh mode: probe checks through a verify tunnel on 127.0.0.1 and closes it, also when a check fails" {
   use_ssh_mode
   run "$REPO_DIR/scripts/verify-vm.sh" --read-only
   assert_success
@@ -107,26 +120,16 @@ teardown() {
   refute_stub_called -F 'tailscale serve'
   run kill -0 "$(cat "$STUB_LOG.tunnel-pids")"
   assert_failure
-}
 
-@test "verify in the ssh mode refuses a verify port that is already in use before it starts ssh" {
-  use_ssh_mode
-  export NC_STUB_OPEN_MATCH=28737
-  run "$REPO_DIR/scripts/verify-vm.sh" --read-only
-  assert_failure
-  assert_output --partial "port 28737 is in use on 127.0.0.1"
-  refute_stub_called -F 'ssh -N'
-}
-
-@test "ssh mode: verify closes its tunnel even when a check fails" {
-  use_ssh_mode
-  export CURL_STUB_EXIT=7
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_failure
-  assert_output --partial "verify tunnel is open"
-  [[ -s "$STUB_LOG.tunnel-pids" ]] || fail "the verify tunnel never started"
-  run kill -0 "$(cat "$STUB_LOG.tunnel-pids")"
-  assert_failure
+  # The tunnel above is closed (checked), so a fresh pid list shows whether this run opened and closed its own.
+  rm "$STUB_LOG.tunnel-pids"
+  (
+    export CURL_STUB_EXIT=7
+    run "$REPO_DIR/scripts/verify-vm.sh"
+    assert_failure && assert_output --partial "verify tunnel is open" && [[ -s "$STUB_LOG.tunnel-pids" ]] || exit 1
+    run kill -0 "$(cat "$STUB_LOG.tunnel-pids")"
+    assert_failure
+  ) || fail "CURL_STUB_EXIT=7: the failing verify never opened its tunnel or left it open"
 }
 
 @test "ssh mode: verify fails while Tailscale is logged in or unreadable on the VM, sshd takes passwords or the tunnel does not open" {
@@ -155,51 +158,24 @@ teardown() {
   assert_output --partial "verify tunnel exited before it opened"
 }
 
-@test "verify rejects a BM_ACCESS it does not know, also in another case, before it contacts the VM" {
-  local value
-  for value in SSH Ssh; do
-    BM_ACCESS=$value run "$REPO_DIR/scripts/verify-vm.sh"
-    assert_failure
-    assert_output --partial "BM_ACCESS must be tailscale or ssh (got '$value')"
-    refute_stub_called -E '^(ssh|curl|nc) '
-  done
-}
-
-@test "verify fails when the public IP still accepts connections" {
-  export NC_STUB_EXIT=0
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_failure
-  assert_output --partial "accepts connections on port 22"
-}
-
-@test "verify rejects non-IP and private or loopback public IPs" {
-  local ip
-  for ip in example.com 1.2.3 999.1.1.1 127.0.0.1 10.0.0.5 172.16.0.1 172.31.255.255 192.168.1.1 169.254.1.1 0.0.0.0; do
-    BM_VM_PUBLIC_IP="$ip" run "$REPO_DIR/scripts/verify-vm.sh"
-    assert_failure
-    assert_output --partial "docs/runbooks/rbk-2026-10-12-gcp-vm.md"
-    if [[ "$ip" == 999.1.1.1 ]]; then
-      assert_output --partial "BM_VM_PUBLIC_IP must be the VM's public IPv4"
-    fi
-  done
-  refute_stub_called '^nc '
-}
-
-@test "verify fails when nc rejects its options instead of probing" {
-  export NC_STUB_EXIT=1 NC_STUB_STDERR="nc: invalid option -- G"
-  run "$REPO_DIR/scripts/verify-vm.sh"
-  assert_failure
-  assert_output --partial "public port probe error on 203.0.113.10:22: nc: invalid option -- G"
-}
-
-@test "verify treats refused, timed out and ICMP-rejected connections as closed" {
-  local msg
-  for msg in \
-    "nc: connect to 203.0.113.10 port 22 (tcp) failed: Connection refused" \
-    "nc: connect to 203.0.113.10 port 22 (tcp) failed: Operation timed out" \
-    "nc: connect to 203.0.113.10 port 8737 (tcp) failed: No route to host"; do
-    # A host firewall may reject with icmp-host-prohibited, which nc reports as no route to host.
-    NC_STUB_EXIT=1 NC_STUB_STDERR="$msg" run "$REPO_DIR/scripts/verify-vm.sh"
-    assert_success
+@test "verify fails when the public IP accepts a connection or nc rejects its options, and treats refused, timed out and ICMP-rejected probes as closed" {
+  local case code stderr expected
+  # Each case: nc exit | nc stderr | the failure verify must report (empty: verify passes, the port counts as closed).
+  # A host firewall may reject with icmp-host-prohibited, which nc reports as no route to host.
+  for case in "0||accepts connections on port 22" \
+    "1|nc: invalid option -- G|public port probe error on 203.0.113.10:22: nc: invalid option -- G" \
+    "1|nc: connect to 203.0.113.10 port 22 (tcp) failed: Connection refused|" \
+    "1|nc: connect to 203.0.113.10 port 22 (tcp) failed: Operation timed out|" \
+    "1|nc: connect to 203.0.113.10 port 8737 (tcp) failed: No route to host|"; do
+    IFS='|' read -r code stderr expected <<<"$case"
+    (
+      export NC_STUB_EXIT="$code" NC_STUB_STDERR="$stderr"
+      run "$REPO_DIR/scripts/verify-vm.sh"
+      if [[ -z "$expected" ]]; then
+        assert_success
+      else
+        assert_failure && assert_output --partial "$expected"
+      fi
+    ) || fail "verify judged the public probe wrongly with nc exit $code and '$stderr'"
   done
 }

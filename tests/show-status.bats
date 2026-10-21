@@ -6,28 +6,26 @@ setup() {
   use_vm_env
 }
 
-@test "status shows containers, memory use and tailscale serve" {
-  run "$REPO_DIR/scripts/show-status.sh"
-  assert_success
-  assert_output --partial "basic-memory-server"
-  assert_output --partial "memory used: 23%"
-  assert_output --partial "swap used: 0/1023 MB"
-  assert_output --partial "proxy http://127.0.0.1:8737"
-  refute_output --partial "WARNING"
-  export FREE_STUB_SWAP_USED_MB=200
-  run "$REPO_DIR/scripts/show-status.sh"
-  assert_success
-  assert_output --partial "swap used: 200/1023 MB"
-  refute_output --partial "WARNING"
-}
-
-@test "status warns to rerun vm-bootstrap when no swap is active" {
-  export FREE_STUB_SWAP_TOTAL_MB=0
-  run "$REPO_DIR/scripts/show-status.sh"
-  assert_success
-  assert_output --partial "swap used: 0/0 MB"
-  assert_output --partial "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/rbk-2026-10-12-bootstrap.md)"
-  assert_output --partial "proxy http://127.0.0.1:8737"
+@test "status shows containers, memory and swap use, and warns only when no swap is active" {
+  local case setting swap warning
+  # Each case: the free stub setting | the swap line | the warning status must print (empty: none).
+  for case in "FREE_STUB_SWAP_USED_MB=0|0/1023|" "FREE_STUB_SWAP_USED_MB=200|200/1023|" \
+    "FREE_STUB_SWAP_TOTAL_MB=0|0/0|WARNING: no active swap on this 1GB VM"; do
+    IFS='|' read -r setting swap warning <<<"$case"
+    (
+      run env "$setting" "$REPO_DIR/scripts/show-status.sh"
+      assert_success \
+        && assert_output --partial "basic-memory-server" \
+        && assert_output --partial "memory used: 23%" \
+        && assert_output --partial "swap used: $swap MB" \
+        && assert_output --partial "proxy http://127.0.0.1:8737" || exit 1
+      if [[ -z "$warning" ]]; then
+        refute_output --partial "WARNING"
+      else
+        assert_output --partial "$warning"
+      fi
+    ) || fail "status with $setting"
+  done
 }
 
 @test "status points to free -m on the VM when it cannot read the memory use" {

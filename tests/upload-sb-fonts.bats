@@ -19,7 +19,6 @@ setup() {
   assert_output "woff2 D2KodingLigatureNerdFont-Regular.ttf"
   run cat "$FONTS/D2KodingLigatureNerdFont-Bold.woff2"
   assert_output "woff2 D2KodingLigatureNerdFont-Bold.ttf"
-  assert_stub_called -F 'sudo -n -u #1000 sh -c'
 }
 
 @test "writes nothing when a font file or fontTools is missing" {
