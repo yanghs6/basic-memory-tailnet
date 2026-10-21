@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 spec: docs/specs/spec-2026-10-15-script-test-layout.md
 ---
 
@@ -458,7 +458,7 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 
 ### Finish: review and hand-off
 
-- [ ] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
+- [x] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
 - [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과, Task 7의 확인을 적는다.
 - [ ] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
 - [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
@@ -497,3 +497,4 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 | 2026-10-21 | Verified | Task 7 Step 3(사용자 OK, 이 브랜치 `f594154`, `origin/main`은 `e648d5a` 그대로여서 merge 없음): `make deploy verify`의 deploy 부분은 성공했다. compose.yaml과 VM `.env`를 올리고, 고정 digest 이미지 두 개를 pull(Pulled)한 뒤 공간 파일을 썼다(`changed` 없음, Basic Memory 다시 만들기 없음). `up -d --wait`에서 두 컨테이너는 Running에서 Healthy가 됐고 다시 만들어지지 않았다. 이어진 `make verify`는 `tools/list`에서 `curl: (28) Operation timed out after 30002 milliseconds with 0 bytes received`로 멈췄다(make exit 2). 같은 실행에서 `initialize`도 14초 걸렸고, Basic Memory 로그에는 그 요청이 `200 OK`로 남았다. 이 브랜치는 `scripts/verify-mcp.sh`의 요청 경로와 시간 제한(`REQUEST_TIMEOUT_SECONDS=30`)을 바꾸지 않았다. |
 | 2026-10-21 | Assumption | 첫 verify의 시간 초과 원인: 배포가 관리 페이지를 다시 쓴 직후 Basic Memory가 파일을 다시 색인하느라 1GB VM에서 응답이 30초를 넘겼다. 확인하지 않았다. |
 | 2026-10-21 | Verified | 2분 뒤(`bm-diagnose` 순서): `make access-check` exit 0(`ssh ubuntu@agent-hub-iap: ok`), `make status` exit 0(memory 62%, swap 508/1023 MB, 두 컨테이너 healthy, `access: ssh`, `tailscale: not installed or logged out`), `make probe` exit 0(`initialize` 1초, `tools/list ok`, 나머지 검사 모두 OK). 다시 돌린 `make verify` exit 0: MCP 쓰기·읽기·삭제, SilverBullet 로그인·쿠키·셸 꺼짐, 두 포트 loopback, Tailscale 꺼짐, sshd 키 전용, 공인 IP 포트 6개 닫힘. |
+| 2026-10-21 | Verified | `make check` at `1998eab`: exit 0, 220개, not ok 0, 커버리지 94.50%. `make check-git` OK(10 commits since `origin/main`). 모든 Task를 마쳐 `status`를 `completed`로 바꿨다. |
