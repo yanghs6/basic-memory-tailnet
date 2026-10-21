@@ -49,11 +49,11 @@ fix_backup_stamp() {
     "checksum||could not write the checksum"; do
     IFS='|' read -r step match message <<<"$case"
     (
-      : >"$STUB_LOG"
-      rm -rf "$BACKUP_DIR" "$STUB_BIN/find"
-      fix_backup_stamp 20261008T000000Z
+      : >"$STUB_LOG" || exit 1
+      rm -rf "$BACKUP_DIR" "$STUB_BIN/find" || exit 1
+      fix_backup_stamp 20261008T000000Z || exit 1
       for file in "${earlier[@]}"; do
-        echo old >"$BACKUP_DIR/$file"
+        echo old >"$BACKUP_DIR/$file" || exit 1
       done
       case "$step" in
         listing) fail_command find ;;
@@ -83,11 +83,11 @@ fix_backup_stamp() {
     IFS='|' read -r message content names <<<"$case"
     read -r -a held <<<"$names"
     (
-      : >"$STUB_LOG"
-      rm -rf "$BACKUP_DIR"
-      fix_backup_stamp 20261008T000000Z
+      : >"$STUB_LOG" || exit 1
+      rm -rf "$BACKUP_DIR" || exit 1
+      fix_backup_stamp 20261008T000000Z || exit 1
       for file in "${held[@]}"; do
-        echo "$content" >"$BACKUP_DIR/$file"
+        echo "$content" >"$BACKUP_DIR/$file" || exit 1
       done
       SSH_STUB_FAIL_MATCH="compose stop" run "$BACKUP"
       assert_failure && assert_output --partial "$message" && refute_stub_called -F 'compose stop' || exit 1
@@ -109,8 +109,8 @@ fix_backup_stamp() {
   cp -R "$REPO_DIR/scripts" "$LINKED_WT/scripts"
   for from in "linked worktree" GIT_DIR; do
     (
-      : >"$STUB_LOG"
-      rm -rf "$MAIN_REPO/backups" "$LINKED_WT/backups"
+      : >"$STUB_LOG" || exit 1
+      rm -rf "$MAIN_REPO/backups" "$LINKED_WT/backups" || exit 1
       case "$from" in
         "linked worktree")
           cd "$LINKED_WT" || exit 1

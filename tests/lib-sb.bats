@@ -43,7 +43,7 @@ EOF
   for pair in 'admin:Tr4mp#oline|admin:Tr4mp' 'admin:Tr4mp$oline|admin:Tr4mpline'; do
     IFS='|' read -r raw passed <<<"$pair"
     (
-      printf 'BM_PORT=8737\nSB_USER=%s\n' "$raw" >"$env_file"
+      printf 'BM_PORT=8737\nSB_USER=%s\n' "$raw" >"$env_file" || exit 1
       SB_ENV_FILE="$env_file" SB_USER="$passed" run require_sb_user
       assert_failure && assert_output --partial "SB_USER in $env_file" && refute_output --partial "Tr4mp"
     ) || fail "require_sb_user accepted or printed SB_USER '$passed' from the .env line SB_USER=$raw"
@@ -60,7 +60,7 @@ EOF
   for case in "deploy-stack.sh||-u SB_USER" "verify-sb.sh|http://127.0.0.1:3000|SB_USER=admin"; do
     IFS='|' read -r script url setting <<<"$case"
     (
-      : >"$STUB_LOG"
+      : >"$STUB_LOG" || exit 1
       read -r -a words <<<"$setting"
       run env "${words[@]}" "$REPO_DIR/scripts/$script" ${url:+"$url"}
       assert_failure && assert_output --partial "SB_USER" && refute_stub_called -E '^(ssh|curl) '

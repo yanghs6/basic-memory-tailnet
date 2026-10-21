@@ -14,7 +14,9 @@ setup() {
 @test "creates a script, a remote script and a library with their pair test from the templates" {
   local case kind name script test guard file
   # Each case: the kind | the name | the script and the pair test it must create | a library's source guard.
+  # An empty kind is what make new-script passes when KIND is omitted: it means script.
   for case in "script|show-probe|scripts/show-probe.sh|tests/show-probe.bats|" \
+    "|show-default|scripts/show-default.sh|tests/show-default.bats|" \
     "remote|check-probe|scripts/remote/check-probe.sh|tests/remote-check-probe.bats|" \
     "lib|probe|scripts/lib/probe.sh|tests/lib-probe.bats|_BM_LIB_PROBE" \
     "lib|probe-kit|scripts/lib/probe-kit.sh|tests/lib-probe-kit.bats|_BM_LIB_PROBE_KIT"; do

@@ -20,7 +20,7 @@ setup() {
     "||reachable (HTTP 404)|tunnel endpoint: not set (BM_ACCESS_CHECK_URL in .env)|tailscale (the ssh mode was not checked: BM_ACCESS_CHECK_URL is not set)"; do
     IFS='|' read -r blocked url control tunnel recommendation <<<"$case"
     (
-      : >"$STUB_LOG"
+      : >"$STUB_LOG" || exit 1
       export CURL_STUB_FAIL_MATCH="$blocked" BM_ACCESS_CHECK_URL="$url"
       run "$ACCESS_CHECK"
       assert_success \

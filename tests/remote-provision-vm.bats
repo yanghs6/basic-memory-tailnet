@@ -38,8 +38,8 @@ run_bootstrap_with_key() {
   for case in "0|tskey-auth-secret987|success" "1|tskey-auth-rejected1|failure"; do
     IFS='|' read -r up_exit key outcome <<<"$case"
     (
-      : >"$STUB_LOG"
-      rm -f "$STUB_LOG.authkey"
+      : >"$STUB_LOG" || exit 1
+      rm -f "$STUB_LOG.authkey" || exit 1
       export TS_STUB_UP_EXIT="$up_exit"
       run_bootstrap_with_key "$key"
       if [[ "$outcome" == success ]]; then
@@ -94,10 +94,10 @@ run_bootstrap_with_key() {
   # Each case: the fstab line already there (empty: no fstab yet).
   for entry in "" "UUID=abc / ext4 defaults 0 1"; do
     (
-      : >"$STUB_LOG"
-      rm -f "$ETC_DIR/fstab" "$SWAP_FILE"
+      : >"$STUB_LOG" || exit 1
+      rm -f "$ETC_DIR/fstab" "$SWAP_FILE" || exit 1
       if [[ -n "$entry" ]]; then
-        printf '%s\n' "$entry" >"$ETC_DIR/fstab"
+        printf '%s\n' "$entry" >"$ETC_DIR/fstab" || exit 1
       fi
       run_bootstrap_with_key ""
       assert_success \
@@ -123,7 +123,7 @@ run_bootstrap_with_key() {
     "SWAPON_STUB_EXIT=1|failure|swapon failed"; do
     IFS='|' read -r setting outcome message <<<"$case"
     (
-      : >"$STUB_LOG"
+      : >"$STUB_LOG" || exit 1
       export "${setting?}"
       run_bootstrap_with_key ""
       if [[ "$outcome" == success ]]; then

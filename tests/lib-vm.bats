@@ -41,7 +41,7 @@ setup() {
   for case in "deploy-stack.sh SSH" "verify-vm.sh SSH" "verify-vm.sh Ssh" "show-logs.sh Ssh"; do
     read -r script value <<<"$case"
     (
-      : >"$STUB_LOG"
+      : >"$STUB_LOG" || exit 1
       BM_ACCESS="$value" run "$REPO_DIR/scripts/$script"
       assert_failure \
         && assert_output --partial "BM_ACCESS must be tailscale or ssh (got '$value')" \
@@ -60,7 +60,7 @@ setup() {
     "verify-vm.sh|--read-only|NC_STUB_OPEN_MATCH=28737|port 28737 is in use on 127.0.0.1"; do
     IFS='|' read -r script arg setting expected <<<"$case"
     (
-      : >"$STUB_LOG"
+      : >"$STUB_LOG" || exit 1
       run env "$setting" "$REPO_DIR/scripts/$script" ${arg:+"$arg"}
       assert_failure && assert_output --partial "$expected" && refute_stub_called -F 'ssh -N'
     ) || fail "$script${arg:+ $arg} with $setting did not stop before its tunnel"

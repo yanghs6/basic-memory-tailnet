@@ -16,8 +16,8 @@ setup() {
     "TS_AUTHKEY|tskey-auth-x|bash /tmp/bm-bootstrap.|failure"; do
     IFS='|' read -r source key fail_match outcome <<<"$case"
     (
-      : >"$STUB_LOG"
-      rm -f "$STUB_LOG.authkey"
+      : >"$STUB_LOG" || exit 1
+      rm -f "$STUB_LOG.authkey" || exit 1
       export SSH_STUB_FAIL_MATCH="$fail_match"
       if [[ "$source" == prompt ]]; then
         run bash -c 'printf "%s\n" "$1" | "$0" 203.0.113.10' "$WRAPPER" "$key"

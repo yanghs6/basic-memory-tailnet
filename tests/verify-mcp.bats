@@ -15,9 +15,9 @@ setup() {
   for case in "sse|" "json|" "sse|agent-hub.example.ts.net"; do
     IFS='|' read -r kind host <<<"$case"
     (
-      : >"$STUB_LOG"
-      rm -rf "$BATS_TEST_TMPDIR/mcp-$kind" "$STUB_LOG.requests"
-      use_mcp_fixtures "$kind"
+      : >"$STUB_LOG" || exit 1
+      rm -rf "$BATS_TEST_TMPDIR/mcp-$kind" "$STUB_LOG.requests" || exit 1
+      use_mcp_fixtures "$kind" || exit 1
       run "$VERIFY" ${host:+--host-header "$host"} "$URL"
       assert_success \
         && assert_output --partial "OK: MCP round trip passed" \
@@ -44,19 +44,19 @@ setup() {
   local fault expected
   for fault in missing-tool http-503 json-rpc-error no-connection; do
     (
-      rm -rf "$CURL_FIXTURES"
-      use_mcp_fixtures sse
+      rm -rf "$CURL_FIXTURES" || exit 1
+      use_mcp_fixtures sse || exit 1
       case "$fault" in
         missing-tool)
-          echo 'data: {"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"write_note"},{"name":"read_note"},{"name":"search_notes"}]}}' >"$CURL_FIXTURES/tools_list.body"
+          echo 'data: {"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"write_note"},{"name":"read_note"},{"name":"search_notes"}]}}' >"$CURL_FIXTURES/tools_list.body" || exit 1
           expected="tools/list: missing tool 'delete_note'"
           ;;
         http-503)
-          echo 503 >"$CURL_FIXTURES/initialize.status"
+          echo 503 >"$CURL_FIXTURES/initialize.status" || exit 1
           expected="initialize: HTTP 503"
           ;;
         json-rpc-error)
-          echo 'data: {"jsonrpc":"2.0","id":1,"error":{"code":-32600,"message":"Invalid request"}}' >"$CURL_FIXTURES/initialize.body"
+          echo 'data: {"jsonrpc":"2.0","id":1,"error":{"code":-32600,"message":"Invalid request"}}' >"$CURL_FIXTURES/initialize.body" || exit 1
           expected='initialize: JSON-RPC error {"code":-32600,"message":"Invalid request"}'
           ;;
         no-connection)
@@ -74,20 +74,20 @@ setup() {
   local fault expected
   for fault in write-http-500 write-tool-error read-mismatch; do
     (
-      rm -rf "$CURL_FIXTURES" "$STUB_LOG.requests"
-      use_mcp_fixtures sse
+      rm -rf "$CURL_FIXTURES" "$STUB_LOG.requests" || exit 1
+      use_mcp_fixtures sse || exit 1
       case "$fault" in
         write-http-500)
-          echo 500 >"$CURL_FIXTURES/call_write_note.status"
+          echo 500 >"$CURL_FIXTURES/call_write_note.status" || exit 1
           expected="write_note: HTTP 500"
           ;;
         write-tool-error)
           printf 'event: message\ndata: %s\n' '{"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"Note already exists"}],"isError":true}}' \
-            >"$CURL_FIXTURES/call_write_note.body"
+            >"$CURL_FIXTURES/call_write_note.body" || exit 1
           expected="write_note: tool error: Note already exists"
           ;;
         read-mismatch)
-          echo 'data: {"jsonrpc":"2.0","id":4,"result":{"content":[],"isError":false,"structuredContent":{"result":{"title":"bm-verify-test1","content":"something else"}}}}' >"$CURL_FIXTURES/call_read_note.body"
+          echo 'data: {"jsonrpc":"2.0","id":4,"result":{"content":[],"isError":false,"structuredContent":{"result":{"title":"bm-verify-test1","content":"something else"}}}}' >"$CURL_FIXTURES/call_read_note.body" || exit 1
           expected="read_note: content of 'bm-verify-test1' does not contain 'bm-verify marker test1'"
           ;;
       esac

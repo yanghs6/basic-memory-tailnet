@@ -66,7 +66,7 @@ teardown() {
     "169.254.1.1|$private" "0.0.0.0|$private"; do
     IFS='|' read -r ip expected <<<"$case"
     (
-      : >"$STUB_LOG"
+      : >"$STUB_LOG" || exit 1
       if [[ "$ip" == "<unset>" ]]; then
         unset BM_VM_PUBLIC_IP
       else

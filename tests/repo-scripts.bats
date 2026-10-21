@@ -7,8 +7,9 @@ load helpers
 
 # A scripts/...sh path; example paths with < or { do not match it.
 SCRIPT_PATH_PATTERN='scripts/[A-Za-z0-9_./-]+\.sh'
-# A command that sources a .sh file (. FILE or source FILE), at the start of a line or after ;, &, |, ( or $(.
-SOURCES_SH='(^|[;&|(]|\$\()[[:space:]]*(\.|source)[[:space:]][^#]*\.sh'
+# A command that sources a .sh file (. FILE or source FILE), at the start of a line or after ;, &, |, (, {, $( or one of
+# the words then, do, else.
+SOURCES_SH='(^|[;&|({]|\$\(|(^|[[:space:]])(then|do|else))[[:space:]]*(\.|source)[[:space:]][^#]*\.sh'
 # A line that sources common.sh: the sourced path ends in common.sh before any comment, so a comment naming
 # common.sh does not count.
 SOURCES_COMMON='^[[:space:]]*(\.|source)[[:space:]]+[^#]*[/"[:space:]]common\.sh"?[[:space:]]*(#.*)?$'
@@ -51,7 +52,7 @@ script_path_refs() {
   while IFS= read -r file; do
     # Libraries and the library template are sourced by scripts that already run in strict mode.
     case "$file" in
-      *.bash | scripts/lib/* | .agents/skills/script-authoring/assets/lib.sh) continue ;;
+      *.bash | scripts/lib/* | "$SCRIPT_TEMPLATES_DIR/lib.sh") continue ;;
     esac
     grep -qx 'set -euo pipefail' "$REPO_DIR/$file" || missing="$missing $file"
   done <<<"$files"

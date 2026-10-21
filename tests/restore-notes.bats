@@ -93,14 +93,14 @@ add_model_cache() {
   for case in "existing|stopped|kept" "recreated||none"; do
     IFS='|' read -r vm stop prev <<<"$case"
     (
-      : >"$STUB_LOG"
-      rm -rf "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT".* "$BM_REMOTE_APP_DIR"
-      mkdir -p "$BM_REMOTE_APP_DIR"
+      : >"$STUB_LOG" || exit 1
+      rm -rf "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT".* "$BM_REMOTE_APP_DIR" || exit 1
+      mkdir -p "$BM_REMOTE_APP_DIR" || exit 1
       if [[ "$vm" == existing ]]; then
-        mkdir -p "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config"
-        echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-        echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
-        install -m 644 /dev/null "$BM_REMOTE_APP_DIR/.env"
+        mkdir -p "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config" || exit 1
+        echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md" || exit 1
+        echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml" || exit 1
+        install -m 644 /dev/null "$BM_REMOTE_APP_DIR/.env" || exit 1
       fi
       restore_with_answer yes
       assert_success || exit 1
@@ -153,10 +153,10 @@ add_model_cache() {
     "entry $BATS_TEST_TMPDIR/outside.md|unsafe archive|absolute path"; do
     IFS='|' read -r input message detail <<<"$case"
     (
-      : >"$STUB_LOG"
-      rm -rf "$BATS_TEST_TMPDIR/src" "$BACKUP_DIR" "$BATS_TEST_TMPDIR/outside.md"
-      echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-      make_archive "x"
+      : >"$STUB_LOG" || exit 1
+      rm -rf "$BATS_TEST_TMPDIR/src" "$BACKUP_DIR" "$BATS_TEST_TMPDIR/outside.md" || exit 1
+      echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md" || exit 1
+      make_archive "x" || exit 1
       answer=yes
       case "$input" in
         "answer no") answer=no ;;
@@ -166,13 +166,13 @@ add_model_cache() {
         "missing manifest") rm "$ARCHIVE.manifest" ;;
         "wrong checksum") echo "0000  $(basename "$ARCHIVE")" >"$ARCHIVE.sha256" ;;
         "symlink entry")
-          ln -s /etc "$SRC/basic-memory/knowledge/etc"
-          pack_archive basic-memory
+          ln -s /etc "$SRC/basic-memory/knowledge/etc" || exit 1
+          pack_archive basic-memory || exit 1
           ;;
         "entry "*)
           entry="${input#entry }"
-          echo "outside" >"$BATS_TEST_TMPDIR/outside.md"
-          pack_archive -P basic-memory "$entry"
+          echo "outside" >"$BATS_TEST_TMPDIR/outside.md" || exit 1
+          pack_archive -P basic-memory "$entry" || exit 1
           run tar -tzf "$ARCHIVE"
           assert_line "$entry" || exit 1
           ;;
@@ -201,21 +201,21 @@ add_model_cache() {
     "start and rollback start|container did not become healthy with the restored data|started|down"; do
     IFS='|' read -r step message started back <<<"$case"
     (
-      : >"$STUB_LOG"
+      : >"$STUB_LOG" || exit 1
       rm -rf "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT".* "$BM_REMOTE_APP_DIR" "$BATS_TEST_TMPDIR/src" "$BACKUP_DIR" \
-        "$STUB_BIN/cp"
-      mkdir -p "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config" "$BM_REMOTE_APP_DIR"
-      echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-      echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
-      echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
-      make_archive "bad"
+        "$STUB_BIN/cp" || exit 1
+      mkdir -p "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config" "$BM_REMOTE_APP_DIR" || exit 1
+      echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md" || exit 1
+      echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml" || exit 1
+      echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env" || exit 1
+      make_archive "bad" || exit 1
       case "$step" in
         extract) export SSH_STUB_FAIL_MATCH="-xzf" ;;
         manifest) echo "0000  ./knowledge/missing.md" >>"$ARCHIVE.manifest" ;;
         upload)
           # A cp that dies midway (disk full): it leaves a partial destination file and fails.
           # shellcheck disable=SC2016 # the fake cp body must keep ${@: -1} literal
-          fake_cmd cp 'printf partial >"${@: -1}"; exit 1'
+          fake_cmd cp 'printf partial >"${@: -1}"; exit 1' || exit 1
           ;;
         swap) export SSH_STUB_FAIL_MATCH="rmdir" ;;
         pages) export SSH_STUB_FAIL_MATCH="Library/agent-hub" ;;
