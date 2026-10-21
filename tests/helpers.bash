@@ -28,6 +28,22 @@ use_vm_env() {
   mkdir -p "$BM_REMOTE_APP_DIR" "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config"
 }
 
+# use_ssh_mode: the ssh access mode over an SSH alias, with 127.0.0.1 ports open only once the verify tunnel started and Tailscale on the VM
+# logged out.
+use_ssh_mode() {
+  export BM_ACCESS=ssh BM_VM_HOST=agent-hub-iap NC_STUB_OPEN_AFTER_TUNNEL=127.0.0.1 TS_STUB_BACKEND_STATE=NeedsLogin
+  unset BM_TAILNET_DOMAIN
+}
+
+# use_provision_env: the fake VM of use_vm_env plus the etc, run and swap paths and the os-release that provision-vm.sh reads.
+use_provision_env() {
+  use_vm_env
+  export ETC_DIR="$BATS_TEST_TMPDIR/etc" RUN_DIR="$BATS_TEST_TMPDIR/run"
+  export OS_RELEASE="$REPO_DIR/tests/fixtures/os-release" ADMIN_USER=root
+  export SWAP_FILE="$BATS_TEST_TMPDIR/swapfile"
+  mkdir -p "$RUN_DIR" "$ETC_DIR"
+}
+
 # make_worktree_fixture: MAIN_REPO (a main checkout) and LINKED_WT (a linked worktree of it), as real paths.
 make_worktree_fixture() {
   MAIN_REPO="$BATS_TEST_TMPDIR/main"

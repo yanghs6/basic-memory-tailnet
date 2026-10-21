@@ -33,37 +33,8 @@ local_manifest() {
   bash -c "$(. "$REPO_DIR/scripts/lib/vm.sh" && manifest_cmd "$1")"
 }
 
-# fail_command NAME -> put a NAME first on PATH that prints an error and exits 1.
-fail_command() {
-  mkdir -p "$BATS_TEST_TMPDIR/failbin"
-  printf '#!/usr/bin/env bash\necho "%s: simulated failure" >&2\nexit 1\n' "$1" >"$BATS_TEST_TMPDIR/failbin/$1"
-  chmod +x "$BATS_TEST_TMPDIR/failbin/$1"
-  export PATH="$BATS_TEST_TMPDIR/failbin:$PATH"
-}
-
 restore_with_answer() {
   run bash -c 'printf "%s\n" "$1" | "$0" "$2"' "$RESTORE" "$1" "$ARCHIVE"
-}
-
-# --- backup ---
-
-@test "backup stores a checksummed archive of the data root and restarts the container" {
-  run "$BACKUP"
-  assert_success
-  local archive
-  archive="$(ls "$BACKUP_DIR"/bm-*.tgz)"
-  run tar -tzf "$archive"
-  assert_line "basic-memory/knowledge/a.md"
-  run cat "$archive.sha256"
-  assert_output "$(sha256sum "$archive" | awk '{ print $1 }')  $(basename "$archive")"
-  run cat "$archive.manifest"
-  assert_output "$(sha256sum "$BM_REMOTE_DATA_ROOT/knowledge/a.md" | awk '{ print $1 }')  ./knowledge/a.md"
-  run ls "$BACKUP_DIR"
-  refute_output --partial ".partial"
-  assert_equal "${#lines[@]}" 3
-  run grep -E '^docker compose (stop|start)' "$STUB_LOG"
-  assert_line --index 0 "docker compose stop"
-  assert_line --index 1 "docker compose start"
 }
 
 # add_model_cache -> a HuggingFace-style cache in the fake data root: a blob plus a relative symlink to it.
@@ -91,102 +62,6 @@ add_model_cache() {
   assert_success
   [[ ! -e "$BM_REMOTE_DATA_ROOT/config/fastembed_cache" ]]
 }
-
-@test "backup leaves no partial archive and still restarts the container when streaming fails" {
-  export SSH_STUB_FAIL_MATCH="tar -C"
-  run "$BACKUP"
-  assert_failure
-  assert_output --partial "backup stream failed"
-  run ls -A "$BACKUP_DIR"
-  assert_output ""
-  run grep -F 'compose start' "$STUB_LOG"
-  assert_success
-}
-
-@test "backup publishes no file of its run when the checksum cannot be written, and spares earlier backups" {
-  mkdir -p "$BACKUP_DIR" "$BATS_TEST_TMPDIR/datebin"
-  printf '#!/usr/bin/env bash\necho 20261008T000000Z\n' >"$BATS_TEST_TMPDIR/datebin/date"
-  chmod +x "$BATS_TEST_TMPDIR/datebin/date"
-  export PATH="$BATS_TEST_TMPDIR/datebin:$PATH"
-  echo old >"$BACKUP_DIR/bm-20261007T000000Z.tgz"
-  echo old >"$BACKUP_DIR/bm-20261007T000000Z.tgz.sha256"
-  echo old >"$BACKUP_DIR/bm-20261007T000000Z.tgz.manifest"
-  mkdir "$BACKUP_DIR/bm-20261008T000000Z.tgz.sha256.partial"
-  run "$BACKUP"
-  assert_failure
-  assert_output --partial "could not write the checksum"
-  rmdir "$BACKUP_DIR/bm-20261008T000000Z.tgz.sha256.partial"
-  run ls -A "$BACKUP_DIR"
-  assert_output "$(printf '%s\n' bm-20261007T000000Z.tgz bm-20261007T000000Z.tgz.manifest bm-20261007T000000Z.tgz.sha256)"
-  run cat "$BACKUP_DIR/bm-20261007T000000Z.tgz"
-  assert_output "old"
-  run grep -F 'docker compose start' "$STUB_LOG"
-  assert_success
-}
-
-@test "backup still restarts the container when the stop cannot be confirmed" {
-  export SSH_STUB_FAIL_MATCH="compose stop"
-  run "$BACKUP"
-  assert_failure
-  assert_output --partial "could not confirm the container stopped"
-  run grep -F 'docker compose start' "$STUB_LOG"
-  assert_success
-  run ls -A "$BACKUP_DIR"
-  assert_output ""
-}
-
-# fix_backup_stamp STAMP -> make backup-notes.sh name its archive bm-STAMP.tgz.
-fix_backup_stamp() {
-  mkdir -p "$BATS_TEST_TMPDIR/datebin" "$BACKUP_DIR"
-  printf '#!/usr/bin/env bash\necho %s\n' "$1" >"$BATS_TEST_TMPDIR/datebin/date"
-  chmod +x "$BATS_TEST_TMPDIR/datebin/date"
-  export PATH="$BATS_TEST_TMPDIR/datebin:$PATH"
-}
-
-@test "backup refuses a name that already holds a backup and never touches it or the container" {
-  fix_backup_stamp 20261008T000000Z
-  local file
-  for file in bm-20261008T000000Z.tgz bm-20261008T000000Z.tgz.sha256 bm-20261008T000000Z.tgz.manifest; do
-    echo old >"$BACKUP_DIR/$file"
-  done
-  export SSH_STUB_FAIL_MATCH="compose stop"
-  run "$BACKUP"
-  assert_failure
-  assert_output --partial "already exists"
-  for file in bm-20261008T000000Z.tgz bm-20261008T000000Z.tgz.sha256 bm-20261008T000000Z.tgz.manifest; do
-    run cat "$BACKUP_DIR/$file"
-    assert_output "old"
-  done
-  # The name check runs after the exclusive reservation, so the run must release its own reservation.
-  [[ ! -e "$BACKUP_DIR/bm-20261008T000000Z.tgz.partial" ]]
-  run grep -F 'compose stop' "$STUB_LOG"
-  assert_failure
-}
-
-@test "backup refuses while another run holds the same name and leaves its files alone" {
-  fix_backup_stamp 20261008T000000Z
-  echo other >"$BACKUP_DIR/bm-20261008T000000Z.tgz.partial"
-  run "$BACKUP"
-  assert_failure
-  assert_output --partial "another backup"
-  run cat "$BACKUP_DIR/bm-20261008T000000Z.tgz.partial"
-  assert_output "other"
-  run grep -F 'compose stop' "$STUB_LOG"
-  assert_failure
-}
-
-@test "backup fails and writes nothing when listing the data files fails" {
-  fail_command find
-  run "$BACKUP"
-  assert_failure
-  assert_output --partial "could not build the data manifest"
-  run ls -A "$BACKUP_DIR"
-  assert_output ""
-  run grep -F 'docker compose start' "$STUB_LOG"
-  assert_success
-}
-
-# --- restore ---
 
 @test "restore replaces the data, keeps the previous copy and fixes ownership" {
   make_archive "from backup"
@@ -463,8 +338,6 @@ compose.yaml"
   run cat "$BM_REMOTE_APP_DIR/.env"
   assert_output "PREVIOUS=env"
 }
-
-# --- round trip (spec completion criterion 3) ---
 
 @test "a backup made by backup-notes.sh restores with restore-notes.sh and matches its manifest" {
   # A deployed VM already holds the current space files, which the restore writes again unchanged.

@@ -12,13 +12,6 @@ setup() {
   export CURL_SB_COOKIE="set-cookie: auth_agent-hub=stub-session-token; Path=/; SameSite=Lax; HttpOnly; Secure"
 }
 
-# use_ssh_mode: the ssh access mode over an SSH alias, with 127.0.0.1 ports open only once the verify tunnel started and Tailscale on the VM
-# logged out.
-use_ssh_mode() {
-  export BM_ACCESS=ssh BM_VM_HOST=agent-hub-iap NC_STUB_OPEN_AFTER_TUNNEL=127.0.0.1 TS_STUB_BACKEND_STATE=NeedsLogin
-  unset BM_TAILNET_DOMAIN
-}
-
 # A failing test must not leave a stub tunnel (sleep) behind.
 teardown() {
   local pid
@@ -27,93 +20,6 @@ teardown() {
     kill "$pid" 2>/dev/null || true
   done <"$STUB_LOG.tunnel-pids"
 }
-
-# --- deploy ---
-
-@test "deploy uploads compose.yaml, an owner-only VM .env with SB_USER and the space files, then pulls and waits for healthy" {
-  install -m 644 /dev/null "$BM_REMOTE_APP_DIR/.env"
-  run "$REPO_DIR/scripts/deploy-stack.sh"
-  assert_success
-  assert_output --partial "deployed. Next: make verify"
-  refute_output --partial "test-password"
-  run diff "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
-  assert_success
-  run cat "$BM_REMOTE_APP_DIR/.env"
-  assert_line "BM_PORT=8737"
-  assert_line "BM_KNOWLEDGE_DIR=$BM_REMOTE_DATA_ROOT/knowledge"
-  assert_line "BM_CONFIG_DIR=$BM_REMOTE_DATA_ROOT/config"
-  assert_line "SB_PORT=3000"
-  assert_line "SB_USER=admin:test-password"
-  run stat -c '%a' "$BM_REMOTE_APP_DIR/.env"
-  assert_output "600"
-  run diff "$REPO_DIR/silverbullet/notes.gitignore" "$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/.gitignore"
-  assert_success
-  run diff "$REPO_DIR/silverbullet/agent-hub.md" "$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/Library/agent-hub/agent-hub.md"
-  assert_success
-  run grep -F 'docker compose pull -q' "$STUB_LOG"
-  assert_success
-  run grep -F 'docker compose up -d --wait --wait-timeout 360' "$STUB_LOG"
-  assert_success
-}
-
-@test "deploy recreates Basic Memory before starting SilverBullet only when the notes .gitignore changed, and writes the pages after the recreate" {
-  run "$REPO_DIR/scripts/deploy-stack.sh"
-  assert_success
-  run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
-  assert_output "1"
-  run awk '/^docker compose .*--force-recreate basic-memory$/ { r = NR } /^docker compose up -d --wait --wait-timeout 360$/ { u = NR } END { exit !(r && u && r < u) }' "$STUB_LOG"
-  assert_success
-  # The first write of the library page comes after the recreate, so the old Basic Memory never indexes it.
-  run awk '/^docker compose .*--force-recreate basic-memory$/ { r = NR } /^sudo .*Library\/agent-hub\/agent-hub\.md/ && !p { p = NR } END { exit !(r && p && r < p) }' "$STUB_LOG"
-  assert_success
-  run "$REPO_DIR/scripts/deploy-stack.sh"
-  assert_success
-  run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
-  assert_output "1"
-}
-
-@test "deploy still recreates Basic Memory on the retry after the image pull failed behind a new notes .gitignore" {
-  local page="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/Library/agent-hub/agent-hub.md"
-  export DOCKER_STUB_FAIL_MATCH="pull -q"
-  run "$REPO_DIR/scripts/deploy-stack.sh"
-  assert_failure
-  run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
-  assert_output "0"
-  [[ ! -e "$page" ]] || fail "the pages must wait until Basic Memory was recreated"
-  unset DOCKER_STUB_FAIL_MATCH
-  run "$REPO_DIR/scripts/deploy-stack.sh"
-  assert_success
-  run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
-  assert_output "1"
-  [[ ! -e "$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/.gitignore.pending" ]] \
-    || fail "the marker must be removed once Basic Memory was recreated"
-  [[ -e "$page" ]] || fail "the retry must write the pages after the recreate"
-}
-
-@test "deploy leaves the VM untouched without a valid SB_USER" {
-  unset SB_USER
-  run "$REPO_DIR/scripts/deploy-stack.sh"
-  assert_failure
-  run grep -c '^ssh ' "$STUB_LOG"
-  assert_output "0"
-}
-
-@test "deploy reports an unhealthy container" {
-  export DOCKER_STUB_FAIL_MATCH="up -d"
-  run "$REPO_DIR/scripts/deploy-stack.sh"
-  assert_failure
-  assert_output --partial "did not become healthy within 360s"
-}
-
-@test "deploy requires the VM settings from .env" {
-  unset BM_VM_HOST
-  run "$REPO_DIR/scripts/deploy-stack.sh"
-  assert_failure
-  assert_output --partial "missing env BM_VM_HOST"
-  assert_output --partial "set it in .env in the main checkout"
-}
-
-# --- verify-vm ---
 
 @test "verify runs the MCP round trip and the SilverBullet login over the tailnet URLs and checks both loopback ports" {
   run "$REPO_DIR/scripts/verify-vm.sh"
@@ -307,58 +213,4 @@ teardown() {
     NC_STUB_EXIT=1 NC_STUB_STDERR="$msg" run "$REPO_DIR/scripts/verify-vm.sh"
     assert_success
   done
-}
-
-# --- status ---
-
-@test "status shows containers, memory use and tailscale serve" {
-  run "$REPO_DIR/scripts/show-status.sh"
-  assert_success
-  assert_output --partial "basic-memory-server"
-  assert_output --partial "memory used: 23%"
-  assert_output --partial "swap used: 0/1023 MB"
-  assert_output --partial "proxy http://127.0.0.1:8737"
-  refute_output --partial "WARNING"
-  export FREE_STUB_SWAP_USED_MB=200
-  run "$REPO_DIR/scripts/show-status.sh"
-  assert_success
-  assert_output --partial "swap used: 200/1023 MB"
-  refute_output --partial "WARNING"
-}
-
-@test "status warns to rerun vm-bootstrap when no swap is active" {
-  export FREE_STUB_SWAP_TOTAL_MB=0
-  run "$REPO_DIR/scripts/show-status.sh"
-  assert_success
-  assert_output --partial "swap used: 0/0 MB"
-  assert_output --partial "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/rbk-2026-10-12-bootstrap.md)"
-  assert_output --partial "proxy http://127.0.0.1:8737"
-}
-
-@test "status points to free -m on the VM when it cannot read the memory use" {
-  SSH_STUB_FAIL_MATCH="free -m" run "$REPO_DIR/scripts/show-status.sh"
-  assert_failure
-  assert_output --partial "could not read memory usage on $BM_VM_HOST: run 'ssh $BM_VM_USER@$BM_VM_HOST free -m' and check its Mem: and Swap: lines"
-}
-
-@test "ssh mode: status shows the access mode instead of Serve and warns while Tailscale is logged in on the VM" {
-  use_ssh_mode
-  run "$REPO_DIR/scripts/show-status.sh"
-  assert_success
-  assert_output --partial "access: ssh"
-  assert_output --partial "tailscale: not installed or logged out"
-  refute_output --partial "proxy http://127.0.0.1:8737"
-  export TS_STUB_BACKEND_STATE=Running
-  run "$REPO_DIR/scripts/show-status.sh"
-  assert_success
-  assert_output --partial "WARNING: Tailscale is still logged in on the VM; BM_ACCESS=ssh expects it off"
-}
-
-# --- logs ---
-
-@test "logs prints the last 200 lines from the VM" {
-  run "$REPO_DIR/scripts/show-logs.sh"
-  assert_success
-  run grep -F 'docker compose logs --tail=200' "$STUB_LOG"
-  assert_success
 }
