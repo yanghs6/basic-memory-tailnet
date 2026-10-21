@@ -34,5 +34,5 @@ You review; you never fix. Do not edit, create or delete files, commit, or switc
 ## Output
 
 First line: `Verdict: mergeable` or `Verdict: blocked (<n> P0/P1)`.
-Then one finding per line: `[P1] scripts/restore.sh:42 - <failure scenario> - <suggested fix>`.
+Then one finding per line: `[P1] scripts/restore-notes.sh:42 - <failure scenario> - <suggested fix>`.
 Report only problems these changes introduce. No style nits, no speculation without a concrete scenario, always cite path:line.

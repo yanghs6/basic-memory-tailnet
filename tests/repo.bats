@@ -101,7 +101,7 @@ compose_start_period_seconds() {
 @test "deploy and restore wait longer than the healthcheck start_period" {
   local period timeout
   period="$(compose_start_period_seconds)"
-  timeout="$(sed -nE 's/^readonly HEALTH_TIMEOUT_SECONDS=([0-9]+)$/\1/p' "$REPO_DIR/scripts/lib/common.sh")"
+  timeout="$(sed -nE 's/^readonly HEALTH_TIMEOUT_SECONDS=([0-9]+)$/\1/p' "$REPO_DIR/scripts/lib/vm.sh")"
   [[ -n "$period" && -n "$timeout" ]] || fail "could not read start_period ('$period') or HEALTH_TIMEOUT_SECONDS ('$timeout')"
   ((timeout > period)) \
     || fail "HEALTH_TIMEOUT_SECONDS=$timeout must exceed start_period ${period}s, or --wait gives up inside the grace period"
@@ -194,8 +194,8 @@ compose_start_period_seconds() {
   assert_line '    - matcher: "Bash"'
   assert_line "      hooks:"
   assert_line "        - type: command"
-  assert_line "          command: '\"\$CLAUDE_PROJECT_DIR\"/scripts/review-bash-guard.sh || exit 2'"
-  [[ -x "$REPO_DIR/scripts/review-bash-guard.sh" ]] || fail "scripts/review-bash-guard.sh must exist and be executable"
+  assert_line "          command: '\"\$CLAUDE_PROJECT_DIR\"/scripts/guard-reviewer-bash.sh || exit 2'"
+  [[ -x "$REPO_DIR/scripts/guard-reviewer-bash.sh" ]] || fail "scripts/guard-reviewer-bash.sh must exist and be executable"
   run grep -F "git status" "$agent"
   assert_failure 1
 }

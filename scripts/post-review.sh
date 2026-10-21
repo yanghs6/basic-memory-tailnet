@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 # Post one review round's raw reports to its pull request: one comment for the change review and one for the
 # plan review (docs/specs/spec-2026-10-13-github-pr-workflow.md, section 8). make review writes the reports.
-# Usage: post-review.sh PR BRANCH codex|claude [ROUND]
+# Usage: make review-post PR=<number> BRANCH=<plan/NN-slug|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_MODEL=<model>]
 #   REVIEW_OUT_DIR=<dir>   where make review wrote the reports (default: the main checkout's .review-out)
 #   REVIEW_MODEL=<model>   the reviewer's model for the comment header (default: "CLI default model")
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/git.sh
+. "$SCRIPT_DIR/lib/git.sh"
 
-MAIN_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)"
-readonly OUT_DIR="${REVIEW_OUT_DIR:-$MAIN_ROOT/.review-out}"
 # GitHub rejects comment bodies over 65536 characters; counting bytes keeps every accepted body under it.
 readonly MAX_COMMENT_BYTES=65536
 
@@ -34,7 +32,7 @@ check_size() {
 }
 
 main() {
-  local pr branch reviewer round slug prefix file base head header change_body plan_body
+  local pr branch reviewer round prefix file base head header change_body plan_body
   [[ $# -ge 3 ]] || usage
   pr="$1"
   branch="$2"
@@ -46,8 +44,7 @@ main() {
     *) usage ;;
   esac
   require_cmd git gh
-  slug="${branch//\//-}"
-  prefix="$OUT_DIR/$slug-r$round-$reviewer"
+  prefix="$(review_report_prefix "$branch" "$round" "$reviewer")" || exit 1
   for file in "$prefix-diff.md" "$prefix-plan.md" "$prefix-meta.txt"; do
     [[ -f "$file" ]] || die "missing $file: run make review BRANCH=$branch REVIEWER=$reviewer ROUND=$round first"
   done

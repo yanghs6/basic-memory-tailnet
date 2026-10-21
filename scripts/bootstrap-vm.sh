@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # First-time VM setup before the access path exists (public SSH), or over the SSH host alias in ssh mode. Safe to rerun.
-# Usage: bootstrap-vm.sh HOST   (HOST: the public IP, or the SSH host alias in ssh mode; in tailscale mode the
-#        Tailscale auth key comes from $TS_AUTHKEY or a hidden prompt)
+# Usage: make vm-bootstrap HOST=<public-ip, or the SSH host alias in ssh mode>   (in tailscale mode the Tailscale auth
+#        key comes from $TS_AUTHKEY or a hidden prompt)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/vm.sh
+. "$SCRIPT_DIR/lib/vm.sh"
 
 readonly REMOTE_SCRIPT_TEMPLATE=/tmp/bm-bootstrap.XXXXXX
 readonly TS_HOSTNAME=agent-hub
@@ -63,14 +63,14 @@ main() {
   # The path is spliced into later remote commands, so accept only what mktemp should print.
   [[ "$remote_script" =~ ^/tmp/bm-bootstrap\.[A-Za-z0-9]{6}$ ]] \
     || die "unexpected temp path from mktemp on the VM: '$remote_script'"
-  ssh_public "$user@$host" "cat > $remote_script" <"$SCRIPT_DIR/remote/bootstrap.sh" \
+  ssh_public "$user@$host" "cat > $remote_script" <"$SCRIPT_DIR/remote/provision-vm.sh" \
     || {
       remove_remote_script "$user@$host" "$remote_script"
       die "upload failed: $upload_hint"
     }
 
   step "run bootstrap on the VM (access: $mode)"
-  remote_env="BM_ACCESS=$mode BM_PORT=${BM_PORT:-8737} SB_PORT=${SB_PORT:-3000} BM_REMOTE_DATA_ROOT=$BM_REMOTE_DATA_ROOT BM_REMOTE_APP_DIR=$BM_REMOTE_APP_DIR"
+  remote_env="BM_ACCESS=$mode BM_PORT=${BM_PORT:-$DEFAULT_BM_PORT} SB_PORT=${SB_PORT:-$DEFAULT_SB_PORT} BM_REMOTE_DATA_ROOT=$BM_REMOTE_DATA_ROOT BM_REMOTE_APP_DIR=$BM_REMOTE_APP_DIR"
   remote_env="$remote_env ADMIN_USER=$user TS_HOSTNAME=$TS_HOSTNAME"
   printf '%s\n' "$key" | ssh_public "$user@$host" "sudo $remote_env bash $remote_script" \
     || {

@@ -40,17 +40,17 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 
 | 구성 요소 | 위치 | 역할 |
 |---|---|---|
-| `Makefile` + `scripts/` | Mac | VM 수명주기의 유일한 제어 지점. SSH로 VM을 다룸. gcloud는 쓰지 않음 |
-| `scripts/remote/bootstrap.sh` | VM (root) | 스왑 파일 1GB, Docker·Tailscale 설치, 데이터 디렉터리, Serve 설정 |
+| `Makefile` + `scripts/` | Mac | VM 수명주기의 유일한 제어 지점. SSH로 VM을 다룸. gcloud는 쓰지 않음. 공용 함수는 `scripts/lib/`(common, vm, sb, git, docs)에 있고, 파일마다 첫머리에 함수 색인이 있음 |
+| `scripts/remote/provision-vm.sh` | VM (root) | 스왑 파일 1GB, Docker·Tailscale 설치, 데이터 디렉터리, Serve 설정 |
 | `compose.yaml` | Mac(로컬 검증)·VM | Basic Memory와 SilverBullet(웹 UI) 컨테이너 정의 (같은 파일) |
-| `silverbullet/` + `scripts/sb-space.sh`·`sb-fonts.sh`·`verify-sb.sh` | Mac → 노트 폴더 | SilverBullet 공간 파일(노트 `.gitignore`, 관리 페이지 `Library/agent-hub/agent-hub.md`, 대시보드 `index.md`)과 글꼴을 쓰고, 로그인·셸 꺼짐을 검사. [ADR 0005](decisions/adr-2026-10-15-0005-web-ui-silverbullet.md) |
-| `make access-check` | Mac | 지금 네트워크에서 Tailscale 조정 서버·터널 엔드포인트·SSH 별칭이 되는지 보고하고 모드를 추천 (`scripts/access-check.sh`) |
-| `make tunnel` | Mac | `ssh` 모드에서 MCP(18737)·웹 UI(13000)를 `127.0.0.1`로 포워딩 (`scripts/tunnel.sh`) |
+| `silverbullet/` + `scripts/sync-sb-space.sh`·`upload-sb-fonts.sh`·`verify-sb.sh` | Mac → 노트 폴더 | SilverBullet 공간 파일(노트 `.gitignore`, 관리 페이지 `Library/agent-hub/agent-hub.md`, 대시보드 `index.md`)과 글꼴을 쓰고, 로그인·셸 꺼짐을 검사. [ADR 0005](decisions/adr-2026-10-15-0005-web-ui-silverbullet.md) |
+| `make access-check` | Mac | 지금 네트워크에서 Tailscale 조정 서버·터널 엔드포인트·SSH 별칭이 되는지 보고하고 모드를 추천 (`scripts/check-access.sh`) |
+| `make tunnel` | Mac | `ssh` 모드에서 MCP(18737)·웹 UI(13000)를 `127.0.0.1`로 포워딩 (`scripts/open-tunnel.sh`) |
 | Tailscale Serve | VM | tailnet HTTPS 443 → `http://127.0.0.1:8737`(Basic Memory), 8443 → `http://127.0.0.1:3000`(SilverBullet) |
 | Tailscale SSH | VM | `tailscale` 모드에서 부트스트랩 이후의 유일한 관리 경로(`ssh` 모드는 SSH 별칭) |
 | gcloud 명령 | Mac (사람이 실행) | VM 생성, 방화벽, 정지·시작. [VM 런북](runbooks/rbk-2026-10-12-gcp-vm.md)의 명령. 항상 `--configuration=bm-personal` |
 | `.env`, `backups/` | Mac, main 체크아웃 | 사용자 설정과 `make backup` 결과물 (둘 다 git ignore) |
-| 리뷰·스킬 도구 | Mac | `scripts/check-git.sh`(git 정책 검사), `scripts/review.sh`와 `scripts/review-bash-guard.sh`(다른 벤더의 읽기 전용 리뷰), `.agents/skills/`(에이전트용 스킬; `.claude/skills/`는 링크, 구조 규칙은 `tests/skills.bats`와 [ADR 0003](decisions/adr-2026-10-13-0003-skill-structure.md)), `scripts/post-review.sh`·`scripts/review-record.sh`(리뷰 원문과 기록을 PR 코멘트로 게시), `docs/reviews/`(계획 08까지의 리뷰 기록) |
+| 리뷰·스킬 도구 | Mac | `scripts/check-git.sh`(git 정책 검사), `scripts/review-branch.sh`와 `scripts/guard-reviewer-bash.sh`(다른 벤더의 읽기 전용 리뷰), `.agents/skills/`(에이전트용 스킬; `.claude/skills/`는 링크, 구조 규칙은 `tests/skills.bats`와 [ADR 0003](decisions/adr-2026-10-13-0003-skill-structure.md)), `scripts/post-review.sh`·`scripts/post-review-record.sh`(리뷰 원문과 기록을 PR 코멘트로 게시), `docs/reviews/`(계획 08까지의 리뷰 기록) |
 | GitHub `yanghs6/basic-memory-tailnet` | 원격 (공개) | PR과 squash 병합, CI `check`·`pr-rules`(`.github/workflows/`), ruleset `main`(`.github/rulesets/main.json`). 에이전트는 머신 계정으로 PR을 열고 사람만 승인·병합. [GitHub 런북](runbooks/rbk-2026-10-14-github.md) |
 
 ## 데이터 경로
@@ -87,9 +87,9 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 
 ## 주요 흐름
 
-- **배포:** `make deploy` → compose와 VM용 `.env`(권한 600, `SB_USER` 포함) 전송 → 공간 파일 쓰기(`sb-space.sh`, 노트 `.gitignore`가 바뀌었으면 `.gitignore`만) → `docker compose pull` → `.gitignore`가 바뀌었으면 Basic Memory만 먼저 다시 만든 뒤 관리 페이지·`index.md` 쓰기 → `up -d --wait`
+- **배포:** `make deploy` → compose와 VM용 `.env`(권한 600, `SB_USER` 포함) 전송 → `docker compose pull` → 공간 파일 쓰기(`sync-sb-space.sh`. 노트 `.gitignore`가 바뀌었으면 `.gitignore`만 쓰고 Basic Memory만 다시 만든 뒤 관리 페이지·`index.md` 쓰기) → `up -d --wait`
 - **검증:** `make verify` → tailnet URL(`ssh` 모드는 임시 터널 `127.0.0.1:28737`·`23000`)로 MCP 왕복(initialize, tools/list, 쓰기·읽기·삭제) → 8443의 SilverBullet 로그인·쿠키·셸 꺼짐 → 포트 바인딩(8737, 3000) → Serve 포트별 대상, tailnet 전용 → 공인 IP 포트 차단. `make probe`는 노트를 쓰지 않고 SilverBullet에 로그인하지 않습니다.
 - **백업:** `make backup` → 컨테이너 정지(재시작은 정지 전에 예약) → 파일별 체크섬 manifest → `/srv/basic-memory`를 tar로 받아옴(임베딩 모델 캐시 `config/fastembed_cache/`는 제외하며, 복원 뒤 첫 사용 때 Basic Memory가 다시 내려받음) → sha256 저장 → 세 파일을 최종 이름으로 rename → 컨테이너 재시작. 아카이브는 main 체크아웃의 `backups/`에 저장됩니다.
-- **복원:** `make restore` → 정지 → 임시 경로에 압축 해제 → manifest 대조 → 저장소 compose.yaml 적용 → 데이터 교체(기존은 `.prev-*`) → Basic Memory가 멈춘 동안 공간 파일 쓰기(`sb-space.sh`) → 기동 → verify. 정지 이후 실패하면 이전 데이터와 compose로 자동 롤백
+- **복원:** `make restore` → 정지 → 임시 경로에 압축 해제 → manifest 대조 → 저장소 compose.yaml 적용 → 데이터 교체(기존은 `.prev-*`) → Basic Memory가 멈춘 동안 공간 파일 쓰기(`sync-sb-space.sh`) → 기동 → verify. 정지 이후 실패하면 이전 데이터와 compose로 자동 롤백
 
 관련 결정: [ADR 0001](decisions/adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md), [ADR 0002](decisions/adr-2026-10-12-0002-vm-sizing.md), [ADR 0005](decisions/adr-2026-10-15-0005-web-ui-silverbullet.md), [ADR 0006](decisions/adr-2026-10-15-0006-access-modes.md)

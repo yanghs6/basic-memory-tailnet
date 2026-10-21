@@ -5,20 +5,16 @@
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-plan.md   plan conformance per AGENTS.md Code Review Rules
 # It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs
 # that post-review.sh puts in the comment header.
-# Usage: review.sh BRANCH codex|claude [ROUND]
+# Usage: make review BRANCH=<plan/NN-slug|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]
 #   REVIEW_BASE=<ref>            base for the review (default main; the reviewed head for round 2)
 #   REVIEW_ALLOW_SAME_VENDOR=1   allow a reviewer from the author's vendor (prints a warning)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/git.sh
+. "$SCRIPT_DIR/lib/git.sh"
 
-MAIN_ROOT="$(cd "$(git rev-parse --git-common-dir)/.." && pwd)"
-readonly OUT_DIR="${REVIEW_OUT_DIR:-$MAIN_ROOT/.review-out}"
-readonly WORKTREE_PARENT="${REVIEW_WORKTREE_PARENT:-$(dirname "$MAIN_ROOT")/$(basename "$MAIN_ROOT")-wt}"
 readonly BASE_REF="${REVIEW_BASE:-main}"
-readonly PARTIAL_SUFFIX=".partial"
 
 BRANCH=""
 REVIEWER=""
@@ -41,6 +37,18 @@ cleanup() {
     log "WARNING: could not delete the temporary branch $TEMP_BASE"
   fi
   exit "$exit_code"
+}
+
+# worktree_parent -> REVIEW_WORKTREE_PARENT, else <main checkout>-wt next to the main checkout of the current repo.
+worktree_parent() {
+  local root
+  if [[ -n "${REVIEW_WORKTREE_PARENT:-}" ]]; then
+    printf '%s\n' "$REVIEW_WORKTREE_PARENT"
+    return 0
+  fi
+  root="$(main_checkout_root "$PWD")" \
+    || die "cannot find the main checkout from $PWD: run make review inside a checkout of this repo"
+  printf '%s/%s-wt\n' "$(dirname "$root")" "$(basename "$root")"
 }
 
 # reviewer_tool REVIEWER -> the Assisted-by tool name of that reviewer's vendor.
@@ -109,7 +117,7 @@ change_prompt() {
 Review the changes in git diff $BASE_BRANCH...HEAD on branch $BRANCH (commits: git log $BASE_BRANCH..HEAD).
 Follow the branch-review skill (.agents/skills/branch-review/SKILL.md) and its checklist, and look for bugs,
 security problems and unmet requirements that these changes introduce. Run git diff, git log and git show
-with plain arguments only (for example git diff $BASE_BRANCH...HEAD -- scripts/review.sh).
+with plain arguments only (for example git diff $BASE_BRANCH...HEAD -- scripts/review-branch.sh).
 EOF
   prompt_footer
 }
@@ -148,10 +156,12 @@ run_claude() {
 }
 
 main() {
-  local round slug wt_path diff_out plan_out base_sha head_sha meta_out
+  local round slug wt_path diff_out plan_out base_sha head_sha meta_out out_dir wt_parent prefix
   [[ $# -ge 2 ]] || usage
+  out_dir="$(review_out_dir)" || exit 1
   # Codex writes its plan report after cd into the review worktree, so a relative path would land there and be deleted.
-  [[ "$OUT_DIR" == /* ]] || die "REVIEW_OUT_DIR must be an absolute path (got '$OUT_DIR'); unset it to use $MAIN_ROOT/.review-out"
+  [[ "$out_dir" == /* ]] || die "REVIEW_OUT_DIR must be an absolute path (got '$out_dir'); unset it to use the main checkout's .review-out"
+  wt_parent="$(worktree_parent)" || exit 1
   BRANCH="$1"
   REVIEWER="$2"
   round="${3:-1}"
@@ -161,11 +171,11 @@ main() {
   git show-ref --verify --quiet "refs/heads/$BRANCH" || die "branch '$BRANCH' not found"
   check_independence
 
-  slug="${BRANCH//\//-}"
-  wt_path="$WORKTREE_PARENT/review-$slug-r$round"
+  slug="$(branch_slug "$BRANCH")"
+  wt_path="$wt_parent/review-$slug-r$round"
   [[ ! -e "$wt_path" ]] \
     || die "a review worktree already exists at $wt_path; if no review is running, remove it: git worktree remove --force $wt_path"
-  mkdir -p "$OUT_DIR" "$WORKTREE_PARENT"
+  mkdir -p "$out_dir" "$wt_parent"
   trap cleanup EXIT
   prepare_base "$slug" "$round"
 
@@ -175,9 +185,10 @@ main() {
   base_sha="$(git rev-parse "$BASE_BRANCH")" || exit 1
   head_sha="$(git rev-parse "refs/heads/$BRANCH")" || exit 1
 
-  diff_out="$OUT_DIR/$slug-r$round-$REVIEWER-diff.md"
-  plan_out="$OUT_DIR/$slug-r$round-$REVIEWER-plan.md"
-  meta_out="$OUT_DIR/$slug-r$round-$REVIEWER-meta.txt"
+  prefix="$(review_report_prefix "$BRANCH" "$round" "$REVIEWER")" || exit 1
+  diff_out="$prefix-diff.md"
+  plan_out="$prefix-plan.md"
+  meta_out="$prefix-meta.txt"
   # A failed run must not leave an earlier run's report next to a new one: drop both, publish both on success.
   rm -f "$diff_out" "$plan_out" "$meta_out" "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
   step "$REVIEWER review of $BRANCH against $BASE_BRANCH (round $round)"

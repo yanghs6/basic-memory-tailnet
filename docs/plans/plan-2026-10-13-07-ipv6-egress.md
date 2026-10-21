@@ -51,7 +51,7 @@ spec: none
 - `Makefile:13` (`export ... BM_VM_PUBLIC_IP`), `Makefile:69` (`vm-bootstrap`, `HOST=<public-ip>`)
 - `scripts/verify-vm.sh:3`, `:14` (`PUBLIC_PROBE_PORTS`), `:45-47` (`nc -z -G`/`-w` 프로브), `:51-63` (`validate_public_ip`, IPv4 전용), `:84-90` (공인 IP 포트 차단 검사), `:100-103` (`require_env BM_VM_PUBLIC_IP`)
 - `scripts/bootstrap-vm.sh:2`, `:33` (`HOST=<public-ip>` usage), `:43`, `:50` (`upload failed` 안내)
-- `scripts/status.sh:34` (`make vm-bootstrap HOST=<public-ip>` 안내)
+- `scripts/show-status.sh:34` (`make vm-bootstrap HOST=<public-ip>` 안내)
 - `tests/vm_ops.bats:7`, `:84-87`, `:112-116`, `:131`, `:142-168` (공인 IP 검증 테스트), `tests/bootstrap.bats:170-173`
 - `docs/runbooks/rbk-2026-10-12-gcp-vm.md:35` (ephemeral 외부 IPv4), `:91-107` (공인 IP 조회, 정지 후 IP 변경)
 - `docs/runbooks/rbk-2026-10-12-bootstrap.md:7`, `:16-17`, `:42`, `:45`, `:49`

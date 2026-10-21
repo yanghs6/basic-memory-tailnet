@@ -1,6 +1,6 @@
 # Agent Hub settings
 
-Managed by `scripts/sb-space.sh` from `silverbullet/agent-hub.md` in the agent-share-poc repo. Changes here are overwritten by the next `make local-up` or `make deploy`; put your own settings in [[CONFIG]].
+Managed by `scripts/sync-sb-space.sh` from `silverbullet/agent-hub.md` in the agent-share-poc repo. Changes here are overwritten by the next `make local-up` or `make deploy`; put your own settings in [[CONFIG]].
 
 ## Font
 

@@ -11,7 +11,7 @@ setup() {
   git commit -q --allow-empty -m "chore: init"
   git switch -q -c plan/02-git-review-tooling
   export REVIEW_OUT_DIR="$BATS_TEST_TMPDIR/out" REVIEW_WORKTREE_PARENT="$BATS_TEST_TMPDIR/wt"
-  REVIEW="$REPO_DIR/scripts/review.sh"
+  REVIEW="$REPO_DIR/scripts/review-branch.sh"
   OUT="$REVIEW_OUT_DIR/plan-02-git-review-tooling"
 }
 
