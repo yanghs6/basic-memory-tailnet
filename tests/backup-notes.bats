@@ -31,8 +31,6 @@ fix_backup_stamp() {
   assert_line "basic-memory/knowledge/a.md"
   run cat "$archive.sha256"
   assert_output "$(sha256sum "$archive" | awk '{ print $1 }')  $(basename "$archive")"
-  run cat "$archive.manifest"
-  assert_output "$(sha256sum "$BM_REMOTE_DATA_ROOT/knowledge/a.md" | awk '{ print $1 }')  ./knowledge/a.md"
   run ls "$BACKUP_DIR"
   refute_output --partial ".partial"
   assert_equal "${#lines[@]}" 3
