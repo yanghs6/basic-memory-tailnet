@@ -109,8 +109,10 @@ assert_stub_called() {
   fi
   if [[ "$status" -eq 1 ]]; then
     fail "expected a stub log line matching: $*"$'\n'"stub log:"$'\n'"$(cat "$STUB_LOG")"
+    return 1
   fi
   fail "grep failed with exit $status on the stub log: $*"
+  return 1
 }
 
 # refute_stub_called GREP_ARG...: succeed when grep GREP_ARG... finds no line in $STUB_LOG; fail when it finds one or grep errors.
@@ -122,8 +124,10 @@ refute_stub_called() {
   fi
   if [[ "$status" -eq 0 ]]; then
     fail "expected no stub log line matching: $*"$'\n'"found:"$'\n'"$found"
+    return 1
   fi
   fail "grep failed with exit $status on the stub log: $*"
+  return 1
 }
 
 # assert_log_order TEXT...: the first $STUB_LOG line containing each TEXT (fixed string) comes after the one of the previous TEXT.
@@ -133,9 +137,11 @@ assert_log_order() {
     line="$(grep -nF -m1 -- "$text" "$STUB_LOG" | cut -d: -f1)"
     if [[ -z "$line" ]]; then
       fail "no stub log line contains: $text"$'\n'"stub log:"$'\n'"$(cat "$STUB_LOG")"
+      return 1
     fi
     if [[ "$line" -le "$previous" ]]; then
       fail "stub log line $line ($text) does not come after line $previous"$'\n'"stub log:"$'\n'"$(cat "$STUB_LOG")"
+      return 1
     fi
     previous="$line"
   done
@@ -147,5 +153,6 @@ assert_same_file() {
   difference="$(diff "$1" "$2" 2>&1)" || status=$?
   if [[ "$status" -ne 0 ]]; then
     fail "files differ: $1 $2"$'\n'"$difference"
+    return 1
   fi
 }
