@@ -47,7 +47,7 @@ Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, co
 - `docs/README.md` document map and type registry; templates in `.agents/skills/doc-authoring/assets/`.
 - `CLAUDE.md` (Claude Code) and `.gemini/settings.json` (Gemini CLI) load this file; Codex and Antigravity read it directly.
 - `docs/specs/`, `docs/plans/` (state in front matter).
-- `.agents/skills/` canonical skills (Codex, Gemini CLI, Antigravity; rules in `tests/skills.bats`); `.claude/skills/<name>` symlinks and `.claude/agents/branch-reviewer.md` for Claude Code.
+- `.agents/skills/` canonical skills (Codex, Gemini CLI, Antigravity; rules in `tests/repo-skills.bats`); `.claude/skills/<name>` symlinks and `.claude/agents/branch-reviewer.md` for Claude Code.
 - `docs/reviews/` review records (template in its README).
 - `docs/runbooks/` accounts, VM creation, bootstrap, operations (incident log); `docs/decisions/` ADRs.
 - `docs/research/` dated research snapshots (not maintained after their date).

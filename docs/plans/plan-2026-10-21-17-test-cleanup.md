@@ -132,10 +132,10 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 
 이름만 바꾸므로 실패 단계가 없다. 안전망은 이름 목록이다.
 
-- [ ] **Step 1: `git mv` 14개와 참조 네 곳.**
-- [ ] **Step 2: 남은 참조 확인.** Run: `git grep -n -E "tests/(check_git|check_pr|verify_mcp|verify_sb|post_review|sb_space|sb_fonts|review|review_record|review_bash_guard|common|skills|github|cloud_neutral)\.bats" -- AGENTS.md README.md docs/README.md docs/ARCHITECTURE.md docs/runbooks .agents .claude Makefile tools .github scripts tests`. Expected: 출력 없음.
-- [ ] **Step 3: 통과 확인.** Run: `make check`. Expected: exit 0, 220개. 이름 목록(`tests-t2.tsv`)이 `tests-base.tsv`와 같다.
-- [ ] **Step 4: 커밋** `test: name the single-subject test files after what they test` (`Task: 2`).
+- [x] **Step 1: `git mv` 14개와 참조 네 곳.**
+- [x] **Step 2: 남은 참조 확인.** Run: `git grep -n -E "tests/(check_git|check_pr|verify_mcp|verify_sb|post_review|sb_space|sb_fonts|review|review_record|review_bash_guard|common|skills|github|cloud_neutral)\.bats" -- AGENTS.md README.md docs/README.md docs/ARCHITECTURE.md docs/runbooks .agents .claude Makefile tools .github scripts tests`. Expected: 출력 없음.
+- [x] **Step 3: 통과 확인.** Run: `make check`. Expected: exit 0, 220개. 이름 목록(`tests-t2.tsv`)이 `tests-base.tsv`와 같다.
+- [x] **Step 4: 커밋** `test: name the single-subject test files after what they test` (`Task: 2`).
 
 ### Task 3: Split the multi-script test files
 
@@ -482,3 +482,4 @@ Task 6~9는 아래 Step을 각 Task의 표에 대해 같은 순서로 밟는다.
 | 2026-10-21 | Verified | 분류 중 찾은 기존 테스트의 결함(원래 있던 것): `vm_ops.bats:100` "deploy reports an unhealthy container"는 새 notes 폴더에서 `recreate_basic_memory`의 `up -d … --force-recreate`에서 먼저 실패한다. 그래서 이름이 말하는 마지막 시작(`scripts/deploy-stack.sh:43`)의 분기를 지나가지 않는다. `vm_ops.bats:74`는 pull(`deploy-stack.sh:36`)이 공간 파일(`:39`)보다 먼저라서, 첫 실행의 단언이 언제나 참이다. |
 | 2026-10-21 | Verified | `scripts/review-branch.sh:129`, `.claude/agents/branch-reviewer.md:15`, `.agents/skills/branch-review/SKILL.md:16`이 `AGENTS.md`의 "Code Review Rules"를 이름으로 가리킨다(D8의 근거). `repo.bats`의 `git status` 단언은 guard hook을 도입한 `dc423de`가 더했다(D7). |
 | 2026-10-21 | Verified | Task 1: `Makefile`의 `SH_FILES`와 `.editorconfig`에 `.bats`를 더한 뒤 `make lint`: exit 2, 지적 162건(SC2031 102, SC2030 30, SC2016 16, SC2164 6, SC1007 4, SC2034 2, SC2086 1, SC2001 1), 파싱 오류 없음. `make fmt`가 바꾼 파일은 `tests/repo-docs.bats`(2줄)와 `tests/repo.bats`(1줄)뿐이다. 수정 뒤 `make lint` exit 0, `make check` exit 0, ok 220개, not ok 0, 총 줄 커버리지 94.50%(최소 80%). 이름 목록(`tests-t1.tsv`)은 `tests-base.tsv`와 같다. SC2086(`vm_ops.bats`)은 한 경우에 `VAR=값` 단어가 둘이라 따옴표 대신 disable 주석으로 처리했다. |
+| 2026-10-21 | Verified | Task 2: 이름 변경 14개를 `git mv`로 했다(유사도 100%): `check_git`→`check-git`, `check_pr`→`check-pr`, `verify_mcp`→`verify-mcp`, `verify_sb`→`verify-sb`, `post_review`→`post-review`, `sb_space`→`sync-sb-space`, `sb_fonts`→`upload-sb-fonts`, `review`→`review-branch`, `review_record`→`post-review-record`, `review_bash_guard`→`guard-reviewer-bash`, `common`→`lib-common`, `skills`→`repo-skills`, `github`→`repo-github`, `cloud_neutral`→`repo-cloud-neutral`. 참조 네 곳(`AGENTS.md:50`, `README.md:57`, `docs/ARCHITECTURE.md:53`, `.agents/skills/skill-authoring/SKILL.md:8`)의 `tests/skills.bats`를 `tests/repo-skills.bats`로 바꿨다. 이 밖에 고친 참조는 없다. Step 2 grep(기록 문서 제외)은 처음에 이 네 곳만 찾았고, 고친 뒤 출력이 없다. 이름 목록(`tests-t2.tsv`, 220줄)은 `tests-t1.tsv` 및 `tests-base.tsv`와 diff가 없다. `make check`: exit 0, ok 220, not ok 0, 총 줄 커버리지 94.50%(최소 80%). |
