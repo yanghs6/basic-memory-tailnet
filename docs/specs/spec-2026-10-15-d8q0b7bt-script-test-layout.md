@@ -46,6 +46,7 @@ date: 2026-10-16
 3. 5절 표의 중복이 각각 한 곳으로 모인다.
 4. 같은 동작을 두 번 검사하거나 [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)에 어긋나는 테스트를 정리한다.
 5. `script-authoring` 스킬, 템플릿 두 개, `make new-script`가 있다.
+   - **Verified (2026-10-21):** [test-cleanup 계획](../plans/plan-2026-10-21-hf9kadp3-test-cleanup.md)은 결정 P1에 따라 템플릿을 종류마다 한 쌍씩 세 쌍(`script`, `remote`, `lib`)과 템플릿 폴더에만 쓰는 `.shellcheckrc`로 두었다.
 6. `.bats` 파일도 shellcheck와 shfmt로 검사한다.
 7. `make check`가 통과하고 커버리지는 80% 이상을 유지한다.
 
@@ -274,6 +275,7 @@ tests/
 
 - `Makefile`의 `SH_FILES`에 `*.bats`를 더한다. `.editorconfig`에 `[*.bats]` 절을 두고 shfmt의 `language_dialect = bats`를 지정한다. `make lint`는 shfmt에 서식 옵션을 주지 않으므로 `.editorconfig`를 읽는다.
 - **Assumption:** 지금 고정한 shfmt v3.12.0과 shellcheck v0.11.0이 bats 파일을 처리한다. [test-cleanup 계획](../plans/plan-2026-10-21-hf9kadp3-test-cleanup.md)의 첫 Step이 확인한다. shfmt가 처리하지 못하면 릴리스 노트를 읽고 고정 버전을 올린다(`AGENTS.md`의 이미지 고정 규칙).
+- **Verified (2026-10-21):** [test-cleanup 계획](../plans/plan-2026-10-21-hf9kadp3-test-cleanup.md) Task 1에서 shfmt v3.12.0이 확장자로 bats를 알아보았으므로 `.editorconfig`에는 dialect 키(`language_dialect`)를 두지 않았다. `.bats`는 `.sh`, `.bash`와 같은 절의 서식을 쓴다.
 
 ## 8. 생성 규칙과 템플릿
 
@@ -288,11 +290,13 @@ tests/
   - Make 타깃을 더하는 법(`##` 설명과 `.PHONY`, `tests/repo.bats`가 검사)
   - `AGENTS.md` Invariants의 bash 3.2 규칙은 되풀이하지 않고 가리킨다.
 - `AGENTS.md`의 `## Skills`에 "스크립트, Make 타깃, bats 테스트, 스텁, 픽스처를 더하거나 바꿀 때: `script-authoring`"을 더한다. 파일을 바꾸므로 `git-workflow`와 함께 쓴다.
+- **Verified (2026-10-21):** [test-cleanup 계획](../plans/plan-2026-10-21-hf9kadp3-test-cleanup.md)에서 Make 타깃 검사는 `tests/repo.bats`를 주제별로 나눈 `tests/repo-make.bats`에 있고, 템플릿은 8.2절의 메모대로 세 쌍이다.
 
 ### 8.2 템플릿
 
 - `assets/script.sh`: shebang, `set -euo pipefail`, 머리 주석(목적과 usage 한 줄), 라이브러리 source(`# shellcheck source=` 포함), `readonly` 상수, 함수, `main "$@"`. 지금 실행 스크립트 20개가 모두 `main "$@"` 구조이므로 같은 모양이다. lint 대상(`*.sh`)이므로 템플릿도 shellcheck와 shfmt를 통과한다.
 - `assets/test.bats`: `setup() { load helpers; … }`, 함수 밖에 코드를 두지 않음, 성공 경로 하나와 실패 경로 하나의 자리.
+- **Verified (2026-10-21):** [test-cleanup 계획](../plans/plan-2026-10-21-hf9kadp3-test-cleanup.md)은 결정 P1에 따라 `assets/script.sh`·`script.bats`, `remote.sh`·`remote.bats`, `lib.sh`·`lib.bats`와 템플릿 폴더의 `.shellcheckrc`를 두었다. 결정 P2에 따라 테스트 템플릿은 `setup()` 안이 아니라 기존 테스트 파일처럼 파일 맨 위에서 `load helpers`를 부른다.
 
 ### 8.3 `make new-script`
 

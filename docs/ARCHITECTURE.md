@@ -40,7 +40,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 
 | 구성 요소 | 위치 | 역할 |
 |---|---|---|
-| `Makefile` + `scripts/` | Mac | VM 수명주기의 유일한 제어 지점. SSH로 VM을 다룸. gcloud는 쓰지 않음. 공용 함수는 `scripts/lib/`(common, vm, sb, git, docs)에 있고, 파일마다 첫머리에 함수 색인이 있음 |
+| `Makefile` + `scripts/` | Mac | VM 수명주기의 유일한 제어 지점. SSH로 VM을 다룸. gcloud는 쓰지 않음. 공용 함수는 `scripts/lib/`(common, vm, sb, git, docs, layout)에 있고, 파일마다 첫머리에 함수 색인이 있음 |
 | `scripts/remote/provision-vm.sh` | VM (root) | 스왑 파일 1GB, Docker·Tailscale 설치, 데이터 디렉터리, Serve 설정 |
 | `compose.yaml` | Mac(로컬 검증)·VM | Basic Memory와 SilverBullet(웹 UI) 컨테이너 정의 (같은 파일) |
 | `silverbullet/` + `scripts/sync-sb-space.sh`·`upload-sb-fonts.sh`·`verify-sb.sh` | Mac → 노트 폴더 | SilverBullet 공간 파일(노트 `.gitignore`, 관리 페이지 `Library/agent-hub/agent-hub.md`, 대시보드 `index.md`)과 글꼴을 쓰고, 로그인·셸 꺼짐을 검사. [web-ui-silverbullet ADR](decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md) |
@@ -50,7 +50,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 | Tailscale SSH | VM | `tailscale` 모드에서 부트스트랩 이후의 유일한 관리 경로(`ssh` 모드는 SSH 별칭) |
 | gcloud 명령 | Mac (사람이 실행) | VM 생성, 방화벽, 정지·시작. [VM 런북](runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md)의 명령. 항상 `--configuration=bm-personal` |
 | `.env`, `backups/` | Mac, main 체크아웃 | 사용자 설정과 `make backup` 결과물 (둘 다 git ignore) |
-| 리뷰·스킬 도구 | Mac | `scripts/check-git.sh`(git 정책 검사), `scripts/review-branch.sh`와 `scripts/guard-reviewer-bash.sh`(다른 벤더의 읽기 전용 리뷰), `.agents/skills/`(에이전트용 스킬; `.claude/skills/`는 링크, 구조 규칙은 `tests/skills.bats`와 [skill-structure ADR](decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md)), `scripts/post-review.sh`·`scripts/post-review-record.sh`(리뷰 원문과 기록을 PR 코멘트로 게시), `docs/reviews/`([github-switch 계획](plans/plan-2026-10-13-k93wjt1a-github-switch.md)까지의 리뷰 기록) |
+| 리뷰·스킬 도구 | Mac | `scripts/check-git.sh`(git 정책 검사), `scripts/review-branch.sh`와 `scripts/guard-reviewer-bash.sh`(다른 벤더의 읽기 전용 리뷰), `.agents/skills/`(에이전트용 스킬; `.claude/skills/`는 링크, 구조 규칙은 `tests/repo-skills.bats`와 [skill-structure ADR](decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md)), `scripts/post-review.sh`·`scripts/post-review-record.sh`(리뷰 원문과 기록을 PR 코멘트로 게시), `docs/reviews/`([github-switch 계획](plans/plan-2026-10-13-k93wjt1a-github-switch.md)까지의 리뷰 기록) |
 | GitHub `yanghs6/basic-memory-tailnet` | 원격 (공개) | PR과 squash 병합, CI `check`·`pr-rules`(`.github/workflows/`), ruleset `main`(`.github/rulesets/main.json`). 에이전트는 머신 계정으로 PR을 열고 사람만 승인·병합. [GitHub 런북](runbooks/rbk-2026-10-14-ppmby9v6-github.md) |
 
 ## 데이터 경로
@@ -74,7 +74,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 - 접근 제어는 `tailscale` 모드에서는 전적으로 Tailscale의 기기 인증과 정책에 맡기고, `ssh` 모드에서는 클라우드 IAM과 SSH 키에 맡깁니다.
 - 컨테이너 포트는 `127.0.0.1`에만 바인딩하고, Serve는 tailnet 전용(Funnel off)이며, GCP 방화벽에는 VPC 밖의 소스를 허용하는 인바운드 규칙이 없습니다. `default-allow-rdp`·`default-allow-icmp`는 지우고, `default-allow-ssh`는 Tailscale SSH를 확인한 뒤 지웁니다. `default-allow-internal`은 VPC 내부(`10.128.0.0/9`) 전용이라 둡니다.
 - `ssh` 모드는 Tailscale을 쓰지 않습니다. VPC 밖 인바운드는 IAP 대역의 22번 하나이고, 인증은 Google 계정 IAM과 SSH 키입니다. 모든 터널은 기기의 `127.0.0.1`에만 열리고, `verify`가 VM의 Tailscale 꺼짐과 sshd 키 전용을 검사합니다. 한 VM에서 두 모드를 함께 쓰지 않습니다([access-modes ADR](decisions/adr-2026-10-15-cz8c26gp-access-modes.md)).
-- 자동 검증 범위: `tests/repo.bats`(설정 파일)와 `make verify`/`make probe`(8737·3000 바인딩, Serve 포트별 대상과 Funnel, SilverBullet 로그인·셸 꺼짐, 공인 IP의 22·80·443·8443·8737·3000). `ssh` 모드의 `verify`는 Serve 검사 대신 VM의 Tailscale 꺼짐과 sshd 키 전용을 임시 터널로 검사합니다. 방화벽 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit으로 수동 점검합니다.
+- 자동 검증 범위: `tests/repo-config.bats`(설정 파일)와 `make verify`/`make probe`(8737·3000 바인딩, Serve 포트별 대상과 Funnel, SilverBullet 로그인·셸 꺼짐, 공인 IP의 22·80·443·8443·8737·3000). `ssh` 모드의 `verify`는 Serve 검사 대신 VM의 Tailscale 꺼짐과 sshd 키 전용을 임시 터널로 검사합니다. 방화벽 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit으로 수동 점검합니다.
 - SilverBullet은 로그인(`SB_USER`)이 있어야 열리고, 셸 명령은 꺼져 있으며(`SB_SHELL_BACKEND=off`), Basic Memory와 다른 Docker 네트워크에 있습니다. 노트 폴더만 마운트해서 Basic Memory DB와 설정을 보지 못합니다.
 - 비밀값은 두 가지입니다. Tailscale 인증 키는 저장소와 디스크에 남지 않습니다. SilverBullet 로그인 `SB_USER`는 main 체크아웃 `.env`(git ignore)와 VM `/opt/basic-memory/.env`(권한 600)에만 있고, 스크립트는 ssh·curl 표준입력으로만 넘깁니다.
 

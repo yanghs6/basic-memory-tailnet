@@ -15,8 +15,7 @@ setup() {
   run "$SB_SPACE" --local
   assert_success
   assert_line changed
-  run diff "$SRC/notes.gitignore" "$SB_LOCAL_NOTES_DIR/.gitignore"
-  assert_success
+  assert_same_file "$SRC/notes.gitignore" "$SB_LOCAL_NOTES_DIR/.gitignore"
   [[ ! -e "$page" && ! -e "$SB_LOCAL_NOTES_DIR/index.md" ]] \
     || fail "the pages must wait until Basic Memory loaded the new .gitignore, or it indexes them"
 
@@ -31,10 +30,8 @@ setup() {
   run "$SB_SPACE" --local
   assert_success
   assert_line unchanged
-  run diff "$SRC/agent-hub.md" "$page"
-  assert_success
-  run diff "$SRC/index.md" "$SB_LOCAL_NOTES_DIR/index.md"
-  assert_success
+  assert_same_file "$SRC/agent-hub.md" "$page"
+  assert_same_file "$SRC/index.md" "$SB_LOCAL_NOTES_DIR/index.md"
 
   echo "my dashboard" >"$SB_LOCAL_NOTES_DIR/index.md"
   echo "stale" >"$page"
@@ -43,17 +40,14 @@ setup() {
   assert_line unchanged
   run cat "$SB_LOCAL_NOTES_DIR/index.md"
   assert_output "my dashboard"
-  run diff "$SRC/agent-hub.md" "$page"
-  assert_success
+  assert_same_file "$SRC/agent-hub.md" "$page"
 
   echo "/extra/" >>"$SB_LOCAL_NOTES_DIR/.gitignore"
   run "$SB_SPACE" --local
   assert_success
   assert_line changed
-  run diff "$SRC/notes.gitignore" "$SB_LOCAL_NOTES_DIR/.gitignore"
-  assert_success
-  run grep -c '^ssh ' "$STUB_LOG"
-  assert_output 0
+  assert_same_file "$SRC/notes.gitignore" "$SB_LOCAL_NOTES_DIR/.gitignore"
+  refute_stub_called '^ssh '
 }
 
 @test "VM: writes the space files into the VM notes folder, always as the container user" {
@@ -66,12 +60,9 @@ setup() {
   run "$SB_SPACE"
   assert_success
   assert_line unchanged
-  run diff "$SRC/notes.gitignore" "$VM_NOTES/.gitignore"
-  assert_success
-  run diff "$SRC/agent-hub.md" "$VM_NOTES/Library/agent-hub/agent-hub.md"
-  assert_success
-  run diff "$SRC/index.md" "$VM_NOTES/index.md"
-  assert_success
+  assert_same_file "$SRC/notes.gitignore" "$VM_NOTES/.gitignore"
+  assert_same_file "$SRC/agent-hub.md" "$VM_NOTES/Library/agent-hub/agent-hub.md"
+  assert_same_file "$SRC/index.md" "$VM_NOTES/index.md"
   total="$(grep -c '^sudo ' "$STUB_LOG")"
   as_container="$(grep -c '^sudo -n -u #1000 sh -c ' "$STUB_LOG")"
   ((total > 0 && total == as_container)) || fail "every VM write must run as uid 1000: $(grep '^sudo ' "$STUB_LOG")"
