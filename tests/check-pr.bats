@@ -27,58 +27,68 @@ Plan: 08"
   done
 }
 
-@test "rejects titles that are not '<type>: <description>'" {
-  local title
-  for title in "Add rules" "Feat: add rules" "feature: add rules" "feat:add rules" "feat(ci): add rules"; do
-    PR_TITLE="$title" PR_BODY="$GOOD_BODY" run "$CHECK"
-    [[ "$status" -eq 1 ]] || fail "expected title '$title' to be rejected; got $status: $output"
-    assert_output --partial "title '$title' must be '<type>: <description>'"
+@test "rejects an empty title and titles that are not '<type>: <description>'" {
+  local title message
+  for title in "" "Add rules" "Feat: add rules" "feature: add rules" "feat:add rules" "feat(ci): add rules"; do
+    # An empty title means CI did not pass it; the title check alone would also refuse it, so the message tells them apart.
+    message="title '$title' must be '<type>: <description>'"
+    [[ -n "$title" ]] || message="PR_TITLE is empty"
+    (
+      PR_TITLE="$title" PR_BODY="$GOOD_BODY" run "$CHECK"
+      assert_failure 1 && assert_output --partial "$message"
+    ) || fail "check-pr did not reject the title '$title'"
   done
 }
 
-@test "fails when the trailers are missing or not in the last paragraph" {
-  local body
-  for body in "" "Summary only." "$GOOD_BODY
+@test "fails on missing, misplaced, malformed, repeated and forbidden trailers and session links in the body" {
+  local case input problems body line
+  # Each case: the body's problem | what check-pr.sh must list for it, |-separated. The case block builds the body.
+  for case in "no body|missing trailer 'Assisted-by:|missing trailer 'Plan:" \
+    "a summary only|missing trailer 'Assisted-by:|missing trailer 'Plan:" \
+    "text after the trailers|missing trailer 'Assisted-by:|missing trailer 'Plan:" \
+    "a rule and text after the trailers|missing trailer 'Assisted-by:|missing trailer 'Plan:" \
+    "malformed values|trailer 'Assisted-by: Claude' must be|trailer 'Plan: 8' must be" \
+    "a second Plan line|trailer 'Plan: 08,09' must be" \
+    "forbidden trailers and a session link|must not carry 'Co-authored-by'|must not carry 'Signed-off-by'|must not carry a Claude Code session link"; do
+    IFS='|' read -r input problems <<<"$case"
+    (
+      case "$input" in
+        "no body") body="" ;;
+        "a summary only") body="Summary only." ;;
+        "text after the trailers")
+          body="$GOOD_BODY
 
-Thanks for reviewing." "$GOOD_BODY
+Thanks for reviewing."
+          ;;
+        "a rule and text after the trailers")
+          body="$GOOD_BODY
 
 ---
 
-Thanks."; do
-    PR_TITLE="feat: x" PR_BODY="$body" run "$CHECK"
-    [[ "$status" -eq 1 ]] || fail "expected the body to be rejected; got $status: $output"
-    assert_output --partial "missing trailer 'Assisted-by:"
-    assert_output --partial "missing trailer 'Plan:"
-  done
-}
-
-@test "rejects malformed trailer values, including a second Plan line" {
-  PR_TITLE="feat: x" PR_BODY="Summary.
+Thanks."
+          ;;
+        "malformed values")
+          body="Summary.
 
 Assisted-by: Claude
-Plan: 8" run "$CHECK"
-  assert_failure
-  assert_output --partial "trailer 'Assisted-by: Claude' must be"
-  assert_output --partial "trailer 'Plan: 8' must be"
-  PR_TITLE="feat: x" PR_BODY="$GOOD_BODY
-Plan: 09" run "$CHECK"
-  assert_failure
-  assert_output --partial "trailer 'Plan: 08,09' must be"
-}
-
-@test "rejects Co-authored-by, Signed-off-by and Claude Code session links in the body because the squash commit would carry them" {
-  PR_TITLE="feat: x" PR_BODY="$GOOD_BODY
+Plan: 8"
+          ;;
+        "a second Plan line")
+          body="$GOOD_BODY
+Plan: 09"
+          ;;
+        "forbidden trailers and a session link")
+          body="$GOOD_BODY
 Co-authored-by: Bot <bot@example.com>
 Signed-off-by: Bot <bot@example.com>
-Claude-Session: https://claude.ai/code/session_0123456789" run "$CHECK"
-  assert_failure
-  assert_output --partial "must not carry a Claude Code session link"
-  assert_output --partial "must not carry 'Co-authored-by'"
-  assert_output --partial "must not carry 'Signed-off-by'"
-}
-
-@test "fails instead of passing when CI does not pass the title" {
-  PR_BODY="$GOOD_BODY" run "$CHECK"
-  assert_failure
-  assert_output --partial "PR_TITLE is empty"
+Claude-Session: https://claude.ai/code/session_0123456789"
+          ;;
+      esac
+      PR_TITLE="feat: x" PR_BODY="$body" run "$CHECK"
+      assert_failure 1 || exit 1
+      while IFS= read -r line; do
+        assert_output --partial "$line" || exit 1
+      done <<<"$(tr '|' '\n' <<<"$problems")"
+    ) || fail "check-pr did not list every problem of the body: $input"
+  done
 }

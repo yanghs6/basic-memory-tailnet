@@ -14,62 +14,102 @@ setup() {
   assert_output --partial "OK: git policy (1 commits since main)"
 }
 
-@test "accepts work branches with Plan none and Task review" {
-  git switch -q -c work/fix-docs
-  git commit -q --allow-empty -m "docs: record review" \
-    --trailer "Assisted-by: codex gpt-5-codex" --trailer "Plan: none" --trailer "Task: review"
-  run "$CHECK"
-  assert_success
+@test "passes plan and work branches whose commits carry every trailer, with a merge from main and as an explicit branch from a detached HEAD" {
+  local case
+  # Each case rebuilds the repo of setup in its own subshell, so the test leaves it first.
+  cd "$BATS_TEST_TMPDIR" || return
+  for case in "work branch with Plan none and Task review" "plan branch with a merge from main" \
+    "explicit branch from a detached HEAD"; do
+    (
+      rm -rf "$WORK" && init_git_repo || exit 1
+      case "$case" in
+        "work branch"*)
+          git switch -q -c work/fix-docs
+          git commit -q --allow-empty -m "docs: record review" \
+            --trailer "Assisted-by: codex gpt-5-codex" --trailer "Plan: none" --trailer "Task: review"
+          run "$CHECK"
+          ;;
+        "plan branch"*)
+          git switch -q -c plan/02-merge
+          agent_commit claude-code "feat: on branch"
+          git switch -q main
+          git commit -q --allow-empty -m "chore: on main"
+          git switch -q plan/02-merge
+          git merge -q --no-ff main -m "Merge main"
+          run "$CHECK"
+          ;;
+        "explicit branch"*)
+          git switch -q -c plan/02-git-review-tooling
+          agent_commit claude-code "feat: add check"
+          git checkout -q --detach main
+          run "$CHECK" main plan/02-git-review-tooling
+          ;;
+      esac
+      # One commit each: the merge commit and the commit it brings from main are not counted.
+      assert_success && assert_output --partial "OK: git policy (1 commits since main)"
+    ) || fail "check-git did not pass the $case"
+  done
 }
 
-@test "fails on main because agents never commit to main" {
-  run "$CHECK"
-  assert_failure
-  assert_output --partial "on main: agents never commit to main"
+@test "fails on main, a detached HEAD and a branch outside plan/ and work/, also as an explicit branch" {
+  local case place message
+  cd "$BATS_TEST_TMPDIR" || return
+  # Each case: where check-git.sh runs | the branch problem it reports.
+  for case in "main|on main: agents never commit to main" \
+    "detached HEAD|detached HEAD: create a branch first" \
+    "feature/x|branch 'feature/x' must look like plan/NN-slug or work/slug" \
+    "explicit feature/x|branch 'feature/x' must look like plan/NN-slug or work/slug"; do
+    IFS='|' read -r place message <<<"$case"
+    (
+      rm -rf "$WORK" && init_git_repo || exit 1
+      case "$place" in
+        main) run "$CHECK" ;;
+        "detached HEAD")
+          git checkout -q --detach
+          run "$CHECK"
+          ;;
+        feature/x)
+          git switch -q -c feature/x
+          run "$CHECK"
+          ;;
+        "explicit feature/x")
+          git switch -q -c feature/x
+          agent_commit claude-code "feat: on a badly named branch"
+          git checkout -q --detach main
+          run "$CHECK" main feature/x
+          ;;
+      esac
+      assert_failure && assert_output --partial "$message"
+    ) || fail "check-git did not refuse to run on: $place"
+  done
 }
 
-@test "fails in detached HEAD" {
-  git checkout -q --detach
-  run "$CHECK"
-  assert_failure
-  assert_output --partial "detached HEAD: create a branch first"
-}
-
-@test "fails on a branch name outside plan/ and work/" {
-  git switch -q -c feature/x
-  run "$CHECK"
-  assert_failure
-  assert_output --partial "branch 'feature/x' must look like plan/NN-slug or work/slug"
-}
-
-@test "lists every missing trailer with the commit" {
-  git switch -q -c work/no-trailers
-  git commit -q --allow-empty -m "feat: no trailers"
-  run "$CHECK"
-  assert_failure
-  assert_output --partial '"feat: no trailers": missing trailer '"'"'Assisted-by:'
-  assert_output --partial "missing trailer 'Plan:"
-  assert_output --partial "missing trailer 'Task:"
-}
-
-@test "rejects malformed trailer values" {
-  git switch -q -c work/bad-values
-  git commit -q --allow-empty -m "feat: bad values" \
-    --trailer "Assisted-by: Claude" --trailer "Plan: 1" --trailer "Task: first"
-  run "$CHECK"
-  assert_failure
-  assert_output --partial "trailer 'Assisted-by: Claude' must be"
-  assert_output --partial "trailer 'Plan: 1' must be"
-  assert_output --partial "trailer 'Task: first' must be"
-}
-
-@test "rejects Co-authored-by and Signed-off-by" {
-  git switch -q -c work/attribution
-  agent_commit claude-code "feat: attributed" --trailer "Co-authored-by: Bot <bot@example.com>" --signoff
-  run "$CHECK"
-  assert_failure
-  assert_output --partial "agents never add 'Co-authored-by'"
-  assert_output --partial "agents never add 'Signed-off-by'"
+@test "lists every missing, malformed and forbidden trailer with its commit" {
+  local case problem subject problems line
+  cd "$BATS_TEST_TMPDIR" || return
+  # Each case: the trailers' problem | the commit subject | what check-git.sh lists after that subject, |-separated.
+  for case in "missing|feat: no trailers|missing trailer 'Assisted-by:|missing trailer 'Plan:|missing trailer 'Task:" \
+    "malformed|feat: bad values|trailer 'Assisted-by: Claude' must be|trailer 'Plan: 1' must be|trailer 'Task: first' must be" \
+    "forbidden|feat: attributed|agents never add 'Co-authored-by'|agents never add 'Signed-off-by'"; do
+    IFS='|' read -r problem subject problems <<<"$case"
+    (
+      rm -rf "$WORK" && init_git_repo || exit 1
+      git switch -q -c "work/$problem-trailers"
+      case "$problem" in
+        missing) git commit -q --allow-empty -m "$subject" ;;
+        malformed)
+          git commit -q --allow-empty -m "$subject" \
+            --trailer "Assisted-by: Claude" --trailer "Plan: 1" --trailer "Task: first"
+          ;;
+        forbidden) agent_commit claude-code "$subject" --trailer "Co-authored-by: Bot <bot@example.com>" --signoff ;;
+      esac
+      run "$CHECK"
+      assert_failure || exit 1
+      while IFS= read -r line; do
+        assert_output --partial "\"$subject\": $line" || exit 1
+      done <<<"$(tr '|' '\n' <<<"$problems")"
+    ) || fail "check-git did not list the $problem trailers"
+  done
 }
 
 @test "flags extensions.worktreeConfig whatever its value, including false" {
@@ -84,45 +124,21 @@ setup() {
   done
 }
 
-@test "ignores merge commits brought into the branch" {
-  git switch -q -c plan/02-merge
-  agent_commit claude-code "feat: on branch"
-  git switch -q main
-  git commit -q --allow-empty -m "chore: on main"
-  git switch -q plan/02-merge
-  git merge -q --no-ff main -m "Merge main"
-  run "$CHECK"
-  assert_success
-  assert_output --partial "OK: git policy (1 commits since main)"
-}
-
-@test "fails clearly when the base branch does not exist" {
-  git switch -q -c work/x
-  run "$CHECK" nope
-  assert_failure
-  assert_output --partial "base branch 'nope' not found"
-}
-
-@test "checks an explicit branch from a detached HEAD" {
-  git switch -q -c plan/02-git-review-tooling
-  agent_commit claude-code "feat: add check"
-  git checkout -q --detach main
-  run "$CHECK" main plan/02-git-review-tooling
-  assert_success
-  assert_output --partial "OK: git policy (1 commits since main)"
-}
-
-@test "applies the branch-name rule to an explicit branch" {
-  git switch -q -c feature/x
-  agent_commit claude-code "feat: on a badly named branch"
-  git checkout -q --detach main
-  run "$CHECK" main feature/x
-  assert_failure
-  assert_output --partial "branch 'feature/x' must look like plan/NN-slug or work/slug"
-}
-
-@test "fails clearly when the explicit branch does not exist" {
-  run "$CHECK" main plan/09-nope
-  assert_failure
-  assert_output --partial "branch 'plan/09-nope' not found"
+@test "fails instead of passing when the base or the explicit branch does not exist" {
+  local case missing message
+  cd "$BATS_TEST_TMPDIR" || return
+  # Each case: the ref that does not exist | the problem check-git.sh reports.
+  for case in "base|base branch 'nope' not found" "explicit branch|branch 'plan/09-nope' not found"; do
+    IFS='|' read -r missing message <<<"$case"
+    (
+      rm -rf "$WORK" && init_git_repo || exit 1
+      if [[ "$missing" == base ]]; then
+        git switch -q -c work/x
+        run "$CHECK" nope
+      else
+        run "$CHECK" main plan/09-nope
+      fi
+      assert_failure && assert_output --partial "$message"
+    ) || fail "check-git did not fail on a missing $missing"
+  done
 }

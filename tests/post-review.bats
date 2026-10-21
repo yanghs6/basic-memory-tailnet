@@ -4,9 +4,16 @@ load helpers
 setup() {
   setup_stubs gh
   export REVIEW_OUT_DIR="$BATS_TEST_TMPDIR/out"
-  mkdir -p "$REVIEW_OUT_DIR"
   POST="$REPO_DIR/scripts/post-review.sh"
   PREFIX="$REVIEW_OUT_DIR/plan-09-review-posting-r1-codex"
+  write_reports
+}
+
+# write_reports: the three files make review writes for round 1 of plan/09-review-posting by codex, and nothing else in
+# REVIEW_OUT_DIR.
+write_reports() {
+  rm -rf "$REVIEW_OUT_DIR"
+  mkdir -p "$REVIEW_OUT_DIR"
   echo "Verdict: mergeable" >"$PREFIX-diff.md"
   echo "Verdict: blocked (1 P0/P1)" >"$PREFIX-plan.md"
   printf 'base %s\nhead %s\n' 1111111 2222222 >"$PREFIX-meta.txt"
@@ -27,18 +34,20 @@ setup() {
   assert_line "Verdict: blocked (1 P0/P1)"
 }
 
-@test "posts nothing when a file of the round is missing" {
-  rm "$PREFIX-plan.md"
-  run "$POST" 12 plan/09-review-posting codex
-  assert_failure
-  assert_output --partial "missing $PREFIX-plan.md"
-  refute_stub_called '^gh '
-}
-
-@test "posts nothing when either report is too long for one GitHub comment" {
-  head -c 70000 /dev/zero | tr '\0' x >"$PREFIX-plan.md"
-  run "$POST" 12 plan/09-review-posting codex
-  assert_failure
-  assert_output --partial "over GitHub's 65536 limit"
-  refute_stub_called '^gh '
+@test "posts nothing when a file of the round is missing or too long" {
+  local case problem message
+  # Each case: what is wrong with the plan report | the message of the check that stops before any gh call.
+  for case in "missing|missing $PREFIX-plan.md" "too long|over GitHub's 65536 limit"; do
+    IFS='|' read -r problem message <<<"$case"
+    (
+      write_reports
+      : >"$STUB_LOG"
+      case "$problem" in
+        missing) rm "$PREFIX-plan.md" ;;
+        "too long") head -c 70000 /dev/zero | tr '\0' x >"$PREFIX-plan.md" ;;
+      esac
+      run "$POST" 12 plan/09-review-posting codex
+      assert_failure && assert_output --partial "$message" && refute_stub_called '^gh '
+    ) || fail "post-review did not stop before gh with a plan report that is $problem"
+  done
 }

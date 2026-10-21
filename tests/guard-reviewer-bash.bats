@@ -41,102 +41,94 @@ assert_blocked() {
   done
 }
 
-@test "blocks shell operators in an allowed git command" {
-  local cmd
+@test "blocks shell operators, file-writing and helper options with their abbreviations, anything but plain single-spaced tokens and every other command" {
+  local cmd commands
   # shellcheck disable=SC2016 # the commands are the literal text the guard must refuse, not run here
-  for cmd in \
-    "git diff; rm -rf scripts" \
-    "git diff && touch x" \
-    "git diff & touch x" \
-    "git log | sh" \
-    'git show `touch x`' \
-    'git show $(touch x)' \
-    'git show ${HOME}' \
-    'git show $HOME' \
-    "git diff > out.txt" \
-    "git diff >> out.txt" \
-    "git diff < in.txt" \
-    "git diff"$'\n'"touch x" \
-    "git diff"$'\r'"touch x"; do
+  commands=(
+    # Shell operators in an allowed git command.
+    "git diff; rm -rf scripts"
+    "git diff && touch x"
+    "git diff & touch x"
+    "git log | sh"
+    'git show `touch x`'
+    'git show $(touch x)'
+    'git show ${HOME}'
+    'git show $HOME'
+    "git diff > out.txt"
+    "git diff >> out.txt"
+    "git diff < in.txt"
+    "git diff"$'\n'"touch x"
+    "git diff"$'\r'"touch x"
+    # Git options that write files, including abbreviations.
+    "git diff --output=x.patch main...HEAD"
+    "git log -p --output x.patch"
+    "git diff --outp=/tmp/x"
+    "git show --ou=/tmp/x"
+    # Git options that run external diff or textconv helpers, including abbreviations.
+    "git diff --ext-diff main...HEAD"
+    "git diff --ext main...HEAD"
+    "git show --textconv HEAD"
+    "git log -p --textc"
+    # Anything but single-space-separated plain tokens. The first three reproduce a real bypass where the shell stripped
+    # quotes/escapes into --output (commit b61ddbf); keep them.
+    'git diff --o""utput=/tmp/x'
+    "git diff --ou''tput=/tmp/x"
+    'git diff --outp\ut=/tmp/x'
+    "git diff"$'\t'"main"
+    "git diff  main"
+    "git diff main "
+    "git show *.md"
+    "git show HEAD:scripts/?.sh"
+    "git log [a]"
+    "git show 'HEAD:AGENTS.md'"
+    'git show "HEAD:AGENTS.md"'
+    "git log --format=%h"
+    "git log {a,b}"
+    # Every other git subcommand and every non-git command.
+    "git status"
+    "git commit -m x"
+    "git checkout main"
+    "git switch -c x"
+    "git branch -D main"
+    "git reset --hard"
+    "git worktree remove x"
+    "git show-branch"
+    "git diff-tree HEAD"
+    "git -C /tmp diff"
+    "git"
+    " git diff"
+    "rm -rf scripts"
+    "echo hi"
+    "make check"
+    "cat AGENTS.md"
+    "gitdiff"
+    ""
+  )
+  for cmd in "${commands[@]}"; do
     assert_blocked "$cmd"
   done
 }
 
-@test "blocks git options that write files, including abbreviations" {
-  assert_blocked "git diff --output=x.patch main...HEAD"
-  assert_blocked "git log -p --output x.patch"
-  assert_blocked "git diff --outp=/tmp/x"
-  assert_blocked "git show --ou=/tmp/x"
-}
-
-@test "blocks git options that run external diff or textconv helpers, including abbreviations" {
-  assert_blocked "git diff --ext-diff main...HEAD"
-  assert_blocked "git diff --ext main...HEAD"
-  assert_blocked "git show --textconv HEAD"
-  assert_blocked "git log -p --textc"
-}
-
-@test "blocks anything but single-space-separated plain tokens" {
-  local cmd
-  # The first three inputs reproduce a real bypass where the shell stripped quotes/escapes into --output (commit b61ddbf); keep them.
-  for cmd in \
-    'git diff --o""utput=/tmp/x' \
-    "git diff --ou''tput=/tmp/x" \
-    'git diff --outp\ut=/tmp/x' \
-    "git diff"$'\t'"main" \
-    "git diff  main" \
-    "git diff main " \
-    "git show *.md" \
-    "git show HEAD:scripts/?.sh" \
-    "git log [a]" \
-    "git show 'HEAD:AGENTS.md'" \
-    'git show "HEAD:AGENTS.md"' \
-    "git log --format=%h" \
-    "git log {a,b}"; do
-    assert_blocked "$cmd"
-  done
-}
-
-@test "blocks every other git subcommand and every non-git command" {
-  local cmd
-  for cmd in \
-    "git status" \
-    "git commit -m x" \
-    "git checkout main" \
-    "git switch -c x" \
-    "git branch -D main" \
-    "git reset --hard" \
-    "git worktree remove x" \
-    "git show-branch" \
-    "git diff-tree HEAD" \
-    "git -C /tmp diff" \
-    "git" \
-    " git diff" \
-    "rm -rf scripts" \
-    "echo hi" \
-    "make check" \
-    "cat AGENTS.md" \
-    "gitdiff" \
-    ""; do
-    assert_blocked "$cmd"
-  done
-}
-
-@test "fails closed on empty, invalid or incomplete hook input" {
-  local input
-  for input in "" "not json" '{"tool_input": {}}' '{"tool_input": {"command": 42}}' '{"tool_name": "Bash"}'; do
-    run "$GUARD" <<<"$input"
-    [[ "$status" -eq 2 ]] || fail "expected exit 2 for input '$input'; got $status: $output"
-  done
-}
-
-@test "fails closed when jq is missing" {
-  local bin="$BATS_TEST_TMPDIR/no-jq" tool
-  mkdir -p "$bin"
+@test "fails closed on bad hook input and without jq" {
+  local no_jq="$BATS_TEST_TMPDIR/no-jq" tool case problem input path
+  mkdir -p "$no_jq"
   for tool in bash cat dirname; do
-    ln -s "$(command -v "$tool")" "$bin/$tool"
+    ln -s "$(command -v "$tool")" "$no_jq/$tool"
   done
-  run env PATH="$bin" "$GUARD" <<<"$(payload "git diff")"
-  assert_failure 2
-  assert_output --partial "missing command 'jq'"
+  # Each case: what is wrong | the hook input. Only the jq case gets a good input, and a PATH without jq.
+  for case in "empty input|" "not JSON|not json" 'no command|{"tool_input": {}}' \
+    'a number as the command|{"tool_input": {"command": 42}}' 'no tool_input|{"tool_name": "Bash"}' \
+    "no jq|$(payload "git diff")"; do
+    IFS='|' read -r problem input <<<"$case"
+    path="$PATH"
+    [[ "$problem" != "no jq" ]] || path="$no_jq"
+    (
+      run env PATH="$path" "$GUARD" <<<"$input"
+      assert_failure 2 || exit 1
+      # Without jq the guard would block anyway when jq fails; the message shows that require_cmd stopped it first.
+      if [[ "$problem" == "no jq" ]]; then
+        assert_output --partial "missing command 'jq'"
+      fi
+    ) || fail "the guard did not fail closed with exit 2 on: $problem"
+  done
 }

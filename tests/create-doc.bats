@@ -82,26 +82,30 @@ setup() {
   assert_line "docs/decisions/adr-$TODAY-0007-next-adr.md"
 }
 
-@test "refuses a type whose 새 문서 cell is 금지 even when its template exists" {
+@test "refuses an unknown type, a retired type whose template still exists, a slug that is not lowercase-hyphen and an existing file, and writes nothing" {
+  local case args message
   # Retire research in this copy of the registry; its template stays, so only the 새 문서 check can refuse it.
   awk -F'|' 'BEGIN { OFS = "|" } $2 == " research " { $8 = " 금지 " } { print }' docs/README.md >"$BATS_TEST_TMPDIR/README.md"
   cp "$BATS_TEST_TMPDIR/README.md" docs/README.md
-  run "$CREATE" research late-note
-  assert_failure
-  assert_output --partial "no longer created"
-  [[ ! -e docs/research ]] || fail "a retired type wrote into docs/research"
-}
-
-@test "refuses an unknown type, a slug that is not lowercase-hyphen and an existing file, and writes nothing" {
-  local args
+  [[ -f "$(doc_type_row docs/README.md research | cut -f8)" ]] || fail "the copy has no research template"
+  git commit -q -m "docs: retire research" docs/README.md
   run "$CREATE" spec same-name
   assert_success
   printf 'edited\n' >>"docs/specs/spec-$TODAY-same-name.md"
-  for args in "memo note" "spec Bad_Slug" "spec ../escape" "spec same-name"; do
-    # shellcheck disable=SC2086 # two words: the type and the slug
-    run "$CREATE" $args
-    assert_failure
+  # Each case: the type and the slug | for the retired type, the message that shows the 새 문서 check refused it, not a
+  # registry the awk edit broke.
+  for case in "memo note|" "research late-note|no longer created" "spec Bad_Slug|" "spec ../escape|" "spec same-name|"; do
+    IFS='|' read -r args message <<<"$case"
+    (
+      # shellcheck disable=SC2086 # two words: the type and the slug
+      run "$CREATE" $args
+      assert_failure || exit 1
+      if [[ -n "$message" ]]; then
+        assert_output --partial "$message"
+      fi
+    ) || fail "create-doc.sh did not refuse: $args"
   done
+  [[ ! -e docs/research ]] || fail "a retired type wrote into docs/research"
   run git status --porcelain --untracked-files=all
   assert_output "?? docs/specs/spec-$TODAY-same-name.md"
   run tail -n 1 "docs/specs/spec-$TODAY-same-name.md"
