@@ -191,9 +191,10 @@ doc_problems() {
   [[ -z "$problems" ]] || fail "fix these files under docs/ (rules and metadata: docs/README.md):"$'\n'"$problems"
 }
 
-@test "every gcloud command in runbooks and skills names the bm-personal configuration" {
+@test "every gcloud command in runbooks, README.md and docs/ARCHITECTURE.md names the bm-personal configuration" {
   local file hits line status missing="" checked=0
-  for file in "$REPO_DIR"/docs/runbooks/*.md "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR"/.agents/skills/*/SKILL.md; do
+  # Skills name no gcloud command at all: tests/repo-cloud-neutral.bats fails on one.
+  for file in "$REPO_DIR"/docs/runbooks/*.md "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md"; do
     status=0
     hits="$(grep -nE 'gcloud [a-z]' "$file")" || status=$?
     ((status <= 1)) || fail "grep failed on $file (exit status $status)"

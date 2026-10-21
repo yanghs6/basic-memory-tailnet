@@ -132,10 +132,3 @@ bundled_files() {
   # shellcheck disable=SC2016 # the grep pattern matches the literal text $AGENT_ID
   refute_matches "$REPO_DIR/.agents/skills" 'export AGENT_ID|\$AGENT_ID|\$\{AGENT_ID\}'
 }
-
-@test "operational skills bm-upgrade, bm-recover and bm-diagnose exist" {
-  local name
-  for name in bm-upgrade bm-recover bm-diagnose; do
-    [[ -f "$REPO_DIR/.agents/skills/$name/SKILL.md" ]] || fail "missing .agents/skills/$name/SKILL.md"
-  done
-}

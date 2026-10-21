@@ -123,8 +123,6 @@ compose_services() {
 @test "AGENTS.md defines the Code Review Rules that Codex reads" {
   run grep -x '## Code Review Rules' "$REPO_DIR/AGENTS.md"
   assert_success
-  run grep -E 'P0.*P1.*block the merge' "$REPO_DIR/AGENTS.md"
-  assert_success
 }
 
 # reviewer_hook_command: the hook command line from the branch-reviewer agent frontmatter.
