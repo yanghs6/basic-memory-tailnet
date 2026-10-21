@@ -5,13 +5,13 @@ load helpers
 # tests, names, sources, the scripts/...sh paths the docs name). ADR 0007 allows the layout checks; the verbs come from
 # the table in the script-authoring skill.
 
-# A script or remote script name: lowercase words joined by single hyphens, the verb first (the same rule as
-# SCRIPT_NAME_PATTERN in scripts/create-script.sh).
-SCRIPT_NAME_PATTERN='^[a-z0-9]+(-[a-z0-9]+)+$'
 # A scripts/...sh path; example paths with < or { do not match it.
 SCRIPT_PATH_PATTERN='scripts/[A-Za-z0-9_./-]+\.sh'
-# A line that sources a file: . FILE or source FILE.
-SOURCE_LINE='^[[:space:]]*(\.|source)[[:space:]]'
+# A command that sources a .sh file (. FILE or source FILE), at the start of a line or after ;, &, |, ( or $(.
+SOURCES_SH='(^|[;&|(]|\$\()[[:space:]]*(\.|source)[[:space:]][^#]*\.sh'
+# A line that sources common.sh: the sourced path ends in common.sh before any comment, so a comment naming
+# common.sh does not count.
+SOURCES_COMMON='^[[:space:]]*(\.|source)[[:space:]]+[^#]*[/"[:space:]]common\.sh"?[[:space:]]*(#.*)?$'
 
 setup() {
   # shellcheck source=../scripts/lib/layout.sh
@@ -92,8 +92,8 @@ script_path_refs() {
 }
 
 @test "scripts in scripts/remote source no library" {
-  refute_matches "$REPO_DIR/scripts/remote" "${SOURCE_LINE}.*lib/" \
-    || fail "scripts in scripts/remote run alone on the VM and source nothing from scripts/lib/: copy what they need into the script (see $SCRIPT_TEMPLATES_DIR/remote.sh)"
+  refute_matches "$REPO_DIR/scripts/remote" "$SOURCES_SH" \
+    || fail "scripts in scripts/remote run alone on the VM and source no .sh file: copy what they need into the script (see $SCRIPT_TEMPLATES_DIR/remote.sh)"
 }
 
 @test "every topic library sources common.sh" {
@@ -101,7 +101,7 @@ script_path_refs() {
   for lib in "$REPO_DIR"/scripts/lib/*.sh; do
     [[ -f "$lib" && "${lib##*/}" != common.sh ]] || continue
     libs=$((libs + 1))
-    grep -qE "${SOURCE_LINE}.*common\.sh" "$lib" || missing="$missing"$'\n'"  ${lib#"$REPO_DIR"/}"
+    grep -qE "$SOURCES_COMMON" "$lib" || missing="$missing"$'\n'"  ${lib#"$REPO_DIR"/}"
   done
   ((libs > 0)) || fail "found no library under scripts/lib other than common.sh"
   [[ -z "$missing" ]] || fail "source common.sh right after the source guard (. \"\${BASH_SOURCE[0]%/*}/common.sh\", as in $SCRIPT_TEMPLATES_DIR/lib.sh) in:$missing"

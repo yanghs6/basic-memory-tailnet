@@ -11,9 +11,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib/layout.sh"
 
 readonly USAGE="usage: make new-script NAME=<name> [KIND=script|remote|lib]"
-# Scripts and remote scripts are named <verb>-<object>; a library is named after its topic.
-readonly SCRIPT_NAME_PATTERN='^[a-z0-9]+(-[a-z0-9]+)+$'
-readonly LIB_NAME_PATTERN='^[a-z0-9]+(-[a-z0-9]+)*$'
 # Source guard variable of the library template; it becomes _BM_LIB_<NAME> with - turned into _.
 readonly LIB_GUARD_PLACEHOLDER="_BM_LIB_NAME"
 
