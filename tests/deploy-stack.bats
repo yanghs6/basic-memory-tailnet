@@ -3,7 +3,7 @@
 load helpers
 
 setup() {
-  setup_stubs ssh docker curl sudo tailscale ss free nc uname sshd
+  setup_stubs ssh docker sudo
   use_vm_env
 }
 

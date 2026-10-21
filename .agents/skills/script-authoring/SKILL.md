@@ -64,7 +64,7 @@ Each library starts with a function index, one line per function. Read it before
 - `scripts/lib/sb.sh`: the SilverBullet space in the notes folder and the SilverBullet login.
 - `scripts/lib/git.sh`: commit trailer rules, problem lists, review report paths.
 - `scripts/lib/docs.sh`: the document type registry and document numbers.
-- `scripts/lib/layout.sh`: the verbs of this skill's table and the pair test of a script.
+- `scripts/lib/layout.sh`: the verbs of this skill's table, the folder of each kind of script (`script_dir`) and the pair test of a script.
 
 ## Tests
 

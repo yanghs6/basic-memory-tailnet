@@ -137,8 +137,11 @@ run_bootstrap_with_key() {
 
 @test "ssh mode: provisions without touching Tailscale, also off the tailnet without a key, and still creates the data dirs" {
   export BM_ACCESS=ssh TS_STUB_STATUS_EXIT=1
+  # Without the stub, install_tailscale would fetch the install script, so the test sees an install attempt.
+  rm "$STUB_BIN/tailscale"
   run_bootstrap_with_key ""
   assert_success
+  refute_stub_called -F 'curl -fsSL https://tailscale.com/install.sh'
   refute_stub_called '^tailscale '
   run stat -c '%u:%g' "$BM_REMOTE_DATA_ROOT/knowledge"
   assert_output "1000:1000"

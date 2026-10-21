@@ -42,14 +42,14 @@ setup() {
 }
 
 @test "status fails without a memory line and checks no access when free -m prints no Mem: or Swap: line or a zero memory total" {
-  local output
+  local free_output
   # Each case: what free -m prints on the VM (\n between lines).
-  for output in 'Swap:  1023  0  1023' 'Mem:  3900  700  2200  5  1000  3000' 'Mem:  0  0  0  0  0  0\nSwap:  1023  0  1023'; do
+  for free_output in 'Swap:  1023  0  1023' 'Mem:  3900  700  2200  5  1000  3000' 'Mem:  0  0  0  0  0  0\nSwap:  1023  0  1023'; do
     (
-      : >"$STUB_LOG" && fake_cmd free "printf 'free %s\n' \"\$*\" >>\"\$STUB_LOG\"; printf '%b\n' '$output'" || exit 1
+      : >"$STUB_LOG" && fake_cmd free "printf 'free %s\n' \"\$*\" >>\"\$STUB_LOG\"; printf '%b\n' '$free_output'" || exit 1
       run "$REPO_DIR/scripts/show-status.sh"
       assert_failure && assert_stub_called -Fx 'free -m' && refute_output --partial "memory used" \
         && refute_stub_called -F 'tailscale serve'
-    ) || fail "status went on with free -m printing: $output"
+    ) || fail "status went on with free -m printing: $free_output"
   done
 }

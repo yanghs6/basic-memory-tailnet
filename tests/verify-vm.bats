@@ -3,7 +3,7 @@
 load helpers
 
 setup() {
-  setup_stubs ssh docker curl sudo tailscale ss free nc uname sshd
+  setup_stubs ssh curl sudo tailscale ss nc uname sshd
   use_vm_env
   export BM_VM_PUBLIC_IP=203.0.113.10
   export VERIFY_ID=test1

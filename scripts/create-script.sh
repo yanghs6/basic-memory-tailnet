@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/layout.sh
 . "$SCRIPT_DIR/lib/layout.sh"
 
-readonly USAGE="usage: make new-script NAME=<name> [KIND=script|remote|lib]"
+readonly USAGE="usage: make new-script NAME=<name> [KIND=${SCRIPT_KINDS// /|}]"
 # Source guard variable of the library template; it becomes _BM_LIB_<NAME> with - turned into _.
 readonly LIB_GUARD_PLACEHOLDER="_BM_LIB_NAME"
 
