@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Create a script and its pair test from the templates of the script-authoring skill: scripts/<name>.sh,
 # scripts/remote/<name>.sh or scripts/lib/<name>.sh, and the test pair_test names. Script and remote names start with a
-# verb from the table under "## Verbs" in that skill. Writes nothing when either file already exists.
+# verb from the table under "## Verbs" in that skill. Writes nothing when either file already exists, and leaves
+# neither file when a write fails.
 # Prints both paths on stdout. Spec: docs/specs/spec-2026-10-15-script-test-layout.md, section 8.3.
 # Usage: make new-script NAME=<name> [KIND=script|remote|lib]
 set -euo pipefail
@@ -31,14 +32,10 @@ check_name() {
 }
 
 main() {
-  local name="${1:-}" kind="${2:-script}" root script pair path guard
+  local name="${1:-}" kind="${2:-script}" root dir script pair path guard
   [[ -n "$name" ]] || die "$USAGE"
-  case "$kind" in
-    script) script="scripts/$name.sh" ;;
-    remote) script="scripts/remote/$name.sh" ;;
-    lib) script="scripts/lib/$name.sh" ;;
-    *) die "KIND must be script, remote or lib, not '$kind' ($USAGE)" ;;
-  esac
+  dir="$(script_dir "$kind")" || die "$USAGE"
+  script="$dir/$name.sh"
   require_cmd git
   root="$(git rev-parse --show-toplevel)" || die "run make new-script inside a checkout of this repo"
   check_name "$kind" "$name" "$root"
@@ -51,10 +48,16 @@ main() {
     [[ -f "$root/$path" ]] || die "missing template $path (the script-authoring skill)"
   done
   guard="_BM_LIB_$(printf '%s' "$name" | tr 'a-z-' 'A-Z_')"
-  mkdir -p "$root/${script%/*}" "$root/${pair%/*}"
-  sed -e "s/{{name}}/$name/g" -e "s/$LIB_GUARD_PLACEHOLDER/$guard/g" "$root/$SCRIPT_TEMPLATES_DIR/$kind.sh" >"$root/$script"
-  sed -e "s/{{name}}/$name/g" "$root/$SCRIPT_TEMPLATES_DIR/$kind.bats" >"$root/$pair"
+  mkdir -p "$root/$dir" "$root/${pair%/*}"
+  # Until both files are written, the EXIT trap removes them, so a failed write never leaves half a pair.
+  # shellcheck disable=SC2064 # expand the paths now: the trap may run after main has returned
+  trap "rm -f -- $(printf '%q ' "$root/$script" "$root/$pair")" EXIT
+  sed -e "s/{{name}}/$name/g" -e "s/$LIB_GUARD_PLACEHOLDER/$guard/g" "$root/$SCRIPT_TEMPLATES_DIR/$kind.sh" >"$root/$script" \
+    || die "could not write $script (nothing was written)"
+  sed -e "s/{{name}}/$name/g" "$root/$SCRIPT_TEMPLATES_DIR/$kind.bats" >"$root/$pair" \
+    || die "could not write $pair (nothing was written)"
   [[ "$kind" == lib ]] || chmod +x "$root/$script"
+  trap - EXIT
   printf '%s\n%s\n' "$script" "$pair"
   log "created $script and $pair: write the test first and fill every {{...}} blank or delete its line"
   log "add a Make target with a ## description and .PHONY if people run it"

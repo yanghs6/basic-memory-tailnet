@@ -39,10 +39,10 @@ setup() {
   done
 }
 
-@test "refuses a name whose first word is not a verb of the table or that has no object, and writes nothing" {
+@test "refuses an unknown kind, a name whose first word is not a verb of the table or that has no object, and writes nothing" {
   local case kind name message
   # Each case: the kind | the name | the part of the message that names the check that stopped it.
-  for case in "script|frob-probe|not a verb" "remote|frob-probe|not a verb" \
+  for case in "frob|show-probe|KIND must be" "script|frob-probe|not a verb" "remote|frob-probe|not a verb" \
     "script|show|<verb>-<object>" "remote|check|<verb>-<object>"; do
     IFS='|' read -r kind name message <<<"$case"
     (
@@ -70,6 +70,21 @@ setup() {
       assert_failure && assert_output --partial "already exists" || exit 1
     ) || fail "create-script.sh did not refuse $kind $name"
   done
+  run git status --porcelain --untracked-files=all
+  assert_output ""
+}
+
+@test "leaves neither the script nor its test when writing the test fails" {
+  local real_sed
+  real_sed="$(command -v sed)"
+  setup_stubs
+  # This sed fails only on the test template, after the script has been written.
+  fake_cmd sed "case \"\$*\" in *.bats) exit 1 ;; esac
+exec \"$real_sed\" \"\$@\""
+  run "$CREATE" show-probe
+  assert_failure
+  [[ ! -e scripts/show-probe.sh && ! -e tests/show-probe.bats ]] || fail "a file of the half-written pair was left"
+  assert_output --partial "could not write tests/show-probe.bats"
   run git status --porcelain --untracked-files=all
   assert_output ""
 }

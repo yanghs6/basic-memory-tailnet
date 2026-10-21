@@ -32,34 +32,39 @@ type_row() {
 
 # docs_paths: the docs/...md paths of this repo in stdin, one per line. A match right after a path character is part
 # of a URL or another path (code.claude.com/docs/..., design-docs/...), and "..." marks a placeholder; both are skipped.
+# A grep that selects nothing (exit 1) gives no path; a grep error (exit 2) fails.
 docs_paths() {
-  { grep -oE '(^|[^A-Za-z0-9_./-])docs/[A-Za-z0-9_./-]+\.md' || true; } | sed -E 's#^[^d]##' | { grep -vF '...' || true; }
+  { grep -oE '(^|[^A-Za-z0-9_./-])docs/[A-Za-z0-9_./-]+\.md' || (($? == 1)); } | sed -E 's#^[^d]##' \
+    | { grep -vF '...' || (($? == 1)); }
 }
 
 # link_targets: the relative link targets in stdin without their #anchor, one per line; external URLs and bare anchors
-# are left out.
+# are left out. A grep that selects nothing (exit 1) gives no target; a grep error (exit 2) fails.
 link_targets() {
-  { grep -oE '\]\([^)]+\)' || true; } | sed -E 's/^\]\((.*)\)$/\1/; s/#.*$//' | { grep -vE '^(https?:|mailto:|$)' || true; }
+  { grep -oE '\]\([^)]+\)' || (($? == 1)); } | sed -E 's/^\]\((.*)\)$/\1/; s/#.*$//' \
+    | { grep -vE '^(https?:|mailto:|$)' || (($? == 1)); }
 }
 
 # path_refs: one "file<TAB>kind<TAB>target" line per path the repo names, with file relative to the repo.
 # kind link: a relative link outside code in tracked Markdown; its target resolves from the file's folder.
 # kind docs: a docs/...md path in AGENTS.md, scripts and skills (code included) or outside code in the other tracked
 # Markdown; its target resolves from the repo.
-path_refs() {
+# It runs in a subshell with pipefail, so a failed read, awk or grep on any file fails it instead of reading as no path.
+path_refs() (
   local file
+  set -o pipefail
   cd "$REPO_DIR" || return 1
   for file in AGENTS.md $(git ls-files scripts .agents/skills); do
-    docs_paths <"$file" | awk -v f="$file" '{ print f "\tdocs\t" $0 }'
+    docs_paths <"$file" | awk -v f="$file" '{ print f "\tdocs\t" $0 }' || return 1
   done
   while IFS= read -r file; do
-    outside_code "$file" | link_targets | awk -v f="$file" '{ print f "\tlink\t" $0 }'
+    outside_code "$file" | link_targets | awk -v f="$file" '{ print f "\tlink\t" $0 }' || return 1
     case "$file" in
       AGENTS.md | .agents/skills/*) ;;
-      *) outside_code "$file" | docs_paths | awk -v f="$file" '{ print f "\tdocs\t" $0 }' ;;
+      *) outside_code "$file" | docs_paths | awk -v f="$file" '{ print f "\tdocs\t" $0 }' || return 1 ;;
     esac
   done <<<"$(markdown_files)"
-}
+)
 
 @test "the registry has unique types and codes, valid number and 새 문서 cells, and a template for every type that takes new documents" {
   local type code number location statuses keys new template bad="" dup

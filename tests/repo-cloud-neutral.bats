@@ -25,8 +25,8 @@ cloud_scan() {
   refute_matches "$copy" "$CLOUD_NAMES" -i -w
 }
 
-@test "the scan flags a provider name, and scripts and skills name none, comments included" {
-  local sample="$BATS_TEST_TMPDIR/sample" dir
+@test "the scan flags a provider name, and scripts and skills name none in their contents, comments included, or in their file names" {
+  local sample="$BATS_TEST_TMPDIR/sample" names="$BATS_TEST_TMPDIR/names" dir
   mkdir -p "$sample"
   printf '# see docs/runbooks/rbk-2026-10-12-gcp-vm.md\n# use the OCI console\n# gcloud compute list\n' >"$sample/a.sh"
   # The first case checks the scan itself: it flags both names and skips only the runbook path.
@@ -38,4 +38,10 @@ cloud_scan() {
   for dir in scripts .agents/skills; do
     cloud_scan "$REPO_DIR/$dir" || fail "cloud provider names in $dir/ (point to the runbook section instead)"
   done
+  # The file names (tracked and new) go through the same scan as the lines of one file.
+  mkdir -p "$names"
+  git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- scripts .agents/skills >"$names/paths" \
+    || fail "git ls-files failed on scripts and .agents/skills"
+  [[ -s "$names/paths" ]] || fail "git listed no file under scripts and .agents/skills"
+  cloud_scan "$names" || fail "cloud provider names in file names under scripts/ or .agents/skills/ (git mv the file)"
 }

@@ -1,4 +1,5 @@
 # For the templates in this folder only: the files they source exist only where make new-script writes them.
+# shellcheck reads only the nearest .shellcheckrc, so the two lines below repeat the repo's .shellcheckrc: change both together.
 external-sources=true
 source-path=SCRIPTDIR
 disable=SC1091

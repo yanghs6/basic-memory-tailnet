@@ -34,7 +34,7 @@ setup() {
     fi
     assert_equal "$path" "$expected"
     # Not "status": bats run sets that name.
-    doc_status="$(frontmatter "$path" | sed -n 's/^status: *//p')"
+    doc_status="$(front_value "$path" status)"
     [[ ", $statuses," == *", $doc_status,"* ]] || fail "$type: status '$doc_status' is not one of: $statuses"
     for key in $(tr ',' ' ' <<<"$keys"); do
       frontmatter "$path" | grep -q "^$key: " || fail "$type: the front matter has no $key"

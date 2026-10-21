@@ -1,9 +1,9 @@
 #!/usr/bin/env bats
 load helpers
 
-# Script rules: strict mode, bash 3.2, no Funnel, and the layout checks of the script-test layout spec section 9 (pair
-# tests, names, sources, the scripts/...sh paths the docs name). ADR 0007 allows the layout checks; the verbs come from
-# the table in the script-authoring skill.
+# Script rules: strict mode, bash 3.2, no Funnel, no template blank left by make new-script, and the layout checks of
+# the script-test layout spec section 9 (pair tests, names, sources, the scripts/...sh paths the docs name). ADR 0007
+# allows the layout and blank checks; the verbs come from the table in the script-authoring skill.
 
 # A scripts/...sh path; example paths with < or { do not match it.
 SCRIPT_PATH_PATTERN='scripts/[A-Za-z0-9_./-]+\.sh'
@@ -13,6 +13,10 @@ SOURCES_SH='(^|[;&|({]|\$\(|(^|[[:space:]])(then|do|else))[[:space:]]*(\.|source
 # A line that sources common.sh: the sourced path ends in common.sh before any comment, so a comment naming
 # common.sh does not count.
 SOURCES_COMMON='^[[:space:]]*(\.|source)[[:space:]]+[^#]*[/"[:space:]]common\.sh"?[[:space:]]*(#.*)?$'
+# A template blank: two opening braces, a letter, then text up to two closing braces. A generator's sed pattern for a
+# blank ends in the sed delimiter (s/<blank>/<value>/), so a blank followed by / does not count. A test that checks a
+# blank is gone escapes the braces in its pattern, so its file holds no two braces in a row and does not count either.
+TEMPLATE_BLANK='\{\{[A-Za-z][^}]*\}\}([^/]|$)'
 
 setup() {
   # shellcheck source=../scripts/lib/layout.sh
@@ -27,15 +31,6 @@ shell_files() {
 require_shell_files() {
   files="$(shell_files)" || fail "git ls-files failed inside the test container (see Makefile GIT_COMMON_DIR mount)"
   [[ "$files" == *tests/stubs/ssh* ]] || fail "git returned no files (expected at least tests/stubs/ssh)"
-}
-
-# script_kind PATH -> the kind of a script path as make new-script names it: remote, lib or script.
-script_kind() {
-  case "$1" in
-    scripts/remote/*) echo remote ;;
-    scripts/lib/*) echo lib ;;
-    *) echo script ;;
-  esac
 }
 
 # script_path_refs: one "file:line:path" line per scripts/...sh path, code blocks included, in the maintained files
@@ -68,15 +63,19 @@ script_path_refs() {
 }
 
 @test "every script and library has its pair test, and every test that is not repo-*.bats pairs an existing script" {
-  local path pair pairs="" scripts=0 tests=0 problems=""
-  for path in "$REPO_DIR"/scripts/*.sh "$REPO_DIR"/scripts/remote/*.sh "$REPO_DIR"/scripts/lib/*.sh; do
-    [[ -f "$path" ]] || continue
-    path="${path#"$REPO_DIR"/}"
-    pair="$(pair_test "$path")" || fail "pair_test refused $path"
-    scripts=$((scripts + 1))
-    pairs="$pairs$pair"$'\n'
-    [[ -f "$REPO_DIR/$pair" ]] \
-      || problems="$problems"$'\n'"  $path: no $pair; write it from $SCRIPT_TEMPLATES_DIR/$(script_kind "$path").bats"
+  local kind dir path pair pairs="" scripts=0 tests=0 problems=""
+  # shellcheck disable=SC2086 # SCRIPT_KINDS is a list of words
+  for kind in $SCRIPT_KINDS; do
+    dir="$(script_dir "$kind")" || fail "script_dir refused $kind"
+    for path in "$REPO_DIR/$dir"/*.sh; do
+      [[ -f "$path" ]] || continue
+      path="${path#"$REPO_DIR"/}"
+      pair="$(pair_test "$path")" || fail "pair_test refused $path"
+      scripts=$((scripts + 1))
+      pairs="$pairs$pair"$'\n'
+      [[ -f "$REPO_DIR/$pair" ]] \
+        || problems="$problems"$'\n'"  $path: no $pair; write it from $SCRIPT_TEMPLATES_DIR/$kind.bats"
+    done
   done
   # A test must be the pair of some script. The map is many-to-one (scripts/remote-x.sh and scripts/remote/x.sh both
   # pair tests/remote-x.bats), so it is never inverted.
@@ -105,7 +104,7 @@ script_path_refs() {
     grep -qE "$SOURCES_COMMON" "$lib" || missing="$missing"$'\n'"  ${lib#"$REPO_DIR"/}"
   done
   ((libs > 0)) || fail "found no library under scripts/lib other than common.sh"
-  [[ -z "$missing" ]] || fail "source common.sh right after the source guard (. \"\${BASH_SOURCE[0]%/*}/common.sh\", as in $SCRIPT_TEMPLATES_DIR/lib.sh) in:$missing"
+  [[ -z "$missing" ]] || fail "add a line that sources common.sh, such as . \"\${BASH_SOURCE[0]%/*}/common.sh\" in $SCRIPT_TEMPLATES_DIR/lib.sh, to:$missing"
 }
 
 @test "every executable script is named <verb>-<object>.sh with a verb from the script-authoring table" {
@@ -125,6 +124,14 @@ script_path_refs() {
   done
   ((scripts > 0)) || fail "found no script under scripts or scripts/remote"
   [[ -z "$bad" ]] || fail "git mv each script and its pair test to <verb>-<object>.sh with a verb from the table under '$VERBS_HEADING' in $SCRIPT_AUTHORING_SKILL (${verbs//$'\n'/ }), or add a row there when no verb fits:$bad"
+}
+
+@test "scripts and tests hold no unfilled template blank" {
+  local dir
+  for dir in scripts tests; do
+    refute_matches "$REPO_DIR/$dir" "$TEMPLATE_BLANK" \
+      || fail "fill each blank that make new-script left in $dir/ (two braces around a phrase) or delete its line"
+  done
 }
 
 @test "every scripts/…sh path in the maintained docs, skills, Makefile, .github and .claude/agents names an existing file" {
