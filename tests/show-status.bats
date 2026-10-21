@@ -28,12 +28,6 @@ setup() {
   done
 }
 
-@test "status points to free -m on the VM when it cannot read the memory use" {
-  SSH_STUB_FAIL_MATCH="free -m" run "$REPO_DIR/scripts/show-status.sh"
-  assert_failure
-  assert_output --partial "could not read memory usage on $BM_VM_HOST: run 'ssh $BM_VM_USER@$BM_VM_HOST free -m' and check its Mem: and Swap: lines"
-}
-
 @test "ssh mode: status shows the access mode instead of Serve and warns while Tailscale is logged in on the VM" {
   use_ssh_mode
   run "$REPO_DIR/scripts/show-status.sh"

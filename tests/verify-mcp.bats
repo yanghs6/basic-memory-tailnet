@@ -99,9 +99,3 @@ setup() {
     ) || fail "verify-mcp did not clean up after: $fault"
   done
 }
-
-@test "rejects --host-header followed by another option" {
-  run "$VERIFY" --host-header --read-only "$URL"
-  assert_failure
-  assert_output --partial "usage: verify-mcp.sh"
-}

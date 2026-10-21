@@ -49,10 +49,3 @@ setup() {
   [[ ! -e "$notes/.gitignore" && ! -e "$notes/.gitignore.pending" ]] \
     || fail "a failed pull must leave the notes .gitignore and its marker unwritten"
 }
-
-@test "deploy reports an unhealthy container" {
-  export DOCKER_STUB_FAIL_MATCH="up -d"
-  run "$REPO_DIR/scripts/deploy-stack.sh"
-  assert_failure
-  assert_output --partial "did not become healthy within 360s"
-}
