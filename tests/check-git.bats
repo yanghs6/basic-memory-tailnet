@@ -6,14 +6,6 @@ setup() {
   CHECK="$REPO_DIR/scripts/check-git.sh"
 }
 
-@test "passes on a plan branch whose commits carry every trailer" {
-  git switch -q -c plan/02-git-review-tooling
-  agent_commit claude-code "feat: add check"
-  run "$CHECK"
-  assert_success
-  assert_output --partial "OK: git policy (1 commits since main)"
-}
-
 @test "passes plan and work branches whose commits carry every trailer, with a merge from main and as an explicit branch from a detached HEAD" {
   local case
   # Each case rebuilds the repo of setup in its own subshell, so the test leaves it first.
