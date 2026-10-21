@@ -8,8 +8,8 @@
 # already indexed. Before changing .gitignore, this script creates the $SB_GITIGNORE_PENDING marker. While the marker
 # exists it writes only .gitignore and prints "changed": the caller recreates the Basic Memory container, removes the
 # marker only after that succeeds, and runs this script again to write the pages. Without the marker it writes the
-# library page (and index.md when missing) and prints "unchanged". A run that failed in between (a pull, the
-# recreate) leaves the marker, so the next run asks again.
+# library page (and index.md when missing) and prints "unchanged". A run that failed in between (the recreate, or
+# removing the marker) leaves the marker, so the next run asks again.
 # Usage: sync-sb-space.sh [--local]
 set -euo pipefail
 

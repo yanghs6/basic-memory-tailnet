@@ -40,7 +40,8 @@ main() {
   remote_compose "ps" || die "could not query containers on $BM_VM_HOST: $(access_hint)"
 
   step "memory and swap"
-  summary="$(memory_swap_summary)" || die "could not read memory usage on $BM_VM_HOST: $(access_hint)"
+  summary="$(memory_swap_summary)" \
+    || die "could not read memory usage on $BM_VM_HOST: run 'ssh $BM_VM_USER@$BM_VM_HOST free -m' and check its Mem: and Swap: lines; if SSH fails, $(access_hint)"
   read -r used swap_used swap_total <<<"$summary"
   log "memory used: ${used}%"
   log "swap used: ${swap_used}/${swap_total} MB"
