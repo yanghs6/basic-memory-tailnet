@@ -139,7 +139,7 @@ add_model_cache() {
   done
 }
 
-@test "restore refuses before any ssh when the answer is not yes, SB_USER is invalid, a backup file is missing, the checksum is wrong or the archive holds a symlink, a ../ or an absolute path" {
+@test "restore refuses before any ssh when the answer is not yes, SB_USER is missing, a backup file is missing, the checksum is wrong or the archive holds a symlink, a ../ or an absolute path" {
   local case input message detail answer entry
   # Each case: the bad input | the message of the check that refuses | the part of that message naming the reason.
   for case in "answer no|aborted: you must type 'yes'|" \
