@@ -142,12 +142,13 @@ plan-02-git-review-tooling-r1-$reviewer-plan.md" || exit 1
 @test "refuses a stale review worktree, a leftover review-base branch, a relative REVIEW_OUT_DIR and an unknown reviewer, and leaves what exists alone" {
   local case input message
   cd "$BATS_TEST_TMPDIR" || return
-  # Each case: what is in the way | the message of the check that refuses it (none for the unknown reviewer, which only
-  # must not reach a reviewer CLI).
+  # Each case: what is in the way | the message of the check that refuses it. For the unknown reviewer that is the
+  # allowlist in the usage text, the last field, so read keeps its |: without the allowlist check the run would still
+  # fail, on the missing gemini command.
   for case in "stale review worktree|a review worktree already exists" \
     "leftover review-base branch|review-base/plan-02-git-review-tooling-r2 already exists" \
     "relative REVIEW_OUT_DIR|REVIEW_OUT_DIR must be an absolute path" \
-    "unknown reviewer|"; do
+    "unknown reviewer|REVIEWER=codex|claude"; do
     IFS='|' read -r input message <<<"$case"
     (
       case "$input" in
@@ -168,10 +169,7 @@ plan-02-git-review-tooling-r1-$reviewer-plan.md" || exit 1
           run "$REVIEW" plan/02-git-review-tooling gemini
           ;;
       esac
-      assert_failure && refute_stub_called -E '^(codex|claude) ' || exit 1
-      if [[ -n "$message" ]]; then
-        assert_output --partial "$message" || exit 1
-      fi
+      assert_failure && assert_output --partial "$message" && refute_stub_called -E '^(codex|claude) ' || exit 1
       run worktree_count
       assert_output 1 || exit 1
       case "$input" in
