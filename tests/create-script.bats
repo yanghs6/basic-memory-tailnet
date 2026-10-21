@@ -12,29 +12,29 @@ setup() {
 }
 
 @test "creates a script, a remote script and a library with their pair test from the templates" {
-  local case kind name script test file
-  # Each case: the kind | the name | the script and the pair test it must create.
-  for case in "script|show-probe|scripts/show-probe.sh|tests/show-probe.bats" \
-    "remote|check-probe|scripts/remote/check-probe.sh|tests/remote-check-probe.bats" \
-    "lib|probe-kit|scripts/lib/probe-kit.sh|tests/lib-probe-kit.bats"; do
-    IFS='|' read -r kind name script test <<<"$case"
-    run "$CREATE" "$name" "$kind"
-    assert_success
-    assert_line "$script"
-    assert_line "$test"
-    if [[ "$kind" == lib ]]; then
-      [[ ! -x "$script" ]] || fail "$script is a library, so it must not be executable"
-    else
-      [[ -x "$script" ]] || fail "$script must be executable"
-    fi
-    grep -qF "$script" "$test" || fail "$test does not run or source $script"
-    for file in "$script" "$test"; do
-      refute_matches "$file" '\{\{name\}\}|_BM_LIB_NAME'
-      # bash cannot parse @test lines; bats turns each into a function first, so do the same.
-      sed -E 's/^@test .*\{$/test_case() {/' "$file" | bash -n || fail "$file does not parse"
-    done
+  local case kind name script test guard file
+  # Each case: the kind | the name | the script and the pair test it must create | a library's source guard.
+  for case in "script|show-probe|scripts/show-probe.sh|tests/show-probe.bats|" \
+    "remote|check-probe|scripts/remote/check-probe.sh|tests/remote-check-probe.bats|" \
+    "lib|probe|scripts/lib/probe.sh|tests/lib-probe.bats|_BM_LIB_PROBE" \
+    "lib|probe-kit|scripts/lib/probe-kit.sh|tests/lib-probe-kit.bats|_BM_LIB_PROBE_KIT"; do
+    IFS='|' read -r kind name script test guard <<<"$case"
+    (
+      run "$CREATE" "$name" "$kind" && assert_success && assert_line "$script" && assert_line "$test" || exit 1
+      if [[ -n "$guard" ]]; then
+        [[ ! -x "$script" ]] || fail "a library must not be executable" || exit 1
+        grep -qx "readonly $guard=1" "$script" || fail "the library guard is not $guard" || exit 1
+      else
+        [[ -x "$script" ]] || fail "a script must be executable" || exit 1
+      fi
+      grep -qF "$script" "$test" || fail "the test does not run or source the script" || exit 1
+      for file in "$script" "$test"; do
+        refute_matches "$file" '\{\{name\}\}|_BM_LIB_NAME' || exit 1
+        # bash cannot parse @test lines; bats turns each into a function first, so do the same.
+        sed -E 's/^@test .*\{$/test_case() {/' "$file" | bash -n || fail "$file does not parse" || exit 1
+      done
+    ) || fail "create-script.sh did not create $kind $name as $script and $test"
   done
-  grep -qx 'readonly _BM_LIB_PROBE_KIT=1' scripts/lib/probe-kit.sh || fail "the library guard is not _BM_LIB_PROBE_KIT"
 }
 
 @test "refuses a name whose first word is not a verb of the table or that has no object, and writes nothing" {

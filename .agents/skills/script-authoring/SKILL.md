@@ -26,7 +26,7 @@ Every agent adds shell code the same way: `make new-script` writes a script and 
 | repo-wide rule | none | `tests/repo-<topic>.bats` | the topic of the rule |
 
 - Names are lowercase letters and digits joined by single hyphens. The test name copies the script name with its hyphens; `pair_test` in `scripts/lib/layout.sh` is the rule.
-- Keep `scripts/` and `tests/` flat: no folders other than `scripts/remote/` and `scripts/lib/`. bats runs no subfolder without `-r`, and the libraries find the repo root by their depth.
+- Keep `scripts/` and `tests/` flat: the only folders are `scripts/remote/`, `scripts/lib/`, `tests/stubs/` and `tests/fixtures/`. bats runs no subfolder without `-r`, and the libraries find the repo root by their depth.
 - A script sources only the libraries it needs. A topic library starts with a source guard (`[ -n "${_BM_LIB_<TOPIC>:-}" ] && return 0`) and sources `common.sh`.
 - The header comment says what the script does and its usage line: the command people run, `# Usage: make <target> ...` when a Make target runs it.
 - Make target names are what people type and do not change, so a target and its script may differ (`make logs` runs `scripts/show-logs.sh`). The Makefile is the map between them.
