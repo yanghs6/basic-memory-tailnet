@@ -9,7 +9,7 @@ setup() {
   URL=http://127.0.0.1:8737/mcp
 }
 
-@test "passes a full round trip against SSE and JSON responses, sends the session id and the Host header on every later request, masks the session id and writes, reads and deletes the same note" {
+@test "passes a full round trip against SSE and JSON responses, sends the session id and the Host header on every later request, never prints the full session id and writes, reads and deletes the same note" {
   local case kind host
   # Each case: the fixture kind | the --host-header value (empty: none).
   for case in "sse|" "json|" "sse|agent-hub.example.ts.net"; do

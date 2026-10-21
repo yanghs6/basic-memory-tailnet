@@ -12,7 +12,7 @@ setup() {
   FONTS="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory/Library/agent-hub/fonts"
 }
 
-@test "converts Regular and Bold to WOFF2 and writes them into the VM notes folder as the container user" {
+@test "converts Regular and Bold to WOFF2 and writes them into the VM notes folder" {
   run "$SB_FONTS"
   assert_success
   run cat "$FONTS/D2KodingLigatureNerdFont-Regular.woff2"

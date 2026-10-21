@@ -7,7 +7,7 @@ setup() {
   use_vm_env
 }
 
-@test "deploy uploads compose.yaml, an owner-only VM .env with SB_USER and the space files, then pulls and waits for healthy" {
+@test "deploy uploads compose.yaml, an owner-only VM .env with SB_USER and the SilverBullet library page, then pulls and waits for healthy" {
   local expected_env="$BATS_TEST_TMPDIR/vm.env"
   install -m 644 /dev/null "$BM_REMOTE_APP_DIR/.env"
   run "$REPO_DIR/scripts/deploy-stack.sh"
@@ -29,7 +29,7 @@ setup() {
   assert_stub_called -F 'docker compose up -d --wait --wait-timeout 360'
 }
 
-@test "deploy recreates Basic Memory before starting SilverBullet only when the notes .gitignore changed, and writes the pages after the recreate" {
+@test "deploy recreates Basic Memory before starting SilverBullet when the notes .gitignore changed, and writes the pages after the recreate" {
   run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_success
   run grep -c '^docker compose .*--force-recreate basic-memory$' "$STUB_LOG"
@@ -46,6 +46,5 @@ setup() {
   export DOCKER_STUB_FAIL_MATCH="pull -q"
   run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_failure
-  [[ ! -e "$notes/.gitignore" && ! -e "$notes/.gitignore.pending" ]] \
-    || fail "a failed pull must leave the notes .gitignore and its marker unwritten"
+  [[ ! -e "$notes" ]] || fail "a failed pull must leave the notes folder unwritten: $(ls -A "$notes")"
 }

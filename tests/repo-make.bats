@@ -52,6 +52,17 @@ make_in() {
   assert_output "[]"
 }
 
+@test "make local-up stops before any compose call on an SB_USER that require_sb_user rejects, without printing it" {
+  setup_stubs docker
+  cp -R "$REPO_DIR/scripts" "$REPO_DIR/silverbullet" "$LINKED_WT/"
+  # make reads .env as makefile text, so # starts a comment and it passes on admin:Tr4mp.
+  printf 'SB_USER=admin:Tr4mp#oline\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" local-up
+  assert_failure
+  refute_output --partial "Tr4mp"
+  refute_stub_called '^docker '
+}
+
 @test "make verify hands SB_USER and the env file path to the VM check; make probe hands neither" {
   unset SB_USER SB_ENV_FILE
   mkdir -p "$LINKED_WT/scripts"

@@ -89,7 +89,7 @@ run_bootstrap_with_key() {
   done
 }
 
-@test "creates, formats and enables a swap file once and keeps other fstab entries, even when run twice" {
+@test "creates, formats and enables a swap file and keeps other fstab entries with one swap line, even when run twice" {
   local entry expected
   # Each case: the fstab line already there (empty: no fstab yet).
   for entry in "" "UUID=abc / ext4 defaults 0 1"; do
