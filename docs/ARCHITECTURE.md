@@ -74,7 +74,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 - 접근 제어는 `tailscale` 모드에서는 전적으로 Tailscale의 기기 인증과 정책에 맡기고, `ssh` 모드에서는 클라우드 IAM과 SSH 키에 맡깁니다.
 - 컨테이너 포트는 `127.0.0.1`에만 바인딩하고, Serve는 tailnet 전용(Funnel off)이며, GCP 방화벽에는 VPC 밖의 소스를 허용하는 인바운드 규칙이 없습니다. `default-allow-rdp`·`default-allow-icmp`는 지우고, `default-allow-ssh`는 Tailscale SSH를 확인한 뒤 지웁니다. `default-allow-internal`은 VPC 내부(`10.128.0.0/9`) 전용이라 둡니다.
 - `ssh` 모드는 Tailscale을 쓰지 않습니다. VPC 밖 인바운드는 IAP 대역의 22번 하나이고, 인증은 Google 계정 IAM과 SSH 키입니다. 모든 터널은 기기의 `127.0.0.1`에만 열리고, `verify`가 VM의 Tailscale 꺼짐과 sshd 키 전용을 검사합니다. 한 VM에서 두 모드를 함께 쓰지 않습니다([ADR 0006](decisions/adr-2026-10-15-0006-access-modes.md)).
-- 자동 검증 범위: `tests/repo.bats`(설정 파일)와 `make verify`/`make probe`(8737·3000 바인딩, Serve 포트별 대상과 Funnel, SilverBullet 로그인·셸 꺼짐, 공인 IP의 22·80·443·8443·8737·3000). `ssh` 모드의 `verify`는 Serve 검사 대신 VM의 Tailscale 꺼짐과 sshd 키 전용을 임시 터널로 검사합니다. 방화벽 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/rbk-2026-10-12-operations.md)의 Exposure audit으로 수동 점검합니다.
+- 자동 검증 범위: `tests/repo-config.bats`(설정 파일)와 `make verify`/`make probe`(8737·3000 바인딩, Serve 포트별 대상과 Funnel, SilverBullet 로그인·셸 꺼짐, 공인 IP의 22·80·443·8443·8737·3000). `ssh` 모드의 `verify`는 Serve 검사 대신 VM의 Tailscale 꺼짐과 sshd 키 전용을 임시 터널로 검사합니다. 방화벽 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/rbk-2026-10-12-operations.md)의 Exposure audit으로 수동 점검합니다.
 - SilverBullet은 로그인(`SB_USER`)이 있어야 열리고, 셸 명령은 꺼져 있으며(`SB_SHELL_BACKEND=off`), Basic Memory와 다른 Docker 네트워크에 있습니다. 노트 폴더만 마운트해서 Basic Memory DB와 설정을 보지 못합니다.
 - 비밀값은 두 가지입니다. Tailscale 인증 키는 저장소와 디스크에 남지 않습니다. SilverBullet 로그인 `SB_USER`는 main 체크아웃 `.env`(git ignore)와 VM `/opt/basic-memory/.env`(권한 600)에만 있고, 스크립트는 ssh·curl 표준입력으로만 넘깁니다.
 

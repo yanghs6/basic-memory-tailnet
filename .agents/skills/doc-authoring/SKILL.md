@@ -56,4 +56,4 @@ Every agent creates documents the same way from repo files alone. The type regis
 ## Gotchas
 
 - `make new-doc` sees only the branches you have fetched; a number another agent pushed after your last fetch can collide. If your pull request shows a duplicate number, rename your file with `git mv` and update its references.
-- `tests/repo.bats` checks the relative links of every tracked Markdown file, and `tests/repo-docs.bats` checks every docs Markdown path named in skills (even inside code blocks) and in other Markdown outside code, so templates and this skill name only files that exist.
+- `tests/repo-docs.bats` checks the relative links of every tracked Markdown file and every docs Markdown path named in skills (even inside code blocks) and in other Markdown outside code, so templates and this skill name only files that exist.

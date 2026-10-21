@@ -130,3 +130,38 @@ fix_backup_stamp() {
   run grep -F 'docker compose start' "$STUB_LOG"
   assert_success
 }
+
+@test "backup from a linked worktree saves into the main checkout's backups/" {
+  unset BACKUP_DIR
+  make_worktree_fixture
+  cp -R "$REPO_DIR/scripts" "$LINKED_WT/scripts"
+  cd "$LINKED_WT"
+  run "$LINKED_WT/scripts/backup-notes.sh"
+  assert_success
+  assert_output --partial "backup saved: $MAIN_REPO/backups/bm-"
+  run ls "$MAIN_REPO/backups"
+  assert_success
+  assert_output --partial ".tgz.sha256"
+  [[ ! -e "$LINKED_WT/backups" ]]
+}
+
+@test "backup defaults to backups/ in the main checkout that git reports" {
+  unset BACKUP_DIR
+  make_worktree_fixture
+  GIT_DIR="$MAIN_REPO/.git" run "$REPO_DIR/scripts/backup-notes.sh"
+  assert_success
+  assert_output --partial "backup saved: $MAIN_REPO/backups/bm-"
+  run ls "$MAIN_REPO/backups"
+  assert_output --partial ".tgz.manifest"
+}
+
+@test "backup fails with an actionable message when the main checkout cannot be found" {
+  unset BACKUP_DIR
+  make_worktree_fixture
+  GIT_DIR="$BATS_TEST_TMPDIR/missing-repo" run "$REPO_DIR/scripts/backup-notes.sh"
+  assert_failure
+  assert_output --partial "cannot find the main checkout"
+  assert_output --partial "set BACKUP_DIR"
+  run grep -F 'docker compose' "$STUB_LOG"
+  assert_failure
+}

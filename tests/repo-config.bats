@@ -5,51 +5,6 @@ load helpers
 # (docs/research/rsch-2026-10-15-agent-repo-conventions.md, section 1).
 AGENTS_MD_MAX_BYTES=24000
 
-shell_files() {
-  git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' 'tests/stubs/*'
-}
-
-# require_shell_files: set $files to the tracked shell files; fail loudly if git is unusable (no vacuous passes).
-require_shell_files() {
-  files="$(shell_files)" || fail "git ls-files failed inside the test container (see Makefile GIT_COMMON_DIR mount)"
-  [[ "$files" == *tests/stubs/ssh* ]] || fail "git returned no files (expected at least tests/stubs/ssh)"
-}
-
-@test "every executable shell file enables strict mode" {
-  local file files missing=""
-  require_shell_files
-  while IFS= read -r file; do
-    case "$file" in
-      *.bash | scripts/lib/*) continue ;;
-    esac
-    grep -qx 'set -euo pipefail' "$REPO_DIR/$file" || missing="$missing $file"
-  done <<<"$files"
-  [[ -z "$missing" ]] || fail "add 'set -euo pipefail' right after the shebang in:$missing"
-}
-
-@test "scripts avoid bash 4+ features (macOS ships bash 3.2)" {
-  run grep -rnE 'mapfile|readarray|declare -[Ann]|local -[Ann]|inherit_errexit|coproc|wait -n|\|&|&>>|\$\{[A-Za-z_][A-Za-z0-9_]*(\^|,)|\$\{[A-Za-z_][A-Za-z0-9_]*\[-[0-9]+\]' "$REPO_DIR/scripts"
-  assert_failure 1
-}
-
-@test "every Make target has a ## description and is declared .PHONY" {
-  local line phony target missing_desc="" missing_phony=""
-  phony=" $(grep -E '^\.PHONY:' "$REPO_DIR/Makefile" | cut -d: -f2 | tr '\n' ' ') "
-  while IFS= read -r line; do
-    target="${line%%:*}"
-    [[ "$line" == *"## "* ]] || missing_desc="$missing_desc $target"
-    [[ "$phony" == *" $target "* ]] || missing_phony="$missing_phony $target"
-  done < <(grep -E '^[a-z0-9-]+:([^=]|$)' "$REPO_DIR/Makefile")
-  [[ -z "$missing_desc" ]] || fail "add '## <description>' to these Makefile targets:$missing_desc"
-  [[ -z "$missing_phony" ]] || fail "add these targets to .PHONY in the Makefile:$missing_phony"
-}
-
-@test "no Make target is defined twice" {
-  local dupes
-  dupes="$(grep -oE '^[a-z0-9-]+:([^=]|$)' "$REPO_DIR/Makefile" | cut -d: -f1 | sort | uniq -d)"
-  [[ -z "$dupes" ]] || fail "these Make targets are defined more than once (make keeps only the last recipe): $dupes"
-}
-
 @test "compose pins the Basic Memory image by digest" {
   run grep -E '^ +image: ghcr\.io/basicmachines-co/basic-memory:[0-9.]+@sha256:[0-9a-f]{64}$' "$REPO_DIR/compose.yaml"
   assert_success
@@ -207,11 +162,6 @@ reviewer_hook_command() {
   frontmatter "$REPO_DIR/.claude/agents/branch-reviewer.md" | sed -n "s/^ *command: '\(.*\)'\$/\1/p"
 }
 
-@test "no script enables Tailscale Funnel" {
-  run grep -rniE 'tailscale[[:space:]]+funnel' "$REPO_DIR/scripts"
-  assert_failure 1
-}
-
 @test "the reviewer hook command blocks (exit 2) even when the guard script is missing" {
   # Only exit 2 blocks a tool call; a missing script exits 127, which would let the call through.
   local hook input='{"tool_input": {"command": "git diff"}}'
@@ -222,56 +172,4 @@ reviewer_hook_command() {
   assert_failure 2
   CLAUDE_PROJECT_DIR="$REPO_DIR" run sh -c "$hook" <<<"$input"
   assert_success
-}
-
-markdown_files() {
-  git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- '*.md'
-}
-
-# markdown_links FILE -> the link targets of FILE, one per line, ignoring fenced code blocks and external URLs.
-# grep exits 1 when a file has no links, which is fine; exit 2 (a real error) must surface.
-markdown_links() {
-  local links status=0
-  links="$(awk '/^```/ { fence = !fence; next } !fence' "$REPO_DIR/$1" | grep -oE '\]\([^)]+\)')" || status=$?
-  ((status <= 1)) || return "$status"
-  if [[ -n "$links" ]]; then
-    sed -E 's/^\]\((.*)\)$/\1/' <<<"$links" | grep -vE '^(https?:|mailto:)' || [[ $? -eq 1 ]]
-  fi
-}
-
-@test "relative links in markdown files resolve" {
-  local files file link target broken="" checked=0
-  files="$(markdown_files)" || fail "git ls-files failed"
-  [[ -n "$files" ]] || fail "git returned no markdown files"
-  [[ -f "$REPO_DIR/README.md" ]] || fail "README.md is missing"
-  while IFS= read -r file; do
-    while IFS= read -r link; do
-      link="${link%%#*}"
-      [[ -n "$link" ]] || continue
-      checked=$((checked + 1))
-      target="$(cd "$REPO_DIR/$(dirname "$file")" && realpath -m "$link")"
-      [[ -e "$target" ]] || broken="$broken $file->$link"
-    done < <(markdown_links "$file")
-  done <<<"$files"
-  ((checked > 0)) || fail "no relative links were checked"
-  [[ -z "$broken" ]] || fail "broken relative links:$broken"
-}
-
-@test "every gcloud command in runbooks and skills names the bm-personal configuration" {
-  local file hits line status missing="" checked=0
-  for file in "$REPO_DIR"/docs/runbooks/*.md "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR"/.agents/skills/*/SKILL.md; do
-    status=0
-    hits="$(grep -nE 'gcloud [a-z]' "$file")" || status=$?
-    ((status <= 1)) || fail "grep failed on $file (exit status $status)"
-    while IFS= read -r line; do
-      [[ -n "$line" ]] || continue
-      case "$line" in
-        *'gcloud config configurations create'* | *'gcloud config configurations list'*) continue ;;
-      esac
-      checked=$((checked + 1))
-      [[ "$line" == *'--configuration=bm-personal'* ]] || missing="$missing ${file#"$REPO_DIR"/}:${line%%:*}"
-    done <<<"$hits"
-  done
-  ((checked > 0)) || fail "no gcloud commands were checked"
-  [[ -z "$missing" ]] || fail "gcloud commands without --configuration=bm-personal:$missing"
 }

@@ -9,7 +9,7 @@ Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, co
 - `make check` (lint + all tests + coverage >= 80%) must pass before every commit. `make fmt` fixes shfmt findings.
 - Local: `make local-up local-verify local-down` (`make sb-fonts LOCAL=1` uploads the web fonts locally). `local-up` uses a fixed container name and port, so run it in one worktree at a time (`make check` is safe to run concurrently). VM changing (ask the user first, see Safety): `make vm-bootstrap deploy restore sb-fonts`. No OK needed: `make probe status logs verify backup access-check tunnel` (`verify` writes and deletes a test note; `backup` stops the container briefly).
 
-## Invariants (enforced by tests/repo.bats; never weaken a test to make it pass)
+## Invariants (enforced by the tests/repo-*.bats files; never weaken a test to make it pass)
 - Basic Memory has no auth: publish its port on `127.0.0.1` only, never enable Tailscale Funnel, keep zero public ingress on the VM. In ssh mode the only inbound rule from outside the VPC is the tunnel range to port 22, every `ssh -L` binds `127.0.0.1` (`forward_spec`), and a VM never runs both modes.
 - Pin container images by digest; change the pin only after reading the release notes and passing `make check local-up local-verify`. Upgrade Basic Memory only through the `bm-upgrade` skill.
 - Scripts: `#!/usr/bin/env bash` then `set -euo pipefail`; source `scripts/lib/common.sh`; fail with an actionable message via `die`.

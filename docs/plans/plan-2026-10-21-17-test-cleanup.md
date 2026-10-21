@@ -191,11 +191,11 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - 지우는 테스트: "git-workflow cleanup checks the worktree's backups before git worktree remove". 스킬 문장을 grep하는 테스트라서다(스펙 6절, 7.3절, ADR 0004 결정 2).
 - 고치는 주석: `main_checkout.bats:12-13`, `:40`의 "same reason as tests/repo.bats:65-66"과 "same kcov workaround as make_host"는 이제 없는 줄을 가리킨다. 주석이 설명하던 이유를 그 자리에 직접 쓴다.
 
-- [ ] **Step 1: 나누기와 참조 고치기.**
-- [ ] **Step 2: 목록 비교.** Run: 이름 목록 명령 → `tests-t4.tsv`, `diff "$WS/tests-t3.tsv" "$WS/tests-t4.tsv"`. Expected: "git-workflow cleanup checks …" 한 줄만 빠진다.
-- [ ] **Step 3: 남은 참조 확인.** Run: `git grep -n -E "tests/(repo|main_checkout)\.bats" -- AGENTS.md README.md docs/README.md docs/ARCHITECTURE.md docs/runbooks .agents .claude Makefile tools .github scripts tests`. Expected: 출력 없음.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 219개, not ok 0.
-- [ ] **Step 5: 커밋** `test: split repo.bats and main_checkout.bats by topic` (`Task: 4`).
+- [x] **Step 1: 나누기와 참조 고치기.**
+- [x] **Step 2: 목록 비교.** Run: 이름 목록 명령 → `tests-t4.tsv`, `diff "$WS/tests-t3.tsv" "$WS/tests-t4.tsv"`. Expected: "git-workflow cleanup checks …" 한 줄만 빠진다.
+- [x] **Step 3: 남은 참조 확인.** Run: `git grep -n -E "tests/(repo|main_checkout)\.bats" -- AGENTS.md README.md docs/README.md docs/ARCHITECTURE.md docs/runbooks .agents .claude Makefile tools .github scripts tests`. Expected: 출력 없음.
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 219개, not ok 0.
+- [x] **Step 5: 커밋** `test: split repo.bats and main_checkout.bats by topic` (`Task: 4`).
 
 ### Task 5: Share the repeated test setup and checks
 
@@ -484,3 +484,4 @@ Task 6~9는 아래 Step을 각 Task의 표에 대해 같은 순서로 밟는다.
 | 2026-10-21 | Verified | Task 1: `Makefile`의 `SH_FILES`와 `.editorconfig`에 `.bats`를 더한 뒤 `make lint`: exit 2, 지적 162건(SC2031 102, SC2030 30, SC2016 16, SC2164 6, SC1007 4, SC2034 2, SC2086 1, SC2001 1), 파싱 오류 없음. `make fmt`가 바꾼 파일은 `tests/repo-docs.bats`(2줄)와 `tests/repo.bats`(1줄)뿐이다. 수정 뒤 `make lint` exit 0, `make check` exit 0, ok 220개, not ok 0, 총 줄 커버리지 94.50%(최소 80%). 이름 목록(`tests-t1.tsv`)은 `tests-base.tsv`와 같다. SC2086(`vm_ops.bats`)은 한 경우에 `VAR=값` 단어가 둘이라 따옴표 대신 disable 주석으로 처리했다. |
 | 2026-10-21 | Verified | Task 2: 이름 변경 14개를 `git mv`로 했다(유사도 100%): `check_git`→`check-git`, `check_pr`→`check-pr`, `verify_mcp`→`verify-mcp`, `verify_sb`→`verify-sb`, `post_review`→`post-review`, `sb_space`→`sync-sb-space`, `sb_fonts`→`upload-sb-fonts`, `review`→`review-branch`, `review_record`→`post-review-record`, `review_bash_guard`→`guard-reviewer-bash`, `common`→`lib-common`, `skills`→`repo-skills`, `github`→`repo-github`, `cloud_neutral`→`repo-cloud-neutral`. 참조 네 곳(`AGENTS.md:50`, `README.md:57`, `docs/ARCHITECTURE.md:53`, `.agents/skills/skill-authoring/SKILL.md:8`)의 `tests/skills.bats`를 `tests/repo-skills.bats`로 바꿨다. 이 밖에 고친 참조는 없다. Step 2 grep(기록 문서 제외)은 처음에 이 네 곳만 찾았고, 고친 뒤 출력이 없다. 이름 목록(`tests-t2.tsv`, 220줄)은 `tests-t1.tsv` 및 `tests-base.tsv`와 diff가 없다. `make check`: exit 0, ok 220, not ok 0, 총 줄 커버리지 94.50%(최소 80%). |
 | 2026-10-21 | Verified | Task 3: 여러 스크립트를 묶었던 `vm_ops`, `backup_restore`, `bootstrap`, `access`(.bats)를 짝 파일 열 개로 나눴다(`deploy-stack` 6, `verify-vm` 16, `show-status` 4, `show-logs` 2, `backup-notes` 7, `restore-notes` 19, `bootstrap-vm` 5, `remote-provision-vm` 12, `check-access` 4, `open-tunnel` 2). `use_ssh_mode`와 `use_provision_env`는 `tests/helpers.bash`로 옮겼다. 이름 목록(`tests-t3.tsv`, 220줄)은 `tests-t2.tsv`와 diff가 없다(이름과 단언 수 같음). `make check`: exit 0, ok 220, not ok 0, 총 줄 커버리지 94.50%, 파일별 커버리지는 Task 2(`t2-check3.log`)와 차이가 없다. |
+| 2026-10-21 | Verified | Task 4: `repo.bats`와 `main_checkout.bats`를 `repo-scripts`(3), `repo-make`(5), `repo-config`(17)로 나누고, `repo-docs`(+2)와 `backup-notes`(+3)로 옮겼다. 이름 목록(`tests-t4.tsv`, 219줄)은 `tests-t3.tsv`에서 "git-workflow cleanup checks the worktree's backups before git worktree remove" 한 줄만 빠졌고 나머지는 이름과 단언 수가 같다. Step 3 grep은 출력이 없다. `make check`: exit 0, ok 219, not ok 0, 총 줄 커버리지 94.50%, 파일별 커버리지는 Task 2(`t2-check3.log`)와 차이가 없다. 옮긴 backup 테스트 셋은 `unset BACKUP_DIR`와 `make_worktree_fixture`를 부르고, 나머지 스텁과 환경(ssh docker sudo, `use_vm_env`, `a.md`)은 `backup-notes.bats`의 setup이 만든다. |

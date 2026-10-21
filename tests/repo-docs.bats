@@ -31,7 +31,7 @@ type_row() {
   awk -F'\t' -v loc="${1%/*}/" '$4 == loc' <<<"$TYPES"
 }
 
-# outside_code FILE: the lines of FILE outside ``` fences (the rule of the relative link check in repo.bats).
+# outside_code FILE: the lines of FILE outside ``` fences (the fence rule of the relative link check below).
 outside_code() {
   awk '/^```/ { fence = !fence; next } !fence' "$1"
 }
@@ -181,4 +181,56 @@ front_problems() {
     fi
   done <<<"$(doc_files)"
   [[ -z "$bad" ]] || fail "fill each {{...}} blank or delete its line in:$bad"
+}
+
+markdown_files() {
+  git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- '*.md'
+}
+
+# markdown_links FILE -> the link targets of FILE, one per line, ignoring fenced code blocks and external URLs.
+# grep exits 1 when a file has no links, which is fine; exit 2 (a real error) must surface.
+markdown_links() {
+  local links status=0
+  links="$(awk '/^```/ { fence = !fence; next } !fence' "$REPO_DIR/$1" | grep -oE '\]\([^)]+\)')" || status=$?
+  ((status <= 1)) || return "$status"
+  if [[ -n "$links" ]]; then
+    sed -E 's/^\]\((.*)\)$/\1/' <<<"$links" | grep -vE '^(https?:|mailto:)' || [[ $? -eq 1 ]]
+  fi
+}
+
+@test "relative links in markdown files resolve" {
+  local files file link target broken="" checked=0
+  files="$(markdown_files)" || fail "git ls-files failed"
+  [[ -n "$files" ]] || fail "git returned no markdown files"
+  [[ -f "$REPO_DIR/README.md" ]] || fail "README.md is missing"
+  while IFS= read -r file; do
+    while IFS= read -r link; do
+      link="${link%%#*}"
+      [[ -n "$link" ]] || continue
+      checked=$((checked + 1))
+      target="$(cd "$REPO_DIR/$(dirname "$file")" && realpath -m "$link")"
+      [[ -e "$target" ]] || broken="$broken $file->$link"
+    done < <(markdown_links "$file")
+  done <<<"$files"
+  ((checked > 0)) || fail "no relative links were checked"
+  [[ -z "$broken" ]] || fail "broken relative links:$broken"
+}
+
+@test "every gcloud command in runbooks and skills names the bm-personal configuration" {
+  local file hits line status missing="" checked=0
+  for file in "$REPO_DIR"/docs/runbooks/*.md "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR"/.agents/skills/*/SKILL.md; do
+    status=0
+    hits="$(grep -nE 'gcloud [a-z]' "$file")" || status=$?
+    ((status <= 1)) || fail "grep failed on $file (exit status $status)"
+    while IFS= read -r line; do
+      [[ -n "$line" ]] || continue
+      case "$line" in
+        *'gcloud config configurations create'* | *'gcloud config configurations list'*) continue ;;
+      esac
+      checked=$((checked + 1))
+      [[ "$line" == *'--configuration=bm-personal'* ]] || missing="$missing ${file#"$REPO_DIR"/}:${line%%:*}"
+    done <<<"$hits"
+  done
+  ((checked > 0)) || fail "no gcloud commands were checked"
+  [[ -z "$missing" ]] || fail "gcloud commands without --configuration=bm-personal:$missing"
 }
