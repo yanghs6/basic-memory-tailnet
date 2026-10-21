@@ -55,14 +55,18 @@ EOF
   assert_success
 }
 
-@test "deploy and verify-sb stop before they contact the VM or SilverBullet on an SB_USER that require_sb_user rejects" {
-  local case script url setting words
-  for case in "deploy-stack.sh||-u SB_USER" "verify-sb.sh|http://127.0.0.1:3000|SB_USER=admin"; do
-    IFS='|' read -r script url setting <<<"$case"
+@test "deploy, verify-sb and restore stop before they contact the VM or SilverBullet on an SB_USER that require_sb_user rejects" {
+  local case script arg setting words archive="$BATS_TEST_TMPDIR/bm.tgz"
+  # restore only checks that the archive, its .sha256 and its .manifest exist before it checks SB_USER.
+  touch "$archive" "$archive.sha256" "$archive.manifest"
+  # Each case: the script | its argument (empty: none) | the env change.
+  for case in "deploy-stack.sh||-u SB_USER" "verify-sb.sh|http://127.0.0.1:3000|SB_USER=admin" \
+    "restore-notes.sh|$archive|SB_USER=admin"; do
+    IFS='|' read -r script arg setting <<<"$case"
     (
       : >"$STUB_LOG" || exit 1
       read -r -a words <<<"$setting"
-      run env "${words[@]}" "$REPO_DIR/scripts/$script" ${url:+"$url"}
+      run env "${words[@]}" "$REPO_DIR/scripts/$script" ${arg:+"$arg"}
       assert_failure && assert_output --partial "SB_USER" && refute_stub_called -E '^(ssh|curl) '
     ) || fail "$script went on with env $setting"
   done

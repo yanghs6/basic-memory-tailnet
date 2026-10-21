@@ -2,7 +2,7 @@
 load helpers
 
 setup() {
-  setup_stubs ssh docker curl sudo tailscale ss free nc uname sshd
+  setup_stubs ssh docker free sudo tailscale
   use_vm_env
 }
 
@@ -39,4 +39,17 @@ setup() {
   run "$REPO_DIR/scripts/show-status.sh"
   assert_success
   assert_output --partial "WARNING: Tailscale is still logged in on the VM; BM_ACCESS=ssh expects it off"
+}
+
+@test "status fails without a memory line and checks no access when free -m prints no Mem: or Swap: line or a zero memory total" {
+  local output
+  # Each case: what free -m prints on the VM (\n between lines).
+  for output in 'Swap:  1023  0  1023' 'Mem:  3900  700  2200  5  1000  3000' 'Mem:  0  0  0  0  0  0\nSwap:  1023  0  1023'; do
+    (
+      : >"$STUB_LOG" && fake_cmd free "printf 'free %s\n' \"\$*\" >>\"\$STUB_LOG\"; printf '%b\n' '$output'" || exit 1
+      run "$REPO_DIR/scripts/show-status.sh"
+      assert_failure && assert_stub_called -Fx 'free -m' && refute_output --partial "memory used" \
+        && refute_stub_called -F 'tailscale serve'
+    ) || fail "status went on with free -m printing: $output"
+  done
 }

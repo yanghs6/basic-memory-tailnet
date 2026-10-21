@@ -33,3 +33,16 @@ setup() {
   refute_stub_called '^ssh '
   [[ ! -e "$FONTS" ]] || fail "nothing may be written when a check fails: $FONTS exists"
 }
+
+@test "--local writes the WOFF2 files into the local notes folder without ssh and leaves the VM notes folder alone" {
+  local local_fonts="$BATS_TEST_TMPDIR/local-notes/Library/agent-hub/fonts"
+  export SB_LOCAL_NOTES_DIR="$BATS_TEST_TMPDIR/local-notes"
+  run "$SB_FONTS" --local
+  assert_success
+  run cat "$local_fonts/D2KodingLigatureNerdFont-Regular.woff2"
+  assert_output "woff2 D2KodingLigatureNerdFont-Regular.ttf"
+  run cat "$local_fonts/D2KodingLigatureNerdFont-Bold.woff2"
+  assert_output "woff2 D2KodingLigatureNerdFont-Bold.ttf"
+  refute_stub_called -E '^(ssh|sudo) '
+  [[ ! -e "$FONTS" ]] || fail "--local must leave the VM notes folder alone: $FONTS exists"
+}

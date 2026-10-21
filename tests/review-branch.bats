@@ -113,7 +113,7 @@ plan-02-git-review-tooling-r1-$reviewer-plan.md" || exit 1
   assert_output ""
 }
 
-@test "leaves no worktree and no report of the round when the change review or the plan review fails" {
+@test "leaves no worktree and no published report of the round when the change review or the plan review fails" {
   local case review fail_var stale report
   cd "$BATS_TEST_TMPDIR" || return
   # The branch has one claude-code commit. Each case: the codex review that fails | the stub variable that fails it |
@@ -134,7 +134,7 @@ plan-02-git-review-tooling-r1-$reviewer-plan.md" || exit 1
       assert_failure || exit 1
       run test -e "$OUT-r1-codex-plan.md"
       assert_failure
-    ) || fail "the failed codex $review review left a worktree or a report"
+    ) || fail "the failed codex $review review left a worktree or a published report"
   done
 }
 

@@ -99,3 +99,15 @@ setup() {
     ) || fail "verify-mcp did not clean up after: $fault"
   done
 }
+
+@test "stops before any request when --host-header has no value or is followed by another option" {
+  local args words
+  # Each case: the arguments of verify-mcp.sh.
+  for args in "$URL --host-header" "--host-header --read-only $URL"; do
+    (
+      : >"$STUB_LOG" && read -r -a words <<<"$args" || exit 1
+      run "$VERIFY" "${words[@]}"
+      assert_failure && refute_stub_called '^curl '
+    ) || fail "verify-mcp went on with: $args"
+  done
+}

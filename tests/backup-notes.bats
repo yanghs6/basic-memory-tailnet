@@ -103,11 +103,14 @@ fix_backup_stamp() {
 }
 
 @test "backup saves into the main checkout's backups/, from a linked worktree and from GIT_DIR" {
-  local from
+  local case from absent
   unset BACKUP_DIR
   make_worktree_fixture
   cp -R "$REPO_DIR/scripts" "$LINKED_WT/scripts"
-  for from in "linked worktree" GIT_DIR; do
+  # Each case: where backup runs from | the backups/ folder that must not appear (empty: none; from GIT_DIR the script
+  # runs outside the worktree).
+  for case in "linked worktree|$LINKED_WT/backups" "GIT_DIR|"; do
+    IFS='|' read -r from absent <<<"$case"
     (
       : >"$STUB_LOG" || exit 1
       rm -rf "$MAIN_REPO/backups" "$LINKED_WT/backups" || exit 1
@@ -120,8 +123,8 @@ fix_backup_stamp() {
       esac
       assert_success && assert_output --partial "backup saved: $MAIN_REPO/backups/bm-" || exit 1
       run ls "$MAIN_REPO/backups"
-      assert_success && assert_output --partial ".tgz.manifest" && assert_output --partial ".tgz.sha256" \
-        && [[ ! -e "$LINKED_WT/backups" ]]
+      assert_success && assert_output --partial ".tgz.manifest" && assert_output --partial ".tgz.sha256" || exit 1
+      [[ -z "$absent" || ! -e "$absent" ]]
     ) || fail "backup from $from"
   done
 }

@@ -48,3 +48,21 @@ setup() {
   assert_failure
   [[ ! -e "$notes" ]] || fail "a failed pull must leave the notes folder unwritten: $(ls -A "$notes")"
 }
+
+@test "deploy stops before the final start when the forced recreate of Basic Memory does not become healthy" {
+  export DOCKER_STUB_FAIL_MATCH="--force-recreate"
+  run "$REPO_DIR/scripts/deploy-stack.sh"
+  assert_failure
+  assert_stub_called -Fx 'docker compose up -d --wait --wait-timeout 360 --force-recreate basic-memory'
+  refute_stub_called -Fx 'docker compose up -d --wait --wait-timeout 360'
+}
+
+@test "deploy fails when the final start does not become healthy on a redeploy that needs no recreate" {
+  run "$REPO_DIR/scripts/deploy-stack.sh"
+  assert_success
+  : >"$STUB_LOG"
+  export DOCKER_STUB_FAIL_MATCH="up -d"
+  run "$REPO_DIR/scripts/deploy-stack.sh"
+  assert_failure
+  assert_stub_called -Fx 'docker compose up -d --wait --wait-timeout 360'
+}

@@ -134,3 +134,12 @@ run_bootstrap_with_key() {
     ) || fail "provision-vm wrote an fstab line or took the wrong branch with $setting"
   done
 }
+
+@test "ssh mode: provisions without touching Tailscale, also off the tailnet without a key, and still creates the data dirs" {
+  export BM_ACCESS=ssh TS_STUB_STATUS_EXIT=1
+  run_bootstrap_with_key ""
+  assert_success
+  refute_stub_called '^tailscale '
+  run stat -c '%u:%g' "$BM_REMOTE_DATA_ROOT/knowledge"
+  assert_output "1000:1000"
+}
