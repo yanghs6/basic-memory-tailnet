@@ -40,7 +40,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 
 | 구성 요소 | 위치 | 역할 |
 |---|---|---|
-| `Makefile` + `scripts/` | Mac | VM 수명주기의 유일한 제어 지점. SSH로 VM을 다룸. gcloud는 쓰지 않음. 공용 함수는 `scripts/lib/`(common, vm, sb, git, docs)에 있고, 파일마다 첫머리에 함수 색인이 있음 |
+| `Makefile` + `scripts/` | Mac | VM 수명주기의 유일한 제어 지점. SSH로 VM을 다룸. gcloud는 쓰지 않음. 공용 함수는 `scripts/lib/`(common, vm, sb, git, docs, layout)에 있고, 파일마다 첫머리에 함수 색인이 있음 |
 | `scripts/remote/provision-vm.sh` | VM (root) | 스왑 파일 1GB, Docker·Tailscale 설치, 데이터 디렉터리, Serve 설정 |
 | `compose.yaml` | Mac(로컬 검증)·VM | Basic Memory와 SilverBullet(웹 UI) 컨테이너 정의 (같은 파일) |
 | `silverbullet/` + `scripts/sync-sb-space.sh`·`upload-sb-fonts.sh`·`verify-sb.sh` | Mac → 노트 폴더 | SilverBullet 공간 파일(노트 `.gitignore`, 관리 페이지 `Library/agent-hub/agent-hub.md`, 대시보드 `index.md`)과 글꼴을 쓰고, 로그인·셸 꺼짐을 검사. [ADR 0005](decisions/adr-2026-10-15-0005-web-ui-silverbullet.md) |

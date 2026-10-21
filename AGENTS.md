@@ -73,3 +73,4 @@ Load the matching skill before you act; when two match, use both.
 - Basic Memory unreachable, `make probe` or `make verify` failing, container or VM unhealthy (read-only): `bm-diagnose`.
 - Writing a spec, plan, ADR, runbook or research note, changing a document's status, or adding a document type: `doc-authoring`.
 - Adding, renaming or editing a skill: `skill-authoring`.
+- Adding or changing a script, a library, a Make target, a bats test, a stub or a fixture: `script-authoring`.

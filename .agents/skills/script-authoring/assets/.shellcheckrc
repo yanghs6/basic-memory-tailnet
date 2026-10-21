@@ -1,0 +1,4 @@
+# For the templates in this folder only: the files they source exist only where make new-script writes them.
+external-sources=true
+source-path=SCRIPTDIR
+disable=SC1091

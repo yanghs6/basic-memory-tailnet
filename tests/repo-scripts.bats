@@ -15,8 +15,9 @@ require_shell_files() {
   local file files missing=""
   require_shell_files
   while IFS= read -r file; do
+    # Libraries and the library template are sourced by scripts that already run in strict mode.
     case "$file" in
-      *.bash | scripts/lib/*) continue ;;
+      *.bash | scripts/lib/* | .agents/skills/script-authoring/assets/lib.sh) continue ;;
     esac
     grep -qx 'set -euo pipefail' "$REPO_DIR/$file" || missing="$missing $file"
   done <<<"$files"
