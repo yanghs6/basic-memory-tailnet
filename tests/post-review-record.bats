@@ -16,8 +16,7 @@ setup() {
     "one|4242|PATCH repos/{owner}/{repo}/issues/comments/4242|POST"; do
     IFS='|' read -r records ids call other <<<"$case"
     (
-      : >"$STUB_LOG"
-      rm -f "$STUB_LOG.body"
+      : >"$STUB_LOG" && rm -f "$STUB_LOG.body" || exit 1
       GH_STUB_JQ_OUTPUT="$ids" run "$RECORD" 12 "$FINDINGS"
       assert_success || exit 1
       # Only the machine account's comments count: on a public repo anyone can post the marker.
@@ -37,11 +36,11 @@ setup() {
   for case in "several records|has 2 Review record comments" "no login|gh returned no login"; do
     IFS='|' read -r problem message <<<"$case"
     (
-      : >"$STUB_LOG"
+      : >"$STUB_LOG" || exit 1
       case "$problem" in
         "several records") export GH_STUB_JQ_OUTPUT=$'1\n2' ;;
         "no login") export GH_STUB_LOGIN='' ;;
-      esac
+      esac || exit 1
       run "$RECORD" 12 "$FINDINGS"
       assert_failure && assert_output --partial "$message" && refute_stub_called -E 'POST|PATCH'
     ) || fail "post-review-record wrote although gh reported $problem"

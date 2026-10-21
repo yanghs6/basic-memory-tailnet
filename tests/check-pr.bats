@@ -29,12 +29,18 @@ Plan: 08"
 
 @test "rejects an empty title and titles that are not '<type>: <description>'" {
   local title message
-  for title in "" "Add rules" "Feat: add rules" "feature: add rules" "feat:add rules" "feat(ci): add rules"; do
-    # An empty title means CI did not pass it; the title check alone would also refuse it, so the message tells them apart.
+  # <unset> stands for no PR_TITLE at all (CI did not pass the title). The title check would also refuse an unset or
+  # empty title, so the message tells them apart.
+  for title in "<unset>" "" "Add rules" "Feat: add rules" "feature: add rules" "feat:add rules" "feat(ci): add rules"; do
     message="title '$title' must be '<type>: <description>'"
-    [[ -n "$title" ]] || message="PR_TITLE is empty"
+    [[ -n "$title" && "$title" != "<unset>" ]] || message="PR_TITLE is empty"
     (
-      PR_TITLE="$title" PR_BODY="$GOOD_BODY" run "$CHECK"
+      if [[ "$title" == "<unset>" ]]; then
+        unset PR_TITLE
+        PR_BODY="$GOOD_BODY" run "$CHECK"
+      else
+        PR_TITLE="$title" PR_BODY="$GOOD_BODY" run "$CHECK"
+      fi
       assert_failure 1 && assert_output --partial "$message"
     ) || fail "check-pr did not reject the title '$title'"
   done

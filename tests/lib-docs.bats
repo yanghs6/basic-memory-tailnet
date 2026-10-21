@@ -52,7 +52,7 @@ write_registry() {
         "missing separator") printf '## 문서 타입\n\n%s\n%s\n' "$header" "$swapped_row" >"$REGISTRY" ;;
         "short row") write_registry '| spec | spec | 없음 | `docs/specs/` | draft | status | 허용 | 기록 | `a/spec.md` |' ;;
         "empty cell") write_registry '| spec | spec | 없음 | `docs/specs/` | draft | status | 허용 | 기록 | | `a/spec.md` |' ;;
-      esac
+      esac || exit 1
       run doc_types "$REGISTRY"
       assert_failure && assert_output --partial "$message"
     ) || fail "doc_types did not fail on a $problem"

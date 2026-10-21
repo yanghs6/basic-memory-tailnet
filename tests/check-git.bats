@@ -16,24 +16,21 @@ setup() {
       rm -rf "$WORK" && init_git_repo || exit 1
       case "$case" in
         "work branch"*)
-          git switch -q -c work/fix-docs
-          git commit -q --allow-empty -m "docs: record review" \
-            --trailer "Assisted-by: codex gpt-5-codex" --trailer "Plan: none" --trailer "Task: review"
+          git switch -q -c work/fix-docs \
+            && git commit -q --allow-empty -m "docs: record review" \
+              --trailer "Assisted-by: codex gpt-5-codex" --trailer "Plan: none" --trailer "Task: review" \
+            || exit 1
           run "$CHECK"
           ;;
         "plan branch"*)
-          git switch -q -c plan/02-merge
-          agent_commit claude-code "feat: on branch"
-          git switch -q main
-          git commit -q --allow-empty -m "chore: on main"
-          git switch -q plan/02-merge
-          git merge -q --no-ff main -m "Merge main"
+          git switch -q -c plan/02-merge && agent_commit claude-code "feat: on branch" \
+            && git switch -q main && git commit -q --allow-empty -m "chore: on main" \
+            && git switch -q plan/02-merge && git merge -q --no-ff main -m "Merge main" || exit 1
           run "$CHECK"
           ;;
         "explicit branch"*)
-          git switch -q -c plan/02-git-review-tooling
-          agent_commit claude-code "feat: add check"
-          git checkout -q --detach main
+          git switch -q -c plan/02-git-review-tooling && agent_commit claude-code "feat: add check" \
+            && git checkout -q --detach main || exit 1
           run "$CHECK" main plan/02-git-review-tooling
           ;;
       esac
@@ -57,17 +54,16 @@ setup() {
       case "$place" in
         main) run "$CHECK" ;;
         "detached HEAD")
-          git checkout -q --detach
+          git checkout -q --detach || exit 1
           run "$CHECK"
           ;;
         feature/x)
-          git switch -q -c feature/x
+          git switch -q -c feature/x || exit 1
           run "$CHECK"
           ;;
         "explicit feature/x")
-          git switch -q -c feature/x
-          agent_commit claude-code "feat: on a badly named branch"
-          git checkout -q --detach main
+          git switch -q -c feature/x && agent_commit claude-code "feat: on a badly named branch" \
+            && git checkout -q --detach main || exit 1
           run "$CHECK" main feature/x
           ;;
       esac
@@ -85,15 +81,16 @@ setup() {
     "forbidden|feat: attributed|agents never add 'Co-authored-by'|agents never add 'Signed-off-by'"; do
     IFS='|' read -r problem subject problems <<<"$case"
     (
-      rm -rf "$WORK" && init_git_repo || exit 1
-      git switch -q -c "work/$problem-trailers"
+      rm -rf "$WORK" && init_git_repo && git switch -q -c "work/$problem-trailers" || exit 1
       case "$problem" in
-        missing) git commit -q --allow-empty -m "$subject" ;;
+        missing) git commit -q --allow-empty -m "$subject" || exit 1 ;;
         malformed)
           git commit -q --allow-empty -m "$subject" \
-            --trailer "Assisted-by: Claude" --trailer "Plan: 1" --trailer "Task: first"
+            --trailer "Assisted-by: Claude" --trailer "Plan: 1" --trailer "Task: first" || exit 1
           ;;
-        forbidden) agent_commit claude-code "$subject" --trailer "Co-authored-by: Bot <bot@example.com>" --signoff ;;
+        forbidden)
+          agent_commit claude-code "$subject" --trailer "Co-authored-by: Bot <bot@example.com>" --signoff || exit 1
+          ;;
       esac
       run "$CHECK"
       assert_failure || exit 1
@@ -125,7 +122,7 @@ setup() {
     (
       rm -rf "$WORK" && init_git_repo || exit 1
       if [[ "$missing" == base ]]; then
-        git switch -q -c work/x
+        git switch -q -c work/x || exit 1
         run "$CHECK" nope
       else
         run "$CHECK" main plan/09-nope

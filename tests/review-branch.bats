@@ -20,9 +20,8 @@ worktree_count() {
 # setup made, so a test that calls it leaves that directory first and calls it in a subshell.
 review_repo() {
   local tool
-  rm -rf "$WORK" "$REVIEW_OUT_DIR" "$REVIEW_WORKTREE_PARENT"
-  : >"$STUB_LOG"
-  init_git_repo && git switch -q -c plan/02-git-review-tooling || return 1
+  rm -rf "$WORK" "$REVIEW_OUT_DIR" "$REVIEW_WORKTREE_PARENT" && : >"$STUB_LOG" \
+    && init_git_repo && git switch -q -c plan/02-git-review-tooling || return 1
   for tool in "$@"; do
     agent_commit "$tool" "feat: change by $tool" || return 1
   done
@@ -74,8 +73,8 @@ plan-02-git-review-tooling-r1-$reviewer-plan.md" || exit 1
   local case reviewer allowed outcome
   cd "$BATS_TEST_TMPDIR" || return
   # The branch has one claude-code commit. Each case: the reviewer | REVIEW_ALLOW_SAME_VENDOR | refused, told (the
-  # prompt carries the human's consent) or untold (another vendor's review, whose prompt does not).
-  for case in "claude||refused" "claude|1|told" "codex||untold"; do
+  # prompt carries the human's consent) or untold (another vendor's review, whose prompt does not, with or without it).
+  for case in "claude||refused" "claude|1|told" "codex||untold" "codex|1|untold"; do
     IFS='|' read -r reviewer allowed outcome <<<"$case"
     (
       review_repo claude-code || exit 1
@@ -124,9 +123,9 @@ plan-02-git-review-tooling-r1-$reviewer-plan.md" || exit 1
     (
       review_repo claude-code && mkdir -p "$REVIEW_OUT_DIR" || exit 1
       for report in $stale; do
-        echo stale >"$OUT-r1-codex-$report.md"
+        echo stale >"$OUT-r1-codex-$report.md" || exit 1
       done
-      export "$fail_var=1"
+      export "$fail_var=1" || exit 1
       run "$REVIEW" plan/02-git-review-tooling codex
       assert_failure && assert_output --partial "codex $review review failed" || exit 1
       run worktree_count

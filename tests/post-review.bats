@@ -12,11 +12,10 @@ setup() {
 # write_reports: the three files make review writes for round 1 of plan/09-review-posting by codex, and nothing else in
 # REVIEW_OUT_DIR.
 write_reports() {
-  rm -rf "$REVIEW_OUT_DIR"
-  mkdir -p "$REVIEW_OUT_DIR"
-  echo "Verdict: mergeable" >"$PREFIX-diff.md"
-  echo "Verdict: blocked (1 P0/P1)" >"$PREFIX-plan.md"
-  printf 'base %s\nhead %s\n' 1111111 2222222 >"$PREFIX-meta.txt"
+  rm -rf "$REVIEW_OUT_DIR" && mkdir -p "$REVIEW_OUT_DIR" \
+    && echo "Verdict: mergeable" >"$PREFIX-diff.md" \
+    && echo "Verdict: blocked (1 P0/P1)" >"$PREFIX-plan.md" \
+    && printf 'base %s\nhead %s\n' 1111111 2222222 >"$PREFIX-meta.txt"
 }
 
 @test "posts the change and plan reviews as two PR comments headed by round, reviewer, model and the reviewed SHAs" {
@@ -40,11 +39,10 @@ write_reports() {
   for case in "missing|missing $PREFIX-plan.md" "too long|over GitHub's 65536 limit"; do
     IFS='|' read -r problem message <<<"$case"
     (
-      write_reports
-      : >"$STUB_LOG"
+      write_reports && : >"$STUB_LOG" || exit 1
       case "$problem" in
-        missing) rm "$PREFIX-plan.md" ;;
-        "too long") head -c 70000 /dev/zero | tr '\0' x >"$PREFIX-plan.md" ;;
+        missing) rm "$PREFIX-plan.md" || exit 1 ;;
+        "too long") head -c 70000 /dev/zero | tr '\0' x >"$PREFIX-plan.md" || exit 1 ;;
       esac
       run "$POST" 12 plan/09-review-posting codex
       assert_failure && assert_output --partial "$message" && refute_stub_called '^gh '
