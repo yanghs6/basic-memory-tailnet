@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Test stub for free -m: 3900 MB RAM with FREE_STUB_AVAILABLE_MB available (default 3000 -> 23% used) and
-# FREE_STUB_SWAP_TOTAL_MB / FREE_STUB_SWAP_USED_MB of swap (defaults 1023 / 0).
+# Test stub for free -m: 3900 MB RAM with 3000 MB available (23% used) and FREE_STUB_SWAP_TOTAL_MB /
+# FREE_STUB_SWAP_USED_MB of swap (defaults 1023 / 0).
 set -euo pipefail
 printf 'free %s\n' "$*" >>"$STUB_LOG"
 swap_total="${FREE_STUB_SWAP_TOTAL_MB:-1023}"
 swap_used="${FREE_STUB_SWAP_USED_MB:-0}"
 printf '               total        used        free      shared  buff/cache   available\n'
-printf 'Mem:            3900         700        2200           5        1000        %s\n' "${FREE_STUB_AVAILABLE_MB:-3000}"
+printf 'Mem:            3900         700        2200           5        1000        3000\n'
 printf 'Swap:     %10s  %10s  %10s\n' "$swap_total" "$swap_used" "$((swap_total - swap_used))"

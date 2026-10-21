@@ -5,7 +5,7 @@ description: Conventions for the agent skills of this repo (.agents/skills folde
 
 # Author a repository skill
 
-Claude Code, Codex, Gemini CLI and Antigravity share these skills, so they follow the Agent Skills specification (https://agentskills.io/specification) and nothing tool-specific. `make check` runs `tests/skills.bats`, which enforces every rule marked (tested).
+Claude Code, Codex, Gemini CLI and Antigravity share these skills, so they follow the Agent Skills specification (https://agentskills.io/specification) and nothing tool-specific. `make check` runs `tests/repo-skills.bats`, which enforces every rule marked (tested).
 
 ## Add a skill
 
