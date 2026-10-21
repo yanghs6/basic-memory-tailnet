@@ -4,10 +4,34 @@ load helpers
 # Antigravity truncates a rule file at 24,000 bytes, the smallest limit of the four agents
 # (docs/research/rsch-2026-10-15-agent-repo-conventions.md, section 1).
 AGENTS_MD_MAX_BYTES=24000
+# Measured on the VM (plan 05 Progress log, 2026-10-13): healthy 161s after the first deploy, 192s after a reboot.
+MIN_START_PERIOD_SECONDS=240
+# An image line with a version tag and a sha256 digest.
+PINNED_IMAGE='^ +image: [a-z0-9./_-]+:[0-9.]+(-[a-z]+)?@sha256:[0-9a-f]{64}$'
 
-@test "compose pins the Basic Memory image by digest" {
-  run grep -E '^ +image: ghcr\.io/basicmachines-co/basic-memory:[0-9.]+@sha256:[0-9a-f]{64}$' "$REPO_DIR/compose.yaml"
-  assert_success
+# service_block NAME -> the lines of service NAME in compose.yaml, up to the next service or top-level key.
+service_block() {
+  awk -v name="$1" '$0 == "  " name ":" { inside = 1; next } inside && (/^[^ ]/ || /^  [^ ]/) { exit } inside { print }' "$REPO_DIR/compose.yaml"
+}
+
+# compose_services: the service names under services: in compose.yaml, one per line.
+compose_services() {
+  awk '/^[^ ]/ { inside = ($0 == "services:"); next } inside && /^  [a-z0-9-]+:$/ { sub(/^ +/, ""); sub(/:$/, ""); print }' "$REPO_DIR/compose.yaml"
+}
+
+@test "every compose image is pinned by digest" {
+  local services service images bad=""
+  services="$(compose_services)"
+  [[ -n "$services" ]] || fail "compose.yaml defines no services"
+  for service in $services; do
+    images="$(service_block "$service" | grep -E '^ +image:')" || [[ $? -eq 1 ]]
+    if [[ -z "$images" ]]; then
+      bad="$bad"$'\n'"  $service: no image line"
+    elif grep -vqE "$PINNED_IMAGE" <<<"$images"; then
+      bad="$bad"$'\n'"  $service: $images"
+    fi
+  done
+  [[ -z "$bad" ]] || fail "pin every image by digest (image: <name>:<version>@sha256:<digest>):$bad"
 }
 
 @test "compose publishes ports on 127.0.0.1 only" {
@@ -19,71 +43,42 @@ AGENTS_MD_MAX_BYTES=24000
   fi
 }
 
-@test "compose overrides the image's default SSE command with streamable-http on /mcp" {
-  run grep -F '"--transport", "streamable-http"' "$REPO_DIR/compose.yaml"
-  assert_success
-  run grep -F '"--path", "/mcp"' "$REPO_DIR/compose.yaml"
-  assert_success
-}
-
-@test "compose healthcheck probes port 8000 and does not rely on --version" {
-  local healthcheck
-  healthcheck="$(grep -E '^ +test: \[' "$REPO_DIR/compose.yaml")"
-  [[ -n "$healthcheck" ]] || fail "compose.yaml has no healthcheck test"
-  [[ "$healthcheck" != *"--version"* ]] || fail "healthcheck must not use --version (passes while the server is down)"
-  [[ "$healthcheck" == *"8000"* ]] || fail "healthcheck must probe port 8000"
-}
-
-# service_block NAME -> the lines of service NAME in compose.yaml, up to the next service or top-level key.
-service_block() {
-  awk -v name="$1" '$0 == "  " name ":" { inside = 1; next } inside && (/^[^ ]/ || /^  [^ ]/) { exit } inside { print }' "$REPO_DIR/compose.yaml"
-}
-
-# compose_start_period_seconds: print the Basic Memory healthcheck start_period in whole seconds (empty if absent).
-compose_start_period_seconds() {
-  service_block basic-memory | sed -nE 's/^ +start_period: ([0-9]+)s$/\1/p'
-}
-
-@test "compose healthcheck start_period covers the measured e2-micro cold start" {
-  # Measured on the VM (plan 05 Progress log, 2026-10-13): healthy 161s after the first deploy, 192s after a reboot.
-  local min_start_period_seconds=240 period
-  period="$(compose_start_period_seconds)"
-  [[ -n "$period" ]] || fail "compose.yaml has no healthcheck start_period in whole seconds (e.g. 300s)"
-  ((period >= min_start_period_seconds)) \
-    || fail "start_period ${period}s is below ${min_start_period_seconds}s: on the VM the container turns unhealthy during a cold start and 'docker compose up --wait' fails at once"
-}
-
-@test "deploy and restore wait longer than the healthcheck start_period" {
-  local period timeout
-  period="$(compose_start_period_seconds)"
-  timeout="$(sed -nE 's/^readonly HEALTH_TIMEOUT_SECONDS=([0-9]+)$/\1/p' "$REPO_DIR/scripts/lib/vm.sh")"
-  [[ -n "$period" && -n "$timeout" ]] || fail "could not read start_period ('$period') or HEALTH_TIMEOUT_SECONDS ('$timeout')"
-  ((timeout > period)) \
-    || fail "HEALTH_TIMEOUT_SECONDS=$timeout must exceed start_period ${period}s, or --wait gives up inside the grace period"
-}
-
-@test "compose restarts both services after reboots" {
-  local service
-  for service in basic-memory silverbullet; do
-    service_block "$service" | grep -qE '^ +restart: unless-stopped$' \
-      || fail "$service must set restart: unless-stopped, or it stays down after a VM reboot"
-  done
-}
-
-@test "SilverBullet is pinned, needs a login, has no shell or runtime API and shares no network or data beyond the notes" {
-  local sb bm
-  sb="$(service_block silverbullet)"
+@test "basic-memory serves streamable-http on /mcp, probes port 8000 without --version, has a start_period of at least 240 s that HEALTH_TIMEOUT_SECONDS exceeds, restarts unless-stopped and uses only its own network" {
+  local bm healthcheck period timeout
   bm="$(service_block basic-memory)"
-  [[ -n "$sb" && -n "$bm" ]] || fail "compose.yaml must define the basic-memory and silverbullet services"
-  grep -qE '^ +image: ghcr\.io/silverbulletmd/silverbullet:[0-9.]+-slim@sha256:[0-9a-f]{64}$' <<<"$sb" \
-    || fail "pin the silverbullet -slim image by digest"
+  [[ -n "$bm" ]] || fail "compose.yaml must define the basic-memory service"
+  # The image's default command serves SSE.
+  grep -qF '"--transport", "streamable-http"' <<<"$bm" || fail "basic-memory must run with --transport streamable-http"
+  grep -qF '"--path", "/mcp"' <<<"$bm" || fail "basic-memory must serve --path /mcp"
+  healthcheck="$(grep -E '^ +test: \[' <<<"$bm")" || fail "basic-memory has no healthcheck test"
+  [[ "$healthcheck" != *"--version"* ]] || fail "the basic-memory healthcheck must not use --version (passes while the server is down)"
+  [[ "$healthcheck" == *"8000"* ]] || fail "the basic-memory healthcheck must probe port 8000"
+  period="$(sed -nE 's/^ +start_period: ([0-9]+)s$/\1/p' <<<"$bm")"
+  [[ -n "$period" ]] || fail "basic-memory has no healthcheck start_period in whole seconds (e.g. 300s)"
+  ((period >= MIN_START_PERIOD_SECONDS)) \
+    || fail "start_period ${period}s is below ${MIN_START_PERIOD_SECONDS}s: on the VM the container turns unhealthy during a cold start and 'docker compose up --wait' fails at once"
+  timeout="$(sed -nE 's/^readonly HEALTH_TIMEOUT_SECONDS=([0-9]+)$/\1/p' "$REPO_DIR/scripts/lib/vm.sh")"
+  [[ -n "$timeout" ]] || fail "could not read HEALTH_TIMEOUT_SECONDS from scripts/lib/vm.sh"
+  ((timeout > period)) \
+    || fail "HEALTH_TIMEOUT_SECONDS=$timeout must exceed start_period ${period}s, or deploy and restore give up inside the grace period"
+  grep -qE '^ +restart: unless-stopped$' <<<"$bm" || fail "basic-memory must set restart: unless-stopped, or it stays down after a VM reboot"
+  grep -qxF '    networks: [basic-memory]' <<<"$bm" || fail "basic-memory must use only its own network"
+}
+
+@test "SilverBullet is a -slim image, needs a login, has no shell or runtime API, restarts unless-stopped, probes without --version and shares no network or data beyond the notes" {
+  local sb healthcheck
+  sb="$(service_block silverbullet)"
+  [[ -n "$sb" ]] || fail "compose.yaml must define the silverbullet service"
+  grep -qE '^ +image: ghcr\.io/silverbulletmd/silverbullet:[0-9.]+-slim@' <<<"$sb" || fail "use the silverbullet -slim image"
   # shellcheck disable=SC2016 # the compose text ${SB_USER:?...} is matched literally
   grep -qF 'SB_USER: ${SB_USER:?' <<<"$sb" \
     || fail 'SB_USER must read ${SB_USER:?...} so compose refuses to start SilverBullet without a login'
   grep -qxF '      SB_SHELL_BACKEND: "off"' <<<"$sb" || fail 'silverbullet must set SB_SHELL_BACKEND: "off"'
   grep -qxF '      SB_RUNTIME_API: "0"' <<<"$sb" || fail 'silverbullet must set SB_RUNTIME_API: "0"'
+  grep -qE '^ +restart: unless-stopped$' <<<"$sb" || fail "silverbullet must set restart: unless-stopped, or it stays down after a VM reboot"
+  healthcheck="$(grep -E '^ +test: \[' <<<"$sb")" || fail "silverbullet has no healthcheck test"
+  [[ "$healthcheck" != *"--version"* ]] || fail "the silverbullet healthcheck must not use --version (passes while the server is down)"
   grep -qxF '    networks: [silverbullet]' <<<"$sb" || fail "silverbullet must use only its own network"
-  grep -qxF '    networks: [basic-memory]' <<<"$bm" || fail "basic-memory must use only its own network"
   # shellcheck disable=SC2016 # the compose text ${BM_KNOWLEDGE_DIR...} is matched literally
   grep -qxF '      - "${BM_KNOWLEDGE_DIR:-./.local-data/knowledge}/basic-memory:/data"' <<<"$sb" \
     || fail "silverbullet must mount the notes folder at /data"
@@ -92,24 +87,30 @@ compose_start_period_seconds() {
   fi
 }
 
-@test ".env is never tracked by git" {
-  local files
+@test "the .env files are never tracked and are git-ignored, but .env.example is not ignored" {
+  local files file tracked="" entry path expected
   files="$(git -C "$REPO_DIR" ls-files)" || fail "git ls-files failed"
   [[ -n "$files" ]] || fail "git ls-files returned nothing"
-  if grep -qE '(^|/)\.env$' <<<"$files"; then
-    fail ".env must never be tracked by git"
-  fi
+  while IFS= read -r file; do
+    case "${file##*/}" in
+      .env.example) ;;
+      .env | .env.*) tracked="$tracked $file" ;;
+    esac
+  done <<<"$files"
+  [[ -z "$tracked" ]] || fail "these hold secrets and must never be tracked by git:$tracked"
+  # check-ignore exits 0 for an ignored path and 1 for one that is not; --no-index reads the ignore rules even for a
+  # tracked path such as .env.example.
+  for entry in .env:0 .env.local:0 .env.production:0 .env.example:1; do
+    path="${entry%:*}" expected="${entry#*:}"
+    run git -C "$REPO_DIR" check-ignore -q --no-index "$path"
+    [[ "$status" -eq "$expected" ]] || fail "git check-ignore $path exited $status, expected $expected"
+  done
 }
 
-@test "CLAUDE.md only imports AGENTS.md" {
-  run cat "$REPO_DIR/CLAUDE.md"
-  assert_output "@AGENTS.md"
-}
-
-@test "Gemini CLI reads AGENTS.md through .gemini/settings.json" {
-  run jq -e '.context.fileName | if type == "array" then index("AGENTS.md") != null else . == "AGENTS.md" end' \
-    "$REPO_DIR/.gemini/settings.json"
-  assert_success
+@test "Claude Code and Gemini CLI load AGENTS.md" {
+  [[ "$(cat "$REPO_DIR/CLAUDE.md")" == "@AGENTS.md" ]] || fail "Claude Code: CLAUDE.md must hold only @AGENTS.md"
+  jq -e '.context.fileName | if type == "array" then index("AGENTS.md") != null else . == "AGENTS.md" end' \
+    "$REPO_DIR/.gemini/settings.json" >/dev/null || fail "Gemini CLI: .gemini/settings.json must name AGENTS.md in context.fileName"
 }
 
 @test "AGENTS.md fits the smallest rule file limit of the four agents" {
@@ -119,15 +120,6 @@ compose_start_period_seconds() {
     || fail "AGENTS.md has $bytes bytes (max $AGENTS_MD_MAX_BYTES; Antigravity drops the rest): move detail into docs/README.md or a skill"
 }
 
-@test ".env variants are git-ignored but .env.example is not" {
-  run git -C "$REPO_DIR" check-ignore -q .env.local
-  assert_success
-  run git -C "$REPO_DIR" check-ignore -q .env.production
-  assert_success
-  run git -C "$REPO_DIR" check-ignore -q .env.example
-  assert_failure 1
-}
-
 @test "AGENTS.md defines the Code Review Rules that Codex reads" {
   run grep -x '## Code Review Rules' "$REPO_DIR/AGENTS.md"
   assert_success
@@ -135,17 +127,17 @@ compose_start_period_seconds() {
   assert_success
 }
 
-@test "the Claude reviewer agent cannot edit files" {
-  local agent="$REPO_DIR/.claude/agents/branch-reviewer.md"
+# reviewer_hook_command: the hook command line from the branch-reviewer agent frontmatter.
+reviewer_hook_command() {
+  frontmatter "$REPO_DIR/.claude/agents/branch-reviewer.md" | sed -n "s/^ *command: '\(.*\)'\$/\1/p"
+}
+
+@test "the Claude reviewer agent cannot edit files and runs every Bash call through the guard hook, which blocks (exit 2) even when the guard is missing" {
+  local agent="$REPO_DIR/.claude/agents/branch-reviewer.md" hook input='{"tool_input": {"command": "git diff"}}'
   run frontmatter "$agent"
   assert_line "permissionMode: plan"
   assert_line --regexp '^disallowedTools: .*Write.*Edit'
   refute_line --regexp '^tools: .*(Write|Edit)'
-}
-
-@test "the Claude reviewer agent runs every Bash call through the read-only guard hook" {
-  local agent="$REPO_DIR/.claude/agents/branch-reviewer.md"
-  run frontmatter "$agent"
   assert_line "hooks:"
   assert_line "  PreToolUse:"
   assert_line '    - matcher: "Bash"'
@@ -153,18 +145,10 @@ compose_start_period_seconds() {
   assert_line "        - type: command"
   assert_line "          command: '\"\$CLAUDE_PROJECT_DIR\"/scripts/guard-reviewer-bash.sh || exit 2'"
   [[ -x "$REPO_DIR/scripts/guard-reviewer-bash.sh" ]] || fail "scripts/guard-reviewer-bash.sh must exist and be executable"
+  # The guard blocks git status, so the agent's instructions must not ask for it.
   run grep -F "git status" "$agent"
   assert_failure 1
-}
-
-# reviewer_hook_command: the hook command line from the branch-reviewer agent frontmatter.
-reviewer_hook_command() {
-  frontmatter "$REPO_DIR/.claude/agents/branch-reviewer.md" | sed -n "s/^ *command: '\(.*\)'\$/\1/p"
-}
-
-@test "the reviewer hook command blocks (exit 2) even when the guard script is missing" {
   # Only exit 2 blocks a tool call; a missing script exits 127, which would let the call through.
-  local hook input='{"tool_input": {"command": "git diff"}}'
   hook="$(reviewer_hook_command)"
   [[ -n "$hook" ]] || fail "no hook command found in .claude/agents/branch-reviewer.md"
   mkdir -p "$BATS_TEST_TMPDIR/no-guard"

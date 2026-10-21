@@ -1,22 +1,19 @@
 #!/usr/bin/env bats
 load helpers
 
-@test "every Make target has a ## description and is declared .PHONY" {
-  local line phony target missing_desc="" missing_phony=""
+@test "every Make target is defined once, has a ## description and is declared .PHONY" {
+  local lines line phony target bad=""
+  lines="$(grep -E '^[a-z0-9-]+:([^=]|$)' "$REPO_DIR/Makefile")" || fail "found no targets in the Makefile"
   phony=" $(grep -E '^\.PHONY:' "$REPO_DIR/Makefile" | cut -d: -f2 | tr '\n' ' ') "
   while IFS= read -r line; do
     target="${line%%:*}"
-    [[ "$line" == *"## "* ]] || missing_desc="$missing_desc $target"
-    [[ "$phony" == *" $target "* ]] || missing_phony="$missing_phony $target"
-  done < <(grep -E '^[a-z0-9-]+:([^=]|$)' "$REPO_DIR/Makefile")
-  [[ -z "$missing_desc" ]] || fail "add '## <description>' to these Makefile targets:$missing_desc"
-  [[ -z "$missing_phony" ]] || fail "add these targets to .PHONY in the Makefile:$missing_phony"
-}
-
-@test "no Make target is defined twice" {
-  local dupes
-  dupes="$(grep -oE '^[a-z0-9-]+:([^=]|$)' "$REPO_DIR/Makefile" | cut -d: -f1 | sort | uniq -d)"
-  [[ -z "$dupes" ]] || fail "these Make targets are defined more than once (make keeps only the last recipe): $dupes"
+    [[ "$line" == *"## "* ]] || bad="$bad"$'\n'"  $target: add '## <description>'"
+    [[ "$phony" == *" $target "* ]] || bad="$bad"$'\n'"  $target: add it to .PHONY"
+  done <<<"$lines"
+  for target in $(cut -d: -f1 <<<"$lines" | sort | uniq -d); do
+    bad="$bad"$'\n'"  $target: defined more than once (make keeps only the last recipe)"
+  done
+  [[ -z "$bad" ]] || fail "fix these Makefile targets:$bad"
 }
 
 setup() {

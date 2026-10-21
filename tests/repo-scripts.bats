@@ -24,11 +24,9 @@ require_shell_files() {
 }
 
 @test "scripts avoid bash 4+ features (macOS ships bash 3.2)" {
-  run grep -rnE 'mapfile|readarray|declare -[Ann]|local -[Ann]|inherit_errexit|coproc|wait -n|\|&|&>>|\$\{[A-Za-z_][A-Za-z0-9_]*(\^|,)|\$\{[A-Za-z_][A-Za-z0-9_]*\[-[0-9]+\]' "$REPO_DIR/scripts"
-  assert_failure 1
+  refute_matches "$REPO_DIR/scripts" 'mapfile|readarray|declare -[Ann]|local -[Ann]|inherit_errexit|coproc|wait -n|\|&|&>>|\$\{[A-Za-z_][A-Za-z0-9_]*(\^|,)|\$\{[A-Za-z_][A-Za-z0-9_]*\[-[0-9]+\]'
 }
 
 @test "no script enables Tailscale Funnel" {
-  run grep -rniE 'tailscale[[:space:]]+funnel' "$REPO_DIR/scripts"
-  assert_failure 1
+  refute_matches "$REPO_DIR/scripts" 'tailscale[[:space:]]+funnel' -i
 }

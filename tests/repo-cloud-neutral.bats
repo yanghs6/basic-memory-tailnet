@@ -5,33 +5,29 @@ CLOUD_NAMES='oci|oracle|gcp|gcloud'
 # The runbook's file name is the one allowed mention: scripts point to it instead of naming a provider.
 ALLOWED_RUNBOOK='docs/runbooks/rbk-2026-10-12-gcp-vm\.md'
 
-# cloud_name_matches DIR -> grep -rn lines under DIR that name a cloud provider (whole word, any case),
-# after removing the allowed runbook path. Prints nothing when DIR is clean.
-cloud_name_matches() {
-  local matches rc=0
-  matches="$(grep -rniwE "$CLOUD_NAMES" "$1")" || rc=$?
-  ((rc <= 1)) || return "$rc"
-  grep -iwE "$CLOUD_NAMES" <<<"${matches//$ALLOWED_RUNBOOK/}" || true
+# cloud_scan DIR: fail with the lines under DIR that name a cloud provider (whole word, any case), comments included.
+# It scans a copy of DIR without the allowed runbook path, so the lines it prints name files under
+# $BATS_TEST_TMPDIR/scan/<the last part of DIR>.
+cloud_scan() {
+  local copy="$BATS_TEST_TMPDIR/scan/${1##*/}" file
+  rm -rf "$copy" && mkdir -p "$copy" && cp -R "$1/." "$copy" || return 1
+  while IFS= read -r file; do
+    sed "s#$ALLOWED_RUNBOOK##g" "$file" >"$file.tmp" && mv "$file.tmp" "$file" || return 1
+  done <<<"$(find "$copy" -type f)"
+  refute_matches "$copy" "$CLOUD_NAMES" -i -w
 }
 
-@test "the scan flags a provider name and ignores only the runbook path" {
-  mkdir -p "$BATS_TEST_TMPDIR/sample"
-  printf '# see docs/runbooks/rbk-2026-10-12-gcp-vm.md\n# use the OCI console\n# gcloud compute list\n' >"$BATS_TEST_TMPDIR/sample/a.sh"
-  run cloud_name_matches "$BATS_TEST_TMPDIR/sample"
-  assert_success
+@test "the scan flags a provider name, and scripts and skills name none, comments included" {
+  local sample="$BATS_TEST_TMPDIR/sample" dir
+  mkdir -p "$sample"
+  printf '# see docs/runbooks/rbk-2026-10-12-gcp-vm.md\n# use the OCI console\n# gcloud compute list\n' >"$sample/a.sh"
+  # The first case checks the scan itself: it flags both names and skips only the runbook path.
+  run cloud_scan "$sample"
+  assert_failure
   assert_output --partial "use the OCI console"
   assert_output --partial "gcloud compute list"
   refute_output --partial "runbooks"
-}
-
-@test "scripts name no cloud provider, comments included" {
-  local leftover
-  leftover="$(cloud_name_matches "$REPO_DIR/scripts")" || fail "the scan itself failed"
-  [[ -z "$leftover" ]] || fail "cloud provider names in scripts/:"$'\n'"$leftover"
-}
-
-@test "skills name no cloud provider; they point to the runbook sections instead" {
-  local leftover
-  leftover="$(cloud_name_matches "$REPO_DIR/.agents/skills")" || fail "the scan itself failed"
-  [[ -z "$leftover" ]] || fail "cloud provider names in .agents/skills/ (move the command to a runbook):"$'\n'"$leftover"
+  for dir in scripts .agents/skills; do
+    cloud_scan "$REPO_DIR/$dir" || fail "cloud provider names in $dir/ (point to the runbook section instead)"
+  done
 }

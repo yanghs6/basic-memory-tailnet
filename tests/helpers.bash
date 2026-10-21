@@ -67,6 +67,21 @@ frontmatter() {
   awk 'NR == 1 && $0 == "---" { inside = 1; next } inside && $0 == "---" { exit } inside { print }' "$1"
 }
 
+# front_value FILE KEY: the one-line value of KEY in the front matter of FILE; empty when FILE has no KEY.
+front_value() {
+  frontmatter "$1" | sed -n "s/^$2: *//p"
+}
+
+# outside_code FILE: the lines of FILE outside ``` fences.
+outside_code() {
+  awk '/^```/ { fence = !fence; next } !fence' "$1"
+}
+
+# markdown_files: the tracked and the new (untracked, not ignored) Markdown files, relative to the repo, one per line.
+markdown_files() {
+  git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- '*.md'
+}
+
 # init_git_repo: a git repository on main in $BATS_TEST_TMPDIR/work with one empty commit by agent, and cd into it. Sets WORK.
 init_git_repo() {
   WORK="$BATS_TEST_TMPDIR/work"
@@ -155,4 +170,21 @@ assert_same_file() {
     fail "files differ: $1 $2"$'\n'"$difference"
     return 1
   fi
+}
+
+# refute_matches DIR ERE [GREP_FLAG...]: succeed when grep -rnE ERE [GREP_FLAG...] finds no line under DIR; fail with the
+# matching lines when it finds one, and when grep errors.
+refute_matches() {
+  local dir="$1" pattern="$2" status=0 found
+  shift 2
+  found="$(grep -rnE "$@" -e "$pattern" -- "$dir")" || status=$?
+  if [[ "$status" -eq 1 ]]; then
+    return 0
+  fi
+  if [[ "$status" -eq 0 ]]; then
+    fail "expected no line under $dir matching: $pattern"$'\n'"found:"$'\n'"$found"
+    return 1
+  fi
+  fail "grep failed with exit $status under $dir: $pattern"
+  return 1
 }
