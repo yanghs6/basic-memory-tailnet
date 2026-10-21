@@ -189,15 +189,17 @@ add_model_cache() {
 }
 
 @test "restore rolls the previous data, compose.yaml and .env back when the extract, the manifest, the upload, the swap, the pages or the start fails" {
-  local case step message started
-  # Each case, in pipeline order: the step that fails | its message | started when the restored data was already started.
-  for case in "extract|extract failed; current data was not touched|" \
-    "manifest|extracted files do not match the backup manifest|" \
-    "upload|could not upload compose.yaml|" \
-    "swap|could not swap the restored data into place|" \
-    "pages|could not write the SilverBullet pages|" \
-    "start|container did not become healthy with the restored data|started"; do
-    IFS='|' read -r step message started <<<"$case"
+  local case step message started back
+  # Each case, in pipeline order: the step that fails | its message | started when the restored data was already started |
+  # live when the rollback's own start succeeds, down when it fails too.
+  for case in "extract|extract failed; current data was not touched||live" \
+    "manifest|extracted files do not match the backup manifest||live" \
+    "upload|could not upload compose.yaml||live" \
+    "swap|could not swap the restored data into place||live" \
+    "pages|could not write the SilverBullet pages||live" \
+    "start|container did not become healthy with the restored data|started|live" \
+    "start and rollback start|container did not become healthy with the restored data|started|down"; do
+    IFS='|' read -r step message started back <<<"$case"
     (
       : >"$STUB_LOG"
       rm -rf "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT".* "$BM_REMOTE_APP_DIR" "$BATS_TEST_TMPDIR/src" "$BACKUP_DIR" \
@@ -219,10 +221,16 @@ add_model_cache() {
         pages) export SSH_STUB_FAIL_MATCH="Library/agent-hub" ;;
         # Only the restore's own start fails; the rollback start succeeds.
         start) export DOCKER_STUB_FAIL_MATCH="up -d --wait" ;;
+        # Every start fails, the rollback's too.
+        "start and rollback start") export DOCKER_STUB_FAIL_MATCH="up -d" ;;
       esac
       restore_with_answer yes
-      assert_failure && assert_output --partial "$message" && assert_output --partial "restore failed; rolling back" \
-        && assert_output --partial "rolled back: the previous data is live again" || exit 1
+      assert_failure && assert_output --partial "$message" && assert_output --partial "restore failed; rolling back" || exit 1
+      if [[ "$back" == live ]]; then
+        assert_output --partial "rolled back: the previous data is live again" || exit 1
+      else
+        refute_output --partial "the previous data is live again" || exit 1
+      fi
       run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
       assert_output "original" || exit 1
       run cat "$BM_REMOTE_APP_DIR/compose.yaml"
