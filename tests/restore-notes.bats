@@ -45,216 +45,205 @@ add_model_cache() {
   ln -s ../../blobs/hash1 "$cache/snapshots/rev/model.onnx"
 }
 
-@test "backup archive and manifest skip the model cache and restore accepts that archive" {
+@test "a backup made by backup-notes.sh skips the model cache and restores with restore-notes.sh to match its manifest" {
+  # A deployed VM already holds the current space files, which the restore writes again unchanged.
+  local notes="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory"
+  mkdir -p "$notes/Library/agent-hub"
+  cp "$REPO_DIR/silverbullet/notes.gitignore" "$notes/.gitignore"
+  cp "$REPO_DIR/silverbullet/agent-hub.md" "$notes/Library/agent-hub/agent-hub.md"
+  cp "$REPO_DIR/silverbullet/index.md" "$notes/index.md"
   add_model_cache
   echo "{}" >"$BM_REMOTE_DATA_ROOT/config/config.json"
   run "$BACKUP"
   assert_success
-  local archive
-  archive="$(ls "$BACKUP_DIR"/bm-*.tgz)"
-  run tar -tzf "$archive"
+  ARCHIVE="$(ls "$BACKUP_DIR"/bm-*.tgz)"
+  run tar -tzf "$ARCHIVE"
   assert_line "basic-memory/config/config.json"
   refute_output --partial "fastembed_cache"
-  run cat "$archive.manifest"
+  run cat "$ARCHIVE.manifest"
   refute_output --partial "fastembed_cache"
-  ARCHIVE="$archive"
+  echo "changed after the backup" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  echo "written after the backup" >"$BM_REMOTE_DATA_ROOT/knowledge/later.md"
   restore_with_answer yes
   assert_success
-  [[ ! -e "$BM_REMOTE_DATA_ROOT/config/fastembed_cache" ]]
-}
-
-@test "restore replaces the data, keeps the previous copy and fixes ownership" {
-  make_archive "from backup"
-  install -m 644 /dev/null "$BM_REMOTE_APP_DIR/.env"
-  restore_with_answer yes
-  assert_success
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
-  assert_output "from backup"
-  run bash -c 'cat "$0".prev-*/knowledge/a.md' "$BM_REMOTE_DATA_ROOT"
+  assert_output --partial "restored $(basename "$ARCHIVE")"
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
   assert_output "original"
-  run stat -c '%u' "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
-  assert_output "1000"
-  assert_stub_called -F 'tar --no-same-owner --no-same-permissions -C'
-  assert_stub_called -F 'compose up -d --wait --wait-timeout 360'
-  assert_same_file "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
-  run bash -c 'ls -d "$0".restore-* "$1"/compose.yaml.prev-* 2>/dev/null' "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_APP_DIR"
-  assert_failure
-  run cat "$BM_REMOTE_APP_DIR/.env"
-  assert_line "SB_USER=admin:test-password"
-  run stat -c '%a' "$BM_REMOTE_APP_DIR/.env"
-  assert_output "600"
+  [[ ! -e "$BM_REMOTE_DATA_ROOT/knowledge/later.md" && ! -e "$BM_REMOTE_DATA_ROOT/config/fastembed_cache" ]] \
+    || fail "the restored data root must hold only what the backup saved"
+  run local_manifest "$BM_REMOTE_DATA_ROOT"
+  assert_output "$(cat "$ARCHIVE.manifest")"
 }
 
-@test "restore writes the SilverBullet space files into the restored notes folder while stopped, keeping its index.md" {
-  local notes="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory"
+@test "restore replaces the data, writes the space files while stopped and the VM .env, on an existing and on a recreated VM" {
+  local notes="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory" expected_env="$BATS_TEST_TMPDIR/vm.env" case vm stop prev
+  (
+    # shellcheck source=../scripts/lib/vm.sh
+    . "$REPO_DIR/scripts/lib/vm.sh"
+    vm_env
+  ) >"$expected_env"
   make_archive "from backup"
   # An archive from before the web UI: a notes folder with an index.md but no .gitignore and no library page.
   mkdir -p "$SRC/basic-memory/knowledge/basic-memory"
   echo "my dashboard" >"$SRC/basic-memory/knowledge/basic-memory/index.md"
   pack_archive basic-memory
   local_manifest "$SRC/basic-memory" >"$ARCHIVE.manifest"
-  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
-  restore_with_answer yes
-  assert_success
-  assert_same_file "$REPO_DIR/silverbullet/notes.gitignore" "$notes/.gitignore"
-  assert_same_file "$REPO_DIR/silverbullet/agent-hub.md" "$notes/Library/agent-hub/agent-hub.md"
-  run cat "$notes/index.md"
-  assert_output "my dashboard"
-  [[ ! -e "$notes/.gitignore.pending" ]] \
-    || fail "the marker must be removed: the stopped Basic Memory loads the new .gitignore when it starts"
-  # Every space file write (as the container user) comes after the stop and before the first start.
-  run awk '/^docker compose stop$/ { s = NR } /^sudo -n -u #1000 / { if (!f) f = NR; w = NR } /^docker compose up/ && !u { u = NR } END { exit !(s && f && u && s < f && w < u) }' "$STUB_LOG"
-  assert_success
-}
-
-@test "restore rolls back without starting the restored data when the SilverBullet pages cannot be written" {
-  make_archive "restored"
-  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
-  export SSH_STUB_FAIL_MATCH="Library/agent-hub"
-  restore_with_answer yes
-  assert_failure
-  assert_output --partial "could not write the SilverBullet pages"
-  assert_output --partial "rolled back: the previous data is live again"
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  assert_output "original"
-  # Only the rollback starts the containers (on the previous data); the half-written space never runs.
-  refute_stub_called -E '^docker compose up -d --wait'
-}
-
-@test "restore aborts without touching the VM unless the user types yes" {
-  make_archive "x"
-  restore_with_answer no
-  assert_failure
-  assert_output --partial "aborted: you must type 'yes'"
-  refute_stub_called -F 'ssh'
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  assert_output "original"
-}
-
-@test "restore stops before the confirmation without a valid SB_USER, so the VM .env never loses the login" {
-  make_archive "x"
-  unset SB_USER
-  restore_with_answer yes
-  assert_failure
-  refute_stub_called -F 'ssh'
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  assert_output "original"
-}
-
-@test "restore rejects an archive whose checksum does not match" {
-  make_archive "x"
-  echo "0000  $(basename "$ARCHIVE")" >"$ARCHIVE.sha256"
-  restore_with_answer yes
-  assert_failure
-  assert_output --partial "checksum mismatch"
-  refute_stub_called -F 'ssh'
-}
-
-@test "restore refuses an archive holding a symlink before touching the VM" {
-  make_archive "x"
-  ln -s /etc "$SRC/basic-memory/knowledge/etc"
-  pack_archive basic-memory
-  restore_with_answer yes
-  assert_failure
-  assert_output --partial "unsafe archive"
-  assert_output --partial "not a regular file or directory"
-  refute_stub_called -F 'ssh'
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  assert_output "original"
-}
-
-@test "restore refuses an archive holding a ../ or absolute path before touching the VM" {
-  local entry pack_path reason
-  for entry in "../outside.md|../outside.md|'..' component" "$BATS_TEST_TMPDIR/outside.md|$BATS_TEST_TMPDIR/outside.md|absolute path"; do
-    IFS='|' read -r entry pack_path reason <<<"$entry"
-    make_archive "x"
-    echo "outside" >"$BATS_TEST_TMPDIR/outside.md"
-    pack_archive -P basic-memory "$pack_path"
-    run tar -tzf "$ARCHIVE"
-    assert_line "$entry"
-    restore_with_answer yes
-    assert_failure
-    assert_output --partial "unsafe archive"
-    assert_output --partial "$reason"
-    refute_stub_called -F 'ssh'
+  # Each case: the VM | stopped when its running stack must be stopped before the first space file write | kept when
+  # the previous data must stay as .prev-* (a recreated VM has no data, compose.yaml or .env).
+  for case in "existing|stopped|kept" "recreated||none"; do
+    IFS='|' read -r vm stop prev <<<"$case"
+    (
+      : >"$STUB_LOG"
+      rm -rf "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT".* "$BM_REMOTE_APP_DIR"
+      mkdir -p "$BM_REMOTE_APP_DIR"
+      if [[ "$vm" == existing ]]; then
+        mkdir -p "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config"
+        echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+        echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+        install -m 644 /dev/null "$BM_REMOTE_APP_DIR/.env"
+      fi
+      restore_with_answer yes
+      assert_success || exit 1
+      run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
+      assert_output "from backup" || exit 1
+      run stat -c '%u' "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
+      assert_output "1000" || exit 1
+      assert_stub_called -F 'tar --no-same-owner --no-same-permissions -C' \
+        && assert_stub_called -F 'compose up -d --wait --wait-timeout 360' || exit 1
+      assert_same_file "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml" \
+        && assert_same_file "$expected_env" "$BM_REMOTE_APP_DIR/.env" || exit 1
+      run stat -c '%a' "$BM_REMOTE_APP_DIR/.env"
+      assert_output "600" || exit 1
+      # No .prev-* or .upload-* copy is left in the app dir once the restore succeeded.
+      run ls -A "$BM_REMOTE_APP_DIR"
+      assert_output "$(printf '%s\n' .env compose.yaml)" || exit 1
+      assert_same_file "$REPO_DIR/silverbullet/notes.gitignore" "$notes/.gitignore" \
+        && assert_same_file "$REPO_DIR/silverbullet/agent-hub.md" "$notes/Library/agent-hub/agent-hub.md" || exit 1
+      run cat "$notes/index.md"
+      assert_output "my dashboard" || exit 1
+      # The marker must be gone: the stopped Basic Memory loads the new .gitignore when it starts.
+      [[ ! -e "$notes/.gitignore.pending" ]] || exit 1
+      # Every space file write (as the container user) comes before the first start, and after the stop when one is due.
+      run awk -v stop="$stop" '/^docker compose stop$/ { s = NR } /^sudo -n -u #1000 / { if (!f) f = NR; w = NR } /^docker compose up/ && !u { u = NR } END { exit !(f && u && w < u && (stop == "" || (s && s < f))) }' "$STUB_LOG"
+      assert_success || exit 1
+      run ls -A "$(dirname "$BM_REMOTE_DATA_ROOT")"
+      refute_line --regexp '^basic-memory\.restore-' || exit 1
+      if [[ "$prev" == kept ]]; then
+        assert_line --regexp '^basic-memory\.prev-' || exit 1
+        run bash -c 'cat "$0".prev-*/knowledge/a.md' "$BM_REMOTE_DATA_ROOT"
+        assert_output "original"
+      else
+        refute_line --regexp '^basic-memory\.prev-'
+      fi
+    ) || fail "restore on the $vm VM"
   done
 }
 
-@test "restore requires an existing archive with its checksum and manifest files" {
-  run "$RESTORE" "$BACKUP_DIR/missing.tgz"
-  assert_failure
-  assert_output --partial "backup not found"
-
-  make_archive "x"
-  rm "$ARCHIVE.sha256"
-  run "$RESTORE" "$ARCHIVE"
-  assert_failure
-  assert_output --partial "checksum file missing"
-
-  make_archive "x"
-  rm "$ARCHIVE.manifest"
-  run "$RESTORE" "$ARCHIVE"
-  assert_failure
-  assert_output --partial "manifest missing"
+@test "restore refuses before any ssh when the answer is not yes, SB_USER is invalid, a backup file is missing, the checksum is wrong or the archive holds a symlink, a ../ or an absolute path" {
+  local case input message detail answer entry
+  # Each case: the bad input | the message of the check that refuses | the part of that message naming the reason.
+  for case in "answer no|aborted: you must type 'yes'|" \
+    "no SB_USER|missing env SB_USER|" \
+    "missing archive|backup not found|" \
+    "missing checksum file|checksum file missing|" \
+    "missing manifest|manifest missing|" \
+    "wrong checksum|checksum mismatch|" \
+    "symlink entry|unsafe archive|not a regular file or directory" \
+    "entry ../outside.md|unsafe archive|'..' component" \
+    "entry $BATS_TEST_TMPDIR/outside.md|unsafe archive|absolute path"; do
+    IFS='|' read -r input message detail <<<"$case"
+    (
+      : >"$STUB_LOG"
+      rm -rf "$BATS_TEST_TMPDIR/src" "$BACKUP_DIR" "$BATS_TEST_TMPDIR/outside.md"
+      echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+      make_archive "x"
+      answer=yes
+      case "$input" in
+        "answer no") answer=no ;;
+        "no SB_USER") unset SB_USER ;;
+        "missing archive") ARCHIVE="$BACKUP_DIR/missing.tgz" ;;
+        "missing checksum file") rm "$ARCHIVE.sha256" ;;
+        "missing manifest") rm "$ARCHIVE.manifest" ;;
+        "wrong checksum") echo "0000  $(basename "$ARCHIVE")" >"$ARCHIVE.sha256" ;;
+        "symlink entry")
+          ln -s /etc "$SRC/basic-memory/knowledge/etc"
+          pack_archive basic-memory
+          ;;
+        "entry "*)
+          entry="${input#entry }"
+          echo "outside" >"$BATS_TEST_TMPDIR/outside.md"
+          pack_archive -P basic-memory "$entry"
+          run tar -tzf "$ARCHIVE"
+          assert_line "$entry" || exit 1
+          ;;
+      esac
+      restore_with_answer "$answer"
+      assert_failure && assert_output --partial "$message" && refute_stub_called -F 'ssh' || exit 1
+      if [[ -n "$detail" ]]; then
+        assert_output --partial "$detail" || exit 1
+      fi
+      run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+      assert_output "original"
+    ) || fail "restore did not refuse before ssh with: $input"
+  done
 }
 
-@test "restore leaves current data live and restarts when extraction fails" {
-  make_archive "x"
-  export SSH_STUB_FAIL_MATCH="-xzf"
-  restore_with_answer yes
-  assert_failure
-  assert_output --partial "extract failed; current data was not touched"
-  assert_output --partial "rolled back: the previous data is live again"
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  assert_output "original"
-  run bash -c 'ls -d "$0".prev-* "$0".restore-* 2>/dev/null' "$BM_REMOTE_DATA_ROOT"
-  assert_failure
-}
-
-@test "restore refuses extracted files that do not match the manifest" {
-  make_archive "x"
-  echo "0000  ./knowledge/missing.md" >>"$ARCHIVE.manifest"
-  restore_with_answer yes
-  assert_failure
-  assert_output --partial "extracted files do not match the backup manifest"
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  assert_output "original"
-}
-
-@test "restore rolls back data and compose when the restored service is unhealthy" {
-  make_archive "bad"
-  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
-  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
-  export DOCKER_STUB_FAIL_MATCH="up -d"
-  restore_with_answer yes
-  assert_failure
-  assert_output --partial "container did not become healthy with the restored data"
-  assert_output --partial "restore failed; rolling back"
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  assert_output "original"
-  run cat "$BM_REMOTE_APP_DIR/compose.yaml"
-  assert_output "previous compose"
-  run cat "$BM_REMOTE_APP_DIR/.env"
-  assert_output "PREVIOUS=env"
-  run bash -c 'cat "$0".failed-*/knowledge/restored.md' "$BM_REMOTE_DATA_ROOT"
-  assert_output "bad"
-}
-
-@test "restore rollback recreates the container so it mounts the previous data even with an unchanged compose" {
-  make_archive "bad"
-  cp "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
-  printf 'BM_PORT=8737\nBM_KNOWLEDGE_DIR=%s/knowledge\nBM_CONFIG_DIR=%s/config\n' \
-    "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT" >"$BM_REMOTE_APP_DIR/.env"
-  # Only the restore's own start fails; the rollback start succeeds.
-  export DOCKER_STUB_FAIL_MATCH="up -d --wait"
-  restore_with_answer yes
-  assert_failure
-  assert_output --partial "container did not become healthy with the restored data"
-  assert_output --partial "rolled back: the previous data is live again"
-  assert_stub_called -F 'docker compose up -d --force-recreate --wait --wait-timeout 360'
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  assert_output "original"
-  assert_same_file "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
+@test "restore rolls the previous data, compose.yaml and .env back when the extract, the manifest, the upload, the swap, the pages or the start fails" {
+  local case step message started
+  # Each case, in pipeline order: the step that fails | its message | started when the restored data was already started.
+  for case in "extract|extract failed; current data was not touched|" \
+    "manifest|extracted files do not match the backup manifest|" \
+    "upload|could not upload compose.yaml|" \
+    "swap|could not swap the restored data into place|" \
+    "pages|could not write the SilverBullet pages|" \
+    "start|container did not become healthy with the restored data|started"; do
+    IFS='|' read -r step message started <<<"$case"
+    (
+      : >"$STUB_LOG"
+      rm -rf "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT".* "$BM_REMOTE_APP_DIR" "$BATS_TEST_TMPDIR/src" "$BACKUP_DIR" \
+        "$STUB_BIN/cp"
+      mkdir -p "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config" "$BM_REMOTE_APP_DIR"
+      echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+      echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+      echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
+      make_archive "bad"
+      case "$step" in
+        extract) export SSH_STUB_FAIL_MATCH="-xzf" ;;
+        manifest) echo "0000  ./knowledge/missing.md" >>"$ARCHIVE.manifest" ;;
+        upload)
+          # A cp that dies midway (disk full): it leaves a partial destination file and fails.
+          # shellcheck disable=SC2016 # the fake cp body must keep ${@: -1} literal
+          fake_cmd cp 'printf partial >"${@: -1}"; exit 1'
+          ;;
+        swap) export SSH_STUB_FAIL_MATCH="rmdir" ;;
+        pages) export SSH_STUB_FAIL_MATCH="Library/agent-hub" ;;
+        # Only the restore's own start fails; the rollback start succeeds.
+        start) export DOCKER_STUB_FAIL_MATCH="up -d --wait" ;;
+      esac
+      restore_with_answer yes
+      assert_failure && assert_output --partial "$message" && assert_output --partial "restore failed; rolling back" \
+        && assert_output --partial "rolled back: the previous data is live again" || exit 1
+      run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+      assert_output "original" || exit 1
+      run cat "$BM_REMOTE_APP_DIR/compose.yaml"
+      assert_output "previous compose" || exit 1
+      run cat "$BM_REMOTE_APP_DIR/.env"
+      assert_output "PREVIOUS=env" || exit 1
+      # No temporary copy is left: no .prev-* or .restore-* next to the data root, only the two files in the app dir.
+      run ls -A "$(dirname "$BM_REMOTE_DATA_ROOT")"
+      refute_line --regexp '^basic-memory\.(prev|restore)-' || exit 1
+      run ls -A "$BM_REMOTE_APP_DIR"
+      assert_output "$(printf '%s\n' .env compose.yaml)" || exit 1
+      if [[ "$started" == started ]]; then
+        # The restored data is kept aside, and the rollback recreates the container so it mounts the previous data.
+        run bash -c 'cat "$0".failed-*/knowledge/restored.md' "$BM_REMOTE_DATA_ROOT"
+        assert_output "bad" && assert_stub_called -F 'docker compose up -d --force-recreate --wait --wait-timeout 360'
+      else
+        # Only the rollback starts the containers (on the previous data); the restored data never runs.
+        refute_stub_called -E '^docker compose up -d --wait'
+      fi
+    ) || fail "restore after a failed $step"
+  done
 }
 
 @test "restore on a VM without previous data says the restored data stays when the start fails" {
@@ -269,79 +258,4 @@ add_model_cache() {
   assert_output --partial "rerun 'make restore BACKUP=<archive>'"
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
   assert_output "restored"
-}
-
-@test "restore never rolls back to a partial copy of compose.yaml" {
-  make_archive "x"
-  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
-  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
-  # A cp that dies midway (disk full): it leaves a partial destination file and fails.
-  # shellcheck disable=SC2016 # the fake cp script body must keep ${@: -1} literal
-  fake_cmd cp 'printf partial >"${@: -1}"
-exit 1'
-  restore_with_answer yes
-  assert_failure
-  assert_output --partial "could not upload compose.yaml"
-  run cat "$BM_REMOTE_APP_DIR/compose.yaml"
-  assert_output "previous compose"
-  run cat "$BM_REMOTE_APP_DIR/.env"
-  assert_output "PREVIOUS=env"
-  run ls -A "$BM_REMOTE_APP_DIR"
-  assert_output ".env
-compose.yaml"
-}
-
-@test "restore writes the VM .env and succeeds on a recreated VM with no data, compose or .env" {
-  make_archive "fresh"
-  rm -r "$BM_REMOTE_DATA_ROOT"
-  rm -f "$BM_REMOTE_APP_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/.env"
-  restore_with_answer yes
-  assert_success
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
-  assert_output "fresh"
-  run cat "$BM_REMOTE_APP_DIR/.env"
-  assert_line "BM_PORT=8737"
-  assert_line "BM_KNOWLEDGE_DIR=$BM_REMOTE_DATA_ROOT/knowledge"
-  assert_line "BM_CONFIG_DIR=$BM_REMOTE_DATA_ROOT/config"
-  run bash -c 'ls -d "$0".prev-* "$1"/.env.prev-* 2>/dev/null' "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_APP_DIR"
-  assert_failure
-}
-
-@test "restore rolls back data, compose.yaml and .env when the swap fails" {
-  make_archive "bad"
-  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
-  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
-  export SSH_STUB_FAIL_MATCH="rmdir"
-  restore_with_answer yes
-  assert_failure
-  assert_output --partial "could not swap the restored data into place"
-  assert_output --partial "restore failed; rolling back"
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  assert_output "original"
-  run cat "$BM_REMOTE_APP_DIR/compose.yaml"
-  assert_output "previous compose"
-  run cat "$BM_REMOTE_APP_DIR/.env"
-  assert_output "PREVIOUS=env"
-}
-
-@test "a backup made by backup-notes.sh restores with restore-notes.sh and matches its manifest" {
-  # A deployed VM already holds the current space files, which the restore writes again unchanged.
-  local notes="$BM_REMOTE_DATA_ROOT/knowledge/basic-memory"
-  mkdir -p "$notes/Library/agent-hub"
-  cp "$REPO_DIR/silverbullet/notes.gitignore" "$notes/.gitignore"
-  cp "$REPO_DIR/silverbullet/agent-hub.md" "$notes/Library/agent-hub/agent-hub.md"
-  cp "$REPO_DIR/silverbullet/index.md" "$notes/index.md"
-  run "$BACKUP"
-  assert_success
-  ARCHIVE="$(ls "$BACKUP_DIR"/bm-*.tgz)"
-  echo "changed after the backup" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  echo "written after the backup" >"$BM_REMOTE_DATA_ROOT/knowledge/later.md"
-  restore_with_answer yes
-  assert_success
-  assert_output --partial "restored $(basename "$ARCHIVE")"
-  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
-  assert_output "original"
-  [[ ! -e "$BM_REMOTE_DATA_ROOT/knowledge/later.md" ]]
-  run local_manifest "$BM_REMOTE_DATA_ROOT"
-  assert_output "$(cat "$ARCHIVE.manifest")"
 }
