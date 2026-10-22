@@ -1,6 +1,7 @@
 ---
 status: approved
 date: 2026-10-15
+amended-by: docs/specs/spec-2026-10-22-web-connector.md
 ---
 
 # VM 접속 방식 선택 (Tailscale 또는 SSH 터널) — 설계
