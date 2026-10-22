@@ -2,6 +2,13 @@
 # (make local-up) and on the VM (make deploy). Defaults are the local values; on the VM, scripts/deploy-stack.sh writes
 # absolute paths and SB_USER into .env.
 name: basic-memory
+# Docker's json-file driver keeps every line by default, and Basic Memory logs one uvicorn line per MCP request.
+# Rotate at 10 MB and keep 3 files: at most 30 MB per container. Docker applies it when compose recreates a container.
+x-logging: &bounded-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 services:
   basic-memory:
     image: ghcr.io/basicmachines-co/basic-memory:0.23.2@sha256:939f1173d96626c280763e14622f2381d49fbbb7db17cae2e832f4f639405643
@@ -31,6 +38,7 @@ services:
       start_interval: 2s
     networks: [basic-memory]
     restart: unless-stopped
+    logging: *bounded-logging
   silverbullet:
     # Web UI for the notes. It mounts only the notes folder, never the Basic Memory database or config.
     image: ghcr.io/silverbulletmd/silverbullet:2.12.1-slim@sha256:7e24c16d31a3f4b4a4832ed64ec585e605a1e275b7c35917d385176f0b40415c
@@ -59,6 +67,7 @@ services:
       start_interval: 2s
     networks: [silverbullet]
     restart: unless-stopped
+    logging: *bounded-logging
 networks:
   basic-memory:
   silverbullet:

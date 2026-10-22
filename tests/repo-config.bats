@@ -43,6 +43,23 @@ compose_services() {
   fi
 }
 
+@test "every compose service caps its Docker log through the bounded-logging block" {
+  # Docker's json-file driver keeps every line by default (max-size -1), and Basic Memory's uvicorn logs one line
+  # per MCP request, so without a cap the log under /var/lib/docker grows until the container is recreated.
+  local logging services service bad=""
+  logging="$(awk '$0 == "x-logging: &bounded-logging" { inside = 1; next } inside && /^[^ ]/ { exit } inside { print }' "$REPO_DIR/compose.yaml")"
+  [[ -n "$logging" ]] || fail "compose.yaml must define the top-level 'x-logging: &bounded-logging' block"
+  grep -qxF '  driver: json-file' <<<"$logging" || fail "compose.yaml x-logging must set driver: json-file"
+  grep -qE '^    max-size: "[0-9]+m"$' <<<"$logging" || fail 'compose.yaml x-logging must set options.max-size, e.g. "10m"'
+  grep -qE '^    max-file: "[0-9]+"$' <<<"$logging" || fail 'compose.yaml x-logging must set options.max-file, e.g. "3"'
+  services="$(compose_services)"
+  [[ -n "$services" ]] || fail "compose.yaml defines no services"
+  for service in $services; do
+    service_block "$service" | grep -qxF '    logging: *bounded-logging' || bad="$bad $service"
+  done
+  [[ -z "$bad" ]] || fail "set 'logging: *bounded-logging' in compose.yaml for:$bad (or its Docker log grows without a limit)"
+}
+
 @test "basic-memory runs the basicmachines-co image, serves streamable-http on /mcp, probes port 8000 without --version, has a start_period of at least 240 s that HEALTH_TIMEOUT_SECONDS exceeds, restarts unless-stopped and uses only its own network" {
   local bm healthcheck period timeout
   bm="$(service_block basic-memory)"
