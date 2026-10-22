@@ -1,5 +1,5 @@
 # Lint, all tests and the coverage gate for every pull request into main
-# (docs/specs/2026-10-13-github-pr-workflow-design.md, section 6).
+# (docs/specs/spec-2026-10-13-github-pr-workflow.md, section 6).
 name: ci
 
 on:

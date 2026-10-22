@@ -1,5 +1,5 @@
 # Basic Memory MCP server and the SilverBullet web UI on the same notes folder. The same file runs locally
-# (make local-up) and on the VM (make deploy). Defaults are the local values; on the VM, scripts/deploy.sh writes
+# (make local-up) and on the VM (make deploy). Defaults are the local values; on the VM, scripts/deploy-stack.sh writes
 # absolute paths and SB_USER into .env.
 name: basic-memory
 # Docker's json-file driver keeps every line by default, and Basic Memory logs one uvicorn line per MCP request.

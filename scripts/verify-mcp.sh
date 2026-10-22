@@ -13,7 +13,10 @@ readonly PROTOCOL_VERSION="2025-06-18"
 readonly REQUEST_TIMEOUT_SECONDS=30
 readonly REQUIRED_TOOLS="write_note read_note search_notes delete_note"
 readonly VERIFY_DIRECTORY="verify"
-readonly VERIFY_ID="${VERIFY_ID:-$(date -u +%Y%m%dT%H%M%SZ)-$RANDOM}"
+# How much of an unexpected response an error message shows.
+readonly RESPONSE_PREVIEW_BYTES=300
+VERIFY_ID="${VERIFY_ID:-$(utc_stamp)-$RANDOM}" || exit 1
+readonly VERIFY_ID
 
 URL=""
 HOST_HEADER=""
@@ -84,10 +87,10 @@ rpc() {
     '{jsonrpc: "2.0", id: $id, method: $method, params: $params}')"
   status="$(post "$payload")" \
     || die "$label: request to $URL failed (is the server running? try 'make local-up' or 'make status')"
-  [[ "$status" == 200 ]] || die "$label: HTTP $status from $URL: $(head -c 300 "$WORK_DIR/body")"
+  [[ "$status" == 200 ]] || die "$label: HTTP $status from $URL: $(head -c "$RESPONSE_PREVIEW_BYTES" "$WORK_DIR/body")"
   message="$(extract_message "$id" 2>/dev/null)" \
-    || die "$label: response is not JSON-RPC: $(head -c 300 "$WORK_DIR/body")"
-  [[ -n "$message" ]] || die "$label: no response with id $id: $(head -c 300 "$WORK_DIR/body")"
+    || die "$label: response is not JSON-RPC: $(head -c "$RESPONSE_PREVIEW_BYTES" "$WORK_DIR/body")"
+  [[ -n "$message" ]] || die "$label: no response with id $id: $(head -c "$RESPONSE_PREVIEW_BYTES" "$WORK_DIR/body")"
   if jq -e 'has("error")' <<<"$message" >/dev/null; then
     die "$label: JSON-RPC error $(jq -c '.error' <<<"$message")"
   fi
@@ -107,10 +110,10 @@ call_tool() {
   params="$(jq -cn --arg name "$name" --argjson arguments "$arguments" '{name: $name, arguments: $arguments}')"
   result="$(rpc "$id" tools/call "$params")" || exit 1
   if jq -e '.isError == true' <<<"$result" >/dev/null; then
-    die "$name: tool error: $(jq -r '.content[0].text // ""' <<<"$result" | head -c 300)"
+    die "$name: tool error: $(jq -r '.content[0].text // ""' <<<"$result" | head -c "$RESPONSE_PREVIEW_BYTES")"
   fi
   jq -c '.structuredContent.result // (.content[0].text | fromjson)' <<<"$result" \
-    || die "$name: unexpected result: $(head -c 300 <<<"$result")"
+    || die "$name: unexpected result: $(head -c "$RESPONSE_PREVIEW_BYTES" <<<"$result")"
 }
 
 initialize() {
@@ -131,7 +134,7 @@ check_tools() {
   local result names tool
   result="$(rpc 2 tools/list '{}')" || exit 1
   names="$(jq -r '.tools[].name' <<<"$result")" \
-    || die "tools/list: unexpected result: $(head -c 300 <<<"$result")"
+    || die "tools/list: unexpected result: $(head -c "$RESPONSE_PREVIEW_BYTES" <<<"$result")"
   for tool in $REQUIRED_TOOLS; do
     grep -qx "$tool" <<<"$names" \
       || die "tools/list: missing tool '$tool' (did the Basic Memory image change? see compose.yaml)"
@@ -180,7 +183,7 @@ cleanup() {
 main() {
   parse_args "$@"
   require_cmd curl jq
-  WORK_DIR="$(mktemp -d)"
+  WORK_DIR="$(mktemp -d)" || exit 1
   trap cleanup EXIT
   local title="bm-verify-$VERIFY_ID" marker="bm-verify marker $VERIFY_ID"
   step "MCP round trip against $URL${HOST_HEADER:+ (Host: $HOST_HEADER)}"

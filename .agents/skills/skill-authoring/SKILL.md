@@ -5,7 +5,7 @@ description: Conventions for the agent skills of this repo (.agents/skills folde
 
 # Author a repository skill
 
-Claude Code, Codex, Gemini CLI and Antigravity share these skills, so they follow the Agent Skills specification (https://agentskills.io/specification) and nothing tool-specific. `make check` runs `tests/skills.bats`, which enforces every rule marked (tested).
+Claude Code, Codex, Gemini CLI and Antigravity share these skills, so they follow the Agent Skills specification (https://agentskills.io/specification) and nothing tool-specific. `make check` runs `tests/repo-skills.bats`, which enforces every rule marked (tested).
 
 ## Add a skill
 
@@ -34,7 +34,7 @@ Put the key words first, because tool skill lists shorten long descriptions. Nev
 - Rules that must never be broken go first: after a long session only the start of a skill may stay in context.
 - Operational skills use the template's shape: Rules, a checklist to copy, numbered steps with exact commands, Gotchas. Mark each step that changes the VM, cloud resources or data with "Ask first".
 - One default per step, not a menu. Exact commands where a mistake is costly; judgment only where situations differ.
-- A step is a make target or a script call plus what to read in its output. When a step needs a check no target or script makes yet (a checksum, an archive listing, a count), add it to a script with a bats test and call that script; first look whether a script already checks it (for example `scripts/restore.sh` checks the archive checksum and manifest).
+- A step is a make target or a script call plus what to read in its output. When a step needs a check no target or script makes yet (a checksum, an archive listing, a count), add it to a script with a bats test and call that script; first look whether a script already checks it (for example `scripts/restore-notes.sh` checks the archive checksum and manifest).
 - Keep each value in one place. Name settings by their `.env.example` variable and default (`BM_VM_HOST`, default `agent-hub`).
 - Cloud commands, regions and instance names live only in the runbooks (tested: skills name no cloud provider). When a step needs a cloud command, add it to the right runbook section (Korean, with the personal configuration flag) and point to that section by name from the skill.
 - Refer to other skills by name (`use bm-diagnose`) and to repo files by path. Link a runbook section instead of copying it.
@@ -52,7 +52,7 @@ Put the key words first, because tool skill lists shorten long descriptions. Nev
 1. Write two or three prompts in the user's words that should use the skill, and two near misses that belong to a sibling skill or to none.
 2. Run each prompt in a fresh agent session: first in the main checkout (the old skill or none, the baseline), then in your worktree. Tell the agent to describe its plan without changing anything.
 3. Compare: did it pick the skill, open the right reference, stop at every "Ask first", and use make targets instead of raw commands? Fix the description when it picks the wrong skill and the body when it acts wrongly, then run again.
-4. Record the prompts and results in the commit body, the plan's Progress log or an ADR.
+4. Record the prompts and results in the commit body, the plan's Progress log, or on a work branch the PR body's Verification.
 
 ## Gotchas
 

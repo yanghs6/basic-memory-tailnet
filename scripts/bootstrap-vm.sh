@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # First-time VM setup before the access path exists (public SSH), or over the SSH host alias in ssh mode. Safe to rerun.
-# Usage: bootstrap-vm.sh HOST   (HOST: the public IP, or the SSH host alias in ssh mode; in tailscale mode the
-#        Tailscale auth key comes from $TS_AUTHKEY or a hidden prompt)
+# Usage: make vm-bootstrap HOST=<public-ip, or the SSH host alias in ssh mode>   (in tailscale mode the Tailscale auth
+#        key comes from $TS_AUTHKEY or a hidden prompt)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/vm.sh
+. "$SCRIPT_DIR/lib/vm.sh"
 
 readonly REMOTE_SCRIPT_TEMPLATE=/tmp/bm-bootstrap.XXXXXX
 readonly TS_HOSTNAME=agent-hub
@@ -34,11 +34,11 @@ print_next_steps() {
   log "Next steps:"
   if [[ "$1" == ssh ]]; then
     log "  1. make deploy verify status"
-    log "  2. make tunnel, then connect the agents (docs/runbooks/operations.md)"
+    log "  2. make tunnel, then connect the agents (docs/runbooks/rbk-2026-10-12-operations.md)"
     return 0
   fi
   log "  1. ssh $2@$TS_HOSTNAME true    # must succeed over Tailscale SSH"
-  log "  2. only then delete the firewall rule that opens port 22 (docs/runbooks/bootstrap.md)"
+  log "  2. only then delete the firewall rule that opens port 22 (docs/runbooks/rbk-2026-10-12-bootstrap.md)"
   log "  3. make deploy verify status"
 }
 
@@ -52,9 +52,9 @@ main() {
     if [[ -n "$key" ]]; then
       log "using auth key $(mask "$key")"
     fi
-    upload_hint="check the public IP, your SSH key, and that a firewall rule allows port 22 from your IP (docs/runbooks/gcp-vm.md)"
+    upload_hint="check the public IP, your SSH key, and that a firewall rule allows port 22 from your IP (docs/runbooks/rbk-2026-10-12-gcp-vm.md)"
   else
-    upload_hint="check the ProxyCommand for $host in ~/.ssh/config, its login and the firewall rule for the tunnel range (docs/runbooks/gcp-vm.md)"
+    upload_hint="check the ProxyCommand for $host in ~/.ssh/config, its login and the firewall rule for the tunnel range (docs/runbooks/rbk-2026-10-12-gcp-vm.md)"
   fi
 
   step "upload bootstrap script to $user@$host"
@@ -63,14 +63,14 @@ main() {
   # The path is spliced into later remote commands, so accept only what mktemp should print.
   [[ "$remote_script" =~ ^/tmp/bm-bootstrap\.[A-Za-z0-9]{6}$ ]] \
     || die "unexpected temp path from mktemp on the VM: '$remote_script'"
-  ssh_public "$user@$host" "cat > $remote_script" <"$SCRIPT_DIR/remote/bootstrap.sh" \
+  ssh_public "$user@$host" "cat > $remote_script" <"$SCRIPT_DIR/remote/provision-vm.sh" \
     || {
       remove_remote_script "$user@$host" "$remote_script"
       die "upload failed: $upload_hint"
     }
 
   step "run bootstrap on the VM (access: $mode)"
-  remote_env="BM_ACCESS=$mode BM_PORT=${BM_PORT:-8737} SB_PORT=${SB_PORT:-3000} BM_REMOTE_DATA_ROOT=$BM_REMOTE_DATA_ROOT BM_REMOTE_APP_DIR=$BM_REMOTE_APP_DIR"
+  remote_env="BM_ACCESS=$mode BM_PORT=${BM_PORT:-$DEFAULT_BM_PORT} SB_PORT=${SB_PORT:-$DEFAULT_SB_PORT} BM_REMOTE_DATA_ROOT=$BM_REMOTE_DATA_ROOT BM_REMOTE_APP_DIR=$BM_REMOTE_APP_DIR"
   remote_env="$remote_env ADMIN_USER=$user TS_HOSTNAME=$TS_HOSTNAME"
   printf '%s\n' "$key" | ssh_public "$user@$host" "sudo $remote_env bash $remote_script" \
     || {

@@ -3,21 +3,22 @@
 # loopback-only binding of both ports, tailnet-only Serve that sends 443 to Basic Memory and 8443 to SilverBullet
 # (no Funnel on either), and that the public IP refuses common ports. With --read-only it writes no notes and does
 # not log in. Firewall rules and the tailnet policy cannot be read from here; audit them by hand
-# (docs/runbooks/operations.md, Exposure audit).
+# (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit).
 # In the ssh access mode it runs the same checks through a temporary SSH tunnel on 127.0.0.1 and, instead of Serve,
 # checks that Tailscale does not expose the VM and that sshd accepts keys only.
-# Usage: verify-vm.sh [--read-only]
+# Usage: make verify, or make probe (read-only)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/vm.sh
+. "$SCRIPT_DIR/lib/vm.sh"
 
 readonly PUBLIC_PROBE_TIMEOUT_SECONDS=5
 readonly SB_HTTPS_PORT=8443
 readonly PUBLIC_PROBE_PORTS="22 80 443 $SB_HTTPS_PORT"
 
-# ssh access mode: local ends of the verify tunnel, apart from make tunnel's 18737/13000 so both can run at once.
+# ssh access mode: local ends of the verify tunnel, apart from make tunnel's DEFAULT_TUNNEL_MCP_PORT and
+# DEFAULT_TUNNEL_WEB_PORT (scripts/open-tunnel.sh) so both can run at once.
 readonly VERIFY_TUNNEL_MCP_PORT=28737
 readonly VERIFY_TUNNEL_WEB_PORT=23000
 readonly TUNNEL_READY_TIMEOUT_SECONDS=20
@@ -51,7 +52,7 @@ check_serve() {
   funnel="$(jq -r '[(.AllowFunnel // {})[] | select(. == true)] | length' <<<"$serve")" \
     || die "unexpected tailscale serve status (not JSON): $serve"
   ((funnel == 0)) \
-    || die "Funnel is on for this node: the unauthenticated endpoint is public; turn it off (docs/runbooks/operations.md, Exposure audit)"
+    || die "Funnel is on for this node: the unauthenticated endpoint is public; turn it off (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit)"
   for pair in "443 $bm_port" "$SB_HTTPS_PORT $sb_port"; do
     read -r https_port local_port <<<"$pair"
     target="$(serve_proxy "$serve" "$https_port")" || die "unexpected tailscale serve status (not JSON): $serve"
@@ -68,8 +69,8 @@ close_verify_tunnel() {
   fi
 }
 
-# open_verify_tunnel BM_PORT SB_PORT -> forwards VERIFY_TUNNEL_MCP_PORT and VERIFY_TUNNEL_WEB_PORT on 127.0.0.1 to the
-# VM's loopback ports over the SSH alias, in the background until this script exits.
+# open_verify_tunnel -> forwards VERIFY_TUNNEL_MCP_PORT and VERIFY_TUNNEL_WEB_PORT on 127.0.0.1 to Basic Memory and
+# SilverBullet on the VM's loopback over the SSH alias, in the background until this script exits.
 open_verify_tunnel() {
   local waited=0 port
   # A listener already on these ports would pass the readiness check below while ssh is still connecting.
@@ -77,15 +78,14 @@ open_verify_tunnel() {
     require_free_port "verify tunnel port" "$port" "$VERIFY_TUNNEL_PORT_HINT"
   done
   step "open a verify tunnel to $BM_VM_USER@$BM_VM_HOST on 127.0.0.1:$VERIFY_TUNNEL_MCP_PORT and :$VERIFY_TUNNEL_WEB_PORT"
-  ssh -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ConnectTimeout="$SSH_CONNECT_TIMEOUT_SECONDS" \
-    -L "$(forward_spec "$VERIFY_TUNNEL_MCP_PORT" "$1")" -L "$(forward_spec "$VERIFY_TUNNEL_WEB_PORT" "$2")" \
-    "$BM_VM_USER@$BM_VM_HOST" &
+  tunnel_args "$VERIFY_TUNNEL_MCP_PORT" "$VERIFY_TUNNEL_WEB_PORT" -o BatchMode=yes -o ConnectTimeout="$SSH_CONNECT_TIMEOUT_SECONDS"
+  ssh "${TUNNEL_ARGS[@]}" &
   tunnel_pid=$!
   trap close_verify_tunnel EXIT
   while ((waited < TUNNEL_READY_TIMEOUT_SECONDS)); do
     kill -0 "$tunnel_pid" 2>/dev/null \
       || die "verify tunnel exited before it opened (is port $VERIFY_TUNNEL_MCP_PORT or $VERIFY_TUNNEL_WEB_PORT in use?): $(access_hint)"
-    if nc -z 127.0.0.1 "$VERIFY_TUNNEL_MCP_PORT" >/dev/null 2>&1; then
+    if local_port_open "$VERIFY_TUNNEL_MCP_PORT"; then
       log "verify tunnel is open"
       return 0
     fi
@@ -98,7 +98,7 @@ open_verify_tunnel() {
 check_tailscale_off() {
   step "check Tailscale does not expose the VM (BM_ACCESS=ssh)"
   if vm_tailscale_logged_in; then
-    die "Tailscale is logged in on the VM but BM_ACCESS=ssh: log it out (docs/runbooks/operations.md, Access mode change)"
+    die "Tailscale is logged in on the VM but BM_ACCESS=ssh: log it out (docs/runbooks/rbk-2026-10-12-operations.md, Access mode change)"
   fi
   log "OK: Tailscale does not expose the VM (not installed, logged out or down)"
 }
@@ -108,9 +108,9 @@ check_sshd_auth() {
   step "check sshd accepts keys only (BM_ACCESS=ssh)"
   config="$(remote "sudo -n sshd -T")" || die "could not read the sshd config on $BM_VM_HOST: $(access_hint)"
   grep -qx 'passwordauthentication no' <<<"$config" \
-    || die "sshd on the VM accepts passwords: set PasswordAuthentication no (docs/runbooks/gcp-vm.md, section 8)"
+    || die "sshd on the VM accepts passwords: set PasswordAuthentication no (docs/runbooks/rbk-2026-10-12-gcp-vm.md, section 8)"
   grep -qx 'kbdinteractiveauthentication no' <<<"$config" \
-    || die "sshd on the VM accepts keyboard-interactive logins: set KbdInteractiveAuthentication no (docs/runbooks/gcp-vm.md, section 8)"
+    || die "sshd on the VM accepts keyboard-interactive logins: set KbdInteractiveAuthentication no (docs/runbooks/rbk-2026-10-12-gcp-vm.md, section 8)"
   log "OK: sshd accepts keys only"
 }
 
@@ -131,7 +131,7 @@ probe_port() {
 # link-local and unspecified ranges (probing those would say nothing about the VM's public side).
 validate_public_ip() {
   local ip="$1" a b c d hint
-  hint="look up the VM's public IP as described in docs/runbooks/gcp-vm.md"
+  hint="look up the VM's public IP as described in docs/runbooks/rbk-2026-10-12-gcp-vm.md"
   [[ "$ip" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]] \
     || die "BM_VM_PUBLIC_IP must be the VM's public IPv4 (got '$ip'): $hint"
   a=$((10#${BASH_REMATCH[1]})) b=$((10#${BASH_REMATCH[2]})) c=$((10#${BASH_REMATCH[3]})) d=$((10#${BASH_REMATCH[4]}))
@@ -170,17 +170,17 @@ check_public_closed() {
 }
 
 main() {
-  local port="${BM_PORT:-8737}" sb_port="${SB_PORT:-3000}" mode url sb_url
+  local port="${BM_PORT:-$DEFAULT_BM_PORT}" sb_port="${SB_PORT:-$DEFAULT_SB_PORT}" mode url sb_url
   case "${1:-}" in
     "" | --read-only) ;;
-    *) die "usage: verify-vm.sh [--read-only]" ;;
+    *) die "usage: make verify, or make probe (read-only)" ;;
   esac
+  require_vm curl jq nc
   mode="$(access_mode)" || exit 1
-  require_cmd ssh curl jq nc
-  require_env BM_VM_HOST BM_VM_USER BM_VM_PUBLIC_IP
+  require_env BM_VM_PUBLIC_IP
   validate_public_ip "$BM_VM_PUBLIC_IP"
   if [[ "$mode" == ssh ]]; then
-    open_verify_tunnel "$port" "$sb_port"
+    open_verify_tunnel
     url="http://127.0.0.1:$VERIFY_TUNNEL_MCP_PORT/mcp"
     sb_url="http://127.0.0.1:$VERIFY_TUNNEL_WEB_PORT"
   else
@@ -208,9 +208,9 @@ main() {
   fi
   check_public_closed "$port" "$sb_port"
   if [[ "$mode" == ssh ]]; then
-    log "OK: automated VM checks passed (access: ssh); audit firewall rules by hand (docs/runbooks/operations.md, Exposure audit)"
+    log "OK: automated VM checks passed (access: ssh); audit firewall rules by hand (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit)"
   else
-    log "OK: automated VM checks passed; audit firewall rules and the tailnet policy by hand (docs/runbooks/operations.md, Exposure audit)"
+    log "OK: automated VM checks passed; audit firewall rules and the tailnet policy by hand (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit)"
   fi
 }
 
