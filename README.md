@@ -62,4 +62,4 @@ Claude Code·Codex 연결은 [운영 런북](docs/runbooks/rbk-2026-10-12-t79ex2
 
 ## 범위 밖 (다음 목표)
 
-자동 백업, `personal-context` GitHub 정본 연동, 회사용 별도 인스턴스
+자동 백업, 회사용 별도 인스턴스

@@ -46,7 +46,7 @@ amended-by: [docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md, docs/specs/spe
 
 - 에이전트별 MCP 클라이언트 연결 설정
 - 자동·주기 백업
-- `personal-context` GitHub 정본 연동, 지식 그래프·온톨로지
+- 지식 그래프·온톨로지
 - 회사용 별도 인스턴스
 - VM 생성·방화벽을 감싸는 Make 타깃이나 IaC (런북의 gcloud 명령으로 충분)
 
