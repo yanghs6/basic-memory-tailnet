@@ -54,7 +54,7 @@ VM이나 클라우드를 바꾸는 명령의 승인 규칙과 `.env`·`backups/`
 
 ## 에이전트용 스킬
 
-`.agents/skills/`(Claude Code는 `.claude/skills/` 링크)에 스킬이 있습니다: `bm-upgrade`(이미지 업그레이드), `bm-recover`(VM 정지·삭제·손상 후 복구), `bm-diagnose`(읽기 전용 진단), `git-workflow`, `branch-review`, `skill-authoring`(스킬 추가·수정 규칙), `doc-authoring`(문서 작성 규칙). 어떤 상황에 어떤 스킬을 쓰는지는 `AGENTS.md`의 `## Skills`에 있고, 구조 규칙은 `tests/skills.bats`가 검사합니다([ADR 0003](docs/decisions/adr-2026-10-13-0003-skill-structure.md)).
+`.agents/skills/`(Claude Code는 `.claude/skills/` 링크)에 스킬이 있습니다: `bm-upgrade`(이미지 업그레이드), `bm-recover`(VM 정지·삭제·손상 후 복구), `bm-diagnose`(읽기 전용 진단), `git-workflow`, `branch-review`, `skill-authoring`(스킬 추가·수정 규칙), `doc-authoring`(문서 작성 규칙), `script-authoring`(스크립트·테스트 작성 규칙). 어떤 상황에 어떤 스킬을 쓰는지는 `AGENTS.md`의 `## Skills`에 있고, 구조 규칙은 `tests/repo-skills.bats`가 검사합니다([ADR 0003](docs/decisions/adr-2026-10-13-0003-skill-structure.md)).
 
 문서의 종류와 위치, 새 문서를 만드는 법(`make new-doc`)은 [문서 지도](docs/README.md)에 있습니다.
 
