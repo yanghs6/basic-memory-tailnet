@@ -155,15 +155,15 @@ spec: docs/specs/spec-2026-10-13-github-pr-workflow.md
 
 **Files:**
 - Modify: `scripts/lib/git.sh:21` (`FORBIDDEN_TRAILERS`에 `Claude-Session`을 더한다)
-- Modify: `scripts/check-git.sh:53-64` (`check_commit`에서 `git log -1 --format=%B`로 메시지 전체를 `--label "<sha> <subject>"`와 함께 검사한다)
-- Modify: `scripts/check-pr.sh:13,59-60` (세션 링크만 찾던 검사를 제목과 본문 전체 검사로 바꾼다)
+- Modify: `scripts/check-git.sh:53-64` (`check_commit`에서 `git log -1 --format=%B`로 메시지 전체를 `--label "<짧은 SHA>"`와 함께 검사한다. 제목은 라벨에 넣지 않는다. 메시지에 걸린 곳이 있는 커밋은 `where`(지금 `:55`의 `%h "%s"`)도 SHA만 쓰고, `:49`의 트레일러 값도 출력하지 않는다)
+- Modify: `scripts/check-pr.sh:13,59-60` (세션 링크만 찾던 검사를 제목과 본문 전체 검사로 바꾼다. 제목이나 본문에 걸린 곳이 있으면 `:27`, `:38`, `:52`의 메시지에서 제목과 트레일러 값을 빼고 출력한다)
 - Modify: `.agents/skills/git-workflow/SKILL.md:31,34-35` (`gh pr create`·`gh pr edit` 전에 본문 파일을 `scripts/check-public-text.sh`로 검사한다), `AGENTS.md:28,35` (검사가 있는 곳 한 구절. 사용자 OK)
 - Test: `tests/check-git.bats:75`, `tests/check-pr.bats:49`
 - **Verified (2026-10-22):** `.github/workflows/pr-rules.yml:26,31`이 이미 두 스크립트를 실행하므로 워크플로는 바꾸지 않는다. push 전에 돌리는 `make check-git`도 같은 검사를 하게 된다(`.agents/skills/git-workflow/SKILL.md:27`).
 
 - [ ] **Step 1: 실패하는 테스트 작성.**
-  - `tests/check-git.bats:75`의 반복에 "public" 사례를 더한다. 커밋 본문에 fixture의 tailnet 대역 주소를 넣고 트레일러 `Claude-Session: x`(링크 없음)를 단다. 그러면 그 커밋 제목 뒤에 `agents never add 'Claude-Session'`과 IPv4 hit이 함께 나와야 한다.
-  - `tests/check-pr.bats:49`에 사례를 더한다. 본문에 IP, ts.net 이름, `Generated with` 줄을 각각 넣고, CRLF 본문과 제목에 IP가 있는 경우도 넣는다. 세션 링크 사례는 실패를 그대로 확인하고, 기대 메시지만 새 검사의 것으로 바꾼다.
+  - `tests/check-git.bats:75`의 반복에 "public" 사례를 더한다. 커밋 제목과 본문에 fixture의 tailnet 대역 주소를 넣고 트레일러 `Claude-Session: x`(링크 없음)를 단다. 그러면 그 커밋의 짧은 SHA 뒤에 `agents never add 'Claude-Session'`과 IPv4 hit이 함께 나와야 하고, `refute_output --partial`로 주소가 출력에 없음을 확인한다.
+  - `tests/check-pr.bats:49`에 사례를 더한다. 본문에 IP, ts.net 이름, `Generated with` 줄을 각각 넣고, CRLF 본문과 제목에 IP가 있는 경우도 넣는다. 제목에 IP가 있는 사례는 제목 형식도 어기게 해서, 제목 형식 위반 메시지에도 주소가 없음을 `refute_output --partial`로 확인한다. 세션 링크 사례는 실패를 그대로 확인하고, 기대 메시지만 새 검사의 것으로 바꾼다.
 - [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 사례만 실패한다. 지금 `check-git.sh`는 메시지를 보지 않고, `check-pr.sh`는 세션 링크만 본다.
 - [ ] **Step 3: 최소 구현.** 걸린 곳은 `add_problem`으로 모아서, 다른 위반과 함께 한 번에 보고한다.
 - [ ] **Step 4: 통과 확인.** Run: `make check`. 이어서 Run: `make check-git`. Expected: 둘 다 exit 0. PR의 `pr-rules`도 pass.
