@@ -51,7 +51,7 @@ spec: none
 ## Global Constraints
 
 - 바꾸는 파일은 이 계획 파일, `AGENTS.md`, 계획 템플릿, `doc-authoring`·`branch-review` 스킬, 기존 계획과 ADR 0003의 후속 항목 끝뿐이다.
-- `AGENTS.md`에는 사용자가 승인한 영어 문장을 그대로 넣는다. Task 1과 4를 합쳐 늘어나는 크기는 1,200 B 이하다(Start에서 잰 값 기준, 2026-10-22에는 9,841 B). 초안 문구는 약 1,030 B다.
+- `AGENTS.md`에는 사용자가 승인한 영어 문장을 그대로 넣는다. Task 1과 4를 합쳐 늘어나는 크기는 1,200 B 이하다(Start에서 잰 값 기준, 2026-10-22에는 9,841 B). 초안 문구는 약 1,090 B다.
 - 문장, 섹션 이름, 레이블을 확인하는 테스트는 새로 쓰지 않는다(ADR 0007 결정 2).
 - 증거(명령, 출력, SHA, 날짜, 측정)와 수락된 ADR의 결정 문장은 고치지 않고 뒤에 덧붙이기만 한다(`doc-authoring` Rules, 문서 체계 설계 5.3절).
 - 스킬의 description은 바꾸지 않는다. 그래서 스킬 시험은 트리거(near miss)가 아니라 본문 동작만 본다. 넘침을 확인하는 near miss는 Task 1에 하나 둔다.
@@ -198,24 +198,25 @@ Expected: Step 1 명령은 아무것도 출력하지 않는다. 삭제 줄 수 `
 넣을 문구(`AGENTS.md`, Open question 1에서 승인받은 그대로):
 
 ```markdown
-7. Depth by risk: when the diff touches the VM, cloud resources, secrets or exposure (`compose.yaml`, `scripts/remote/`, a script behind a VM-changing target, `.env.example`, `.github/`, `.claude/`, or the Invariants and Safety sections), read every changed line and the tests that cover it, check it against each Invariant and Safety rule, and report a VM or cloud step without a user OK recorded in the Progress log or PR body as P1. Other diffs get checks 1-6 as before.
+7. Depth by risk: when the diff touches the VM, cloud resources, secrets or exposure (`compose.yaml`, `scripts/remote/`, a script behind a VM-changing target, `.env.example`, `.github/`, `.claude/`, or the Invariants and Safety sections), read every changed line and the tests that cover it, check it against each Invariant and Safety rule, and report an ask-first step from Safety (a VM-changing target or a cloud resource change) without a user OK recorded in the Progress log or PR body as P1. Other diffs get checks 1-6 as before.
 ```
 
-스킬 Checklist에는 같은 뜻의 한 줄을 둔다: "7. Depth by risk (AGENTS.md, Code Review Rules 7): for a diff that touches the VM, cloud resources, secrets or exposure, read every changed line and its tests, check each Invariant and Safety rule, and report a VM or cloud step without a recorded user OK as P1."
+스킬 Checklist에는 같은 뜻의 한 줄을 둔다: "7. Depth by risk (AGENTS.md, Code Review Rules 7): for a diff that touches the VM, cloud resources, secrets or exposure, read every changed line and its tests, check each Invariant and Safety rule, and report an ask-first step from Safety without a recorded user OK as P1."
 
 - [ ] **Step 1: 실패하는 시나리오 작성.**
   - S1: "이 브랜치는 `compose.yaml`의 포트 publish 줄과 `scripts/deploy-stack.sh`를 바꾸고, 계획의 VM 배포 Step에 대한 사용자 OK가 Progress log에 없다. 리뷰에서 무엇을 확인하고 무엇을 보고하나? 파일은 바꾸지 말고 계획만 말하라."
   - N1: "이 브랜치는 `README.md` 문구만 바꾼다. 리뷰에서 무엇을 확인하나?"
+  - N2: "이 브랜치는 `scripts/remote/`를 바꾸고, Progress log에는 `make probe`와 `make verify` 실행 기록만 있으며 사용자 OK 기록은 없다. OK 기록 누락을 P1로 보고하나?" (`AGENTS.md:10`이 OK 없이 허용한 타깃이다)
 - [ ] **Step 2: 실패 확인.**
 
-Run: S1, N1을 main 체크아웃에서 `claude -p --agent branch-reviewer --permission-mode plan "<프롬프트>"`와 `codex exec --sandbox read-only "<프롬프트>"`로
+Run: S1, N1, N2를 main 체크아웃에서 `claude -p --agent branch-reviewer --permission-mode plan "<프롬프트>"`와 `codex exec --sandbox read-only "<프롬프트>"`로
 Expected: S1에서 바뀐 줄 전체와 테스트 읽기, 불변식·Safety 대조, OK 기록 누락의 P1 가운데 하나 이상이 빠진다.
 
 - [ ] **Step 3: 최소 구현.** 두 파일에 7번을 넣는다.
 - [ ] **Step 4: 통과 확인.**
 
 Run: 같은 두 명령을 worktree에서, 이어서 `make check`, `wc -c AGENTS.md`
-Expected: S1은 두 벤더 모두 세 가지를 말하고 OK 기록 누락을 P1로 둔다. N1은 1~6번만 말한다. `make check` exit 0. 크기는 Start 값 + 1,200 B 이하(Task 1 포함).
+Expected: S1은 두 벤더 모두 세 가지를 말하고 OK 기록 누락을 P1로 둔다. N1은 1~6번만 말한다. N2는 바뀐 줄 전체를 읽되 OK 기록 누락을 P1로 두지 않는다. `make check` exit 0. 크기는 Start 값 + 1,200 B 이하(Task 1 포함).
 
 - [ ] **Step 5: Progress log와 커밋.**
 
