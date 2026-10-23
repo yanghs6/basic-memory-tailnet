@@ -159,7 +159,7 @@ Basic Memory 서버 (0.23.2, 터널 경유 `tools/list`):
 
 **Assumption (계획 24 Task 1에서 서버로 확인):** 위 소스 조사로 대부분 풀렸고, 남은 것은 다음과 같다.
 - frontmatter 합치기와 `type: agent_memory`가 실제 서버에서도 소스대로다.
-- 검색어 없이 `metadata_filters`(`project`, 또는 `device`와 `mirror`)와 `note_types`만으로 `search_notes`를 부르면 그 노트 목록(제목, permalink, 본문, 갱신 시각)이 나오고 `has_more`로 페이지를 넘길 수 있다. 색인 hook(§3.4)과 전체 다시 맞추기(§3.3)가 이 호출을 쓴다.
+- 검색어 없이 `metadata_filters`(`project`와 `mirror`, 또는 `device`와 `mirror`)만으로 `search_notes`를 부르면 그 노트 목록(제목, permalink, 본문, 갱신 시각)이 나오고 `has_more`로 페이지를 넘길 수 있다. 색인 hook(§3.4)과 전체 다시 맞추기(§3.3)가 이 호출을 쓴다.
 - VM에서 `text` 검색 한 번이 2초 안에 끝난다. 한국어 명사 검색어가 조사가 붙은 본문과 맞는다.
 - Claude Code에서 hook이 띄운 백그라운드 동기화가 hook이 끝난 뒤에도 돈다(Task 6에서 확인). Codex는 소스로 확인됐다.
 - 에이전트가 색인을 보고 실제로 MCP를 부른다(Task 6에서 확인).
@@ -292,7 +292,8 @@ agent-memory/
   - `cwd`가 Codex 기억 폴더(`${CODEX_HOME:-~/.codex}/memories`, `memories_v2`) 안이다. Codex 기억 2단계 에이전트도 SessionStart hook을 실행하지만 MCP가 없다(§2). 여기서 노트를 넣으면 Basic Memory 내용이 Codex 기억으로 들어갔다가 다시 미러되는 고리가 생긴다.
   - `cwd`의 프로젝트 키(§3.2)나 `<키>--<폴더 이름>`이 `BM_MEMORY_EXCLUDE`에 있다.
 - **목록 받기:** 현재 프로젝트 키와 `_global`에 대해 `search_notes`를 한 번씩 부른다.
-  - 인자: 검색어 없이 `metadata_filters={"project": <키>}`, `note_types=["agent_memory"]`, `page_size=50`, `output_format=json`. 이 호출이 목록을 주는지는 Task 1에서 확인한다(§2 Assumption).
+  - 인자: 검색어 없이 `metadata_filters={"project": <키>, "mirror": true}`, `page_size=50`, `output_format=json`. 이 호출이 목록을 주는지는 Task 1에서 확인한다(§2 Assumption).
+  - `note_types`로 거르지 않는다(2026-10-23 리뷰 R1-F3). 원본 frontmatter의 `type:`이 `note_type`보다 앞서므로 미러 노트의 type은 `agent_memory`가 아닐 수 있다(§3.2). 미러인지는 `mirror: true`로 가린다. 전체 다시 맞추기의 목록(§3.3)도 같다.
   - 요청마다 시간 제한은 3초다. 프로젝트 키가 `_global`이면 한 번만 부른다.
   - 키는 `cwd`로 구한 기본 키다. 충돌 때문에 `--<폴더 이름>`이 붙은 키(§3.2 규칙 7)의 노트는 색인에 나오지 않고, 검색으로만 찾는다.
 - **뺄 노트 (설계 판단):** 그 에이전트가 이 Mac에서 이미 로컬로 읽는 노트는 뺀다.

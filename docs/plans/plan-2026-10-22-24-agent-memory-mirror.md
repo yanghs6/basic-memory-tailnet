@@ -59,7 +59,7 @@ spec: docs/specs/spec-2026-10-22-agent-memory-mirror.md
   - 건너뛰기(아무것도 보내지 않고 출력하지 않음):
     - `cwd`가 `${CODEX_HOME:-$HOME/.codex}/memories`로 시작한다(`memories_v2` 포함)
     - 제외 프로젝트(`<키>` 또는 `<키>--<폴더 이름>`)
-  - 목록 받기: 프로젝트 키와 `_global`에 대해 `search_notes`를 한 번씩 부른다(키가 `_global`이면 한 번). 인자는 검색어 없이 `metadata_filters: {"project": <키>}`, `note_types: ["agent_memory"]`, `project: "main"`, `page_size: 50`, `output_format: "json"`이다. 요청마다 시간 제한 3초다. Task 1이 다른 호출을 정했으면 그것을 쓴다.
+  - 목록 받기: 프로젝트 키와 `_global`에 대해 `search_notes`를 한 번씩 부른다(키가 `_global`이면 한 번). 인자는 검색어 없이 `metadata_filters: {"project": <키>, "mirror": true}`, `project: "main"`, `page_size: 50`, `output_format: "json"`이다. 요청마다 시간 제한 3초다. Task 1이 다른 호출을 정했으면 그것을 쓴다.
   - 뺄 노트: `MEMORY_AGENT=claude-code`이면 `agent-memory/<키>/claude-code/<BM_MEMORY_DEVICE>/`, `codex`이면 `agent-memory/_global/codex/<BM_MEMORY_DEVICE>/`. `BM_MEMORY_DEVICE`가 없으면 빼지 않는다.
   - 출력:
     - 2,500자 이하이고, 프로젝트 노트 먼저, 각 묶음 안은 갱신이 최근인 순서다. permalink로 중복을 지운다. 넘치는 줄은 빼고 뺀 수를 적는다.
@@ -137,7 +137,7 @@ spec: docs/specs/spec-2026-10-22-agent-memory-mirror.md
   - die 메시지는 지금 `verify-mcp.sh`와 글자까지 같다(`<label>: request to <URL> failed ...`, `<label>: HTTP <n> from ...`, `<name>: tool error: ...` 등).
 - Produces (`scripts/lib/common.sh`): `sha256_of FILE` → 16진 해시(`sha256sum`이 없으면 `shasum -a 256`).
 - Produces (Progress log): Task 3·4가 쓰는 서버 동작 기록이다. 스펙 §2의 소스 조사 결과와 다르면 그 차이를 적는다.
-  - 색인 목록 호출: 검색어 없이 `metadata_filters`와 `note_types`로 부르는 `search_notes`가 되는지, 결과의 목록 경로와 필드 이름(제목, permalink, 본문, 갱신 시각)
+  - 색인 목록 호출: 검색어 없이 `metadata_filters`(`project`·`device`와 `mirror`)로 부르는 `search_notes`가 되는지, 결과의 목록 경로와 필드 이름(제목, permalink, 본문, 갱신 시각)
   - 에이전트 조회용 `text` 검색의 지연과 한국어 명사 일치
   - 없는 노트를 지울 때의 응답
 
@@ -206,7 +206,7 @@ Expected: exit 0, 커버리지 80% 이상. 두 번째 명령은 아무것도 출
    - 본문: `---\nname: check\ndescription: plan 24\n---\nplan24 marker <stamp> 경로를 정했다`
    - `metadata: {mirror: true, device: "check", project: "plan24-check-<stamp>"}`, `note_type: "agent_memory"`, `overwrite: true`
    - 결과의 `action`과 `permalink`를 적는다. `read_note` 본문의 frontmatter에 `name`·`description`·`mirror`·`device`·`project`·`type: agent_memory`가 모두 있는지 본다.
-2. 색인 목록 호출: 쓴 노트가 색인될 때까지 몇 초 기다린다(쓰기는 백그라운드에서 반영된다). 그다음 Task 4가 보낼 인자로 `search_notes`를 부른다: 검색어 없음, `metadata_filters: {"project": "plan24-check-<stamp>"}`, `note_types: ["agent_memory"]`, `project: "main"`, `page_size: 50`, `output_format: "json"`.
+2. 색인 목록 호출: 쓴 노트가 색인될 때까지 몇 초 기다린다(쓰기는 백그라운드에서 반영된다). 그다음 Task 4가 보낼 인자로 `search_notes`를 부른다: 검색어 없음, `metadata_filters: {"project": "plan24-check-<stamp>", "mirror": true}`, `project: "main"`, `page_size: 50`, `output_format: "json"`.
    - 시험 노트 하나만 나오는지 본다.
    - 결과에서 `jq 'paths(scalars) | map(tostring) | join(".")'`로 경로 목록만 적는다. 목록 경로, 제목·permalink·본문·갱신 시각의 필드 이름을 확인하는 것이다. 다른 노트의 본문은 기록하지 않는다.
 3. 에이전트 조회: `search_notes(query="경로", project="main", search_type="text", page_size=5, output_format="json")`를 6번 부른다.
@@ -580,7 +580,7 @@ Expected: `sync-agent-memory.bats`의 테스트가 `not implemented`로 실패�
 
 `--full`(스펙 §3.3 전체 다시 맞추기): 6의 비교 대신 다음을 한다. 7과 8은 그대로다.
 - 원하는 목록 전부를 쓰기 대상으로 한다.
-- 이 기기의 미러 노트 목록을 받는다: `search_notes`, 검색어 없이 `metadata_filters: {"device": <기기>, "mirror": true}`, `note_types: ["agent_memory"]`, `page_size: 50`. `has_more`가 참이면 `page`를 늘려 끝까지 받는다.
+- 이 기기의 미러 노트 목록을 받는다: `search_notes`, 검색어 없이 `metadata_filters: {"device": <기기>, "mirror": true}`, `page_size: 50`. `has_more`가 참이면 `page`를 늘려 끝까지 받는다.
 - 목록의 `file_path`에서 `.md`를 뗀 값이 원하는 목록의 노트 경로(`directory/title`)에 없으면, 그 노트의 permalink가 지우기 대상이다. permalink는 소문자화·로마자화로 원래 경로와 달라지므로 비교에 쓰지 않는다(스펙 §2).
 - `--full`로 지우는 것은 `agent-memory/` 아래이면서 frontmatter `device`가 이 기기인 미러 노트뿐이다. 사람이 쓴 노트나 다른 기기의 노트는 지우지 않는다.
 
@@ -668,8 +668,8 @@ line_of() { grep -nF -- "$1" <<<"$output" | head -n 1 | cut -d: -f1; }
   local line
   run "$INDEX" claude-code <<<"$(hook_input "$WIDGET")"
   assert_success
-  assert_equal "$(jq -c 'select(.params.name == "search_notes") | .params.arguments | [.metadata_filters.project, .note_types, .project, (.query // null)]' "$STUB_LOG.requests")" \
-    $'["acme-widget",["agent_memory"],"main",null]\n["_global",["agent_memory"],"main",null]'
+  assert_equal "$(jq -c 'select(.params.name == "search_notes") | .params.arguments | [.metadata_filters, (.note_types // null), .project, (.query // null)]' "$STUB_LOG.requests")" \
+    $'[{"project":"acme-widget","mirror":true},null,"main",null]\n[{"project":"_global","mirror":true},null,"main",null]'
   assert_equal "${lines[0]}" "$HEADER"
   assert_equal "${lines[1]:0:120}" "- ports | main/agent-memory/acme-widget/claude-code/mac-personal/ports | claude-code@mac-personal | 2026-10-21 | ports are fixed"
   refute_output --partial "acme-widget/claude-code/mac-work/"
