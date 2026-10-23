@@ -533,15 +533,18 @@ tool_calls() { jq -r --arg name "$1" 'select(.params.name == $name) | .id' "$STU
   [[ ! -e "$STATE_DIR/lock" ]] || fail "lock left behind"
 }
 
-@test "gives a second Claude folder of the same repo the key <key>--<folder name>, with a warning" {
-  local clone="$BATS_TEST_TMPDIR/work2/widget" folder
-  git init -q "$clone" && git -C "$clone" remote add origin https://github.com/acme/widget.git
-  folder="$HOME/.claude/projects/$(claude_folder_name "$clone")"
-  mkdir -p "$folder/memory" && printf '{"cwd":"%s"}\n' "$clone" >"$folder/s1.jsonl" && echo other >"$folder/memory/MEMORY.md"
+@test "gives a second Claude folder of the same repo the key <key>--<folder name> and a third one a hashed suffix, with a warning, so no two folders share a note path" {
+  local clone folder
+  for clone in "$BATS_TEST_TMPDIR/work2/widget" "$BATS_TEST_TMPDIR/work3/widget"; do
+    git init -q "$clone" && git -C "$clone" remote add origin https://github.com/acme/widget.git
+    folder="$HOME/.claude/projects/$(claude_folder_name "$clone")"
+    mkdir -p "$folder/memory" && printf '{"cwd":"%s"}\n' "$clone" >"$folder/s1.jsonl" && echo other >"$folder/memory/MEMORY.md"
+  done
   run "$SYNC"
   assert_success
   assert_output --partial "project key acme-widget is taken"
   assert_equal "$(written_notes | grep -c '^agent-memory/acme-widget--widget/claude-code/mac-test/MEMORY$')" 1
+  assert_equal "$(written_notes | grep -c -E '^agent-memory/acme-widget--widget-[0-9a-f]{6}/claude-code/mac-test/MEMORY$')" 1
 }
 ```
 
@@ -562,7 +565,7 @@ Expected: `sync-agent-memory.bats`의 테스트가 `not implemented`로 실패�
 1. 상태 폴더(`memory_state_dir`)를 `mkdir -p`로 만든다. hook 모드의 로그가 이 폴더에 가므로 가장 먼저 한다. 새 Mac에서 첫 hook이 로그를 쓸 곳이 없어 조용히 끝나는 일을 막는다.
 2. `--hook`이면 나머지(아래 `require_cmd`부터 8까지)를 `( trap '' HUP; ... ) >>"$state_dir/sync.log" 2>&1 </dev/null &`로 띄우고 바로 0으로 끝난다. 아니면 그대로 이어서 한다. 그다음 `require_cmd curl jq git`와 `require_memory_device`를 한다.
 3. 잠금: `find "$lock" -maxdepth 0 -mmin +"$LOCK_STALE_MINUTES"`가 맞으면 지운다. `mkdir "$lock"`이 실패하면 `another memory-sync is running` 한 줄을 남기고 0으로 끝난다. EXIT trap에서 잠금을 지운다.
-4. 키: Claude 기억 폴더를 이름순으로 돈다. `keys.tsv`에 키가 있으면 그것을 쓰고, 없으면 `claude_folder_key`로 정한다. 이미 다른 폴더가 쓴 키이면 `<키>--<sanitize_key 작업 폴더 이름>`을 쓰고 `WARNING: project key <key> is taken; using <new> for <folder>`를 남긴다. 작업 폴더를 모르면 Claude 폴더 이름을 쓴다. 새로 정한 키는 `keys.tsv`에 더한다.
+4. 키: Claude 기억 폴더를 이름순으로 돈다. `keys.tsv`에 키가 있으면 그것을 쓰고, 없으면 `claude_folder_key`로 정한다. 이미 다른 폴더가 쓴 키이면 `<키>--<sanitize_key 작업 폴더 이름>`을 쓰고 `WARNING: project key <key> is taken; using <new> for <folder>`를 남긴다. 그 키도 쓰였으면 `<키>--<이름>-<작업 폴더 경로의 sha256 앞 6자>`를 쓴다(스펙 §3.2 규칙 7, 리뷰 R1-F2). 작업 폴더를 모르면 Claude 폴더 이름을 쓴다. 새로 정한 키는 `keys.tsv`에 더한다.
 5. 원하는 목록: Global Constraints의 원본과 제외 규칙으로 줄을 만든다(원본 경로, 노트 경로, sha256, 키, 에이전트, repo). `SECRET_PATTERN`이 맞는 파일은 `WARNING: <~ 경로> looks like it holds a secret; not mirrored`를 남기고 뺀다.
 6. 비교: `state.tsv`에 같은 (원본, 노트 경로, sha256)이 있으면 유지한다. 원하는 목록에만 있으면 쓰기, `state.tsv`에만 있는 (원본, 노트 경로)는 지우기다. 둘 다 없으면 네트워크 없이 0으로 끝난다.
 7. 보내기: `mcp_open`, `MCP_URL="$(memory_mcp_url)"`. `(mcp_initialize "$CLIENT_NAME")`가 실패하면 `die "basic-memory unreachable (run make tunnel); sync skipped"`. 지우기를 먼저 하고 쓰기를 나중에 한다.
