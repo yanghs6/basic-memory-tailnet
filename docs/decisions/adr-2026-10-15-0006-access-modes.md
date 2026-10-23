@@ -1,6 +1,7 @@
 ---
 status: accepted
 date: 2026-10-15
+amended-by: docs/decisions/adr-2026-10-22-0008-web-connector.md
 ---
 
 # ADR 0006: VM마다 접속 방식 하나 (Tailscale 또는 SSH 터널)
