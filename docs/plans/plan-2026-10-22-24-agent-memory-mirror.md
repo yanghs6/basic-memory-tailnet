@@ -444,6 +444,21 @@ tool_calls() { jq -r --arg name "$1" 'select(.params.name == $name) | .id' "$STU
     "$(printf '%s\n' agent-memory/_global/codex/mac-test/v2/MEMORY agent-memory/acme-widget/claude-code/mac-test/MEMORY)"
 }
 
+@test "keeps the old state line when an update fails, so removing the file afterwards still deletes its note" {
+  "$SYNC" 2>/dev/null
+  echo changed >>"$CLAUDE_MEM/memory/MEMORY.md"
+  export CURL_STUB_FAIL_MATCH='"title":"MEMORY"'
+  run "$SYNC"
+  assert_failure
+  assert_equal "$(grep -c 'claude-code/mac-test/MEMORY' "$STATE_DIR/state.tsv")" 1
+  unset CURL_STUB_FAIL_MATCH
+  rm "$CLAUDE_MEM/memory/MEMORY.md"
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC"
+  assert_success
+  assert_equal "$(tool_calls delete_note)" 1
+}
+
 @test "counts a write_note result with action conflict as a failure and keeps that file out of the state" {
   sed 's/\\"action\\":\\"created\\"/\\"action\\":\\"conflict\\"/; s/"action":"created"/"action":"conflict"/' \
     "$CURL_FIXTURES/call_write_note.body" >"$CURL_FIXTURES/conflict.body"
@@ -554,7 +569,11 @@ Expected: `sync-agent-memory.bats`의 테스트가 `not implemented`로 실패�
    - 각 호출은 `result="$(mcp_call_tool "$id" ...)"`로 부르고, id는 2부터 하나씩 늘린다.
    - 지우기는 `delete_note(identifier=<permalink>, project=main, output_format=json)`이다. 결과에 `error`가 없으면 끝난 것이다. 이미 없는 노트의 `{"deleted": false}`도 여기에 든다(스펙 §2. Task 1이 다른 모양을 기록했으면 그것을 따른다).
    - 쓰기는 결과의 `action`이 `created`나 `updated`일 때만 성공이고, 결과의 `.permalink`를 상태에 적는다. `conflict` 같은 다른 값은 실패다.
-8. 상태: 유지한 줄, 성공한 쓰기의 줄, 실패한 지우기의 원래 줄을 `state.tsv$PARTIAL_SUFFIX`에 쓰고 `mv`한다. `synced: wrote <n>, deleted <n>, failed <n>`을 남긴다. 실패가 있으면 1로 끝난다(hook 모드에서는 하위 셸만 끝난다).
+8. 상태: 다음 줄을 `state.tsv$PARTIAL_SUFFIX`에 쓰고 `mv`한다.
+   - 유지한 줄
+   - 성공한 쓰기의 줄
+   - 실패한 지우기의 원래 줄
+   - 실패한 쓰기 중 이미 올렸던 파일의 원래 줄(옛 sha256과 permalink). 갱신이 실패해도 그 노트의 permalink를 잃지 않으려는 것이다. 다음 실행은 sha256이 달라 다시 쓰고, 그 사이 원본이 지워지거나 제외되면 그 permalink로 지운다. `synced: wrote <n>, deleted <n>, failed <n>`을 남긴다. 실패가 있으면 1로 끝난다(hook 모드에서는 하위 셸만 끝난다).
 
 `--full`(스펙 §3.3 전체 다시 맞추기): 6의 비교 대신 다음을 한다. 7과 8은 그대로다.
 - 원하는 목록 전부를 쓰기 대상으로 한다.
