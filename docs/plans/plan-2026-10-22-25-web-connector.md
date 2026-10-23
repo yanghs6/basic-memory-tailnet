@@ -88,7 +88,7 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
 | `scripts/verify-web.sh`, `tests/verify-web.bats`, `tests/stubs/dig`, `tests/fixtures/verify-web/` | OAuth 메타데이터 네 가지와 공개 IPv4 확인 | 1 |
 | `Makefile` | 웹 변수 export, `local-*`의 `COMPOSE_PROFILES`, `local-verify` 추가 줄, `gateway-lock` | 1 |
 | `scripts/lib/common.sh` | `DEFAULT_BM_WEB_PORT=8738` | 1 |
-| `scripts/lib/vm.sh`, `tests/lib-vm.bats` | `web_mode`, `require_web_settings`, `vm_env`의 웹 줄 | 2 |
+| `scripts/lib/vm.sh`, `tests/lib-vm.bats` | `web_mode`(1), `require_web_settings`, `upload_gateway_files`, `vm_env`의 웹 줄(2) | 1, 2 |
 | `scripts/deploy-stack.sh`, `scripts/restore-notes.sh` 및 각 bats | 웹 설정 확인, `gateway/` 업로드, 꺼질 때 웹 컨테이너 삭제 | 2 |
 | `scripts/verify-vm.sh`, `scripts/show-status.sh` 및 각 bats | 공개 URL 확인, loopback·공인 포트, 저장소 크기 | 2 |
 | `.env.example` | 웹 변수와 설명 | 2 |
@@ -171,7 +171,8 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
   - `require_vm`이 `access_mode` 다음에 `web_mode`를 부른다.
   - `require_web_settings`. `on`일 때 `BM_WEB_HOST`(scheme 없는 호스트명), `BM_WEB_GITHUB_USER_ID`(숫자), `BM_WEB_GITHUB_CLIENT_ID`, 비밀값 셋(빈 값 금지, `[A-Za-z0-9._~+/=-]`만)을 검사하고, 틀리면 변수 이름만 대고 죽는다.
   - `vm_env`. `on`이면 기존 줄 뒤에 `COMPOSE_PROFILES=web,tunnel`, `BM_WEB_PORT`, `BM_WEB_DATA_DIR=$BM_REMOTE_DATA_ROOT/gateway`, `BM_WEB_BASE_URL=https://$BM_WEB_HOST`, 사용자 id, client id, 비밀값 셋을 쓴다. `off`면 지금과 한 글자도 다르지 않다.
-- Produces (상수): `deploy-stack.sh`의 `GATEWAY_RUNTIME_FILES="boot.py gateway.py requirements.txt"`, `WEB_SERVICES="gateway cloudflared"`.
+  - `upload_gateway_files`. `on`일 때 `$BM_REMOTE_APP_DIR/gateway`를 만들고 `GATEWAY_RUNTIME_FILES`(`boot.py gateway.py requirements.txt`)를 `remote "cat > …" <파일` 방식으로 올린다. 배포와 복원이 함께 쓴다.
+- Produces (상수): `vm.sh`의 `GATEWAY_RUNTIME_FILES`, `deploy-stack.sh`의 `WEB_SERVICES="gateway cloudflared"`.
 
 - [ ] **Step 0: compose 동작 확인.** 로컬에서 `COMPOSE_PROFILES` 없이 `docker compose -f compose.yaml rm --stop --force gateway cloudflared`가 프로필 서비스 컨테이너를 지우는지 본다(Task 1의 `local-up`으로 `gateway`를 띄운 뒤). 결과를 Progress log에 `Verified`로 적는다. 지우지 못하면 `COMPOSE_PROFILES=web,tunnel`을 그 명령에만 붙이는 방식으로 바꾸고, 그것도 적는다.
 - [ ] **Step 1: 실패하는 테스트 작성.**
@@ -183,13 +184,15 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
     - "with BM_WEB=on uploads the gateway runtime files and writes the web settings into the VM .env without printing a secret": ssh 스텁 로그에 `gateway/boot.py` 등 세 파일의 업로드와 `COMPOSE_PROFILES=web,tunnel`이 있고, 출력에 비밀값 세 개가 없다.
     - "with BM_WEB=on and a missing secret stops before ssh": 변수 이름만 출력한다.
     - "with BM_WEB=off removes leftover web containers after the stack is up": `rm --stop --force gateway cloudflared` 호출이 `up` 뒤에 있다.
-  - `restore-notes.bats`: "with BM_WEB=on and a malformed secret stops before ssh".
+  - `restore-notes.bats`:
+    - "with BM_WEB=on and a malformed secret stops before ssh".
+    - "with BM_WEB=on uploads the gateway runtime files before starting the stack": 게이트웨이 코드가 없는 VM(웹으로 배포한 적이 없는 재생성 VM)을 흉내 내고, ssh 스텁 로그에서 세 파일의 업로드가 `up -d --wait`보다 앞에 있는지 본다.
   - `verify-vm.bats`: `BM_WEB=on`이면 `verify-web.sh --public "https://<host>"`를 `verify`와 `probe` 모두에서 부르고, `BM_WEB_PORT`의 loopback 검사와 공인 IP 검사를 한다. `off`면 셋 다 하지 않는다.
   - `show-status.bats`: `BM_WEB=on`이면 `gateway store: <N> KiB, <M> client registrations` 줄이 나온다. 원격 명령은 `du -sk`와, `mcp-oauth-proxy-clients`가 들어간 경로의 파일 수다. `off`면 그 줄이 없다.
 - [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패하고 기존 테스트는 통과한다.
 - [ ] **Step 3: 최소 구현.**
-  - `deploy-stack.sh`: `require_sb_user` 다음에 `require_web_settings`를 부른다. `compose.yaml`을 올린 뒤 `on`이면 `$BM_REMOTE_APP_DIR/gateway`를 만들고 `GATEWAY_RUNTIME_FILES`를 같은 방식(`remote "cat > …" <파일`)으로 올린다. `up` 뒤 `off`면 `remote_compose "rm --stop --force $WEB_SERVICES"`(Step 0 결과대로)를 부른다.
-  - `restore-notes.sh`: `require_sb_user` 다음에 `require_web_settings`를 부른다. 나머지는 `vm_env`가 맡는다.
+  - `deploy-stack.sh`: `require_sb_user` 다음에 `require_web_settings`를 부른다. `compose.yaml`을 올린 뒤 `upload_gateway_files`를 부른다. `up` 뒤 `off`면 `remote_compose "rm --stop --force $WEB_SERVICES"`(Step 0 결과대로)를 부른다.
+  - `restore-notes.sh`: `require_sb_user` 다음에 `require_web_settings`를 부르고, `compose.yaml`과 `.env`를 올리는 단계(`:143-145`)에서 `upload_gateway_files`도 부른다. 웹 설정은 `vm_env`가 맡는다.
   - `verify-vm.sh`: `on`이면 `PUBLIC_PROBE_PORTS`에 `BM_WEB_PORT`를 더하고, `check_loopback_binding "$BM_WEB_PORT"`와 `verify-web.sh --public`을 부른다.
   - `show-status.sh`: `on`이면 `gateway_store_summary -> "<KiB> <registrations>"`를 한 번의 `remote`로 읽어 한 줄로 알린다. 컨테이너 목록은 VM `.env`의 프로필로 기존 `ps`에 함께 나온다.
   - `.env.example`: 스펙 §3.3의 표 순서로 변수와 한 줄 설명을 쓴다. 비밀값은 빈 값으로 두고 만드는 명령을 주석으로 단다.

@@ -133,7 +133,7 @@ flowchart TB
   - **내 결정:** 기존 compose 명령 문자열을 그대로 둔다. `tests/repo-make.bats:69`가 `docker compose -f compose.yaml up -d --wait`를 정확히 검사하고, 개선 백로그의 계획 19도 `local-down`·`local-logs` 명령을 고정하려 한다. 복원(`scripts/restore-notes.sh`)도 같은 `.env`를 쓰므로, 복원하는 동안 게이트웨이도 함께 멈췄다가 뜬다.
 - 웹 서비스의 환경변수는 `${VAR:-}`로 읽고 `${VAR:?}`를 쓰지 않는다. compose는 꺼진 프로필의 서비스까지 변수를 치환하므로, `:?`를 쓰면 `BM_WEB=off`인 설치에서도 모든 compose 명령이 실패한다. 값 확인은 배포 전의 스크립트와 게이트웨이 시작 시점에 한다.
   - **Verified (2026-10-22, Docker Compose v5.0.2, 임시 compose 파일로 `config --services`):** 프로젝트 디렉터리 `.env`의 `COMPOSE_PROFILES=web,tunnel`이 두 프로필을 켠다. 환경변수 `COMPOSE_PROFILES=web`은 `.env` 값보다 앞서 `web`만 켠다. 꺼진 프로필 서비스의 `${VAR:?}`도 값이 없으면 `required variable ... is missing a value`로 실패한다.
-- `BM_WEB=on`이면 배포가 `gateway/`의 런타임 파일을 VM 앱 디렉터리(`/opt/basic-memory/gateway/`)에 올린다. 지금 배포는 `compose.yaml`과 `.env`만 올린다(`scripts/deploy-stack.sh:26-33`).
+- `BM_WEB=on`이면 배포와 복원이 `gateway/`의 런타임 파일을 VM 앱 디렉터리(`/opt/basic-memory/gateway/`)에 올린다. 지금 두 스크립트는 `compose.yaml`과 `.env`만 올린다(`scripts/deploy-stack.sh:26-33`, `scripts/restore-notes.sh:143-145`). 복원도 올려야 웹으로 배포한 적 없는 VM에 `BM_WEB=on` 백업을 복원할 때 게이트웨이가 뜬다.
 - `BM_WEB=off`로 배포하면 VM에 남아 있는 웹 서비스를 멈추고 지운다.
 - 공개 호스트명과 그 호스트명이 풀리는 IP는 스크립트가 출력하지 않는다. 출력을 Progress log나 PR에 붙이면 저장소 공개 문서에 남기 때문이다(개선 백로그 계획 18의 공개 텍스트 검사는 호스트명을 잡지 못한다).
 - `.env` 값(이름은 제안이고 계획에서 확정한다):
@@ -275,7 +275,7 @@ flowchart TB
 
 - **Reported (2026-10-23, 감독 세션이 전달한 사용자 결정):** 문서 체계 개편(계획 25의 Pending Requirements)이 모든 계획보다 먼저다. 이 계획의 코드(Task 1~3)는 개편이 병합된 뒤, 에이전트 기억 미러의 코드보다 먼저 한다.
 - 계획 18·22·23과는 나란히 진행한다. 겹치는 곳은 `Makefile`, `AGENTS.md`, `tests/repo-make.bats`의 몇 줄이다. 나중에 병합하는 쪽이 `git merge origin/main`으로 맞춘다.
-- `scripts/restore-notes.sh`는 계획 20의 Task 4(`confirm`이 `/dev/tty`에서만 `yes`를 읽음)와 계획 21의 Task 3(`present`·`absent`가 아닌 답에서 멈춤)도 고친다. 이 계획의 Task 2는 `require_sb_user` 다음에 `require_web_settings` 한 줄만 더하므로, 나중에 병합하는 쪽이 맞춘다.
+- `scripts/restore-notes.sh`는 계획 20의 Task 4(`confirm`이 `/dev/tty`에서만 `yes`를 읽음)와 계획 21의 Task 3(`present`·`absent`가 아닌 답에서 멈춤)도 고친다. 이 계획의 Task 2는 `require_web_settings`와 `upload_gateway_files` 호출 두 줄만 더하므로, 나중에 병합하는 쪽이 맞춘다.
 - 계획 19의 Task 4와 계획 20은 이 계획의 코드 PR이 병합된 뒤에 쓴다. 두 계획은 `AGENTS.md:13` 불변식과 신뢰 경계를 다시 적는데, 이 계획이 그 문장을 바꾸기 때문이다.
 - VM을 바꾸는 Task는 한 번에 하나만 한다. **Reported (2026-10-23, 같은 경로):** 순서는 계획 21 Task 4 → 이 계획 Task 4 → 에이전트 기억 미러의 VM Task → 계획 07이고, 감독 세션이 시작을 알린다.
 - ADR 번호 0008은 이 스펙이 먼저 쓴다. 계획 18·19·20도 실행 중에 ADR을 만들므로, 병합 때 번호가 겹치면 나중 쪽이 `git mv`로 바꾼다.
