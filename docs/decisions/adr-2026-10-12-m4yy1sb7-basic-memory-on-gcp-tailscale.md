@@ -1,6 +1,7 @@
 ---
 status: accepted
 date: 2026-10-12
+amended-by: docs/decisions/adr-2026-10-22-fcvznmdc-web-connector.md
 ---
 
 # ADR m4yy1sb7: Basic Memory를 GCP 무료 e2-micro + Tailscale에 자체 호스팅
