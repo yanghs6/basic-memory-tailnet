@@ -273,9 +273,11 @@ flowchart TB
 
 다른 작업과의 순서(2026-10-22, 개선 백로그의 계획 18~23과 에이전트 기억 미러의 계획 24 기준):
 
-- 계획 18·22·23·24와는 나란히 진행한다. 겹치는 곳은 `Makefile`, `AGENTS.md`, `tests/repo-make.bats`의 몇 줄이다. 나중에 병합하는 쪽이 `git merge origin/main`으로 맞춘다.
+- **Reported (2026-10-23, 감독 세션이 전달한 사용자 결정):** 문서 체계 개편(계획 25의 Pending Requirements)이 모든 계획보다 먼저다. 이 계획의 코드(Task 1~3)는 개편이 병합된 뒤, 에이전트 기억 미러의 코드보다 먼저 한다.
+- 계획 18·22·23과는 나란히 진행한다. 겹치는 곳은 `Makefile`, `AGENTS.md`, `tests/repo-make.bats`의 몇 줄이다. 나중에 병합하는 쪽이 `git merge origin/main`으로 맞춘다.
+- `scripts/restore-notes.sh`는 계획 20의 Task 4(`confirm`이 `/dev/tty`에서만 `yes`를 읽음)와 계획 21의 Task 3(`present`·`absent`가 아닌 답에서 멈춤)도 고친다. 이 계획의 Task 2는 `require_sb_user` 다음에 `require_web_settings` 한 줄만 더하므로, 나중에 병합하는 쪽이 맞춘다.
 - 계획 19의 Task 4와 계획 20은 이 계획의 코드 PR이 병합된 뒤에 쓴다. 두 계획은 `AGENTS.md:13` 불변식과 신뢰 경계를 다시 적는데, 이 계획이 그 문장을 바꾸기 때문이다.
-- VM을 바꾸는 Task는 한 번에 하나만 한다. 계획 21의 Task 4(VM 복구 훈련)와 이 계획의 Task 4가 겹치지 않게 한다.
+- VM을 바꾸는 Task는 한 번에 하나만 한다. **Reported (2026-10-23, 같은 경로):** 순서는 계획 21 Task 4 → 이 계획 Task 4 → 에이전트 기억 미러의 VM Task → 계획 07이고, 감독 세션이 시작을 알린다.
 - ADR 번호 0008은 이 스펙이 먼저 쓴다. 계획 18·19·20도 실행 중에 ADR을 만들므로, 병합 때 번호가 겹치면 나중 쪽이 `git mv`로 바꾼다.
 
 ## 8. Open questions

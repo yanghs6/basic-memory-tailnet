@@ -18,13 +18,13 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
 
 **Sequence:** 계획 25. 다음을 모두 만족한 뒤 시작한다.
 - 이 계획·스펙·ADR을 담은 docs PR이 병합됐다.
-- Task 1~3(코드 PR)은 개선 백로그의 계획 18·22·23, 에이전트 기억 미러의 계획 24와 나란히 진행한다. 나중에 병합하는 쪽이 `git merge origin/main`으로 맞춘다.
-- Task 4는 코드 PR이 병합되고, 스펙 §8의 사용자 준비물(도메인, GitHub 계정과 숫자 id)이 있고, 다른 계획이 같은 때 VM을 바꾸지 않을 때 한다(특히 계획 21의 Task 4).
-- 시작하기 전에 아래 Pending Requirements의 진행 상태를 사용자에게 확인한다. 문서 체계 개편이 먼저 진행되면 이 계획의 파일 이름, 브랜치 이름(`plan/25-web-connector`), 트레일러(`Plan: 25`)가 새 규칙으로 바뀐다.
+- **Reported (2026-10-23, 감독 세션이 전달한 사용자 결정):** 아래 Pending Requirements의 문서 체계 개편이 모든 계획보다 먼저다. Task 1~3(코드 PR)은 그 개편 PR이 병합된 뒤 시작하고, 에이전트 기억 미러의 코드보다 먼저 한다. 개편이 이 계획의 파일 이름, 브랜치 이름(`plan/25-web-connector`), 트레일러(`Plan: 25`)를 새 규칙으로 바꾼다.
+- Task 1~3은 개선 백로그의 계획 18·22·23과 나란히 진행할 수 있다. 나중에 병합하는 쪽이 `git merge origin/main`으로 맞춘다.
+- Task 4는 코드 PR이 병합되고, 스펙 §8의 사용자 준비물(도메인, GitHub 계정과 숫자 id)이 있고, 감독 세션이 시작을 알릴 때 한다. **Reported (2026-10-23, 같은 경로):** VM 작업은 한 번에 하나씩, 계획 21 Task 4 → 이 계획 Task 4 → 에이전트 기억 미러의 VM Task → 계획 07 순서로 한다.
 
 ## Pending Requirements
 
-2026-10-22~23 웹 커넥터 세션에서 사용자가 정한 문서 체계 개편 요구사항이다. 사용자는 2026-10-23에 개편의 설계·구현을 보류하고, 이 계획을 처리하는 에이전트가 이 내용을 알고 시작하도록 여기에 남기게 했다. 근거 조사는 [다중 에이전트 초안 공유 조사](../research/rsch-2026-10-23-multi-agent-draft-sharing.md)다.
+2026-10-22~23 웹 커넥터 세션에서 사용자가 정한 문서 체계 개편 요구사항이다. 사용자는 2026-10-23에 개편을 잠시 보류하며 이 계획을 처리하는 에이전트가 알도록 여기에 남기게 했고, 같은 날 개편을 모든 계획보다 먼저 하기로 정했다(Sequence). 개편의 스펙이 생기면 이 절은 그 문서로 옮긴다. 근거 조사는 [다중 에이전트 초안 공유 조사](../research/rsch-2026-10-23-multi-agent-draft-sharing.md)다.
 
 - **Reported (2026-10-22, 이 세션):** 문제는 다른 에이전트가 쓰는 스펙·계획 초안을 서로 보지 못하는 것이다. 기억 미러 스펙이 커밋 전 본문에만 "계획 24"를 적어 두었고, `make new-doc`이 24를 다시 내줘서 이 계획을 손으로 25로 바꿨다. 겹치는 파일은 다른 worktree 폴더를 직접 열어 보고서야 알았다.
 - 사용자 결정:
@@ -36,7 +36,7 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
 - **Verified (2026-10-22):** 이 Mac의 Codex CLI는 `~/.codex/config.toml`의 `basic-memory`(`http://127.0.0.1:18737/mcp`)로 Basic Memory에 닿는다. `make tunnel`이 떠 있어야 한다. Codex 클라우드는 이 터널에 닿지 못하므로, 클라우드에는 승인돼 push된 계획만 맡긴다.
 - 에이전트 제안(사용자 미결정):
   - ID 형식은 소문자·숫자 8자 nanoid(i·l·o·u 제외)다. 파일 이름(`plan-<날짜>-<id>-<slug>.md`), front matter `id`, 브랜치(`plan/<id>-<slug>`), `Plan:` 트레일러에 쓴다. ID는 초안을 만들 때 부여하므로 승인 때 번호를 붙이는 단계는 필요 없어진다.
-  - Basic Memory 초안 경로는 `agent-drafts/<프로젝트 키>/<종류>-<slug>`다. 프로젝트 키는 기억 미러 스펙 §3.2의 규칙을 따른다. frontmatter는 `type`, `status`(`drafting`, `review`, `approved`, `dropped`), `owner`(기기·에이전트), `branch`, `areas`, `updated`, `expires`다. `write_note`가 같은 경로를 덮어쓰지 않으므로 처음 쓴 쪽이 그 slug를 차지한다.
+  - Basic Memory 초안 경로는 `agent-drafts/<프로젝트 키>/<종류>-<slug>`다. 프로젝트 키는 `origin` 주소에서 만든 `<owner>-<repo>`(예: `yanghs6-basic-memory-tailnet`)다. 에이전트 기억 미러 설계도 같은 규칙을 쓸 예정이다(2026-10-23 기준 그 설계는 아직 저장소에 없다). frontmatter는 `type`, `status`(`drafting`, `review`, `approved`, `dropped`), `owner`(기기·에이전트), `branch`, `areas`, `updated`, `expires`다. `write_note`가 같은 경로를 덮어쓰지 않으므로 처음 쓴 쪽이 그 slug를 차지한다.
   - 기존 문서를 고치는 진행 중 작업(예: `amended-by` 추가, 불변식 문장 수정)도 보드에 올린다.
 - **Open question 1 (이력 재작성):** 실제로 재작성할지, 이력은 두고 옛 번호와 새 ID를 잇는 대응표로 대신할지. 에이전트는 대응표를 추천했다.
   - 공개 저장소라 병합된 PR #1~#19의 커밋은 PR 참조로 남는다.
@@ -126,7 +126,7 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
 - [ ] **Step 2: 실패하는 스크립트 테스트 작성.** `make new-script NAME=verify-web`으로 `scripts/verify-web.sh`와 `tests/verify-web.bats`를 만든다. curl 스텁 응답은 `tests/fixtures/verify-web/`, `dig` 스텁은 `tests/stubs/dig`에 둔다. 테스트:
   - "passes when the gateway answers 401 with resource_metadata, serves both metadata documents and refuses a foreign redirect URI": 각 검사의 `OK:` 줄을 확인한다.
   - 실패 경우 표(`@test` 하나에 case 반복): 토큰 없는 `POST /mcp`가 200, `WWW-Authenticate`에 `resource_metadata` 없음, 보호 리소스 메타데이터의 `resource`가 `BASE_URL/mcp`가 아님, `code_challenge_methods_supported`에 `S256` 없음, `client_id_metadata_document_supported`가 true가 아님, `token_endpoint_auth_methods_supported`에 `none` 없음, `/register`가 2xx. 모두 실패해야 한다.
-  - "--public fails when the host resolves to a private, CGNAT or loopback address and never prints the host or the addresses": `dig` 스텁이 RFC 1918 주소, CGNAT(`100.64.0.0/10`) 안의 주소, loopback 주소를 돌려줄 때 실패한다. 테스트 안의 CGNAT 예시 주소는 계획 18의 공개 텍스트 검사가 허용하는 형태로 쓴다. 공개 주소일 때는 통과한다. 두 경우 모두 출력에 호스트명과 주소가 없다.
+  - "--public fails when the host resolves to a private, CGNAT or loopback address and never prints the host or the addresses": `dig` 스텁이 RFC 1918 주소, CGNAT(`100.64.0.0/10`) 안의 주소, loopback 주소를 돌려줄 때 실패한다. 계획 18의 공개 텍스트 검사는 RFC 1918, link-local, CIDR 표기만 허용하므로, CGNAT 예시는 파일에 낱개 주소로 쓰지 않고 테스트가 실행 중에 `100.64.0.0/10` 안의 주소를 만든다. 공개 주소일 때는 통과한다. 두 경우 모두 출력에 호스트명과 주소가 없다.
 - [ ] **Step 3: 실패하는 Make·라이브러리 테스트 작성.** `tests/lib-vm.bats`에 `web_mode`가 빈 값·`on`·`off`를 받고 `On`·`yes`를 거절하는 테스트를 더한다. `tests/repo-make.bats`에 새 테스트 하나를 더한다. "make local-up with BM_WEB=on hands COMPOSE_PROFILES=web to compose and runs the same compose command": docker 스텁이 받은 환경을 기록하게 하고, `COMPOSE_PROFILES=web`과 `docker compose -f compose.yaml up -d --wait` 줄을 확인한다. `BM_WEB=yes`면 compose 호출 전에 `BM_WEB must be on or off`로 실패한다. 기존 `:55` 테스트는 그대로 통과해야 한다.
 - [ ] **Step 4: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패한다(서비스·파일·스크립트·Make 처리 없음).
 - [ ] **Step 5: 게이트웨이 동작 테스트 작성(`gateway/test_gateway.py`, `unittest.IsolatedAsyncioTestCase`).** 가짜 백엔드는 21개 도구와 `new_tool`을 가진 FastMCP 서버다. 받은 요청 헤더와 호출된 도구 이름을 기록하며, 같은 프로세스의 uvicorn 스레드에서 빈 포트로 띄운다. 인증은 `StaticTokenVerifier`로 `owner`(sub `"4242"`), `other`(sub `"5151"`), `no-sub`, `login-sub`(sub `"octocat"`) 토큰을 만든다. 게이트웨이는 `build_gateway(settings, auth=verifier)`로 조립한다.
