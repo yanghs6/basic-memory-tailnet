@@ -118,18 +118,18 @@ Expected: `make check`는 exit 0이다. 두 번째 명령은 `6` 한 줄만 출�
 - Modify: `.agents/skills/bm-diagnose/references/failure-messages.md:20-30` (MCP 표, `:24` 행 다음)
 - Modify: `.agents/skills/bm-diagnose/SKILL.md:34`
 
-- [ ] **Step 1: 테스트 없음.** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2. 새 행에도 `tests/repo-skills.bats`의 번들 파일 검사와 `tests/repo-docs.bats`의 경로 검사가 그대로 적용된다.
-- [ ] **Step 2: 행 추가(영어).**
+- [x] **Step 1: 테스트 없음.** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2. 새 행에도 `tests/repo-skills.bats`의 번들 파일 검사와 `tests/repo-docs.bats`의 경로 검사가 그대로 적용된다.
+- [x] **Step 2: 행 추가(영어).**
   - 메시지: `curl: (28) Operation timed out after N milliseconds`가 `<step>: request to <url> failed` 앞에 찍힌다.
   - 뜻: 서버까지의 경로(터널이나 tailnet)는 열렸지만, Basic Memory가 `REQUEST_TIMEOUT_SECONDS`(30초, `scripts/verify-mcp.sh`) 안에 답하지 않았다. 2026-10-21 배포 직후에 나왔다.
   - 다음 단계(읽기 전용): 1~2분 기다린 뒤 `make status`로 두 컨테이너가 healthy인지와 메모리·스왑을 보고, `make probe`를 돌린다. probe가 통과하면 `make verify`를 사용자에게 제안한다. 다시 나면 `make logs`의 첫 오류와 메모리 수치를 보고하고("Sustained swap use" 행), Incident log 행을 제안한다.
-- [ ] **Step 3: `SKILL.md:34`.** Incident log 행을 제안할 때 원인(확인하지 못했으면 Assumption)과 후속 조치를 함께 적으라고 한 구절을 더한다.
-- [ ] **Step 4: 확인**
+- [x] **Step 3: `SKILL.md:34`.** Incident log 행을 제안할 때 원인(확인하지 못했으면 Assumption)과 후속 조치를 함께 적으라고 한 구절을 더한다.
+- [x] **Step 4: 확인**
 
 Run: `make check`; `grep -n 'curl: (28)' .agents/skills/bm-diagnose/references/failure-messages.md`
 Expected: `make check`는 exit 0이다. grep은 MCP 표 안의 한 줄을 찾는다.
 
-- [ ] **Step 5: 커밋.** `docs: add the curl timeout to the bm-diagnose failure catalog`, 트레일러 `Plan: zw0shxee`, `Task: 2`.
+- [x] **Step 5: 커밋.** `docs: add the curl timeout to the bm-diagnose failure catalog`, 트레일러 `Plan: zw0shxee`, `Task: 2`.
 
 ### Task 3: restore stops on an unexpected VM answer (E1)
 
@@ -212,6 +212,8 @@ Expected: `make check`는 exit 0이고, 두 번째 명령은 아무것도 출력
 - **Verified (2026-10-22):** E1과 같은 꼴이 `scripts/sync-sb-space.sh:38`에도 있다. 표시 파일에 대한 답이 `present`가 아니면 모두 "변경 없음"으로 읽어, `.gitignore`가 바뀌었는데도 Basic Memory를 다시 만들지 않을 수 있다. 공용 도우미(`remote_exists`, `notes_file_state`)에서 답을 검사할지는 따로 정한다.
 - 반복 시험(`bm-upgrade` 때마다 롤백 경로를 시험할지, 정기 시험을 둘지)은 이 계획 밖이다.
 - 실제 VM에서 restore의 자동 롤백 분기를 일부러 실패시켜 보는 시험은 하지 않는다. 그 분기는 bats 테스트 `tests/restore-notes.bats:191`이 다룬다.
+- **Verified (2026-10-26, Task 2 리뷰):** `make probe`가 함께 돌리는 `scripts/verify-sb.sh`도 `curl -sS -m 15`를 써서, SilverBullet이 늦으면 `curl: (28)` 뒤에 `SilverBullet does not answer at <url>/.ping (HTTP 000)`이 찍힌다(`scripts/verify-sb.sh:12`, `:36`). `bm-diagnose` 실패 목록에는 이 경우의 행이 없다.
+- **Verified (2026-10-26, Task 1):** `.agents/skills/bm-recover/SKILL.md:53`은 Incident log 행의 칸을 "date, cause, backup used, data loss window"로만 적어, Task 1이 더한 후속 조치 열이 빠져 있다. 이 계획의 범위 밖이므로 따로 고친다.
 
 ## Progress log
 
@@ -221,3 +223,5 @@ Expected: `make check`는 exit 0이고, 두 번째 명령은 아무것도 출력
 | 2026-10-26 | Verified | Task 1: 운영 런북 Incident log에 `후속 조치` 열, 장애 정의 한 줄, 2026-10-13 3건과 2026-10-21 1건을 더했다. 기존 행 2개(2026-10-15, 2026-10-26)에는 끝에 `해당 없음(장애 아님)` 칸만 붙였다. 2026-10-26 행은 계획을 쓴 뒤 생긴 행이다. 근거 줄은 계획 Step 3과 한 줄씩 다른 곳이 있어(vm-rollout `:291`, `:309-311`) 실제 줄을 적었다. |
 | 2026-10-26 | Command | Task 1 Step 4: `make check` → exit 0. 칸 수 명령 → `6` 한 줄. IPv4 grep → 출력 없음(exit 1). |
 | 2026-10-26 | Verified | Task 1 리뷰(서브에이전트, 읽기 전용): P0·P1·P2 없음. P3 두 건을 반영했다. 원인 칸의 "모든 백업"을 "모델 캐시가 생긴 뒤 만든 백업"으로 좁혔고, ssh 모드 이전의 코드 PR #8을 함께 적었다. |
+| 2026-10-26 | Verified | Task 2: `bm-diagnose` 실패 목록의 MCP 표에 `curl: (28)` 행을, `SKILL.md:34`에 원인·후속 조치 구절을 더했다. 메시지 형식과 30초 제한은 `scripts/verify-mcp.sh:13`, `:57`, `:89`와 맞다. |
+| 2026-10-26 | Verified | Task 2 리뷰(서브에이전트, 읽기 전용): P0·P1·P2 없음. P3 하나를 반영했다. ssh 모드에서는 VM이 멈춰도 로컬 터널이 연결을 받으므로 "경로가 열렸다"를 "연결은 받아들여졌다"로 고쳤다. 다른 P3(SilverBullet 시간 초과 행)는 Follow-ups에 남겼다. |
