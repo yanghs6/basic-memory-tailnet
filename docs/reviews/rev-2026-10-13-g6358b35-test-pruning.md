@@ -15,7 +15,7 @@ Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.m
 
 | ID | Sev | Location | Summary | Status |
 |---|---|---|---|---|
-| R1-F1 | P2 | docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md:369 | Commit 747d2c7 fixes the in-plan task finding SDD-T2-F1 (a merged test had dropped the "BM_VM_PUBLIC_IP must be the VM's public IPv4" assertion) but lacks the required `Review-Finding: SDD-T2-F1` trailer, so `git log` cannot link the finding to its fix. | fixed ac9429c (the human approved a one-time history rewrite on 2026-10-13 as an exception to the AGENTS.md rule; 747d2c7 became ac9429c with the trailer, trees unchanged) |
+| R1-F1 | P2 | docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md:370 | Commit 747d2c7 fixes the in-plan task finding SDD-T2-F1 (a merged test had dropped the "BM_VM_PUBLIC_IP must be the VM's public IPv4" assertion) but lacks the required `Review-Finding: SDD-T2-F1` trailer, so `git log` cannot link the finding to its fix. | fixed ac9429c (the human approved a one-time history rewrite on 2026-10-13 as an exception to the AGENTS.md rule; 747d2c7 became ac9429c with the trailer, trees unchanged) |
 
 ## Notes
 

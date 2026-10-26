@@ -16,8 +16,8 @@ Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.m
 
 | ID | Sev | Location | Summary | Status |
 |---|---|---|---|---|
-| R1-F1 | P2 | docs/plans/plan-2026-10-13-k93wjt1a-github-switch.md:859-860 | Says the check-run lookup must use the PR's merge SHA because `pull_request` check runs attach to it, not to the head SHA. | rejected: on the public `cli/cli` PR #14650 (2026-10-13) the head SHA 94c5a6f has 19 check runs, among them the `github-actions` app (id 15368), and the merge SHA cec90ef has 0; recorded in ca155f0 |
-| R1-F2 | P2 | docs/plans/plan-2026-10-13-znbc3ase-review-posting.md:410-411 | On a public repo anyone can post a comment that starts with `<!-- review-record -->`; the planned search would pick it up, then PATCH someone else's comment or stop on a false duplicate. | fixed 5d05c76 |
+| R1-F1 | P2 | docs/plans/plan-2026-10-13-k93wjt1a-github-switch.md:860-861 | Says the check-run lookup must use the PR's merge SHA because `pull_request` check runs attach to it, not to the head SHA. | rejected: on the public `cli/cli` PR #14650 (2026-10-13) the head SHA 94c5a6f has 19 check runs, among them the `github-actions` app (id 15368), and the merge SHA cec90ef has 0; recorded in ca155f0 |
+| R1-F2 | P2 | docs/plans/plan-2026-10-13-znbc3ase-review-posting.md:411-412 | On a public repo anyone can post a comment that starts with `<!-- review-record -->`; the planned search would pick it up, then PATCH someone else's comment or stop on a false duplicate. | fixed 5d05c76 |
 
 ## Notes
 

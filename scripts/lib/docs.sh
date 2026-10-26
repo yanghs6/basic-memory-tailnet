@@ -27,7 +27,7 @@ readonly DOC_ID_PATTERN='[0-9a-hjkmnp-tv-z]{8}'
 # The same pattern as a shell glob, for matching file names.
 readonly DOC_ID_GLOB='[0-9a-hjkmnp-tv-z][0-9a-hjkmnp-tv-z][0-9a-hjkmnp-tv-z][0-9a-hjkmnp-tv-z][0-9a-hjkmnp-tv-z][0-9a-hjkmnp-tv-z][0-9a-hjkmnp-tv-z][0-9a-hjkmnp-tv-z]'
 readonly DOC_ID_MAX_TRIES=20
-# An id of hex digits only would read like a short commit SHA, so new_doc_id never hands one out.
+# An id of hex digits only would read like a short commit SHA: new_doc_id never hands one out, create-doc.sh refuses one.
 readonly DOC_ID_HEX_ONLY_PATTERN='^[0-9a-f]+$'
 
 # doc_types REGISTRY -> one line per row of the table under DOC_TYPES_HEADING, tab-separated: type, code, location,

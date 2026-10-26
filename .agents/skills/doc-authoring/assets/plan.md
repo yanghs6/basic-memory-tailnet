@@ -1,6 +1,6 @@
 ---
-id: {{id}}
 status: backlog
+id: {{id}}
 spec: {{근거 스펙의 저장소 기준 경로, 없으면 none}}
 ---
 

@@ -560,7 +560,7 @@ Expected: PR에 `check`와 `pr-rules`가 생기고 둘 다 pass다. 실패하면
 
 **Files:**
 - Create: `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md`
-- Modify: `AGENTS.md:29-33`(Git), `AGENTS.md`의 Safety 끝과 Map, `.agents/skills/git-workflow/SKILL.md`(전체), `.agents/skills/git-workflow/references/review-and-merge.md`(전체), `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`(끝에 절 추가), `docs/ARCHITECTURE.md:30` 다음 줄, `README.md:15` 다음 줄, `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md:3` 다음 줄
+- Modify: `AGENTS.md:29-33`(Git), `AGENTS.md`의 Safety 끝과 Map, `.agents/skills/git-workflow/SKILL.md`(전체), `.agents/skills/git-workflow/references/review-and-merge.md`(전체), `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`(끝에 절 추가), `docs/ARCHITECTURE.md:30` 다음 줄, `README.md:15` 다음 줄, `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md:4` 다음 줄
 
 **Interfaces:**
 - Consumes: Task 2의 체크 이름(`check`, `pr-rules`)과 Make 기본값, `.github/rulesets/main.json`
@@ -808,7 +808,7 @@ ruleset의 우회 목록은 비어 있어서, 사용자도 `main`에 직접 push
 - 에이전트 작업을 PR로 올릴 때: GitHub CLI `gh`(머신 계정으로 로그인, [GitHub 런북](docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md))
 ```
 
-`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md:3`(상태 줄) 다음에 한 줄을 넣는다.
+`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md:4`(상태 줄) 다음에 한 줄을 넣는다.
 
 ```markdown
 - 부분 대체 (2026-10-13): 3절의 브랜치 기준점, 4절의 병합 트레일러, 5절의 리뷰 기록 위치, 6절 전체는 [GitHub PR 워크플로 스펙](spec-2026-10-13-pr762r68-github-pr-workflow.md)이 대체한다.

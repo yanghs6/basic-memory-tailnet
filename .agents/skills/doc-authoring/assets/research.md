@@ -1,6 +1,6 @@
 ---
-id: {{id}}
 status: snapshot
+id: {{id}}
 ---
 
 # {{질문을 제목으로}}

@@ -15,7 +15,7 @@ Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.m
 
 | ID | Sev | Location | Summary | Status |
 |---|---|---|---|---|
-| R1-F1 | P2 | docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:27 | The branch has `Plan: none`, so no plan Progress log or ADR records the passing `make check` that review rule 3 asks for. | fixed in this record: the author's test evidence is under Notes (same practice as `docs/reviews/rev-2026-10-13-af5vkb8q-work-slow-start-health.md`); the [vm-rollout plan](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)'s Progress log also records the finding that led to this branch |
+| R1-F1 | P2 | docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:28 | The branch has `Plan: none`, so no plan Progress log or ADR records the passing `make check` that review rule 3 asks for. | fixed in this record: the author's test evidence is under Notes (same practice as `docs/reviews/rev-2026-10-13-af5vkb8q-work-slow-start-health.md`); the [vm-rollout plan](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)'s Progress log also records the finding that led to this branch |
 
 ## Notes
 

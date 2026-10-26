@@ -53,7 +53,7 @@ amended-by: [docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, docs/spe
   - `git gc`
   - 다른 에이전트의 브랜치·worktree 삭제
 - 이름은 작업 단위로 짓는다.
-  - 계획: `plan/<NN>-<slug>` (예: `plan/sqzn0teq-local-foundation`)
+  - 계획: `plan/<NN>-<slug>`(이 스펙을 쓸 때의 규칙. [doc-ids-and-draft-board 설계](spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md)가 `plan/<ID>-<slug>`로 바꿨고, 예도 그 형식이다. 예: `plan/sqzn0teq-local-foundation`)
   - 그 밖의 작업: `work/<slug>`
 - 도구가 자동으로 만든 브랜치(`worktree-*`, `codex/*`, detached HEAD)는 리뷰 요청 전에 `git branch -m`으로 규칙에 맞게 바꾼다.
 

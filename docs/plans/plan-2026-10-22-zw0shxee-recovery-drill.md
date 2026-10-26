@@ -29,17 +29,17 @@ spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 ## 배경
 
 - **Reported (2026-10-22 평가):** D10(운영 관측·복구)은 3점이고 L4의 두 조건이 모두 미충족이다. (a) 잘못된 배포를 되돌리는 경로는 정의만 있고 실행된 적이 없다. 같은 이미지에서 데이터만 되살린 복원 시험은 L3 근거일 뿐이다. (b) 장애가 원인·후속 조치와 함께 Incident log에 적혀 있지 않다. Progress log에만 있는 행은 인정하지 않는다.
-- **Verified (2026-10-22):** 롤백 경로는 `.agents/skills/bm-upgrade/references/rollback.md:5-7`에 있다(옛 `image:` 줄, 사용자의 `make restore`, restore가 `compose.yaml`과 데이터를 함께 되돌림). VM 복원 시험은 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)의 한 번뿐이다(`docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md:310`, 2026-10-13, 이미지 그대로).
+- **Verified (2026-10-22):** 롤백 경로는 `.agents/skills/bm-upgrade/references/rollback.md:5-7`에 있다(옛 `image:` 줄, 사용자의 `make restore`, restore가 `compose.yaml`과 데이터를 함께 되돌림). VM 복원 시험은 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)의 한 번뿐이다(`docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md:311`, 2026-10-13, 이미지 그대로).
 - **Verified (2026-10-22):** 그 뒤 `scripts/restore-notes.sh`는 `3b87fa5`(#5, SilverBullet 공간 파일과 VM `.env`), `87e86d4`(#8, ssh 모드), `47dbbc7`(#15, 이름 변경과 라이브러리 분리)에서 바뀌었다(`git log --follow`). [web-ui-vm-rollout](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)·[access-modes](plan-2026-10-15-ctv444ep-access-modes.md)·[script-cleanup](plan-2026-10-20-c2vxa7kp-script-cleanup.md)·[test-cleanup](plan-2026-10-21-hf9kadp3-test-cleanup.md) 계획의 Progress log에는 VM `make restore` 실행이 없다.
-- **Verified (2026-10-22):** Incident log(`docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:151-155`)의 열은 날짜·원인·사용한 백업·데이터 손실 구간·비고이고, 후속 조치 열이 없다. 행은 2026-10-15 하나이고 "장애 아님"이다.
+- **Verified (2026-10-22):** Incident log(`docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:152-156`)의 열은 날짜·원인·사용한 백업·데이터 손실 구간·비고이고, 후속 조치 열이 없다. 행은 2026-10-15 하나이고 "장애 아님"이다.
 - **Verified (2026-10-22):** 장애에 해당하는 사건은 Progress log에만 있다.
-  - [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:284-286`: 사무실 네트워크가 Tailscale 제어 서버를 막음.
-  - [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:288`, `:291`: 콜드 스타트 `unhealthy`와 수정 배포.
-  - [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:308`, `:310`: 모델 캐시 심볼릭 링크 때문에 모든 백업이 복원 거부됨. 수정 뒤 재시험은 통과.
-  - [script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `docs/plans/plan-2026-10-20-c2vxa7kp-script-cleanup.md:497-499`: 2026-10-21 배포 직후 첫 `make verify`가 `curl: (28)`로 시간 초과됐고, 원인은 `:498`의 Assumption이며, 2분 뒤 통과했다.
+  - [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:285-287`: 사무실 네트워크가 Tailscale 제어 서버를 막음.
+  - [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:289`, `:292`: 콜드 스타트 `unhealthy`와 수정 배포.
+  - [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:309`, `:311`: 모델 캐시 심볼릭 링크 때문에 모든 백업이 복원 거부됨. 수정 뒤 재시험은 통과.
+  - [script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `docs/plans/plan-2026-10-20-c2vxa7kp-script-cleanup.md:498-500`: 2026-10-21 배포 직후 첫 `make verify`가 `curl: (28)`로 시간 초과됐고, 원인은 `:499`의 Assumption이며, 2분 뒤 통과했다.
   - `.agents/skills/bm-diagnose/SKILL.md:34`는 이런 때 Incident log 행을 제안하라고 하지만 행은 없다.
-- **Verified (2026-10-22):** E3. `.agents/skills/bm-diagnose/references/failure-messages.md`에 `curl: (28) Operation timed out` 행이 없다([script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) Follow-ups `:471`). 시간 제한은 `scripts/verify-mcp.sh:13`의 `REQUEST_TIMEOUT_SECONDS=30`이다.
-- **Verified (2026-10-22):** E1. `scripts/restore-notes.sh:118-122`는 VM의 답이 정확히 `present`일 때만 `HAD_PREVIOUS_DATA`를 켠다. 답이 `present`·`absent`가 아니면(예: 셸 시작 파일이 stdout에 한 줄을 더 찍음) "이전 데이터 없음"으로 읽는다. 그 뒤 단계가 실패하면 롤백(`:61-81`)은 이전 데이터를 제자리로 옮기지만 컨테이너를 다시 띄우지 않고(`:69-72`) "had no data before this restore"라고 보고한다. 데이터는 남지만 서비스가 내려간 채 잘못된 안내가 남는다. 이 분기는 `bb16883`(2026-10-08)부터 있었다. [script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) 최종 리뷰가 M4로 찾았고(`:470`) 사용자가 미뤘다(`:495`).
+- **Verified (2026-10-22):** E3. `.agents/skills/bm-diagnose/references/failure-messages.md`에 `curl: (28) Operation timed out` 행이 없다([script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) Follow-ups `:472`). 시간 제한은 `scripts/verify-mcp.sh:13`의 `REQUEST_TIMEOUT_SECONDS=30`이다.
+- **Verified (2026-10-22):** E1. `scripts/restore-notes.sh:118-122`는 VM의 답이 정확히 `present`일 때만 `HAD_PREVIOUS_DATA`를 켠다. 답이 `present`·`absent`가 아니면(예: 셸 시작 파일이 stdout에 한 줄을 더 찍음) "이전 데이터 없음"으로 읽는다. 그 뒤 단계가 실패하면 롤백(`:61-81`)은 이전 데이터를 제자리로 옮기지만 컨테이너를 다시 띄우지 않고(`:69-72`) "had no data before this restore"라고 보고한다. 데이터는 남지만 서비스가 내려간 채 잘못된 안내가 남는다. 이 분기는 `bb16883`(2026-10-08)부터 있었다. [script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) 최종 리뷰가 M4로 찾았고(`:471`) 사용자가 미뤘다(`:496`).
 - **Open question 1 (Task 3):** 사용자가 2026-10-21에 미룬 E1을 이 계획에서 고칠까?
   - A(추천): Task 3으로 고친다. 실패하면 서비스가 내려간 채 잘못된 안내가 남는 결함이고, Task 4가 고친 restore를 바로 VM에서 시험한다.
   - B: 계속 미룬다. Task 3을 빼고 Follow-ups에 남긴다.
@@ -52,7 +52,7 @@ spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 ## Global Constraints
 
 - VM을 바꾸는 `make deploy`·`make restore`는 메인 세션에서 단계마다 사용자 OK를 받은 뒤 한다. restore의 `yes`는 사용자가 자기 터미널에서 입력한다. `make backup`·`probe`·`status`·`logs`·`verify`·`tunnel`은 OK가 필요 없다(AGENTS.md).
-  - **Reported (2026-10-13, [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:310`):** Claude Code의 `!`로 실행하면 `read`가 입력을 받지 못한다.
+  - **Reported (2026-10-13, [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:311`):** Claude Code의 `!`로 실행하면 `read`가 입력을 받지 못한다.
 - 배포 전에 `make backup`을 하고, 출력된 절대 경로를 롤백 지점으로 적는다(`bm-upgrade` 7단계).
 - 시험용 `image:` 줄은 커밋하지 않는다(`rollback.md` 5단계). 브랜치의 모든 커밋에서 `git diff origin/main -- compose.yaml`이 비어 있다.
 - `backups/`와 `/srv/basic-memory.prev-*`는 지우지 않는다. 지우는 일은 사람만 한다.
@@ -64,7 +64,7 @@ spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 
 ## Review Focus
 
-1. Task 1의 새 행에는 IPv4 주소가 없다. 근거로 쓰는 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:284`에 Tailscale 제어 서버 주소가 있으므로 옮겨 적을 때 빠뜨린다. Task 1 Step 4의 두 번째 명령으로 확인한다.
+1. Task 1의 새 행에는 IPv4 주소가 없다. 근거로 쓰는 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:285`에 Tailscale 제어 서버 주소가 있으므로 옮겨 적을 때 빠뜨린다. Task 1 Step 4의 두 번째 명령으로 확인한다.
 2. Task 2의 새 행은 읽기 전용 확인만 시킨다(`bm-diagnose` 규칙 `SKILL.md:12-14`). `make verify`는 사용자에게 제안만 한다.
 3. Task 4의 시험 pin은 브랜치 이력에 없다. Finish 전에 `git log -p origin/main..HEAD -- compose.yaml`이 비어 있는지 본다.
 4. Task 4: 백업과 복원 사이에 다른 에이전트가 쓴 노트는 복원으로 바뀌고 `.prev-*`에만 남는다. Progress log에 시험 창(백업 시각 → 복원 시각)과, 사용자가 노트 쓰기를 멈췄는지를 적는다.
@@ -91,7 +91,7 @@ spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 ### Task 1: Incident log follow-up column and past incidents
 
 **Files:**
-- Modify: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:151-155`
+- Modify: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:152-156`
 
 - [ ] **Step 1: 테스트 없음.** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2. Step 4의 명령으로 확인한다.
 - [ ] **Step 2: 열과 정의**
@@ -99,10 +99,10 @@ spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
   - `## Incident log` 바로 아래에 정의 한 줄을 둔다. 장애는 실제 VM에서 서비스, 접속 경로, 복구 경로를 해친 계획에 없던 사건이고, 실패한 검증·시험도 포함한다. 원인을 확인하지 못했으면 원인 칸을 `Assumption:`으로 시작한다. 후속 조치 칸에는 커밋·PR·계획을 적고, 없으면 `없음`과 이유를 적는다.
   - **Assumption:** 이 정의는 평가의 D10 판정 기준을 옮긴 것이다. 사용자가 다르게 정하면 그에 따른다.
 - [ ] **Step 3: 행 추가.** 날짜순으로 넣고, 출처 줄은 비고 칸에 적는다.
-  - 2026-10-13, 콜드 스타트 `unhealthy`([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:288`, `:291`). 백업: 사용 안 함. 손실: 없음. 후속: `71ad51b`(`start_period: 300s`, `HEALTH_TIMEOUT_SECONDS` 360초), `tests/repo-config.bats:63`. 늘어나는 콜드 스타트는 vm-rollout 계획 Follow-ups에 남아 있다.
+  - 2026-10-13, 콜드 스타트 `unhealthy`([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:289`, `:292`). 백업: 사용 안 함. 손실: 없음. 후속: `71ad51b`(`start_period: 300s`, `HEALTH_TIMEOUT_SECONDS` 360초), `tests/repo-config.bats:63`. 늘어나는 콜드 스타트는 vm-rollout 계획 Follow-ups에 남아 있다.
   - 2026-10-13, 모든 백업이 복원 거부됨(`:308`, `:310`). 백업: `bm-20261013T050026Z.tgz`(거부됨). 손실: 없음(VM에 손대기 전에 거부). 후속: `5561329`(모델 캐시 제외), `tests/restore-notes.bats:48`. 같은 날 2회차 복원이 통과했다.
-  - 2026-10-13, 접속 경로: 사무실 네트워크가 HTTPS `controlplane.tailscale.com`만 막음(`:284-286`). 백업: 사용 안 함. 손실: 없음. 후속: 사용자가 IT에 허용을 요청했고, [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md)에서 VM을 `ssh` 모드로 옮겼다(`4cedf49`, PR #12).
-  - 2026-10-21, 배포 직후 첫 `make verify`가 `tools/list`에서 `curl: (28)`로 끝남([script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `:497-499`). 원인 칸은 `Assumption:`(재색인)으로 시작한다. 백업: 사용 안 함. 손실: 없음. 비고: 2분 뒤 `make probe`·`make verify` 통과. 후속: Task 2의 실패 목록 행. 원인 확인은 Follow-ups로 남긴다.
+  - 2026-10-13, 접속 경로: 사무실 네트워크가 HTTPS `controlplane.tailscale.com`만 막음(`:285-287`). 백업: 사용 안 함. 손실: 없음. 후속: 사용자가 IT에 허용을 요청했고, [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md)에서 VM을 `ssh` 모드로 옮겼다(`4cedf49`, PR #12).
+  - 2026-10-21, 배포 직후 첫 `make verify`가 `tools/list`에서 `curl: (28)`로 끝남([script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `:498-500`). 원인 칸은 `Assumption:`(재색인)으로 시작한다. 백업: 사용 안 함. 손실: 없음. 비고: 2분 뒤 `make probe`·`make verify` 통과. 후속: Task 2의 실패 목록 행. 원인 확인은 Follow-ups로 남긴다.
 - [ ] **Step 4: 확인**
 
 Run: `make check`; `awk '/^## Incident log/,/^### 점검 기록/' docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md | grep '^|' | awk -F'|' '{ print NF - 2 }' | sort -u`; `awk '/^## Incident log/,/^### 점검 기록/' docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md | grep -nE '([0-9]{1,3}\.){3}[0-9]{1,3}'`
@@ -165,7 +165,7 @@ Expected: exit 0, 커버리지 80% 이상
 
 **Files:**
 - Modify (시험 중에만, 커밋하지 않음): `compose.yaml:14`
-- Modify: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:3` (`reviewed`), `:151-155` (Incident log 행)
+- Modify: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:4` (`reviewed`), `:152-156` (Incident log 행)
 - Modify: `docs/plans/plan-2026-10-22-zw0shxee-recovery-drill.md` (Progress log)
 
 - [ ] **Step 1: 준비(OK 불필요).**
@@ -203,9 +203,9 @@ Expected: `make check`는 exit 0이고, 두 번째 명령은 아무것도 출력
 
 ## Follow-ups
 
-- E2: 컨테이너 정지가 SIGTERM 뒤 10초 만에 SIGKILL로 끝난다([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:328-329`, Follow-ups `:257`). 장애는 아니고, 멈출 때마다 중단 시간이 늘어난다.
+- E2: 컨테이너 정지가 SIGTERM 뒤 10초 만에 SIGKILL로 끝난다([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:329-330`, Follow-ups `:258`). 장애는 아니고, 멈출 때마다 중단 시간이 늘어난다.
   - **Verified (2026-10-22):** `compose.yaml`에 `init`, `stop_signal`, `stop_grace_period`가 없다.
-- 콜드 스타트가 161 → 192 → 248초로 늘었다([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) Follow-ups `:258`).
+- 콜드 스타트가 161 → 192 → 248초로 늘었다([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) Follow-ups `:259`).
 - 2026-10-21 시간 초과의 원인은 Assumption으로 남는다. 다음 배포 때 `make logs`의 요청 시각과 색인 로그로 확인한다.
 - **Verified (2026-10-22):** E1과 같은 꼴이 `scripts/sync-sb-space.sh:38`에도 있다. 표시 파일에 대한 답이 `present`가 아니면 모두 "변경 없음"으로 읽어, `.gitignore`가 바뀌었는데도 Basic Memory를 다시 만들지 않을 수 있다. 공용 도우미(`remote_exists`, `notes_file_state`)에서 답을 검사할지는 따로 정한다.
 - 반복 시험(`bm-upgrade` 때마다 롤백 경로를 시험할지, 정기 시험을 둘지)은 이 계획 밖이다.

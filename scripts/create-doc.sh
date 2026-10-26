@@ -21,6 +21,8 @@ main() {
   [[ "$slug" =~ $SLUG_PATTERN ]] || die "slug '$slug' must be lowercase letters and digits joined by single hyphens"
   [[ -z "$id" || "$id" =~ ^${DOC_ID_PATTERN}$ ]] \
     || die "id '$id' must be 8 characters from 0-9 and a-z without i, l, o and u: leave ID empty for a random one"
+  [[ ! "$id" =~ $DOC_ID_HEX_ONLY_PATTERN ]] \
+    || die "id '$id' has hex digits only and would read like a commit SHA: leave ID empty for a random one"
   require_cmd git
   root="$(git rev-parse --show-toplevel)" || die "run make new-doc inside a checkout of this repo"
   row="$(doc_type_row "$root/$REGISTRY_REL_PATH" "$type")" || exit 1

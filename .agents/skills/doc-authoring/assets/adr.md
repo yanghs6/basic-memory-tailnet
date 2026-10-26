@@ -1,6 +1,6 @@
 ---
-id: {{id}}
 status: proposed
+id: {{id}}
 date: {{date}}
 ---
 

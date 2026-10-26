@@ -60,7 +60,7 @@ date: 2026-10-26
 바뀔 범위(2026-10-23 읽기 전용 전수 조사):
 - **Verified:** 타입 문서는 스펙 10, 계획 25, ADR 8(이 스펙과 함께 9), 런북 5, 조사 4, 리뷰 기록 10개다. `id` 키를 가진 문서는 없다.
 - **Verified:** 저장소 안 인용은 "계획 NN" 654곳(49개 파일), "ADR NNNN" 266곳, 본문 속 `Plan: NN` 178곳, `plan/NN-…` 194곳, 문서 상대 링크 136곳, 백틱 문서 경로 333곳, front matter 경로(`spec` 21, `amended-by` 12, `superseded-by` 1)다.
-- **Verified:** 번호가 아닌 숫자가 섞여 있다. "ADR 6개" 같은 개수, "계획 1/5" 같은 분수, `scripts/lib/docs.sh:94`의 "ADR 2026"(연도), "결정 N", "Task N", "R1-F1", PR "#NN"이다. 계획 02~04는 한때 03~05에서 번호가 바뀌었다(`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md:178`).
+- **Verified:** 번호가 아닌 숫자가 섞여 있다. "ADR 6개" 같은 개수, "계획 1/5" 같은 분수, `scripts/lib/docs.sh:94`의 "ADR 2026"(연도), "결정 N", "Task N", "R1-F1", PR "#NN"이다. 계획 02~04는 한때 03~05에서 번호가 바뀌었다(`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md:179`).
 - **Verified:** `tests/repo-cloud-neutral.bats:6,31`이 `rbk-2026-10-12-tcjs7m6x-gcp-vm.md`를 이름으로 고정하고, 스크립트 다섯 곳(`scripts/bootstrap-vm.sh:55,57`, `scripts/verify-vm.sh:111,113,134`, `scripts/lib/vm.sh:53`)이 그 경로를 메시지에 쓴다. `.github/workflows/ci.yml:2`, `pr-rules.yml:2`, `tests/repo-config.bats:5`, `Makefile`, 코드 블록 안의 경로는 문서 경로 검사(`tests/repo-docs.bats:53-67`) 범위 밖이다.
 
 git 이력:

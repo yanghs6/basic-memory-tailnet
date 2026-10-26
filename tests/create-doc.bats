@@ -55,13 +55,17 @@ setup() {
   assert_output --partial "already created today"
 }
 
-@test "make new-doc rejects a malformed or already used ID" {
+@test "make new-doc rejects a malformed, hex-only or already used ID" {
   local bad
   for bad in K7M2X9QA k7m2x9q k7m2x9qai k7m2x9qi; do
     run "$CREATE" spec some-spec "$bad"
     assert_failure
     assert_output --partial "must be 8 characters"
   done
+  run "$CREATE" spec some-spec 0a1b2c3d
+  assert_failure
+  assert_output --partial "hex digits only"
+  [[ ! -e "docs/specs/spec-$TODAY-0a1b2c3d-some-spec.md" ]] || fail "a hex-only id still wrote a file"
   run "$CREATE" spec first-spec k7m2x9qa
   assert_success
   run "$CREATE" spec second-spec k7m2x9qa

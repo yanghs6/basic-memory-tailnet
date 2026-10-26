@@ -338,9 +338,9 @@ Expected: 이름 검사는 통과하고, 경로 검사에 이름 변경으로 �
 
 | 파일(새 이름) | 경로 | 고치는 방법 |
 |---|---|---|
-| `docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md` | OCI 시절 basic-memory-on-oci-tailscale ADR, OCI VM 런북 | 지워진 문서다. 경로를 "OCI 시절의 basic-memory-on-oci-tailscale ADR([docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md)에서 지움)", "OCI VM 런북(docs-skills 계획에서 지움)"처럼 풀어 쓴다 |
+| `docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md` | OCI 시절 basic-memory-on-oci-tailscale ADR, OCI VM 런북 | 지워진 문서다. 경로를 "OCI 시절의 basic-memory-on-oci-tailscale ADR(docs-skills 계획에서 지움)", "OCI VM 런북(docs-skills 계획에서 지움)"처럼 풀어 쓴다 |
 | `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md` | [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) 리뷰 기록 파일 | 만들어지지 않은 파일이다. "vm-rollout 계획의 리뷰 기록(PR 댓글)"으로 풀어 쓴다 |
-| `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md` | OCI VM 런북 | "OCI VM 런북([docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md)에서 지움)"으로 풀어 쓴다 |
+| `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md` | OCI VM 런북 | "OCI VM 런북(docs-skills 계획에서 지움)"으로 풀어 쓴다 |
 | `docs/plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md` | 테스트 예시 `2026-10-01-draft.md`, 지운 확인용 조사 문서 | 경로 앞의 폴더를 떼고 "ADR 폴더의 `2026-10-01-draft.md`", "확인 뒤 지운 `rsch-2026-10-16-plan13-smoke.md`"로 쓴다 |
 | `docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md` | SilverBullet 저장소의 `API/view.md`, `API/widget.md`(그 저장소의 docs 폴더) | 다른 저장소 파일이다. `silverbullet/docs/API/view.md:39-58`처럼 저장소 이름을 앞에 붙인다 |
 

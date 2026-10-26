@@ -1,6 +1,6 @@
 ---
-id: {{id}}
 status: current
+id: {{id}}
 reviewed: {{date}}
 ---
 

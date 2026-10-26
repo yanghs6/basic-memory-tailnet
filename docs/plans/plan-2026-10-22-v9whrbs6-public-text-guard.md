@@ -46,8 +46,8 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 
 | 후보 패턴 | 걸리는 곳 | 계획의 처리 |
 |---|---|---|
-| IPv4, 허용 집합은 브리프 안(loopback, `0.0.0.0`, 문서용 대역, IAP 대역)만 | RFC 1918 대역 CIDR 26곳(문서 10개, GCP VPC 내부 대역). `tests/verify-vm.bats:64-66`에 일부러 넣은 사설·link-local·범위 밖 입력 6개. `docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md:55,182`의 옥텟 범위 밖 숫자 2개. 스펙 54행의 tailnet 대역 표기 1개. [ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md)의 메타데이터 서버 주소 1개 | 허용 집합에 RFC 1918, link-local, 대역 표기(네트워크 주소/접두사)를 더한다. 옥텟이 0~255인 것만 주소로 본다. 그러면 0곳 |
-| 같은 조건 | 공개 주소 8개. `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md:284,286,307`(제3자 서버 주소와 공개 DNS 리졸버), `docs/plans/plan-2026-10-13-gaewewkf-ipv6-egress.md:20-21`(공개 DNS 리졸버) | 완료된 기록이므로 고치지 않고 예외 목록에 넣는다(Open question 1) |
+| IPv4, 허용 집합은 브리프 안(loopback, `0.0.0.0`, 문서용 대역, IAP 대역)만 | RFC 1918 대역 CIDR 26곳(문서 10개, GCP VPC 내부 대역). `tests/verify-vm.bats:64-66`에 일부러 넣은 사설·link-local·범위 밖 입력 6개. `docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md:56,182`의 옥텟 범위 밖 숫자 2개. 스펙 54행의 tailnet 대역 표기 1개. [ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md)의 메타데이터 서버 주소 1개 | 허용 집합에 RFC 1918, link-local, 대역 표기(네트워크 주소/접두사)를 더한다. 옥텟이 0~255인 것만 주소로 본다. 그러면 0곳 |
+| 같은 조건 | 공개 주소 8개. `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md:285,286,307`(제3자 서버 주소와 공개 DNS 리졸버), `docs/plans/plan-2026-10-13-gaewewkf-ipv6-egress.md:21-22`(공개 DNS 리졸버) | 완료된 기록이므로 고치지 않고 예외 목록에 넣는다(Open question 1) |
 | 자리표시자가 아닌 `*.ts.net` | 84곳 모두 자리표시자다. `example` 31곳, `<…>`·`*`·`{…}` 36곳, `tail1234` 15곳(파일 9개), `host.tailnet` 2곳 | 자리표시자 규칙: `example`, `<`, `*`, `{`가 들어 있거나, 라벨이 `tail1234`·`tailnet`인 이름 |
 | 문자열 `claude.ai/code/session` | 규칙을 설명하는 문장 3곳(스펙 125행, `scripts/check-pr.sh:13`, `tests/check-pr.bats:90`) | id가 붙은 링크(`session_` 뒤에 영숫자)와 줄 첫머리의 `Claude-Session:`로 좁힌다. 걸리는 곳은 `tests/check-pr.bats:90`의 가짜 id 1곳뿐 |
 | 문자열 `Generated with` | 규칙과 인용 문장이 있는 파일 7개 | `Generated with`로 시작하는 줄로 좁힌다(앞에는 공백, 목록·인용 기호, 이모지만 올 수 있다). 0곳 |
@@ -113,7 +113,7 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 - Create: `scripts/check-public-text.sh`, `tests/check-public-text.bats` (`make new-script NAME=check-public-text`. `check`는 동사 표에 있다)
 - Create: `tests/fixtures/check-public-text/` (종류별 must-fail 파일 하나씩과 통과 파일 하나)
 - Create: ADR (`make new-doc TYPE=adr SLUG=public-text-guard`)
-- Modify: `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md:4` (`amended-by`를 목록으로 바꾸고 새 ADR을 더한다)
+- Modify: `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md:5` (`amended-by`를 목록으로 바꾸고 새 ADR을 더한다)
 
 **Interfaces:**
 - Produces: `scripts/check-public-text.sh [--label NAME] [FILE|-]...`.
@@ -124,7 +124,7 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 - [ ] **Step 1: 실패하는 테스트 작성.** `tests/check-public-text.bats`에 테스트 세 개를 둔다.
   - "flags every kind and prints no matched value": must-fail 파일마다 실패하는지, 종류와 줄 번호가 나오는지, `refute_output --partial`로 값 전체가 출력되지 않는지 확인한다. 각 사례는 서브셸 반복으로 돌린다.
   - "passes the allowed forms": 통과 파일이 통과해야 한다. 이 파일에는 다음을 넣는다.
-    - 허용 주소: loopback, `0.0.0.0`, 문서용 대역(`203.0.113.10`), IAP 대역(`docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md:69`가 인용한 대역), RFC 1918, link-local, 대역 표기
+    - 허용 주소: loopback, `0.0.0.0`, 문서용 대역(`203.0.113.10`), IAP 대역(`docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md:70`가 인용한 대역), RFC 1918, link-local, 대역 표기
     - 주소가 아닌 숫자: Review Focus 3의 값
     - 자리표시자 ts.net 이름
     - 규칙을 설명하는 문장: 줄 중간의 `Generated with`, id 없는 `claude.ai/code/session`
@@ -144,7 +144,7 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 **Files:**
 - Create: `tests/repo-public-text.bats`, 예외 목록 파일
 - Modify: `docs/ARCHITECTURE.md:53` (구성 요소 표에 `scripts/check-public-text.sh`)
-- Modify: `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md:33-47` (2절 공개 전 점검. IP·ts.net은 `git log -p <ref> | scripts/check-public-text.sh -`로 본다. 기존 grep은 `tskey-`·개인키·메일 주소용으로 남긴다)
+- Modify: `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md:34-48` (2절 공개 전 점검. IP·ts.net은 `git log -p <ref> | scripts/check-public-text.sh -`로 본다. 기존 grep은 `tskey-`·개인키·메일 주소용으로 남긴다)
 
 - [ ] **Step 1: 실패하는 테스트 작성.** 빈 예외 목록 파일을 만들고, `tests/repo-public-text.bats`에 테스트 하나를 둔다. 이름은 "tracked and new files carry no public text outside the exemption list, and every exemption names an existing file"이다. 인자 없이 `scripts/check-public-text.sh`를 실행해 exit 0인지 확인하고, 예외 목록의 경로가 모두 실제 파일인지 확인한다.
 - [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 실패한다. 걸리는 곳은 오탐 조사 표에 있는 [vm-rollout](plan-2026-10-07-qtvzskgx-vm-rollout.md)·[ipv6-egress](plan-2026-10-13-gaewewkf-ipv6-egress.md) 계획의 IPv4, `tests/check-pr.bats:90`의 세션 링크, `tests/fixtures/check-public-text/`이다. 값은 가려져서 출력된다.
@@ -191,7 +191,7 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 **Files:** (Open question 2·3에서 A안을 고른 경우)
 - Modify: `Makefile:25-26` (`GITLEAKS_IMAGE`를 `zricethezav/gitleaks:v8.30.1@sha256:<digest>`로 둔다. digest는 실행할 때 릴리스 노트를 읽고 확인한다)
 - Modify: `Makefile:32` (`.PHONY`), 새 `secret-scan` 타깃 (`$(DOCKER_RUN)`, 이미지 인자 `git --redact --log-opts=--all /repo`)
-- Modify: `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md:33-47` (스캔 절차와 GitGuardian 오탐 처리 절차)
+- Modify: `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md:34-48` (스캔 절차와 GitGuardian 오탐 처리 절차)
 - Test: `tests/repo-make.bats`
 - **Verified (2026-10-22, `gh api repos/gitleaks/gitleaks/releases`, Docker Hub 태그 API):** 최신 stable은 `v8.30.1`(2026-03-21)이고, Docker Hub 태그에 amd64와 arm64 이미지가 있다. README에 따르면 이력 스캔은 `gitleaks git`이다. `--log-opts`, `--redact`, `--report-path` 옵션이 있고, 오탐은 `.gitleaksignore`에 fingerprint로 적는다.
 - **Verified (https://docs.gitguardian.com/ggshield-docs/configuration):** `.gitguardian.yaml`(`version: 2`, `secret.ignored_paths`, `secret.ignored_matches`)은 ggshield CLI의 설정 파일이다. 이 페이지는 GitHub App이 이 파일을 읽는다고 말하지 않는다.

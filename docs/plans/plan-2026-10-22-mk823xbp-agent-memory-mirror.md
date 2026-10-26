@@ -963,7 +963,7 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 ## Follow-ups
 
 - 검색어가 VM 로그에 남는 것으로 확인되면, 로그 보관 기간이나 검색어를 가리는 방법을 따로 정한다(Task 1 결과에 따름).
-- 색인과 에이전트가 읽는 노트를 신뢰할 수 없는 입력으로 다룰지, 그리고 어느 계획이 맡을지는 스펙 §8 Open question 3이다. [agent-sandbox 계획](plan-2026-10-22-k3bd8k47-agent-sandbox.md)은 이를 범위 밖 후속 항목으로만 적었다(`plan-2026-10-22-k3bd8k47-agent-sandbox.md:212`).
+- 색인과 에이전트가 읽는 노트를 신뢰할 수 없는 입력으로 다룰지, 그리고 어느 계획이 맡을지는 스펙 §8 Open question 3이다. [agent-sandbox 계획](plan-2026-10-22-k3bd8k47-agent-sandbox.md)은 이를 범위 밖 후속 항목으로만 적었다(`plan-2026-10-22-k3bd8k47-agent-sandbox.md:213`).
 - `sync.log`는 보낼 것이 있을 때만 줄이 생겨서 회전하지 않는다. 커지면 정한다.
 - Antigravity·Gemini CLI의 기억과 hook은 범위 밖이다(스펙 §1).
 - 에이전트가 MCP를 잘 부르지 않으면(Task 6 Step 7), 대안 B(질문마다 질문 내용을 보내지 않는 로컬 알림 한 줄)를 따로 정한다.
