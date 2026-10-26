@@ -253,3 +253,4 @@ Basic Memory:
 ## 8. Open questions
 
 1. 이력 재작성 날짜. 그날 다른 세션을 멈춘다. Task 4 직전에 정한다.
+   - **Verified:** 2026-10-26에 재작성했다(결과는 [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)의 "이전 결과").

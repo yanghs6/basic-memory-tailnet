@@ -44,6 +44,31 @@ date: 2026-10-26
   - 설계 §3.5의 재작성 검증 다섯 가지
   - 설계 완료 조건 7의 초안 보드 확인
 
+## 이전 결과
+
+2026-10-26에 `main`의 git 이력을 한 번 재작성했다. 절차는 설계 §3.5, 계획의 Task 4다.
+
+- **Verified:** 재작성했다. `main`의 끝이 재작성 전 a1d77be에서 829e77a로 바뀌었다. 커밋 160개, 병합 커밋 12개는 그대로다. 작성자, 커밋터, 날짜, 부모 관계, 파일 모드, 심볼릭 링크를 유지했고 문서 경로, 옛 계획·ADR 번호, `main`에 있는 앞선 커밋의 SHA 인용만 바꿨다. 같은 입력으로 세 번 따로 돌려 같은 829e77a가 나왔다.
+- **Command:** 재작성은 저장소 clone이 아닌 별도의 `git clone --mirror` 두 개(백업, 작업)에서 `git commit-tree`로 커밋을 순서대로 다시 만들어 했다. 백업 clone은 끝까지 그대로였다(객체 수 3416 불변). 재작성 전 `main`의 SHA 160개와 새 SHA 160개의 대응은 아래 "부록: 재작성 전후 커밋 대응"에 있다.
+- **Verified:** 설계 §3.5의 검증 다섯 가지를 마지막 실행에서 했다.
+  1. 통과: 커밋 160개 대 160개, 병합 12 대 12, 작성자·커밋터·날짜·부모·모드·심볼릭 링크가 같다.
+  2. 통과: 어느 커밋의 tree에도 대응표의 옛 문서 경로가 없다(문서 경로 196개를 160개 tree에서 확인했고 대응표에 없는 경로는 0개).
+  3. 목록: 옛 번호 모양에 걸린 곳 264건에 줄마다 이유를 붙였다. HEAD에 170건(Task 2가 남긴 것과 같은 분류), 이력이나 커밋 메시지에만 있는 것 94건이다. 94건은 코드 리터럴 37, 옛 표기에서 파생된 이름 17, 목록 10, 분수 10, 테스트 주석 4, 인용 3, 사용자가 남기기로 한 곳 2, 개수 2, 연도 2, 외부 ADR 1, 대응표에 없는 것 1(PR #7 메시지의 "former plan 13"), OCI 시절 ADR 0001 1(docs-skills 계획에서 두 ADR을 함께 부르는 줄), 브랜치 줄임말 1, 4자리가 아닌 ADR 1, 범위 1, 두 자리 계획이 아닌 것 1이다.
+  4. 통과: 재작성한 HEAD와 a1d77be의 tree는 49개 파일 162줄이 다르고, 그 차이는 모두 대응표의 SHA 쌍 때문이다(통제 세션과 감독 세션이 따로 다시 확인해 설명되지 않는 줄 0).
+  5. 통과: 표본 커밋 21개(계획 번호를 바꾼 커밋 주변, OCI 시절 ADR 이름을 바꾼 커밋 주변, 정책 스펙을 더한 커밋 주변, PR #7과 #22, 무작위 3개)의 diff가 경로·이름·번호·ID·SHA를 가리면 원래와 같다.
+- **Verified:** push는 `git push --force-with-lease=refs/heads/main:<a1d77be 전체 SHA>`로 했다(`+ a1d77be...829e77a`). 그 전에 `git ls-remote`로 원격 `main`이 a1d77be인지 확인했고, 로컬 bare 사본에서 잘못된 lease가 거절되는 것을 시험했다. 머신 계정은 저장소 관리자가 아니어서 사용자가 Ruleset `main`의 Enforcement를 끄고 push 뒤 다시 켰다. 켠 뒤 공개 규칙 API가 규칙 5개(삭제 금지, non-fast-forward 금지, 선형 이력 필수, pull request 필수, 필수 상태 검사)를 보여 준다. push 전후로 `refs/pull/*/head` 22개는 변하지 않았다.
+- **Verified:** PR #1~#22의 제목, 본문, 머신 계정의 코멘트에 같은 치환을 했다(범위를 #1~#20에서 #1~#22로 넓혔다). 읽은 139건(제목 22, 본문 22, 코멘트 95) 중 98건이 바뀌었다. 제목 6, 본문 22, 코멘트 70건이고 치환은 272곳이다. 고친 뒤 GitHub에서 다시 읽은 글이 제안한 글과 같다. 사람 계정의 리뷰 24개, GitGuardian 코멘트 3개, PR의 head 커밋(`refs/pull`)과 그 SHA는 고치지 않았다. PR별 건수는 계획의 Progress log에 있다.
+- **Verified:** 재작성하지 않은 것: PR head 커밋의 SHA(`refs/pull/*/head`)와 그 SHA를 가리키는 인용, `main`에 없는 커밋 SHA 612개와 어느 커밋도 아닌 16진 문자열 828개의 인용. 그래서 PR 코멘트의 "6f041cb..2e8c2a5" 같은 범위는 새 `main` SHA와 옛 PR head SHA를 이어 붙인 모양이 되었다. 설계가 예상한 비용이다.
+- **Verified:** 부작용:
+  - GitHub가 서명했던 squash 병합 커밋 23개가 서명을 잃어 Verified 표시가 없다.
+  - 파일을 `backlog`·`active` 폴더 사이에서 옮기기만 한 커밋 3개는 내용 변경이 없어져 빈 커밋이 되었다. 커밋 수 160을 지키려고 남겼다.
+  - 4dabf83(재작성 전 a82df1c)의 diff는 원래 건드리지 않던 docs-skills 계획 4줄을 건드린다. OCI 시절 ADR 번호를 쓰던 시대의 경계 때문이다.
+  - 이력은 Task 2가 HEAD에서 손으로 고친 곳(예: git-review-policy 스펙의 번호 목록)을 규칙대로 쓴 형태로 가지고 있다.
+  - 공유 규칙의 영어 문장이 어색하게 읽히는 곳이 있다(예: "new the git-review-tooling plan").
+  - PR 제목·본문을 고치자 닫힌 PR에서 `pr-rules`가 다시 돌았고 28번 실패했다. 각 PR이 저장한 base가 옛 `main`이라 범위가 옛 이력 전체에 걸려 옛 squash 커밋에서 "missing trailer 'Task: …'" 등이 나왔다. 병합된 PR에는 영향이 없다.
+- **Verified:** 뒷정리: 사용자가 메인 checkout을 `git fetch origin --prune`과 `git reset --hard origin/main`으로 맞췄다(HEAD 829e77a, 무시된 `.env`와 `backups/`는 남음). 다른 Mac에는 `git fetch origin --prune && git switch main && git reset --hard origin/main`과 옛 로컬 브랜치 삭제 명령을 알렸다. 옛 SHA와 새 SHA의 대응 파일은 백업 사본과 함께 저장소 밖에 두었고 사용자 메모리에 위치를 적었다.
+- **Open question:** 남은 것은 다른 기기의 사본, GitHub 밖의 대화와 메모에 적힌 옛 SHA와 옛 번호다. 아래 "부록: 재작성 전후 커밋 대응"과 "부록: 옛 번호 대응표"로 찾는다.
+
 ## 부록: 옛 번호 대응표
 
 설계 §3.4의 이름 변경(2026-10-26)에서 채웠다. 옛 이름 열에는 각 문서가 이 계획 직전에 가진 이름을 적는다. 이력 재작성의 치환 규칙에 걸리지 않도록 경로와 확장자 없이 날짜, 번호, slug를 띄어 적고, 그보다 오래된 이름은 "그 전:" 뒤에 적는다. 리뷰 기록 이름의 `plan-NN-` 접두어는 `plan-NN`으로 적는다.
@@ -122,3 +147,170 @@ date: 2026-10-26
 | review | 2026-10-13 work-skill-best-practices (그 전: work-skill-best-practices) | ycht90mr | rev-2026-10-13-ycht90mr-work-skill-best-practices.md |
 | review | 2026-10-13 work-slow-start-health (그 전: work-slow-start-health) | af5vkb8q | rev-2026-10-13-af5vkb8q-work-slow-start-health.md |
 | review | 2026-10-13 work-workflow-alignment (그 전: work-workflow-alignment) | aqjax47t | rev-2026-10-13-aqjax47t-work-workflow-alignment.md |
+
+## 부록: 재작성 전후 커밋 대응
+
+2026-10-26 재작성의 옛 SHA와 새 SHA(7자)다. `main`의 커밋 160개를 이력 순서로 적었다.
+
+| 재작성 전 | 재작성 후 |
+|---|---|
+| 57d27f8 | 8af2f5f |
+| dc73e64 | 1827258 |
+| f6c4eec | 58903ed |
+| bebcfd2 | 72cd315 |
+| c88c56d | 496d060 |
+| 750c7c3 | 7a35cb3 |
+| 42c2b45 | b159684 |
+| 20b7db2 | 3efcdab |
+| 984df2c | 50bcc28 |
+| 4e2ec21 | a5cb508 |
+| bb98c02 | 5dc5e58 |
+| 77951c3 | a21ff33 |
+| 35f65d0 | 1d464d9 |
+| 1fa3fce | 83b7f72 |
+| f92411b | 315d50a |
+| a1e9a71 | b09abae |
+| bade74d | fb1bf28 |
+| e034250 | b18a663 |
+| 6b6f419 | f62396f |
+| 6dfd1b4 | dbda608 |
+| 6ee7823 | 6f5f02d |
+| 26e5af2 | 7b27246 |
+| 6417f00 | 55cdc4b |
+| 504fa74 | b0f1141 |
+| 20ae84e | 21f7113 |
+| de7f265 | e2d6465 |
+| 3cf3a83 | 286b8fa |
+| db0c45b | d41c387 |
+| e6146b4 | 6f42cec |
+| dc423de | 80fa24b |
+| 7cceb24 | 0dbc0a3 |
+| 91cdb92 | 347f9ec |
+| 46ea052 | 96ac8ea |
+| 146447a | 16e7d88 |
+| b61ddbf | 5a9c7d7 |
+| c260ffc | ad7d0b1 |
+| 37e9956 | dfeafbc |
+| 0632ee9 | 49cb7df |
+| 8184243 | 6105095 |
+| 144a9f8 | 2fb6880 |
+| e2acbb5 | 8931baf |
+| b638c96 | 4a1a166 |
+| 5887498 | a530c9e |
+| 7db2e2c | 8c65679 |
+| 058ca9c | a349fb4 |
+| 1ebf820 | 32ac7d5 |
+| 6fc3ea3 | de303eb |
+| ce3efa2 | 7c4bc1a |
+| 298a272 | 46733f2 |
+| d83c80e | 2563e2c |
+| 24ce10f | 6aa1686 |
+| 585eae2 | 9fcd6e2 |
+| 0db42f4 | 77d9ccc |
+| ddca415 | eb948fc |
+| 6243ad9 | 263f903 |
+| bb16883 | 20d342b |
+| dff0d27 | 74521cb |
+| 1486e5b | d5f1db8 |
+| 2a9bfe3 | 280dbaa |
+| ce3be17 | 9963090 |
+| 512c8ae | 83e92fb |
+| 34a02a0 | a15638d |
+| 2fa3e42 | b842519 |
+| 8fd3926 | 9d1fe67 |
+| 7471276 | 2f97140 |
+| 01d3458 | 3ea1ef8 |
+| 6368680 | f47b3cf |
+| e73be4b | d15d641 |
+| d5e64e6 | c2d505e |
+| 0fae78e | bcc66c5 |
+| b8ea75e | 2e09e2e |
+| 36c7564 | 9c8b9e0 |
+| 68d91e6 | f6a170d |
+| abcb107 | f49f2d0 |
+| d0553a0 | 58e42b1 |
+| 80c26de | 2850fc5 |
+| 490fc97 | bc2ba09 |
+| 7aa6bfb | 9f87f40 |
+| b627135 | 15cdeef |
+| 54d6dcb | d07d31d |
+| 69f45e6 | 2d67130 |
+| f5ad88c | 241d82d |
+| b695766 | 987a069 |
+| 82d6a57 | 803caf5 |
+| 90d3674 | 8d960d4 |
+| a82df1c | 4dabf83 |
+| 660a048 | 6038043 |
+| 9f7ffcf | 1afc9d3 |
+| 308d8fc | c965fc5 |
+| d310ebc | 0a98c9e |
+| e240c57 | 8c6f37f |
+| d2907b2 | 176062f |
+| 3884850 | 0167c5c |
+| 006655d | cccd6fd |
+| 62cc7a9 | 427b489 |
+| 699b72c | ece9be2 |
+| 543bd7e | 9376974 |
+| 15bb4e2 | 2f7010e |
+| d15506b | 8b8eea0 |
+| a10601e | 2ee54e6 |
+| 65cc7c0 | e2b505c |
+| 43771b1 | c1d986a |
+| 65567da | 0662d45 |
+| 1cb382a | 6d7115a |
+| 71ad51b | 56d3ab4 |
+| 3d60453 | 21edef9 |
+| 8ab9d72 | 49afdf9 |
+| ab08bbc | 08dcd4d |
+| c59b1a9 | 0a1acec |
+| a2e1b78 | 5a42324 |
+| 5561329 | a5781a4 |
+| 5693ff3 | e2f525b |
+| 0061153 | 789053a |
+| 32e405c | b86f43c |
+| ecc5fb2 | 01a40c5 |
+| 3501ad7 | 10ecdcd |
+| ac9429c | 34bf50f |
+| 8a472a1 | 20b32b5 |
+| 686ea6a | 1a495b5 |
+| fb54cdb | d481ee4 |
+| 8871863 | aa7564b |
+| 6133782 | e57877f |
+| 7d71b23 | a9706eb |
+| c10fb5c | 1b333af |
+| c3f0943 | d7af8f9 |
+| aacb7a9 | a84bae1 |
+| 8c9221c | acabbba |
+| 58fff47 | 78f13c2 |
+| 703be2a | 0ff9988 |
+| 2ff27c1 | adeace1 |
+| c0b570b | 9adb238 |
+| bdf852b | aae9c83 |
+| 5d05c76 | 5147137 |
+| ca155f0 | 06b5f43 |
+| 32cc27f | 5f66bff |
+| 9f7e038 | 0d49cb9 |
+| 8caac87 | 4d29143 |
+| de91861 | 292f58b |
+| d59bfed | 47ed954 |
+| f0b4f9c | d354732 |
+| ec46af9 | 5726ed1 |
+| 945fd57 | 9b2fde1 |
+| 3b87fa5 | 54ea5f6 |
+| 4c84dba | e928776 |
+| 4a184f1 | 9dbf963 |
+| 87e86d4 | 9a43084 |
+| 16aa61f | 251d84f |
+| 03432a1 | 3d8e3f3 |
+| 4cedf49 | ef67732 |
+| eda0d92 | 0e41ed7 |
+| e648d5a | c608d87 |
+| 47dbbc7 | b53edc5 |
+| 6452041 | e05f0c4 |
+| 6e38c46 | 0fe5bd2 |
+| 7a3748d | 57993a3 |
+| 5c8c079 | 1d06037 |
+| 6554406 | 42136db |
+| a0493ad | 3697455 |
+| 9dd11e2 | dfda20c |
+| a1d77be | 829e77a |
