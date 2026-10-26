@@ -1,6 +1,7 @@
 ---
 status: approved
 date: 2026-10-16
+amended-by: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md
 ---
 
 # 에이전트 공용 문서 체계 — 설계

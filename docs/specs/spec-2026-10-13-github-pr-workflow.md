@@ -1,7 +1,7 @@
 ---
 status: approved
 date: 2026-10-13
-amended-by: docs/specs/spec-2026-10-15-doc-system.md
+amended-by: [docs/specs/spec-2026-10-15-doc-system.md, docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md]
 ---
 
 # GitHub PR 기반 에이전트 Git 워크플로 — 설계
