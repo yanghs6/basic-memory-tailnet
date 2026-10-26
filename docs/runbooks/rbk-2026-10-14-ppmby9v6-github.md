@@ -36,13 +36,17 @@ git config --local user.email 159414014+yanghs6-bot@users.noreply.github.com
 처음 공개하는 이력(첫 push의 `main`, 처음 push하는 브랜치)마다 실행합니다. `<ref>`는 공개할 브랜치입니다.
 
 ```bash
-git log -p <ref> | grep -nE 'tskey-[A-Za-z0-9]{10,}|PRIVATE KEY|([0-9]{1,3}\.){3}[0-9]{1,3}|[a-z0-9-]+\.ts\.net|@[A-Za-z0-9.-]+\.[a-z]{2,}'
+git log -p <ref> | scripts/check-public-text.sh -
+scripts/check-public-text.sh
+git log -p <ref> | grep -nE 'tskey-[A-Za-z0-9]{10,}|PRIVATE KEY|@[A-Za-z0-9.-]+\.[a-z]{2,}'
 git log -p <ref> | grep -cF '<실제 VM 외부 IP>'
 git log -p <ref> | grep -cF '<실제 VM Tailscale IP>'
 git log -p <ref> | grep -cF '<GCP 프로젝트 ID>'
 ```
 
-- 첫 명령에 걸린 줄이 테스트용 자리표시자인지 하나씩 확인합니다. 예: `127.0.0.1`, `203.0.113.10`, `tail1234.ts.net`, `agent@example.com`, `tskey-auth-test123`.
+- 첫 명령은 이력 전체에서 허용 집합 밖의 IPv4, tailnet IPv6, ts.net 이름, 세션 링크, Generated with 줄을 찾습니다. 값은 출력하지 않고 `stdin:<줄>: <종류>`만 알립니다. stdin에는 예외 목록이 적용되지 않으므로 [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)의 증거처럼 `.public-text-exemptions`에 오른 기록도 걸립니다. 걸린 줄이 그런 기록인지 확인합니다. 규칙은 [public-text-guard ADR](../decisions/adr-2026-10-26-vtmqpsyx-public-text-guard.md)에 있습니다.
+- 둘째 명령은 지금 작업 트리의 tracked 파일과 새 파일을 같은 규칙으로 검사하고 예외 목록을 적용합니다(`make check`와 같은 검사). exit 0이어야 합니다.
+- 셋째 명령에 걸린 줄이 테스트용 자리표시자인지 하나씩 확인합니다. 예: `agent@example.com`, `tskey-auth-test123`.
 - 나머지 명령은 모두 `0`이어야 합니다.
 - **실제 값이 걸리면 push하지 않습니다.** 현재 파일만 고쳐도 과거 커밋에는 값이 남습니다. 공개를 허용할지, 이력을 정리할지를 사용자가 정합니다(스펙 11절). 실제 자격증명이면 공개 여부와 관계없이 폐기하고 교체합니다.
 - `plan/qtvzskgx-vm-rollout`은 push하지 않습니다. 커밋 하나에 VM Tailscale IP가 있습니다. [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)은 스펙 11절의 `plan/qtvzskgx-vm-rollout-public` 절차로 공개합니다.
