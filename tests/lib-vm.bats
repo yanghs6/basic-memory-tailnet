@@ -50,6 +50,24 @@ setup() {
   done
 }
 
+@test "web_mode prints off for an empty BM_WEB and on or off as given, and stops on any other value, another case included" {
+  local case value expected
+  # Each case: BM_WEB | what web_mode prints.
+  for case in "|off" "on|on" "off|off"; do
+    IFS='|' read -r value expected <<<"$case"
+    (
+      BM_WEB="$value" run web_mode
+      assert_success && assert_output "$expected"
+    ) || fail "web_mode did not accept BM_WEB='$value'"
+  done
+  for value in On yes; do
+    (
+      BM_WEB="$value" run web_mode
+      assert_failure && assert_output --partial "BM_WEB must be on or off (got '$value')"
+    ) || fail "web_mode accepted BM_WEB='$value'"
+  done
+}
+
 @test "require_free_port refuses a privileged port and a port in use, so both tunnels stop before ssh" {
   local case script arg setting expected
   use_ssh_mode

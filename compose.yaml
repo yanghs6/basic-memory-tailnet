@@ -68,6 +68,81 @@ services:
     networks: [silverbullet]
     restart: unless-stopped
     logging: *bounded-logging
+  # The claude.ai web connector (BM_WEB=on): COMPOSE_PROFILES turns these on (make local-* passes web; the VM .env sets
+  # web,tunnel). Their variables read ${VAR:-}: compose expands disabled services too, and ${VAR:?} would stop every
+  # compose call of a BM_WEB=off install. gateway.py checks the values when it starts.
+  gateway:
+    # OAuth gateway: GitHub login of one owner (numeric id), 18 allowed tools, audit log. Its dependencies are
+    # hash-pinned in gateway/requirements.txt; boot.py installs them into the gateway-deps volume on the first start.
+    image: python:3.12.15-slim@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
+    container_name: gateway-server
+    profiles: [web]
+    # boot.py installs the dependencies as root when requirements.txt changed, then runs gateway.py as uid 1000.
+    command: ["python", "/app/boot.py"]
+    working_dir: /app
+    # Loopback only: cloudflared reaches it over the web network; the port is for make local-verify and make verify.
+    ports:
+      - "127.0.0.1:${BM_WEB_PORT:-8738}:8080"
+    volumes:
+      - "./gateway:/app:ro"
+      - "${BM_WEB_DATA_DIR:-./.local-data/gateway}:/data"
+      - "gateway-deps:/deps"
+    environment:
+      BM_WEB_BASE_URL: ${BM_WEB_BASE_URL:-}
+      BM_WEB_GITHUB_USER_ID: ${BM_WEB_GITHUB_USER_ID:-}
+      BM_WEB_GITHUB_CLIENT_ID: ${BM_WEB_GITHUB_CLIENT_ID:-}
+      BM_WEB_GITHUB_CLIENT_SECRET: ${BM_WEB_GITHUB_CLIENT_SECRET:-}
+      BM_WEB_JWT_KEY: ${BM_WEB_JWT_KEY:-}
+      # The client registration and token store (FastMCP's default layout under FASTMCP_HOME).
+      FASTMCP_HOME: /data
+      PYTHONPATH: /deps/site
+      # /app is read-only.
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      basic-memory:
+        condition: service_healthy
+    healthcheck:
+      # The authorization server metadata needs no backend: it must answer while Basic Memory restarts (claude.ai
+      # gives discovery 10 s).
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/.well-known/oauth-authorization-server', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # The first start downloads and installs the pinned dependencies before the server listens.
+      start_period: 300s
+      start_interval: 2s
+    networks: [basic-memory, web]
+    restart: unless-stopped
+    logging: *bounded-logging
+  cloudflared:
+    # Outbound tunnel to Cloudflare: a remotely managed tunnel whose public hostname and service (http://gateway:8080)
+    # are set in the Cloudflare dashboard. It only dials out and publishes no port.
+    image: cloudflare/cloudflared:2026.10.3@sha256:faa8e0a1475f137c910be6025f43c8e4092fdd35461b31e19fd1390657a1ff39
+    container_name: cloudflared-tunnel
+    profiles: [tunnel]
+    # The image entrypoint is `cloudflared --no-autoupdate`. The metrics server listens only inside the container.
+    command: ["tunnel", "--metrics", "127.0.0.1:20241", "run"]
+    environment:
+      TUNNEL_TOKEN: ${BM_WEB_TUNNEL_TOKEN:-}
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      # `tunnel ready` asks the metrics server's /ready, which answers 200 once a connection to Cloudflare is up.
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:20241", "ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
+    networks: [web]
+    restart: unless-stopped
+    logging: *bounded-logging
 networks:
   basic-memory:
   silverbullet:
+  web:
+volumes:
+  # The gateway's installed dependencies: re-installable, so they stay out of the data root and make backup.
+  gateway-deps:

@@ -2,6 +2,7 @@
 # VM helpers for scripts/*.sh: the VM layout, the access mode, SSH and compose on the VM, and the data manifest.
 # Sources common.sh. Must stay compatible with macOS bash 3.2.
 #   access_mode -> tailscale or ssh (BM_ACCESS); dies on any other value
+#   web_mode -> on or off (BM_WEB, the claude.ai web connector); dies on any other value
 #   access_hint -> what to check when SSH to the VM fails, for the current access mode
 #   require_vm [CMD...] -> dies unless the access mode, ssh, every CMD and the VM settings are there
 #   local_port_open PORT -> exit 0 when something listens on 127.0.0.1:PORT
@@ -42,6 +43,17 @@ access_mode() {
   case "$mode" in
     tailscale | ssh) printf '%s\n' "$mode" ;;
     *) die "BM_ACCESS must be tailscale or ssh (got '$mode'): set it in .env in the main checkout (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)" ;;
+  esac
+}
+
+# web_mode -> on or off: BM_WEB, or off when it is unset or empty (.env files from before the web connector).
+# Any other value, another case included, stops here so no target half-enables the gateway.
+# Call it as web="$(web_mode)" || exit 1.
+web_mode() {
+  local mode="${BM_WEB:-off}"
+  case "$mode" in
+    on | off) printf '%s\n' "$mode" ;;
+    *) die "BM_WEB must be on or off (got '$mode'): set it in .env in the main checkout" ;;
   esac
 }
 

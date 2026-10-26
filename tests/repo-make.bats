@@ -86,3 +86,28 @@ make_in() {
   assert_success
   assert_output --partial "[unset] [unset] --read-only"
 }
+
+@test "make local-up with BM_WEB=on hands COMPOSE_PROFILES=web to compose and runs the same compose command" {
+  linked_worktree_with_makefile
+  setup_stubs docker
+  # The docker stub logs only its arguments; this one also logs the profiles and the gateway base URL compose sees.
+  # shellcheck disable=SC2016 # the fake command expands its variables when it runs
+  fake_cmd docker 'printf "docker %s\n" "$*" >>"$STUB_LOG"
+printf "env [%s] [%s]\n" "${COMPOSE_PROFILES-unset}" "${BM_WEB_BASE_URL-unset}" >>"$STUB_LOG"'
+  cp -R "$REPO_DIR/scripts" "$REPO_DIR/silverbullet" "$LINKED_WT/"
+  printf 'SB_USER=admin:Tr4mpoline\nBM_WEB=on\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" local-up
+  assert_success
+  run grep -c '^docker compose -f compose.yaml up -d --wait$' "$STUB_LOG"
+  assert_output 1
+  assert_stub_called -Fx 'env [web] [http://127.0.0.1:8738]'
+  refute_stub_called -F 'env [unset]'
+  [[ -d "$LINKED_WT/.local-data/gateway" ]] || fail "make local-up must create .local-data/gateway for the gateway store"
+
+  : >"$STUB_LOG"
+  printf 'SB_USER=admin:Tr4mpoline\nBM_WEB=yes\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" local-up
+  assert_failure
+  assert_output --partial "BM_WEB must be on or off (got 'yes')"
+  refute_stub_called '^docker '
+}

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Test stub for dig: logs the call and prints DIG_STUB_ANSWER (one address or name per line, like dig +short).
+set -euo pipefail
+printf 'dig %s\n' "$*" >>"$STUB_LOG"
+if [[ -n "${DIG_STUB_ANSWER:-}" ]]; then
+  printf '%s\n' "$DIG_STUB_ANSWER"
+fi

@@ -22,9 +22,11 @@ readonly COMMON_LIB_DIR
 # Root of the repo holding these scripts. Never read from the environment: the tests export their own REPO_DIR.
 REPO_DIR="$(dirname "$(dirname "$COMMON_LIB_DIR")")" || exit 1
 readonly REPO_DIR
-# Loopback ports of Basic Memory and SilverBullet when .env sets none (the Makefile repeats them for make).
+# Loopback ports of Basic Memory, SilverBullet and the web gateway when .env sets none (the Makefile repeats them for
+# make).
 readonly DEFAULT_BM_PORT=8737
 readonly DEFAULT_SB_PORT=3000
+readonly DEFAULT_BM_WEB_PORT=8738
 # Suffix of a file still being written; it gets its final name only when complete.
 readonly PARTIAL_SUFFIX=".partial"
 
