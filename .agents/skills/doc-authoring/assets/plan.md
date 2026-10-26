@@ -1,9 +1,10 @@
 ---
+id: {{id}}
 status: backlog
 spec: {{근거 스펙의 저장소 기준 경로, 없으면 none}}
 ---
 
-# {{number}} {{Title in English}} Implementation Plan
+# {{id}} {{Title in English}} Implementation Plan
 
 > **For agentic workers:** Task를 순서대로 하나씩 구현한다. 도구가 서브에이전트를 지원하면 Task마다 새 서브에이전트와 리뷰를 쓰고, 아니면 한 세션에서 실행한다. VM이나 클라우드를 바꾸는 Step은 메인 세션에서 사용자와 함께, 단계마다 OK를 받고 한다. Step은 체크박스(`- [ ]`)로 추적한다.
 
@@ -14,13 +15,13 @@ spec: {{근거 스펙의 저장소 기준 경로, 없으면 none}}
 
 **Spec:** `{{근거 스펙 경로}}` ({{특히 읽을 절}})
 
-**Sequence:** 계획 {{number}}. 다음을 모두 만족한 뒤 시작한다.
+**Sequence:** 계획 {{id}}. 다음을 모두 만족한 뒤 시작한다.
 - {{앞선 PR이나 계획의 병합 같은 조건}}
 
 ## Global Constraints
 
 - {{스펙이 정한 저장소 전체 요구사항. 한 줄에 하나, 값은 스펙에서 그대로 옮긴다}}
-- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: {{number}}`, `Task: <N|review|none>`.
+- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: {{id}}`, `Task: <N|review|none>`.
 
 ## Review Focus
 
@@ -36,7 +37,7 @@ spec: {{근거 스펙의 저장소 기준 경로, 없으면 none}}
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/{{number}}-{{slug}}` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/{{id}}-{{slug}}` 브랜치를 만든다(`git-workflow` 스킬의 Start).
 - [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: {{구성 요소}}

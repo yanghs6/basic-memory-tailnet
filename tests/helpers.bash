@@ -92,12 +92,13 @@ init_git_repo() {
   git commit -q --allow-empty -m "chore: init"
 }
 
-# agent_commit TOOL SUBJECT [GIT_COMMIT_ARG...]: an empty commit with the trailers the git policy requires (Assisted-by TOOL).
+# agent_commit TOOL SUBJECT [GIT_COMMIT_ARG...]: an empty commit with the trailers the git policy requires (Assisted-by TOOL,
+# Plan $PLAN_TRAILER, default 02).
 agent_commit() {
   local tool="$1" subject="$2"
   shift 2
   git commit -q --allow-empty -m "$subject" \
-    --trailer "Assisted-by: $tool model-x" --trailer "Plan: 02" --trailer "Task: 1" "$@"
+    --trailer "Assisted-by: $tool model-x" --trailer "Plan: ${PLAN_TRAILER:-02}" --trailer "Task: 1" "$@"
 }
 
 # use_mcp_fixtures sse|json: copy tests/fixtures/verify-mcp/<kind> to the test tmpdir and point the curl stub at the copy.

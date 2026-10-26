@@ -58,3 +58,66 @@ write_registry() {
     ) || fail "doc_types did not fail on a $problem"
   done
 }
+
+# id_repo: a git repo on main in $BATS_TEST_TMPDIR/idrepo with one commit. Sets ROOT.
+id_repo() {
+  ROOT="$BATS_TEST_TMPDIR/idrepo"
+  git init -q -b main "$ROOT"
+  git -C "$ROOT" config user.email agent@example.com
+  git -C "$ROOT" config user.name agent
+  git -C "$ROOT" commit -q --allow-empty -m "chore: init"
+}
+
+@test "random_doc_id prints 8 characters from the id alphabet" {
+  local id
+  for _ in $(seq 100); do
+    # shellcheck disable=SC2218 # the real random_doc_id comes from docs.sh; the later definitions are test doubles
+    id="$(random_doc_id)"
+    [[ "$id" =~ ^${DOC_ID_PATTERN}$ ]] || fail "'$id' is not 8 characters from the id alphabet"
+  done
+}
+
+@test "new_doc_id skips an id that a file on another branch already uses" {
+  id_repo
+  git -C "$ROOT" switch -q -c other
+  mkdir -p "$ROOT/docs/plans"
+  : >"$ROOT/docs/plans/plan-2026-10-26-k7m2x9qa-taken.md"
+  git -C "$ROOT" add -A
+  git -C "$ROOT" commit -q -m "docs: a plan on another branch"
+  git -C "$ROOT" update-ref refs/remotes/origin/other HEAD
+  git -C "$ROOT" switch -q main
+  git -C "$ROOT" branch -q -D other
+  # shellcheck disable=SC2329 # new_doc_id calls it
+  random_doc_id() {
+    if [[ -f "$BATS_TEST_TMPDIR/called" ]]; then
+      printf 'bbbbbbbb\n'
+    else
+      : >"$BATS_TEST_TMPDIR/called"
+      printf 'k7m2x9qa\n'
+    fi
+  }
+  run new_doc_id "$ROOT"
+  assert_success
+  assert_output "bbbbbbbb"
+}
+
+@test "new_doc_id gives up after DOC_ID_MAX_TRIES taken ids" {
+  id_repo
+  mkdir -p "$ROOT/docs/plans"
+  : >"$ROOT/docs/plans/plan-2026-10-26-k7m2x9qa-taken.md"
+  # shellcheck disable=SC2329 # new_doc_id calls it
+  random_doc_id() { printf 'k7m2x9qa\n'; }
+  run new_doc_id "$ROOT"
+  assert_failure
+  assert_output --partial "$DOC_ID_MAX_TRIES"
+  assert_output --partial "no unused id"
+}
+
+@test "doc_id_taken matches the id only between hyphens in a docs/ name" {
+  id_repo
+  mkdir -p "$ROOT/docs/plans"
+  : >"$ROOT/docs/plans/plan-2026-10-26-k7m2x9qa-taken.md"
+  doc_id_taken "$ROOT" k7m2x9qa
+  run doc_id_taken "$ROOT" k7m2x9qb
+  assert_failure
+}

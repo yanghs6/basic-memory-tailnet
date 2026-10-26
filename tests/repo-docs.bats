@@ -6,7 +6,7 @@ load helpers
 
 # Files under docs/ that keep their names and belong to no type (spec section 3.1).
 SINGLE_FILES="docs/README.md docs/ARCHITECTURE.md docs/reviews/README.md"
-ALLOWED_KEYS="status date spec reviewed superseded-by amended-by"
+ALLOWED_KEYS="id status date spec reviewed superseded-by amended-by"
 # docs/ARCHITECTURE.md is outside the registry but carries status and reviewed (spec section 3.2).
 ARCHITECTURE_ROW="$(printf 'architecture\tarch\t없음\tdocs/\tcurrent\tstatus, reviewed\t금지\t없음')"
 
@@ -133,7 +133,7 @@ name_problem() {
 
 # front_problems FILE ROW: one line per front matter problem of FILE against its registry ROW.
 front_problems() {
-  local file="$1" row="$2" type statuses keys key value status path
+  local file="$1" row="$2" type statuses keys key value status path name_id
   IFS=$'\t' read -r type _ _ _ statuses keys _ <<<"$row"
   if [[ -z "$(frontmatter "$REPO_DIR/$file")" ]]; then
     printf '%s: no front matter (--- block at the top)\n' "$file"
@@ -147,6 +147,11 @@ front_problems() {
   done
   status="$(front_value "$REPO_DIR/$file" status)"
   [[ ", $statuses," == *", $status,"* ]] || printf '%s: status %s is not one of: %s\n' "$file" "$status" "$statuses"
+  # A name with an id carries the same id in its front matter; names in the old forms are checked after plan 26 task 2.
+  name_id="$(sed -nE "s/^[a-z]+-${DOC_DATE_PATTERN}-(${DOC_ID_PATTERN})-[a-z0-9].*[.]md$/\1/p" <<<"${file##*/}")"
+  if [[ -n "$name_id" && "$(front_value "$REPO_DIR/$file" id)" != "$name_id" ]]; then
+    printf '%s: id must be %s, the id in the file name\n' "$file" "$name_id"
+  fi
   for key in date reviewed; do
     value="$(front_value "$REPO_DIR/$file" "$key")"
     [[ -z "$value" || "$value" =~ ^${DOC_DATE_PATTERN}$ ]] || printf '%s: %s %s is not YYYY-MM-DD\n' "$file" "$key" "$value"

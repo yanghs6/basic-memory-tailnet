@@ -1,4 +1,5 @@
 ---
+id: {{id}}
 status: draft
 date: {{date}}
 ---

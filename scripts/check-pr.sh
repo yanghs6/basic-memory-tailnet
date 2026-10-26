@@ -33,9 +33,9 @@ check_plan() {
   local value
   value="$(trailer_values Plan "$1" | tr '\n' ',' | sed 's/,$//')" || exit 1
   if [[ -z "$value" ]]; then
-    add_problem "missing trailer 'Plan: <NN|none>' in the last paragraph of the PR body"
+    add_problem "missing trailer 'Plan: <id|none>' in the last paragraph of the PR body"
   elif [[ ! "$value" =~ $PLAN_PATTERN ]]; then
-    add_problem "trailer 'Plan: $value' must be 'Plan: <NN|none>'"
+    add_problem "trailer 'Plan: $value' must be 'Plan: <id|none>'"
   fi
 }
 
