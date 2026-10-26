@@ -63,7 +63,7 @@ Each library starts with a function index, one line per function. Read it before
 - `scripts/lib/vm.sh`: the VM layout, the access mode, SSH and compose on the VM, the data manifest.
 - `scripts/lib/sb.sh`: the SilverBullet space in the notes folder and the SilverBullet login.
 - `scripts/lib/git.sh`: commit trailer rules, problem lists, review report paths.
-- `scripts/lib/docs.sh`: the document type registry and document numbers.
+- `scripts/lib/docs.sh`: the document type registry and document ids.
 - `scripts/lib/layout.sh`: the verbs of this skill's table, the folder of each kind of script (`script_dir`) and the pair test of a script.
 
 ## Tests

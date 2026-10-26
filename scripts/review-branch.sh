@@ -5,7 +5,7 @@
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-plan.md   plan conformance per AGENTS.md Code Review Rules
 # It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs
 # that post-review.sh puts in the comment header.
-# Usage: make review BRANCH=<plan/NN-slug|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]
+# Usage: make review BRANCH=<plan/<ID>-<slug>|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]
 #   REVIEW_BASE=<ref>            base for the review (default main; the reviewed head for round 2)
 #   REVIEW_ALLOW_SAME_VENDOR=1   allow a reviewer from the author's vendor (prints a warning)
 set -euo pipefail
@@ -24,7 +24,7 @@ WT=""
 SAME_VENDOR_ALLOWED=""
 
 usage() {
-  die "usage: make review BRANCH=<plan/NN-slug|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]"
+  die "usage: make review BRANCH=<plan/<ID>-<slug>|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]"
 }
 
 # shellcheck disable=SC2317  # invoked via trap
@@ -125,7 +125,7 @@ EOF
 plan_prompt() {
   cat <<EOF
 Review branch $BRANCH: the changes since $BASE_BRANCH (git diff $BASE_BRANCH...HEAD, git log $BASE_BRANCH..HEAD).
-Find the plan in docs/plans/ named by the commits' Plan trailer and check the changes against the
+Find the plan in docs/plans/ named by the commits' Plan trailer (the document id in its file name) and check the changes against the
 "Code Review Rules" in AGENTS.md.
 EOF
   prompt_footer
