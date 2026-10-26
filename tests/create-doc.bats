@@ -23,7 +23,7 @@ setup() {
 
 @test "make new-doc with ID= names the file and fills the id blank with that id, for every type that takes new documents" {
   local type code location statuses keys new path doc_status key checked=0 id
-  while IFS=$'\t' read -r type code _ location statuses keys new _; do
+  while IFS=$'\t' read -r type code location statuses keys new _; do
     [[ "$new" == "허용" ]] || continue
     checked=$((checked + 1))
     id="k7m2x9q$checked"
@@ -73,9 +73,9 @@ setup() {
 @test "refuses an unknown type, a retired type whose template still exists, a slug that is not lowercase-hyphen and an existing file, and writes nothing" {
   local case args message
   # Retire research in this copy of the registry; its template stays, so only the 새 문서 check can refuse it.
-  awk -F'|' 'BEGIN { OFS = "|" } $2 == " research " { $8 = " 금지 " } { print }' docs/README.md >"$BATS_TEST_TMPDIR/README.md"
+  awk -F'|' 'BEGIN { OFS = "|" } $2 == " research " { $7 = " 금지 " } { print }' docs/README.md >"$BATS_TEST_TMPDIR/README.md"
   cp "$BATS_TEST_TMPDIR/README.md" docs/README.md
-  [[ -f "$(doc_type_row docs/README.md research | cut -f8)" ]] || fail "the copy has no research template"
+  [[ -f "$(doc_type_row docs/README.md research | cut -f7)" ]] || fail "the copy has no research template"
   git commit -q -m "docs: retire research" docs/README.md
   run "$CREATE" spec same-name k7m2x9qa
   assert_success

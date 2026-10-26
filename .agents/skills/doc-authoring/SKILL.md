@@ -81,10 +81,10 @@ Write rules:
 ## Add a document type
 
 1. First check whether an existing type fits. Add a type only for a new folder or a new lifecycle (status values).
-2. In one pull request: a registry row with an unused 3-4 letter code, a template `assets/<type>.md` named in this SKILL.md, and a line in `AGENTS.md` if agents need it. `make new-doc` reads the registry, so no code changes. Copy an existing row and change every cell: a row has exactly ten cells and none is empty (write `없음` for no number or no template), for example:
+2. In one pull request: a registry row with an unused 3-4 letter code, a template `assets/<type>.md` named in this SKILL.md, and a line in `AGENTS.md` if agents need it. `make new-doc` reads the registry, so no code changes. Copy an existing row and change every cell: a row has exactly nine cells and none is empty (write `없음` for no template), for example:
 
    ```markdown
-   | memo | memo | 없음 | `docs/memos/` | draft, final | status, date | 허용 | 기록 | 한국어 | `.agents/skills/doc-authoring/assets/memo.md` |
+   | memo | memo | `docs/memos/` | draft, final | status, date | 허용 | 기록 | 한국어 | `.agents/skills/doc-authoring/assets/memo.md` |
    ```
 3. Record the reason in an ADR when the status values are a lifecycle no other type has.
 4. To retire a type, set its `새 문서` cell to `금지`: new files are refused and old ones stay.

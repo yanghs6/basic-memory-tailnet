@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run an independent, read-only agent review of a branch in a throwaway detached worktree
-# (docs/specs/spec-2026-10-07-git-review-policy.md, section 5). Writes two reports:
+# (docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md, section 5). Writes two reports:
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-diff.md   bugs introduced since the base
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-plan.md   plan conformance per AGENTS.md Code Review Rules
 # It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs

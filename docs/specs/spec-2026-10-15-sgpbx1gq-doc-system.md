@@ -1,16 +1,17 @@
 ---
 status: approved
+id: sgpbx1gq
 date: 2026-10-16
-amended-by: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md
+amended-by: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
 ---
 
 # 에이전트 공용 문서 체계 — 설계
 
-- 기준 커밋은 `main` 87e86d4(계획 12 코드 병합)다.
-- 구현 계획: 계획 13(기반), 계획 14(이름·메타데이터 소급과 검사), 계획 15(본문 소급). 번호는 계획을 쓸 때 모든 브랜치를 훑어 다시 확인한다.
-- 근거 조사: [여러 코딩 에이전트가 같은 규칙으로 문서·스크립트·테스트를 만들게 하려면](../research/rsch-2026-10-15-agent-repo-conventions.md)
-- 함께 읽기: [스크립트·테스트 구조 설계](spec-2026-10-15-script-test-layout.md). 이 스펙의 레지스트리, 생성 명령, 구조 검사 원칙을 스크립트와 테스트에 적용한다.
-- 대체 범위: [OCI 설계](spec-2026-10-07-basic-memory-oci-tailscale.md) §5의 문서 배치 규칙(GCP 설계 §5가 이어받음)과 [git·리뷰 정책](spec-2026-10-07-git-review-policy.md)·[GitHub PR 워크플로](spec-2026-10-13-github-pr-workflow.md) §9의 계획 파일 이동 규칙(계획 상태는 폴더가 아니라 front matter의 `status`)을 이 문서로 대체한다. [ADR 0004](../decisions/adr-2026-10-13-0004-test-scope.md) 결정 2의 "문구·형식만 확인하는 테스트" 금지는 새 ADR로 일부 대체한다(8.4절).
+- 기준 커밋은 `main` 87e86d4([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) 코드 병합)다.
+- 구현 계획: [doc-system-foundation 계획](../plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md)(기반), [doc-rename-and-checks 계획](../plans/plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)(이름·메타데이터 소급과 검사), [doc-body-backfill 계획](../plans/plan-2026-10-16-hyajr3k3-doc-body-backfill.md)(본문 소급). 번호는 계획을 쓸 때 모든 브랜치를 훑어 다시 확인한다.
+- 근거 조사: [여러 코딩 에이전트가 같은 규칙으로 문서·스크립트·테스트를 만들게 하려면](../research/rsch-2026-10-15-f20fshxg-agent-repo-conventions.md)
+- 함께 읽기: [스크립트·테스트 구조 설계](spec-2026-10-15-d8q0b7bt-script-test-layout.md). 이 스펙의 레지스트리, 생성 명령, 구조 검사 원칙을 스크립트와 테스트에 적용한다.
+- 대체 범위: [OCI 설계](spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md) §5의 문서 배치 규칙(GCP 설계 §5가 이어받음)과 [git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)·[GitHub PR 워크플로](spec-2026-10-13-pr762r68-github-pr-workflow.md) §9의 계획 파일 이동 규칙(계획 상태는 폴더가 아니라 front matter의 `status`)을 이 문서로 대체한다. [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2의 "문구·형식만 확인하는 테스트" 금지는 새 ADR로 일부 대체한다(8.4절).
 
 ## 1. 목적과 범위
 
@@ -19,7 +20,7 @@ Claude Code, Codex, Gemini CLI, Antigravity 중 어느 에이전트든 플러그
 **사용자 결정 (2026-10-15)**
 1. 대상 도구는 커밋 트레일러가 허용하는 네 가지다(`AGENTS.md`의 `## Git`).
 2. 강제 수준은 B다. 저장소가 가진 템플릿, 작성 스킬, 생성 명령을 두고, 검사는 메타데이터·파일 이름·위치만 본다. 문장과 섹션 이름은 검사하지 않는다.
-3. 스크립트와 테스트도 구조를 정리한다(함께 읽기의 스펙). 스킬은 [ADR 0003](../decisions/adr-2026-10-13-0003-skill-structure.md)으로 이미 정리했으므로 범위 밖이다.
+3. 스크립트와 테스트도 구조를 정리한다(함께 읽기의 스펙). 스킬은 [skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md)로 이미 정리했으므로 범위 밖이다.
 4. 스펙이 크면 항목별로 나눈다. 그래서 문서와 스크립트·테스트를 두 스펙으로 나눴다.
 
 **사용자 결정 (2026-10-15, 초안 검토)**
@@ -27,7 +28,7 @@ Claude Code, Codex, Gemini CLI, Antigravity 중 어느 에이전트든 플러그
 - D2. 계획 폴더를 `docs/plans/` 하나로 합치고 상태를 front matter에 둔다(5.2절).
 - D3. 메타데이터는 YAML front matter에 둔다. 키와 값은 영어, 본문은 한국어다(4절).
 - D4. PR의 CI 결과는 계획의 Progress log가 아니라 PR 본문에 남긴다. `AGENTS.md`의 `## Code Review Rules` 3번이 바뀐다(6.3절).
-- D5. 계획 11이 병합된 뒤 계획 13부터 진행한다(10절). 2026-10-16에 충족됐다(PR #6, `4c84dba`).
+- D5. [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)이 병합된 뒤 [doc-system-foundation 계획](../plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md)부터 진행한다(10절). 2026-10-16에 충족됐다(PR #6, `4c84dba`).
 - D6. 문서 파일 이름을 "타입 코드-날짜-slug"로 통일한다(3.1절).
 - D7. 계획 템플릿에 ExecPlan의 Decision Log, Surprises & Discoveries 절을 더하지 않는다.
 - D8. `docs/reviews/`는 그 자리에 둔다.
@@ -38,12 +39,12 @@ Claude Code, Codex, Gemini CLI, Antigravity 중 어느 에이전트든 플러그
 - N3. `README.md`, `docs/README.md`, `docs/ARCHITECTURE.md`, `docs/reviews/README.md`는 이름을 바꾸지 않는다. GitHub이 폴더를 열 때 보여 주는 이름이고, `ARCHITECTURE.md`는 널리 쓰는 고정 이름이다.
 - N4. 이름에 날짜가 없던 문서(ADR, 런북, 리뷰)는 그 파일이 처음 커밋된 날을 쓴다. 스펙은 타입 코드가 뜻을 말하므로 `-design` 꼬리를 뗀다.
 
-**사용자 결정 (2026-10-16, 계획 15 범위)**
-- D9. 기존 문서의 절 구성(이름, 순서, 번호)은 바꾸지 않고, 템플릿은 새 문서에 쓴다. 이유: 다른 문서가 절 번호와 제목으로 인용하고(리뷰를 빼고 177행·16파일, 2026-10-16), 스크립트와 스킬이 런북 제목과 번호를 가리키며, 옛 ADR에 없는 절은 내용을 지어내야 한다. 계획 15는 레이블 표기(6.2절)와 README의 중복만 정리하고, 리뷰 기록과 조사 문서(5.5절)는 레이블도 그대로 둔다. 예외로 제목 꼬리에 붙은 레이블(`## 근거 (Verified, 날짜)`)은 꼬리만 떼어 제목 바로 아래 첫 줄로 옮긴다. 제목의 나머지와 번호는 그대로다.
+**사용자 결정 (2026-10-16, [doc-body-backfill 계획](../plans/plan-2026-10-16-hyajr3k3-doc-body-backfill.md) 범위)**
+- D9. 기존 문서의 절 구성(이름, 순서, 번호)은 바꾸지 않고, 템플릿은 새 문서에 쓴다. 이유: 다른 문서가 절 번호와 제목으로 인용하고(리뷰를 빼고 177행·16파일, 2026-10-16), 스크립트와 스킬이 런북 제목과 번호를 가리키며, 옛 ADR에 없는 절은 내용을 지어내야 한다. [doc-body-backfill 계획](../plans/plan-2026-10-16-hyajr3k3-doc-body-backfill.md)은 레이블 표기(6.2절)와 README의 중복만 정리하고, 리뷰 기록과 조사 문서(5.5절)는 레이블도 그대로 둔다. 예외로 제목 꼬리에 붙은 레이블(`## 근거 (Verified, 날짜)`)은 꼬리만 떼어 제목 바로 아래 첫 줄로 옮긴다. 제목의 나머지와 번호는 그대로다.
 
 **범위 밖**
 - 스크립트·테스트 구조: 함께 읽기의 스펙
-- 스킬의 구조와 규칙: ADR 0003, `skill-authoring` 스킬, `tests/skills.bats`
+- 스킬의 구조와 규칙: [skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md), `skill-authoring` 스킬, `tests/skills.bats`
 - `silverbullet/*.md`: 문서가 아니라 VM에 배포하는 공간 파일이다(`tests/sb_space.bats`가 바이트 단위로 비교한다).
 - 필수 헤딩, 문체, 레이블, 언어의 기계 검사: 결정 2에 따라 템플릿과 리뷰로 지킨다.
 - 외부 도구(markdownlint, lychee, yq) 도입: bats와 awk로 충분하다(근거 조사 §4).
@@ -62,22 +63,22 @@ Claude Code, Codex, Gemini CLI, Antigravity 중 어느 에이전트든 플러그
 - `AGENTS.md`를 읽는 도구는 Claude Code(`CLAUDE.md`의 `@AGENTS.md`), Codex, Antigravity다. Gemini CLI는 기본 파일이 `GEMINI.md`인데 저장소에 `.gemini/settings.json`이 없어 읽지 않는다(근거 조사 §1).
 - 저장소가 가진 템플릿은 세 개다: `.agents/skills/skill-authoring/assets/skill-template.md`, `docs/reviews/README.md`의 리뷰 기록 템플릿, `.github/pull_request_template.md`. 스펙, 계획, ADR, 런북, 조사 문서의 템플릿은 없다.
 - 계획 골격(Goal, Architecture, Global Constraints, `### Task N`, `- [ ] **Step N`)은 superpowers 6.4.1 writing-plans 스킬의 헤더를 따른다. 이 플러그인은 Claude Code에만 있다.
-- 계획 폴더가 PR 구성에 따라 달라진다. 계획은 첫 커밋에서 active로 옮기고(`.agents/skills/git-workflow/SKILL.md` Start 3) 리뷰 전에 completed로 옮기므로(`.agents/skills/git-workflow/references/review-and-merge.md:7`) 계획 01~11은 병합 뒤 `main`에 active가 남지 않았다. 코드 PR과 결과 PR로 나뉜 계획 12는 active에 둔 채 코드 PR이 병합됐다(`docs/plans/plan-2026-10-15-12-access-modes.md`). 그래서 `main`의 active는 비어 있기도 하고 아니기도 하다. `AGENTS.md:5`와 `.github/pull_request_template.md:7`은 active를 가리킨다.
+- 계획 폴더가 PR 구성에 따라 달라진다. 계획은 첫 커밋에서 active로 옮기고(`.agents/skills/git-workflow/SKILL.md` Start 3) 리뷰 전에 completed로 옮기므로(`.agents/skills/git-workflow/references/review-and-merge.md:7`) [local-foundation](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)·[git-review-tooling](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md)·[vm-scripts](../plans/plan-2026-10-07-dry1xr43-vm-scripts.md)·[docs-skills](../plans/plan-2026-10-07-hydaxf15-docs-skills.md)·[vm-rollout](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)·[test-pruning](../plans/plan-2026-10-13-g57mry4b-test-pruning.md)·[ipv6-egress](../plans/plan-2026-10-13-gaewewkf-ipv6-egress.md)·[github-switch](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)·[review-posting](../plans/plan-2026-10-13-znbc3ase-review-posting.md)·[web-ui-local](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md)·[web-ui-vm-rollout](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md) 계획은 병합 뒤 `main`에 active가 남지 않았다. 코드 PR과 결과 PR로 나뉜 [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md)은 active에 둔 채 코드 PR이 병합됐다(`docs/plans/plan-2026-10-15-ctv444ep-access-modes.md`). 그래서 `main`의 active는 비어 있기도 하고 아니기도 하다. `AGENTS.md:5`와 `.github/pull_request_template.md:7`은 active를 가리킨다.
 - 상태 표기가 제각각이다. 스펙은 "승인됨", "승인", "대체됨", "부분 대체"를, ADR은 "Accepted"를 쓴다. 메타데이터 줄의 키도 스펙마다 다르다(상태, 구현 계획, 범위, 출처, 대체 범위, 근거 조사, 적용 시점).
 - 낡은 경로와 상태가 남아 있다.
-  - GCP 설계 8행은 계획 04를 "진행 중"이라고 적는다.
-  - 웹 UI 설계 4행은 완료된 계획 10·11을 backlog에 있다고 적고, 6행은 계획 11을 아직 시작 전으로 적는다.
-  - 접속 방식 설계는 병합됐는데도 3행이 "초안"이고, 4행은 active에 있는 계획 12를 backlog 경로로 가리킨다.
-  - ADR 0006의 3행은 날짜 자리에 "계획 12 병합일"이 남아 있다.
-  - 완료된 계획 01~04의 Sequence 줄은 backlog 경로를 가리킨다.
+  - GCP 설계 8행은 [docs-skills 계획](../plans/plan-2026-10-07-hydaxf15-docs-skills.md)을 "진행 중"이라고 적는다.
+  - 웹 UI 설계 4행은 완료된 [web-ui-local](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md)·[web-ui-vm-rollout](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md) 계획을 backlog에 있다고 적고, 6행은 web-ui-vm-rollout 계획을 아직 시작 전으로 적는다.
+  - 접속 방식 설계는 병합됐는데도 3행이 "초안"이고, 4행은 active에 있는 [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md)을 backlog 경로로 가리킨다.
+  - [access-modes ADR](../decisions/adr-2026-10-15-cz8c26gp-access-modes.md)의 3행은 날짜 자리에 "access-modes 계획 병합일"이 남아 있다.
+  - 완료된 [local-foundation](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)·[git-review-tooling](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md)·[vm-scripts](../plans/plan-2026-10-07-dry1xr43-vm-scripts.md)·[docs-skills](../plans/plan-2026-10-07-hydaxf15-docs-skills.md) 계획의 Sequence 줄은 backlog 경로를 가리킨다.
   - 이 경로들은 링크가 아닌 백틱 표기라서 `tests/repo.bats`의 상대 링크 검사가 잡지 못한다.
 - 레이블(`AGENTS.md:39`) 표기가 여섯 가지 이상이다: `| Verified |`, `**Verified:**`, `**Verified**`, `- Verified:`, `**Verified (로컬):**`, 제목 꼬리의 "(Verified, 날짜)". 조사 문서는 `Reported`를 더 쓴다. "repository notes"가 어디까지인지 정해져 있지 않다.
 - 언어 규칙(`AGENTS.md:40`)은 스펙, 계획, 조사, 리뷰, PR 본문을 다루지 않는다. 실제로는 스펙과 조사는 한국어, 리뷰는 영어, 계획은 제목 영어·본문 한국어다.
-- 계획 04는 2,502줄, 계획 10은 2,261줄, 계획 12는 1,807줄이다. 계획 04는 README, 런북, ADR 전체를 본문에 복사했다.
-- `AGENTS.md:57`은 PR의 CI 통과를 Progress log에 적으라고 한다. CI가 끝난 뒤 다시 커밋해야 하는 순환이라 계획 10 리뷰에서 P1(R1-F1)으로 지적됐다.
+- [docs-skills 계획](../plans/plan-2026-10-07-hydaxf15-docs-skills.md)은 2,502줄, [web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md)은 2,261줄, [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md)은 1,807줄이다. docs-skills 계획은 README, 런북, ADR 전체를 본문에 복사했다.
+- `AGENTS.md:57`은 PR의 CI 통과를 Progress log에 적으라고 한다. CI가 끝난 뒤 다시 커밋해야 하는 순환이라 [web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md) 리뷰에서 P1(R1-F1)으로 지적됐다.
 - superpowers는 기본으로 `docs/superpowers/specs/`와 `docs/superpowers/plans/`에 쓴다. `AGENTS.md`에는 이 기본값을 덮는 문장이 없다.
 - 문서 배치는 OCI 설계 §5(78-129행)에서 정했고 GCP 설계 §5가 "OCI와 같다"로 이어받았다. 문서 구조 자체를 다룬 ADR은 없다.
-- ADR 0004는 결정 2(24-29행)에서 "문구·형식만 확인하는 테스트"를 새로 쓰지 않게 하고(26행), 결정 4에서 상대 링크 검사와 문서 경로 검사는 남겼다(31행).
+- [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)은 결정 2(24-29행)에서 "문구·형식만 확인하는 테스트"를 새로 쓰지 않게 하고(26행), 결정 4에서 상대 링크 검사와 문서 경로 검사는 남겼다(31행).
 - 문서는 2026-10-16에 ADR 6개, 스펙 6개(이 스펙과 함께 읽기의 스펙 제외), 계획 12개(active 1, backlog 1, completed 10), 런북 5개, 조사 1개(이 스펙의 근거 조사 제외), 리뷰 기록 10개와 단일 파일(ARCHITECTURE, 리뷰 README)이다.
 - 지금 문서 검사는 세 가지다. `tests/repo.bats`의 상대 링크 검사(추적 중인 모든 Markdown, 코드 블록 밖의 Markdown 링크), 문서 경로 검사(`scripts/`, 스킬, `AGENTS.md` 안의 `docs/...md`만), `CLAUDE.md` = `@AGENTS.md` 검사다.
 - `tests/helpers.bash:50-52`의 `frontmatter` 함수가 이미 YAML front matter를 awk로 읽는다(스킬 검사가 쓴다).
@@ -95,9 +96,9 @@ Claude Code, Codex, Gemini CLI, Antigravity 중 어느 에이전트든 플러그
 <코드>-<YYYY-MM-DD>-<번호>-<slug>.md     번호가 있는 타입(plan은 NN, adr은 NNNN)
 
 예:
-docs/specs/spec-2026-10-15-doc-system.md
+docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md
 docs/plans/plan-2026-10-15-13-doc-system-foundation.md
-docs/decisions/adr-2026-10-13-0004-test-scope.md
+docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md
 docs/runbooks/rbk-2026-10-07-operations.md
 ```
 
@@ -120,8 +121,8 @@ docs/runbooks/rbk-2026-10-07-operations.md
 
 - `docs/ARCHITECTURE.md`는 표 밖의 단일 파일이다. front matter(`status: current`, `reviewed`)는 갖지만 이름 양식과 템플릿은 없다.
 - 셀 안의 백틱과 앞뒤 공백은 파서가 지운다.
-- `새 문서`가 금지인 타입(review)은 `make new-doc`이 거부한다. 기존 파일은 이름과 front matter만 맞추고 본문은 그대로 둔다. 리뷰 기록은 계획 09부터 PR 댓글이다(`docs/reviews/README.md:3`).
-- 템플릿은 `doc-authoring` 스킬의 `assets/`에 둔다. 스킬 템플릿을 `skill-authoring/assets/`에 둔 ADR 0003의 선례를 따른다. 그래서 문서 작업에 필요한 규칙과 템플릿이 스킬 하나에 모인다.
+- `새 문서`가 금지인 타입(review)은 `make new-doc`이 거부한다. 기존 파일은 이름과 front matter만 맞추고 본문은 그대로 둔다. 리뷰 기록은 [review-posting 계획](../plans/plan-2026-10-13-znbc3ase-review-posting.md)부터 PR 댓글이다(`docs/reviews/README.md:3`).
+- 템플릿은 `doc-authoring` 스킬의 `assets/`에 둔다. 스킬 템플릿을 `skill-authoring/assets/`에 둔 [skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md)의 선례를 따른다. 그래서 문서 작업에 필요한 규칙과 템플릿이 스킬 하나에 모인다.
 - `docs/` 아래 파일은 단일 파일(N3)을 빼고 모두 표의 한 타입에 속해야 한다. 표에 없는 폴더(예: `docs/superpowers/`)에 파일이 생기면 검사가 실패한다.
 - `docs/README.md`의 나머지 절은 한국어로 쓴다: 타입 고르는 법, 저장소 밖 문서(`README.md`, `AGENTS.md`, 스킬, PR 템플릿)의 위치, 새 타입을 더하는 법(7절).
 
@@ -133,7 +134,7 @@ docs/runbooks/rbk-2026-10-07-operations.md
 ---
 status: approved
 date: 2026-10-13
-amended-by: docs/specs/spec-2026-10-13-github-pr-workflow.md
+amended-by: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 ---
 
 # 에이전트 기반 Git·리뷰 정책 — 설계
@@ -174,24 +175,24 @@ amended-by: docs/specs/spec-2026-10-13-github-pr-workflow.md
 - 이유: 지금은 파일을 두 번 옮기는데, `main`의 active는 PR 구성에 따라 비기도 하고 차기도 하며(2절), 옮길 때마다 다른 문서의 경로가 낡는다. 진행 중인 계획은 그 계획 브랜치와 PR에서 보인다.
 - 템플릿 절: 머리(Goal, Architecture, Spec, Sequence), Global Constraints, Review Focus, File Structure, `### Task N`(Files, Interfaces, `- [ ] **Step N:**`, 검증 명령), Progress log(`| 날짜 | 표기 | 내용 |`). 지금 계획들이 쓰는 superpowers 골격을 저장소 소유로 옮긴 것이다. superpowers 전용 줄("REQUIRED SUB-SKILL")은 도구 중립 문장으로 바꾼다.
 - 제목은 영어, 본문은 한국어다. `Progress log`처럼 스킬과 `AGENTS.md`가 이름으로 가리키는 제목이 영어이기 때문이다.
-- 계획 하나는 Task 3~5개다([GitHub PR 워크플로](spec-2026-10-13-github-pr-workflow.md) 1절 결정 4). 기존 파일을 통째로 복사하지 않고, 새로 쓰는 내용과 바뀌는 부분만 적는다. 끝낸 Step은 체크한다.
+- 계획 하나는 Task 3~5개다([GitHub PR 워크플로](spec-2026-10-13-pr762r68-github-pr-workflow.md) 1절 결정 4). 기존 파일을 통째로 복사하지 않고, 새로 쓰는 내용과 바뀌는 부분만 적는다. 끝낸 Step은 체크한다.
 - 번호는 모든 로컬·원격 브랜치를 훑어 가장 큰 값 + 1로 정한다(`make new-doc`, 8.2절). 두 자리다(`scripts/check-git.sh:14`).
 
 ### 5.3 adr
 
 - 언제 쓰나: 되돌리기 비싼 기술 결정, 대안을 검토한 결정, 기존 규칙을 바꾸는 결정.
 - 템플릿 절: 맥락과 문제, 검토한 대안, 결정, 결과(확인 방법 포함). MADR 4.0.0의 필수 절을 한국어로 옮겼다.
-- 수락한 ADR의 결정 문장은 고치지 않는다. 결정이 바뀌면 새 ADR로 대체한다. 측정 결과처럼 결정을 바꾸지 않는 사실은 뒤에 덧붙일 수 있다(ADR 0005의 `## VM 측정`에 계획 11의 측정을 덧붙인 방식, ADR 0006의 `## 이전 결과`).
+- 수락한 ADR의 결정 문장은 고치지 않는다. 결정이 바뀌면 새 ADR로 대체한다. 측정 결과처럼 결정을 바꾸지 않는 사실은 뒤에 덧붙일 수 있다([web-ui-silverbullet ADR](../decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md)의 `## VM 측정`에 [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)의 측정을 덧붙인 방식, [access-modes ADR](../decisions/adr-2026-10-15-cz8c26gp-access-modes.md)의 `## 이전 결과`).
 
 ### 5.4 runbook
 
 - 사람이 따라 하는 절차다(Diátaxis의 how-to).
 - 템플릿 절: 목적과 언제 쓰나, 사전 조건, 절차(번호), 확인, 되돌리기. 절차가 여러 개인 런북은 절차마다 `##`를 두고 그 아래에 같은 `###` 절을 둔다.
 - 스크립트, 스킬, 다른 문서가 이름이나 번호로 가리키는 제목은 바꾸지 않는다. 2026-10-16에 확인한 것:
-  - `rbk-2026-10-12-operations.md`: `## Incident log`, `## Exposure audit`, `## 비용 점검`, `## 정지된 VM`, `## 접속 방식 바꾸기 (Access mode change)`, `## 에이전트 연결`, `### 점검 기록 (Exposure audit)`
-  - `rbk-2026-10-12-gcp-vm.md`: 절 번호. 스크립트와 스킬이 "section 8"처럼 번호(3, 5, 7, 8)로 가리키므로 번호를 바꾸거나 절을 끼워 넣지 않는다.
-  - `rbk-2026-10-12-bootstrap.md`: `## ssh 모드 순서`와 bm-recover 스킬이 가리키는 단계 번호(1, 4)
-  - 정확한 목록은 계획 14가 `grep`으로 다시 만든다.
+  - `rbk-2026-10-12-t79ex2ny-operations.md`: `## Incident log`, `## Exposure audit`, `## 비용 점검`, `## 정지된 VM`, `## 접속 방식 바꾸기 (Access mode change)`, `## 에이전트 연결`, `### 점검 기록 (Exposure audit)`
+  - `rbk-2026-10-12-tcjs7m6x-gcp-vm.md`: 절 번호. 스크립트와 스킬이 "section 8"처럼 번호(3, 5, 7, 8)로 가리키므로 번호를 바꾸거나 절을 끼워 넣지 않는다.
+  - `rbk-2026-10-12-ha5w72pm-bootstrap.md`: `## ssh 모드 순서`와 bm-recover 스킬이 가리키는 단계 번호(1, 4)
+  - 정확한 목록은 [doc-rename-and-checks 계획](../plans/plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)이 `grep`으로 다시 만든다.
 - 절차를 실제로 따라 해 보거나 고치면 `reviewed`를 그날로 바꾼다.
 
 ### 5.5 research
@@ -222,7 +223,7 @@ amended-by: docs/specs/spec-2026-10-13-github-pr-workflow.md
 - 어휘: `Verified`(직접 확인), `Command`(실행한 명령), `Assumption`(확인하지 않은 전제), `Open question`(사람이 정할 일), `Reported`(2차 보도). `Reported`는 지금 조사 문서만 쓰는 것을 정식으로 받아들인다.
 - 표기: 문단이나 목록 항목 첫머리에 `**Verified:**`처럼 굵게 쓰고 쌍점을 붙인다. 날짜가 필요하면 `**Verified (2026-10-15):**`. 표에서는 `표기` 열에 레이블만 쓴다.
 - 범위: 한국어 문서에서 외부 시스템, 환경, 도구 동작에 대한 사실을 적을 때 쓴다. `README.md`, `AGENTS.md`, 스킬에는 쓰지 않아도 된다.
-- 검사하지 않는다(결정 2). 기존 문서의 옛 표기는 계획 15가 이 형식으로 바꾼다(D1, 9절). 리뷰 기록과 조사 문서는 바꾸지 않는다(D9).
+- 검사하지 않는다(결정 2). 기존 문서의 옛 표기는 [doc-body-backfill 계획](../plans/plan-2026-10-16-hyajr3k3-doc-body-backfill.md)이 이 형식으로 바꾼다(D1, 9절). 리뷰 기록과 조사 문서는 바꾸지 않는다(D9).
 
 ### 6.3 증거를 남기는 곳
 
@@ -275,7 +276,7 @@ amended-by: docs/specs/spec-2026-10-13-github-pr-workflow.md
 
 ### 8.3 검사
 
-새 `tests/repo-docs.bats`가 레지스트리를 읽어 반복문으로 검사한다(ADR 0004 결정 3). 파일 이름은 스크립트·테스트 구조 설계의 규칙(저장소 전체 검사는 `repo-` 접두어)을 따른다. 실패 메시지는 파일, 어긋난 값, 허용 값, 고치는 곳(`docs/README.md`)을 함께 출력한다.
+새 `tests/repo-docs.bats`가 레지스트리를 읽어 반복문으로 검사한다([test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 3). 파일 이름은 스크립트·테스트 구조 설계의 규칙(저장소 전체 검사는 `repo-` 접두어)을 따른다. 실패 메시지는 파일, 어긋난 값, 허용 값, 고치는 곳(`docs/README.md`)을 함께 출력한다.
 
 1. 레지스트리 표를 읽을 수 있고, 코드가 겹치지 않으며, 새 문서를 허용하는 타입마다 템플릿 파일이 있다.
 2. `docs/` 아래 모든 파일은 단일 파일(N3)을 빼고 정확히 한 타입의 위치와 파일 이름(3.1절)에 맞는다.
@@ -291,7 +292,7 @@ amended-by: docs/specs/spec-2026-10-13-github-pr-workflow.md
 
 ### 8.4 새 ADR: 구조 검사의 범위
 
-- ADR 0004 결정 2의 "문구·형식만 확인하는 테스트" 금지를 일부 대체한다. ADR 0004에는 `amended-by`를 단다.
+- [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2의 "문구·형식만 확인하는 테스트" 금지를 일부 대체한다. test-scope ADR에는 `amended-by`를 단다.
 - 허용하는 구조 검사:
   - 위치와 파일 이름
   - 메타데이터의 키와 값
@@ -301,7 +302,7 @@ amended-by: docs/specs/spec-2026-10-13-github-pr-workflow.md
   - 도구가 자르는 크기 한도
   - 짝 파일의 존재(스크립트와 테스트, 함께 읽기의 스펙)
 - 계속 금지: 섹션 이름, 문장, 레이블, 언어를 확인하는 테스트와, 문서 문구를 되풀이하는 변경 감지 테스트.
-- 이유: 2절의 문제(상태 표기, 낡은 경로, active 경로)는 모두 메타데이터와 위치 문제였고, 네 도구 중 하나가 템플릿을 무시해도 이 검사가 잡는다. 문장을 되풀이하는 테스트를 막으려던 ADR 0004의 취지는 그대로 지킨다.
+- 이유: 2절의 문제(상태 표기, 낡은 경로, active 경로)는 모두 메타데이터와 위치 문제였고, 네 도구 중 하나가 템플릿을 무시해도 이 검사가 잡는다. 문장을 되풀이하는 테스트를 막으려던 [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)의 취지는 그대로 지킨다.
 
 ## 9. 소급 적용 (D1)
 
@@ -319,41 +320,41 @@ amended-by: docs/specs/spec-2026-10-13-github-pr-workflow.md
 - 증거: 명령, 출력, 커밋 SHA, 날짜, 인용, 측정값
 - 결정의 내용: ADR의 결정 문장, 스펙의 사용자 결정
 - 완료 계획의 체크박스: 어떤 Step을 실제로 했는지 기록이 없으면 체크하지 않는다. 완료 여부는 front matter의 `completed`가 말한다.
-- 계획 본문에 복사된 파일 내용(계획 04, 10): 그때 계획한 내용의 기록이다.
+- 계획 본문에 복사된 파일 내용([docs-skills](../plans/plan-2026-10-07-hydaxf15-docs-skills.md), [web-ui-local](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md) 계획): 그때 계획한 내용의 기록이다.
 - 기록 문서 안의 옛 스크립트 이름: 스크립트·테스트 구조 설계가 스크립트 이름을 바꾸지만, 기록 문서에는 그때의 실제 이름이 맞다.
 - 스크립트, 스킬, 다른 문서가 이름이나 번호로 가리키는 런북 제목(5.4절)
 
 **참조 갱신**
-- 이름을 바꾸면 고칠 곳: 문서 안의 링크와 백틱 경로, `AGENTS.md`, 스킬, `.github/pull_request_template.md`, 스크립트 머리 주석의 스펙 경로(`check-git.sh:2` 등), 스크립트 메시지의 런북 경로(`access-check.sh`, `bootstrap-vm.sh`, `lib/common.sh`, `remote/bootstrap.sh`, `status.sh`, `tunnel.sh`, `verify-vm.sh`), 테스트의 런북 경로(`cloud_neutral.bats`, `vm_ops.bats`), CI 워크플로 주석. 정확한 목록은 계획 14가 `git grep`으로 다시 만든다.
+- 이름을 바꾸면 고칠 곳: 문서 안의 링크와 백틱 경로, `AGENTS.md`, 스킬, `.github/pull_request_template.md`, 스크립트 머리 주석의 스펙 경로(`check-git.sh:2` 등), 스크립트 메시지의 런북 경로(`access-check.sh`, `bootstrap-vm.sh`, `lib/common.sh`, `remote/bootstrap.sh`, `status.sh`, `tunnel.sh`, `verify-vm.sh`), 테스트의 런북 경로(`cloud_neutral.bats`, `vm_ops.bats`), CI 워크플로 주석. 정확한 목록은 [doc-rename-and-checks 계획](../plans/plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)이 `git grep`으로 다시 만든다.
 - 계획 폴더를 합치면 함께 바뀌는 곳: `AGENTS.md:5`, `AGENTS.md:46`(Map), GCP 설계 4행, git-workflow 스킬 Start 3, `review-and-merge.md:7`, `.github/pull_request_template.md:7`, `branch-review` 스킬, `scripts/review.sh`의 계획 리뷰 문구.
 - 지워진 문서를 가리키는 기록 문서의 경로는 현재 경로로 고친다. 대상이 없으면 경로 표기를 풀어 쓴다.
 
 **본문을 옮길 때 내용을 잃지 않게**
-- 계획 15는 절을 옮기지 않는다(D9). 레이블 커밋은 낱말을 바꾸지 않는다. 바뀌는 것은 레이블과 그 괄호 내용의 위치, 레이블이 덮는 문장을 따로 떼는 줄바꿈과 목록 기호(표에서는 새 행), 그때 바뀌는 연결 어미, 레이블이 술어였던 문장의 술어, 변형 레이블(`**Assumption 확인:**`)을 옮길 때 레이블 뒤에 남기는 괄호 말(`(이 Step에서 확인)`)뿐이다(`git diff --word-diff`로 확인).
+- [doc-body-backfill 계획](../plans/plan-2026-10-16-hyajr3k3-doc-body-backfill.md)은 절을 옮기지 않는다(D9). 레이블 커밋은 낱말을 바꾸지 않는다. 바뀌는 것은 레이블과 그 괄호 내용의 위치, 레이블이 덮는 문장을 따로 떼는 줄바꿈과 목록 기호(표에서는 새 행), 그때 바뀌는 연결 어미, 레이블이 술어였던 문장의 술어, 변형 레이블(`**Assumption 확인:**`)을 옮길 때 레이블 뒤에 남기는 괄호 말(`(이 Step에서 확인)`)뿐이다(`git diff --word-diff`로 확인).
 - 옛 형식이 다시 퍼지는 문제는 템플릿, 스킬의 "옆 문서를 복사하지 않는다", `make new-doc`으로 막는다(6.6절).
 
 ## 10. 계획 분할과 순서
 
 | 계획 | 범위 | 시작 조건 |
 |---|---|---|
-| 13 문서 체계 기반 | `.gemini/settings.json`과 `tests/repo.bats`의 두 검사(8.3절 7·8), `docs/README.md`(레지스트리), 템플릿 다섯 개, `doc-authoring` 스킬, `scripts/create-doc.sh`와 `make new-doc`과 테스트, 새 ADR, `AGENTS.md`의 지도·언어·레이블·경로 우선 문장 | 계획 11 병합 뒤(D5). 충족됨 |
-| 14 이름·메타데이터 소급과 검사 | 모든 문서 이름 변경과 참조 갱신, 계획 폴더 통합, front matter, 낡은 경로, `tests/repo-docs.bats`(8.3절 1~6), 6.3절의 증거 위치 변경과 함께 바뀌는 스킬·PR 템플릿·`AGENTS.md` | 계획 13과 계획 12 결과 PR(Task 8) 병합 뒤 |
-| 15 본문 소급 | 9절 표의 본문 행: 레이블 통일, README의 중복 정리(절 구성은 D9로 제외) | 계획 14 병합 뒤 |
+| 13 문서 체계 기반 | `.gemini/settings.json`과 `tests/repo.bats`의 두 검사(8.3절 7·8), `docs/README.md`(레지스트리), 템플릿 다섯 개, `doc-authoring` 스킬, `scripts/create-doc.sh`와 `make new-doc`과 테스트, 새 ADR, `AGENTS.md`의 지도·언어·레이블·경로 우선 문장 | [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md) 병합 뒤(D5). 충족됨 |
+| 14 이름·메타데이터 소급과 검사 | 모든 문서 이름 변경과 참조 갱신, 계획 폴더 통합, front matter, 낡은 경로, `tests/repo-docs.bats`(8.3절 1~6), 6.3절의 증거 위치 변경과 함께 바뀌는 스킬·PR 템플릿·`AGENTS.md` | [doc-system-foundation 계획](../plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md)과 [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) 결과 PR(Task 8) 병합 뒤 |
+| 15 본문 소급 | 9절 표의 본문 행: 레이블 통일, README의 중복 정리(절 구성은 D9로 제외) | [doc-rename-and-checks 계획](../plans/plan-2026-10-16-pqffvttt-doc-rename-and-checks.md) 병합 뒤 |
 
-- 계획 11(PR #6, `4c84dba`)과 계획 12의 문서(PR #7, `4a184f1`)와 코드(PR #8, `87e86d4`)는 병합됐다.
-- 계획 12의 Task 8(VM 이전)은 결과 PR(`plan/12-access-mode-migration`)로 남는다. 그 PR은 계획 12 파일을 completed로 옮기고 ADR 0006, 접속 방식 설계, `rbk-2026-10-12-operations.md`, `rbk-2026-10-12-gcp-vm.md`를 고친다. 계획 14가 같은 파일의 이름을 바꾸므로 계획 14는 그 PR이 병합된 뒤에 시작한다. 계획 13은 기존 문서를 옮기지 않으므로 지금 시작할 수 있다.
-- 계획 13 병합부터 계획 14 병합까지는 두 규칙이 섞인다. 새 문서는 `make new-doc`으로 새 이름을 쓰고, 기존 문서는 옛 이름과 폴더에 둔다. 문서 검사(8.3절 검사 1~6)는 계획 14가 켠다. 계획 13의 새 ADR과 계획 14의 계획 파일도 새 이름으로 만든다. `docs/README.md`는 이 기간을 한 줄로 밝히고, 계획 14가 그 줄을 지운다. 계획 13의 계획 파일은 레지스트리가 생기기 전에 쓰므로 옛 규칙(`docs/plans/backlog/`)을 따르고, 계획 14가 함께 옮긴다.
-- 계획 14의 이름 변경 목록은 시작할 때 `git grep`으로 다시 만든다.
+- [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)(PR #6, `4c84dba`)과 [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md)의 문서(PR #7, `4a184f1`)와 코드(PR #8, `87e86d4`)는 병합됐다.
+- [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md)의 Task 8(VM 이전)은 결과 PR(`plan/ctv444ep-access-mode-migration`)로 남는다. 그 PR은 access-modes 계획 파일을 completed로 옮기고 [access-modes ADR](../decisions/adr-2026-10-15-cz8c26gp-access-modes.md), 접속 방식 설계, `rbk-2026-10-12-t79ex2ny-operations.md`, `rbk-2026-10-12-tcjs7m6x-gcp-vm.md`를 고친다. [doc-rename-and-checks 계획](../plans/plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)이 같은 파일의 이름을 바꾸므로 doc-rename-and-checks 계획은 그 PR이 병합된 뒤에 시작한다. [doc-system-foundation 계획](../plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md)은 기존 문서를 옮기지 않으므로 지금 시작할 수 있다.
+- [doc-system-foundation 계획](../plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md) 병합부터 [doc-rename-and-checks 계획](../plans/plan-2026-10-16-pqffvttt-doc-rename-and-checks.md) 병합까지는 두 규칙이 섞인다. 새 문서는 `make new-doc`으로 새 이름을 쓰고, 기존 문서는 옛 이름과 폴더에 둔다. 문서 검사(8.3절 검사 1~6)는 doc-rename-and-checks 계획이 켠다. doc-system-foundation 계획의 새 ADR과 doc-rename-and-checks 계획의 계획 파일도 새 이름으로 만든다. `docs/README.md`는 이 기간을 한 줄로 밝히고, doc-rename-and-checks 계획이 그 줄을 지운다. doc-system-foundation 계획의 계획 파일은 레지스트리가 생기기 전에 쓰므로 옛 규칙(`docs/plans/backlog/`)을 따르고, doc-rename-and-checks 계획이 함께 옮긴다.
+- [doc-rename-and-checks 계획](../plans/plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)의 이름 변경 목록은 시작할 때 `git grep`으로 다시 만든다.
 - 2026-10-16 현재 계획 번호는 12까지 쓰였다(로컬·원격 브랜치 전부의 `docs/plans`를 `git ls-tree`로 확인). 13~15는 이 스펙, 16·17은 스크립트·테스트 구조 설계가 쓴다. ADR은 0006까지 있으므로 새 ADR은 0007이다. 번호는 모두 계획을 쓸 때 다시 확인한다.
 
 ## 11. 위험과 대응
 
 | 위험 | 대응 |
 |---|---|
-| `AGENTS.md` 수정이 자동 모드에서 "Instruction Poisoning"으로 막힘(계획 10 때 있었음) | 바꿀 문장을 사용자에게 먼저 보여 주고 승인을 받는다 |
-| 계획 12 결과 PR과 같은 파일을 고쳐 충돌 | 10절의 순서. 계획 14 전에 `git fetch`와 `git grep`으로 대상 목록을 다시 만든다 |
+| `AGENTS.md` 수정이 자동 모드에서 "Instruction Poisoning"으로 막힘([web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md) 때 있었음) | 바꿀 문장을 사용자에게 먼저 보여 주고 승인을 받는다 |
+| [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) 결과 PR과 같은 파일을 고쳐 충돌 | 10절의 순서. [doc-rename-and-checks 계획](../plans/plan-2026-10-16-pqffvttt-doc-rename-and-checks.md) 전에 `git fetch`와 `git grep`으로 대상 목록을 다시 만든다 |
 | 레지스트리 표 형식이 깨져 검사·생성이 모두 멈춤 | 파서가 어느 행이 왜 틀렸는지 출력한다. 표 형식은 `doc-authoring` 스킬에 예시와 함께 적는다 |
-| 기록 문서에 옛 경로가 많아 경로 검사가 대량 실패 | 계획 14의 첫 Task가 `git grep`으로 목록을 만들고 일괄 고친다 |
+| 기록 문서에 옛 경로가 많아 경로 검사가 대량 실패 | [doc-rename-and-checks 계획](../plans/plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)의 첫 Task가 `git grep`으로 목록을 만들고 일괄 고친다 |
 | 검사가 급한 수정을 막음 | 메타데이터와 위치만 보므로 고치는 데 한 줄이면 된다. 실패 메시지가 고칠 곳을 알려 준다 |
 | 레지스트리를 무시하고 플러그인 기본 경로에 문서를 씀 | 6.5절의 `AGENTS.md` 문장과 8.3절 검사 2 |
 | 템플릿과 레지스트리가 어긋남 | 검사 1(템플릿 존재)과 `make new-doc`의 테스트가 실제 템플릿으로 문서를 만들어 검사 3을 통과하는지 본다 |

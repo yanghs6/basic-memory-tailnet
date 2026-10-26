@@ -1,13 +1,14 @@
 ---
 status: completed
-spec: docs/specs/spec-2026-10-13-github-pr-workflow.md
+id: znbc3ase
+spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 ---
 
-# 09 Review Posting Implementation Plan
+# znbc3ase Review Posting Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 다른 벤더 리뷰의 원문과 지적 기록을 PR 코멘트로 올리는 일을 Make 타깃으로 만든다. 계획 08의 임시 절차(`gh pr comment`를 손으로 실행)를 대체하고, 리뷰 관련 문서(스킬, AGENTS.md, `docs/reviews/README.md`)를 PR 기준으로 맞춘다.
+**Goal:** 다른 벤더 리뷰의 원문과 지적 기록을 PR 코멘트로 올리는 일을 Make 타깃으로 만든다. [github-switch 계획](plan-2026-10-13-k93wjt1a-github-switch.md)의 임시 절차(`gh pr comment`를 손으로 실행)를 대체하고, 리뷰 관련 문서(스킬, AGENTS.md, `docs/reviews/README.md`)를 PR 기준으로 맞춘다.
 
 **Architecture:**
 - `scripts/review.sh`는 리뷰한 시점의 base와 head SHA를 `<slug>-r<round>-<reviewer>-meta.txt`에 남긴다.
@@ -17,20 +18,20 @@ spec: docs/specs/spec-2026-10-13-github-pr-workflow.md
 
 **Tech Stack:** bash 3.2 호환 셸, bats-core 1.14.0 + bats-assert, `gh` CLI(`gh pr comment`, `gh api --paginate --jq`)
 
-**Spec:** `docs/specs/spec-2026-10-13-github-pr-workflow.md` (8절)
+**Spec:** `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md` (8절)
 
-**Sequence:** 계획 9. 전제:
-- 계획 08이 병합됐다.
-- 사람이 `docs/runbooks/rbk-2026-10-14-github.md` 4절의 저장소 설정과 ruleset을 적용했다.
+**Sequence:** 전제:
+- [github-switch 계획](plan-2026-10-13-k93wjt1a-github-switch.md)이 병합됐다.
+- 사람이 `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md` 4절의 저장소 설정과 ruleset을 적용했다.
 - 이 계획은 새 흐름(머신 계정의 초안 PR, CI, 사람의 squash 병합)으로 진행하는 첫 계획이다.
 
 ## Global Constraints
 
 - AGENTS.md 스크립트 규칙을 따른다: `#!/usr/bin/env bash` 다음 줄에 `set -euo pipefail`, `scripts/lib/common.sh` source, `die`. macOS bash 3.2에서 돌아야 하고, `x="$(fn)"` 뒤에는 `|| exit 1`을 붙인다.
-- 테스트를 먼저 쓴다. ADR 0004를 따라 대표 성공 경로, 조용히 넘어가거나 반쪽으로 끝날 실패 경로만 쓴다. 문구만 보는 테스트와 usage 테스트는 쓰지 않는다.
+- 테스트를 먼저 쓴다. [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)을 따라 대표 성공 경로, 조용히 넘어가거나 반쪽으로 끝날 실패 경로만 쓴다. 문구만 보는 테스트와 usage 테스트는 쓰지 않는다.
 - "never weaken a test to make it pass." `tests/review.bats`는 assertion을 더하거나, 바뀐 동작(리포트 파일 목록)에 맞춰 기대값을 고치기만 한다.
 - `gh` 호출은 토큰을 출력하지 않는다. 비밀값을 로그에 남기지 않는다.
-- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: 09`, `Task: <N|review|none>`. PR 본문 마지막 문단은 `Assisted-by`와 `Plan: 09`다.
+- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: znbc3ase`, `Task: <N|review|none>`. PR 본문 마지막 문단은 `Assisted-by`와 `Plan: znbc3ase`다.
 - 리뷰 원문과 기록에도 VM의 외부 IP와 Tailscale IP를 적지 않는다.
 - 쓰기 대상: 아래 File Structure의 파일만 바꾼다.
 
@@ -50,24 +51,24 @@ tests/stubs/gh (새 파일)  Makefile(review-post, REVIEW_MODEL)                
 scripts/review-record.sh (새 파일)  tests/review_record.bats (새 파일)  Makefile(review-record)      Task 2
 .agents/skills/git-workflow/references/review-and-merge.md  .agents/skills/branch-review/SKILL.md
 AGENTS.md(Code Review Rules 3, 6)  docs/reviews/README.md  docs/ARCHITECTURE.md:30
-docs/specs/2026-10-13-github-pr-workflow-design.md(14절 3·4번)                                       Task 3
+docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md(14절 3·4번)                                       Task 3
 이 계획 파일(Progress log)                                                                          시작, Task 4, 마무리
 ```
 
 ---
 
-### 시작: 브랜치, 계획 08의 남은 확인, 초안 PR
+### 시작: 브랜치, github-switch 계획의 남은 확인, 초안 PR
 
-- [ ] `git fetch origin` 후 `origin/main`에서 worktree와 `plan/09-review-posting`을 만든다(git-workflow 스킬).
-- [ ] 계획 파일을 `docs/plans/active/`로 옮기고, Progress log에 계획 08 마무리의 두 확인 결과를 적는다.
-  - squash 커밋의 작성자와 `Co-authored-by` 자동 추가 여부(스펙 Open question 3). 명령은 `git log -1 --format='%an <%ae>%n%b' <계획 08의 squash 커밋>`이다.
+- [ ] `git fetch origin` 후 `origin/main`에서 worktree와 `plan/znbc3ase-review-posting`을 만든다(git-workflow 스킬).
+- [ ] 계획 파일을 `docs/plans/active/`로 옮기고, Progress log에 [github-switch 계획](plan-2026-10-13-k93wjt1a-github-switch.md) 마무리의 두 확인 결과를 적는다.
+  - squash 커밋의 작성자와 `Co-authored-by` 자동 추가 여부(스펙 Open question 3). 명령은 `git log -1 --format='%an <%ae>%n%b' <github-switch 계획의 squash 커밋>`이다.
   - 저장소 단위 secret scanning과 push protection을 켤 수 있었는지(Open question 4)
 
 ```bash
-git mv docs/plans/backlog/2026-10-13-09-review-posting.md docs/plans/active/2026-10-13-09-review-posting.md
-git add docs/plans/active/2026-10-13-09-review-posting.md
-git commit -m "docs: start plan 09 review posting and record the plan 08 follow-ups" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 09" --trailer "Task: none"
-git push -u origin plan/09-review-posting
+git mv docs/plans/plan-2026-10-13-znbc3ase-review-posting.md docs/plans/plan-2026-10-13-znbc3ase-review-posting.md
+git add docs/plans/plan-2026-10-13-znbc3ase-review-posting.md
+git commit -m "docs: start the review-posting plan and record the github-switch plan follow-ups" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: znbc3ase" --trailer "Task: none"
+git push -u origin plan/znbc3ase-review-posting
 gh pr create --draft --base main --title "feat: post agent reviews and the review record to pull requests" --body-file <.github/pull_request_template.md를 채운 파일>
 ```
 
@@ -100,7 +101,7 @@ plan-02-git-review-tooling-r1-codex-meta.txt
 plan-02-git-review-tooling-r1-codex-plan.md"
   run cat "$OUT-r1-codex-meta.txt"
   assert_line "base $(git rev-parse main)"
-  assert_line "head $(git rev-parse plan/02-git-review-tooling)"
+  assert_line "head $(git rev-parse plan/qq4h1djv-git-review-tooling)"
 ```
 
 `tests/stubs/gh`:
@@ -225,7 +226,7 @@ Expected: FAIL.
 ```bash
 #!/usr/bin/env bash
 # Post one review round's raw reports to its pull request: one comment for the change review and one for the
-# plan review (docs/specs/2026-10-13-github-pr-workflow-design.md, section 8). make review writes the reports.
+# plan review (docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, section 8). make review writes the reports.
 # Usage: post-review.sh PR BRANCH codex|claude [ROUND]
 #   REVIEW_OUT_DIR=<dir>   where make review wrote the reports (default: the main checkout's .review-out)
 #   REVIEW_MODEL=<model>   the reviewer's model for the comment header (default: "CLI default model")
@@ -321,7 +322,7 @@ Expected:
 
 ```bash
 git add scripts/review.sh scripts/post-review.sh tests/review.bats tests/post_review.bats tests/stubs/gh Makefile
-git commit -m "feat: record the reviewed SHAs and post review reports to the pull request" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 09" --trailer "Task: 1"
+git commit -m "feat: record the reviewed SHAs and post review reports to the pull request" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: znbc3ase" --trailer "Task: 1"
 git push
 ```
 
@@ -401,7 +402,7 @@ Expected: FAIL. `review_record.bats` 4개가 `scripts/review-record.sh: No such 
 ```bash
 #!/usr/bin/env bash
 # Create or update the single "Review record" comment of a pull request from a findings file
-# (docs/specs/2026-10-13-github-pr-workflow-design.md, section 8; table format: docs/reviews/README.md).
+# (docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, section 8; table format: docs/reviews/README.md).
 # Usage: review-record.sh PR FILE
 set -euo pipefail
 
@@ -472,14 +473,14 @@ Expected: exit 0. `review_record.bats` 4개가 ok이고, 커버리지 목록에 
 
 ```bash
 git add scripts/review-record.sh tests/review_record.bats Makefile
-git commit -m "feat: keep one Review record comment per pull request" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 09" --trailer "Task: 2"
+git commit -m "feat: keep one Review record comment per pull request" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: znbc3ase" --trailer "Task: 2"
 git push
 ```
 
 ### Task 3: 리뷰 문서를 PR 기준으로
 
 **Files:**
-- Modify: `.agents/skills/git-workflow/references/review-and-merge.md`(Review 절 4·5번, Fix findings 3번), `.agents/skills/branch-review/SKILL.md:20,23`, `AGENTS.md`(Code Review Rules 3·6번), `docs/reviews/README.md`(전체), `docs/ARCHITECTURE.md:30`, `docs/specs/spec-2026-10-13-github-pr-workflow.md`(14절 3·4번)
+- Modify: `.agents/skills/git-workflow/references/review-and-merge.md`(Review 절 4·5번, Fix findings 3번), `.agents/skills/branch-review/SKILL.md:20,23`, `AGENTS.md`(Code Review Rules 3·6번), `docs/reviews/README.md`(전체), `docs/ARCHITECTURE.md:30`, `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md`(14절 3·4번)
 
 **Interfaces:**
 - Consumes: Task 1·2의 `make review-post`, `make review-record`, meta 파일, 표식
@@ -528,7 +529,7 @@ Fix findings 절 3번의 `and post it like round 1`을 `and post it with make re
 ````markdown
 # Review records
 
-The files here are the review records of branches merged before plan 09; keep them as history and add no new ones. From plan 09 on, the record is the pull request's "Review record" comment. The author keeps the table in the main checkout's `.review-out/<branch-slug>-record.md` and publishes it with `make review-record PR=<number> FILE=<that file>`; `make review-post` posts the raw reports. Policy: `docs/specs/2026-10-13-github-pr-workflow-design.md`, section 8.
+The files here are the review records of branches merged before the review-posting plan; keep them as history and add no new ones. From the review-posting plan on, the record is the pull request's "Review record" comment. The author keeps the table in the main checkout's `.review-out/<branch-slug>-record.md` and publishes it with `make review-record PR=<number> FILE=<that file>`; `make review-post` posts the raw reports. Policy: `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md`, section 8.
 
 ## Template
 
@@ -550,7 +551,7 @@ Status values: `open`, `fixed <sha>`, `rejected <evidence>`, `deferred <human's 
 `docs/ARCHITECTURE.md:30`의 `` `docs/reviews/`(리뷰 기록) ``을 다음으로 바꾼다.
 
 ```markdown
-`scripts/post-review.sh`·`scripts/review-record.sh`(리뷰 원문과 기록을 PR 코멘트로 게시), `docs/reviews/`(계획 08까지의 리뷰 기록)
+`scripts/post-review.sh`·`scripts/review-record.sh`(리뷰 원문과 기록을 PR 코멘트로 게시), `docs/reviews/`(github-switch 계획까지의 리뷰 기록)
 ```
 
 스펙 14절 3·4번을 "시작" 단계에서 적은 결과로 바꾼다. 형식은 `(확인됨, <날짜>) <결과>`다. 3번 결과에 GitHub이 squash 커밋에 `Co-authored-by`를 자동으로 붙인다고 나오면, 그 줄은 사람이 아닌 GitHub이 붙인 것이라 정책 위반이 아니라고 함께 적는다.
@@ -566,8 +567,8 @@ Expected: 출력 없음. 새 리뷰 기록 파일을 만들라는 안내가 남�
 - [ ] **Step 7: 커밋과 push**
 
 ```bash
-git add .agents/skills AGENTS.md docs/reviews/README.md docs/ARCHITECTURE.md docs/specs/2026-10-13-github-pr-workflow-design.md
-git commit -m "docs: move review reports and records to pull request comments" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 09" --trailer "Task: 3"
+git add .agents/skills AGENTS.md docs/reviews/README.md docs/ARCHITECTURE.md docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
+git commit -m "docs: move review reports and records to pull request comments" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: znbc3ase" --trailer "Task: 3"
 git push
 ```
 
@@ -592,15 +593,15 @@ git push
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
-| 2026-10-14 | Verified | 시작: 계획 08의 squash 커밋 d59bfed의 작성자는 PR 작성자인 머신 계정 `yanghs6-bot`, 커미터는 `GitHub`이다. 브랜치 커밋 작성자가 사람 `yanghs6`이었으므로 GitHub이 본문 끝에 `Co-authored-by: yanghs6 <...>`를 덧붙였다(스펙 Open question 3). Command: `git log -1 --format='%an <%ae>%n%cn <%ce>%n%(trailers)' d59bfed` |
+| 2026-10-14 | Verified | 시작: [github-switch 계획](plan-2026-10-13-k93wjt1a-github-switch.md)의 squash 커밋 d59bfed의 작성자는 PR 작성자인 머신 계정 `yanghs6-bot`, 커미터는 `GitHub`이다. 브랜치 커밋 작성자가 사람 `yanghs6`이었으므로 GitHub이 본문 끝에 `Co-authored-by: yanghs6 <...>`를 덧붙였다(스펙 Open question 3). Command: `git log -1 --format='%an <%ae>%n%cn <%ce>%n%(trailers)' d59bfed` |
 | 2026-10-14 | Verified | 시작: 저장소 보안 설정은 `secret_scanning`·`secret_scanning_push_protection`이 enabled, `secret_scanning_non_provider_patterns`·`secret_scanning_validity_checks`·`dependabot_security_updates`가 disabled다(스펙 Open question 4). 머신 계정 토큰으로는 이 필드가 보이지 않아 소유자 설정 디렉터리로 읽었다. Command: `GH_CONFIG_DIR=~/.config/gh-yanghs6 gh api repos/yanghs6/basic-memory-tailnet --jq .security_and_analysis` |
-| 2026-10-14 | Verified | 사용자 결정(2026-10-14): 커밋 작성자도 머신 계정으로 한다. 공유 저장소 설정에 `user.name yanghs6-bot`, `user.email 159414014+yanghs6-bot@users.noreply.github.com`을 넣었다(모든 worktree에 적용). 첫 적용은 계획 05 공개 PR #2(85c823a)다. 스펙 3절의 "커밋 작성자는 지금처럼 사용자다"는 Task 3에서 고친다. Command: `git config --local user.name yanghs6-bot`, `git var GIT_AUTHOR_IDENT` |
+| 2026-10-14 | Verified | 사용자 결정(2026-10-14): 커밋 작성자도 머신 계정으로 한다. 공유 저장소 설정에 `user.name yanghs6-bot`, `user.email 159414014+yanghs6-bot@users.noreply.github.com`을 넣었다(모든 worktree에 적용). 첫 적용은 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) 공개 PR #2(85c823a)다. 스펙 3절의 "커밋 작성자는 지금처럼 사용자다"는 Task 3에서 고친다. Command: `git config --local user.name yanghs6-bot`, `git var GIT_AUTHOR_IDENT` |
 | 2026-10-14 | Command | Task 1(7bb8e88): RED는 `make test`에서 `post_review.bats` 3개(not ok 72-74, `post-review.sh` 없음)와 `review.bats` 첫 테스트(not ok 97, meta 파일 없음)가 실패. GREEN은 `make check` exit 0, 커버리지 96.77%(`post-review.sh` 92.86%). 태스크 리뷰 통과(Critical·Important 0). |
 | 2026-10-14 | Command | Task 2(5967fe6): RED는 `review_record.bats` 4개가 exit 127(스크립트 없음)로 실패. GREEN은 `make check` exit 0, 163 ok, 커버리지 96.62%(`review-record.sh` 92.00%). 태스크 리뷰 통과. |
 | 2026-10-14 | Command | Task 3(97958d6): `make check` exit 0(96.62%), `grep -rn 'docs/reviews/<' .agents/skills AGENTS.md` 출력 없음, `make check-git` OK. 태스크 리뷰 통과. |
 | 2026-10-14 | Verified | PR #3 CI: head 97958d6에서 `check`·`pr-rules` SUCCESS. Command: `gh pr checks 3` |
-| 2026-10-14 | Verified | 계획 파일 목록 밖의 변경(컨트롤러 판단, 2026-10-14 사용자 결정 반영): 스펙 3절의 커밋 작성자 문장을 머신 계정으로 바꾸고, `docs/runbooks/rbk-2026-10-14-github.md` 1절에 `git config --local user.name/user.email` 두 줄과 설명을 넣었다(97958d6). 이유: 사용자가 커밋도 머신 계정으로 하기로 정했고, 새로 clone한 저장소가 사람 이름으로 커밋하면 squash 병합에 GitHub이 `Co-authored-by`를 다시 붙이기 때문이다. |
+| 2026-10-14 | Verified | 계획 파일 목록 밖의 변경(컨트롤러 판단, 2026-10-14 사용자 결정 반영): 스펙 3절의 커밋 작성자 문장을 머신 계정으로 바꾸고, `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md` 1절에 `git config --local user.name/user.email` 두 줄과 설명을 넣었다(97958d6). 이유: 사용자가 커밋도 머신 계정으로 하기로 정했고, 새로 clone한 저장소가 사람 이름으로 커밋하면 squash 병합에 GitHub이 `Co-authored-by`를 다시 붙이기 때문이다. |
 | 2026-10-14 | Command | 최종 리뷰(브랜치 전체) 지적 반영: I1 게시 전 IP·session id 점검 문장 복원(28b0205), M1 스펙 8절 코멘트 두 개(5570ca7), M2 반쪽 게시 안내(673c843), M3 `REVIEW_MODEL` 안내(6471134), M4 review.sh 머리 주석(beebf2c), M5 기록 파일 위치(dee6513), M6 템플릿 제목(149783e), M9 2회차 meta 검사(5132748), I2 이 기록. `make check` exit 0, 163 ok, 커버리지 96.62%. M7(AGENTS.md Map 줄)과 M8(쓰지 않는 `GH_STUB_EXIT`)은 고치지 않는다(정확한 문구이거나 계획이 정한 인터페이스). |
-| 2026-10-14 | Verified | Task 4 Step 1: 이 PR(#3)의 교차 벤더 리뷰를 새 타깃으로 게시했다. `make review BRANCH=plan/09-review-posting REVIEWER=codex`(codex gpt-6.1-sol, read-only) → meta 파일 `base d59bfed…`, `head 05239fe…`. 판정: change 리뷰 지적 없음, plan 리뷰 P1 1건(R1-F1: Task 4 전에 완료 처리). 리포트의 IP·session id 0건을 확인한 뒤 `make review-post PR=3 BRANCH=plan/09-review-posting REVIEWER=codex REVIEW_MODEL=gpt-6.1-sol` → `posted the R1 codex change and plan reviews to PR #3`, `make review-record PR=3 FILE=<main>/.review-out/plan-09-review-posting-record.md` → `created the Review record on PR #3`. |
+| 2026-10-14 | Verified | Task 4 Step 1: 이 PR(#3)의 교차 벤더 리뷰를 새 타깃으로 게시했다. `make review BRANCH=plan/znbc3ase-review-posting REVIEWER=codex`(codex gpt-6.1-sol, read-only) → meta 파일 `base d59bfed…`, `head 05239fe…`. 판정: change 리뷰 지적 없음, plan 리뷰 P1 1건(R1-F1: Task 4 전에 완료 처리). 리포트의 IP·session id 0건을 확인한 뒤 `make review-post PR=3 BRANCH=plan/znbc3ase-review-posting REVIEWER=codex REVIEW_MODEL=gpt-6.1-sol` → `posted the R1 codex change and plan reviews to PR #3`, `make review-record PR=3 FILE=<main>/.review-out/plan-09-review-posting-record.md` → `created the Review record on PR #3`. |
 | 2026-10-14 | Verified | Task 4 Step 2: 코멘트 두 개(6163899244, 6163899646)의 머리가 `## Agent review R1: codex (gpt-6.1-sol)`와 ``Base `d59bfed…`, reviewed head `05239fe…`.``이고, 각각 `### Change review`, `### Plan review`를 담는다. 머신 계정의 Review record는 1개(6163902408)다. 페이지 나눔(Review Focus 4): `per_page=1`로 `--paginate`하면 id 3개가 모두 나오고, `review-record.sh`와 같은 필터는 페이지를 넘어 기록 하나(6163902408)만 찾는다. Command: `gh api 'repos/{owner}/{repo}/issues/3/comments?per_page=1' --paginate --jq '.[] \| .id'` |
 | 2026-10-14 | Verified | Task 4 Step 2(같은 코멘트 갱신): R1-F1을 `fixed 5e3a3cf`로 바꿔 `make review-record PR=3 FILE=...`를 다시 실행했다 → `updated the Review record on PR #3 (comment 6163902408)`. 같은 id의 `updated_at`이 08:10:37Z에서 08:12:27Z로 바뀌었고 본문 상태가 `fixed 5e3a3cf`이며, 표식으로 시작하는 코멘트는 여전히 1개다. |

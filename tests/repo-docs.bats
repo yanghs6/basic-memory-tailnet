@@ -2,13 +2,13 @@
 load helpers
 
 # Document structure checks: location, file name and front matter only, read from the registry in docs/README.md
-# (doc system spec section 8.3). ADR 0007 allows these checks; ADR 0004 still bans checks on wording.
+# (doc system spec section 8.3). The structure-checks ADR allows these checks; the test-scope ADR still bans checks on wording.
 
 # Files under docs/ that keep their names and belong to no type (spec section 3.1).
 SINGLE_FILES="docs/README.md docs/ARCHITECTURE.md docs/reviews/README.md"
 ALLOWED_KEYS="id status date spec reviewed superseded-by amended-by"
 # docs/ARCHITECTURE.md is outside the registry but carries status and reviewed (spec section 3.2).
-ARCHITECTURE_ROW="$(printf 'architecture\tarch\t없음\tdocs/\tcurrent\tstatus, reviewed\t금지\t없음')"
+ARCHITECTURE_ROW="$(printf 'architecture\tarch\tdocs/\tcurrent\tstatus, reviewed\t금지\t없음')"
 
 setup() {
   # shellcheck source=../scripts/lib/common.sh
@@ -27,7 +27,7 @@ doc_files() {
 
 # type_row FILE: the registry row whose folder holds FILE directly; nothing when no type owns that folder.
 type_row() {
-  awk -F'\t' -v loc="${1%/*}/" '$4 == loc' <<<"$TYPES"
+  awk -F'\t' -v loc="${1%/*}/" '$3 == loc' <<<"$TYPES"
 }
 
 # docs_paths: the docs/...md paths of this repo in stdin, one per line. A match right after a path character is part
@@ -66,16 +66,15 @@ path_refs() (
   done <<<"$(markdown_files)"
 )
 
-@test "the registry has unique types and codes, valid number and 새 문서 cells, and a template for every type that takes new documents" {
-  local type code number location statuses keys new template bad="" dup
+@test "the registry has unique types and codes, valid 새 문서 cells, and a template for every type that takes new documents" {
+  local type code location statuses keys new template bad="" dup
   dup="$(
     cut -f1 <<<"$TYPES" | sort | uniq -d
     cut -f2 <<<"$TYPES" | sort | uniq -d
   )"
   [[ -z "$dup" ]] || bad="$bad"$'\n'"  used twice: $dup"
-  while IFS=$'\t' read -r type code number location statuses keys new template; do
+  while IFS=$'\t' read -r type code location statuses keys new template; do
     [[ "$code" =~ ^[a-z]{3,4}$ ]] || bad="$bad"$'\n'"  $type: code '$code' must be 3-4 lowercase letters"
-    case "$number" in 없음 | NN | NNNN) ;; *) bad="$bad"$'\n'"  $type: 번호 '$number' must be 없음, NN or NNNN" ;; esac
     case "$new" in
       허용) [[ -f "$REPO_DIR/$template" ]] || bad="$bad"$'\n'"  $type: template $template does not exist" ;;
       금지) ;;
@@ -85,16 +84,13 @@ path_refs() (
   [[ -z "$bad" ]] || fail "fix the table under '## 문서 타입' in docs/README.md:$bad"
 }
 
-@test "plan and ADR numbers are unique" {
-  local type code number location rest dups dup bad=""
-  while IFS=$'\t' read -r type code number location rest; do
-    [[ "$number" != "없음" ]] || continue
-    dups="$(doc_files | grep "^$location$code-" | sed -E "s#^$location$code-[0-9]{4}-[0-9]{2}-[0-9]{2}-([0-9]+)-.*#\1#" | sort | uniq -d)"
-    for dup in $dups; do
-      bad="$bad"$'\n'"  $type $dup: $(doc_files | grep -E "^$location$code-[0-9]{4}-[0-9]{2}-[0-9]{2}-$dup-" | tr '\n' ' ')"
-    done
-  done <<<"$TYPES"
-  [[ -z "$bad" ]] || fail "renumber one document of each pair with git mv (make new-doc picks the next free number):$bad"
+@test "no two documents under docs/ share an id" {
+  local ids dup bad=""
+  ids="$(doc_files | sed -nE "s#^docs/.*/[a-z]+-${DOC_DATE_PATTERN}-(${DOC_ID_PATTERN})-[a-z0-9][^/]*[.]md\$#\1#p")"
+  for dup in $(sort <<<"$ids" | uniq -d); do
+    bad="$bad"$'\n'"  $dup: $(doc_files | grep -F -- "-$dup-" | tr '\n' ' ')"
+  done
+  [[ -z "$bad" ]] || fail "give one document of each pair a new id (make new-id): git mv it, then change its front matter id and its references:$bad"
 }
 
 @test "every relative link and every docs path in tracked Markdown, scripts, skills and AGENTS.md resolves" {
@@ -117,24 +113,18 @@ path_refs() (
   [[ -z "$broken" ]] || fail "these paths name no file; point them at the current file, or spell out a deleted one:$broken"
 }
 
-# name_problem FILE ROW: a line when the name of FILE is not <code>-<date>[-<number>]-<slug>.md of its registry ROW.
+# name_problem FILE ROW: a line when the name of FILE is not <code>-<date>-<id>-<slug>.md of its registry ROW.
 name_problem() {
-  local file="$1" code number pattern hint
-  IFS=$'\t' read -r _ code number _ <<<"$2"
-  pattern="^${code}-${DOC_DATE_PATTERN}-"
-  hint="$code-<YYYY-MM-DD>-<slug>.md"
-  if [[ "$number" != "없음" ]]; then
-    pattern="${pattern}[0-9]{${#number}}-"
-    hint="$code-<YYYY-MM-DD>-$number-<slug>.md"
-  fi
-  pattern="${pattern}[a-z0-9]+(-[a-z0-9]+)*[.]md$"
-  [[ "${file##*/}" =~ $pattern ]] || printf '%s: name it %s (git mv)\n' "$file" "$hint"
+  local file="$1" code pattern
+  IFS=$'\t' read -r _ code _ <<<"$2"
+  pattern="^${code}-${DOC_DATE_PATTERN}-${DOC_ID_PATTERN}-[a-z0-9]+(-[a-z0-9]+)*[.]md$"
+  [[ "${file##*/}" =~ $pattern ]] || printf '%s: name it %s-<YYYY-MM-DD>-<id>-<slug>.md (git mv; make new-id prints an unused id)\n' "$file" "$code"
 }
 
 # front_problems FILE ROW: one line per front matter problem of FILE against its registry ROW.
 front_problems() {
-  local file="$1" row="$2" type statuses keys key value status path name_id
-  IFS=$'\t' read -r type _ _ _ statuses keys _ <<<"$row"
+  local file="$1" row="$2" type statuses keys key value status path name_id front_id
+  IFS=$'\t' read -r type _ _ statuses keys _ <<<"$row"
   if [[ -z "$(frontmatter "$REPO_DIR/$file")" ]]; then
     printf '%s: no front matter (--- block at the top)\n' "$file"
     return 0
@@ -147,10 +137,11 @@ front_problems() {
   done
   status="$(front_value "$REPO_DIR/$file" status)"
   [[ ", $statuses," == *", $status,"* ]] || printf '%s: status %s is not one of: %s\n' "$file" "$status" "$statuses"
-  # A name with an id carries the same id in its front matter; names in the old forms are checked after plan 26 task 2.
+  # The front matter id is the id in the file name; name_problem reports a name without one.
   name_id="$(sed -nE "s/^[a-z]+-${DOC_DATE_PATTERN}-(${DOC_ID_PATTERN})-[a-z0-9].*[.]md$/\1/p" <<<"${file##*/}")"
-  if [[ -n "$name_id" && "$(front_value "$REPO_DIR/$file" id)" != "$name_id" ]]; then
-    printf '%s: id must be %s, the id in the file name\n' "$file" "$name_id"
+  front_id="$(front_value "$REPO_DIR/$file" id)"
+  if [[ -n "$name_id" && "$front_id" != "$name_id" ]]; then
+    printf '%s: front matter id %s differs from the id %s in the file name\n' "$file" "${front_id:-(missing)}" "$name_id"
   fi
   for key in date reviewed; do
     value="$(front_value "$REPO_DIR/$file" "$key")"

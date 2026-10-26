@@ -1,31 +1,32 @@
 ---
 status: completed
-spec: docs/specs/spec-2026-10-07-git-review-policy.md
+id: qq4h1djv
+spec: docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md
 ---
 
-# 02 Git and Review Tooling Implementation Plan
+# qq4h1djv Git and Review Tooling Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 에이전트 git·리뷰 정책을 도구로 뒷받침한다. `make check-git`(브랜치 이름·커밋 트레일러·worktree 설정 검사), `make review`(다른 벤더 에이전트의 읽기 전용 리뷰), Claude 리뷰어 에이전트, 작성자용·리뷰어용 스킬, `AGENTS.md`의 리뷰 규칙을 만든다.
 
 **Architecture:**
-- 정책 원문은 `docs/specs/spec-2026-10-07-git-review-policy.md`다. 이 계획은 정책을 바꾸지 않고 검사·실행 도구만 만든다.
+- 정책 원문은 `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`다. 이 계획은 정책을 바꾸지 않고 검사·실행 도구만 만든다.
 - `check-git.sh`는 현재 브랜치와 `main..HEAD` 커밋을 git 명령만으로 검사한다.
 - `review.sh`는 리뷰 전용 detached worktree를 만들어 `codex` 또는 `claude`를 읽기 전용 모드로 실행하고, 결과 원문을 `.review-out/`에 저장한 뒤 worktree를 지운다.
 - 두 스크립트 모두 테스트에서는 임시 git 저장소와 `codex`·`claude` stub으로 검증한다.
 
 **Tech Stack:** Bash(macOS 3.2 호환), git ≥2.32(`--trailer`), GNU Make, bats-core 1.14.0 + bats-support/assert, kcov, shellcheck 0.11.0, shfmt 3.12.0, Codex CLI 0.160.1, Claude Code 2.1.292
 
-**Spec:** `docs/specs/spec-2026-10-07-git-review-policy.md` (정책), `docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md` (저장소 공통 규칙)
+**Spec:** `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md` (정책), `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md` (저장소 공통 규칙)
 
-**Sequence:** 계획 2/5. 전제: 계획 01 완료·병합(`make check` PASS, 테스트 40개). 다음 계획: `docs/plans/plan-2026-10-07-03-vm-scripts.md`
+**Sequence:** 계획 2/5. 전제: [local-foundation 계획](plan-2026-10-07-sqzn0teq-local-foundation.md) 완료·병합(`make check` PASS, 테스트 40개). 다음 계획: `docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md`
 
 ## Global Constraints
 
-- Git (`docs/specs/spec-2026-10-07-git-review-policy.md`):
-  - 이 계획은 `plan/02-git-review-tooling` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
-  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: 02`, `Task: N`을 단다. 커밋 명령의 `Assisted-by` 값은 시작 단계에서 정한 신원을 그대로 적는다(셸 변수는 명령 사이에 남지 않을 수 있다).
+- Git (`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`):
+  - 이 계획은 `plan/qq4h1djv-git-review-tooling` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
+  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: qq4h1djv`, `Task: N`을 단다. 커밋 명령의 `Assisted-by` 값은 시작 단계에서 정한 신원을 그대로 적는다(셸 변수는 명령 사이에 남지 않을 수 있다).
   - `Co-authored-by`와 `Signed-off-by`는 넣지 않는다(사용자 전역 설정과 저장소 정책).
   - 매 커밋 전에 `make check`를 실행한다.
 - 스크립트 작성 규칙:
@@ -63,13 +64,13 @@ Makefile                                                          Task 1, 2에�
 
 - [ ] 이 계획을 진행할 에이전트 신원을 기록한다: `<도구> <모델 ID>` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다. 커밋마다 이 값을 `Assisted-by:` 트레일러에 그대로 적는다.
 - [ ] 전용 worktree와 브랜치를 만든다. 한 계획 브랜치는 한 번에 한 worktree에서만 진행한다.
-  - Claude Code: `claude --worktree plan-02-git-review-tooling`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/02-git-review-tooling`
-  - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-02-git-review-tooling -b plan/02-git-review-tooling main` 후 그 디렉터리에서 작업
+  - Claude Code: `claude --worktree plan-02-git-review-tooling`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/qq4h1djv-git-review-tooling`
+  - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-02-git-review-tooling -b plan/qq4h1djv-git-review-tooling main` 후 그 디렉터리에서 작업
 - [ ] 첫 커밋으로 이 계획 파일을 `backlog/`에서 `active/`로 옮긴다.
 
 ```bash
-git mv docs/plans/backlog/2026-10-07-02-git-review-tooling.md docs/plans/active/
-git commit -m "docs: activate plan 02" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: none"
+git mv docs/plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md docs/plans/active/
+git commit -m "docs: activate the git-review-tooling plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: qq4h1djv" --trailer "Task: none"
 ```
 
 ---
@@ -215,7 +216,7 @@ Expected: FAIL. `check_git.bats` 11개가 `scripts/check-git.sh: No such file or
 
 ```bash
 #!/usr/bin/env bash
-# Check the git policy for the current branch (docs/specs/2026-10-07-git-review-policy-design.md):
+# Check the git policy for the current branch (docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md):
 # branch name, trailers on every non-merge commit in BASE..HEAD, forbidden trailers, worktree config.
 # Usage: check-git.sh [BASE]   (default: main)
 set -euo pipefail
@@ -328,7 +329,7 @@ Expected: `OK: git policy (<n> commits since main)`. 이 계획의 커밋이 모
 Run: `make check` (PASS)
 ```bash
 git add scripts/check-git.sh tests/check_git.bats Makefile
-git commit -m "feat: add git policy check for branch names and commit trailers" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: 1"
+git commit -m "feat: add git policy check for branch names and commit trailers" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: qq4h1djv" --trailer "Task: 1"
 ```
 
 ---
@@ -532,7 +533,7 @@ Expected: FAIL. `review.bats` 9개가 `scripts/review.sh: No such file or direct
 ```bash
 #!/usr/bin/env bash
 # Run an independent, read-only agent review of a branch in a throwaway detached worktree
-# (docs/specs/2026-10-07-git-review-policy-design.md, section 5). Writes two reports:
+# (docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md, section 5). Writes two reports:
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-diff.md   bugs introduced since the base
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-plan.md   plan conformance per AGENTS.md Code Review Rules
 # Usage: review.sh BRANCH codex|claude [ROUND]
@@ -697,7 +698,7 @@ review: ## Read-only review by another vendor: BRANCH=<branch> REVIEWER=codex|cl
 Run: `make check` (PASS)
 ```bash
 git add scripts/review.sh tests/stubs/codex tests/stubs/claude tests/review.bats Makefile
-git commit -m "feat: add read-only cross-vendor review runner" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: 2"
+git commit -m "feat: add read-only cross-vendor review runner" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: qq4h1djv" --trailer "Task: 2"
 ```
 
 ---
@@ -716,8 +717,8 @@ git commit -m "feat: add read-only cross-vendor review runner" --trailer "Assist
 - Consumes: Task 1·2의 `make check-git`, `make review`
 - Produces:
   - 스킬 이름 `git-workflow`, `branch-review`와 Claude 서브에이전트 `branch-reviewer`(`review.sh`의 `--agent branch-reviewer`가 사용)
-  - 스킬 구조 테스트 5개. 계획 04의 `bm-*` 스킬도 이 테스트를 그대로 받는다.
-  - `AGENTS.md`의 `## Code Review Rules`(Codex 리뷰가 자동으로 읽음)와 `## Skills` 섹션. 계획 04가 `bm-*` 줄을 추가한다.
+  - 스킬 구조 테스트 5개. [docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md)의 `bm-*` 스킬도 이 테스트를 그대로 받는다.
+  - `AGENTS.md`의 `## Code Review Rules`(Codex 리뷰가 자동으로 읽음)와 `## Skills` 섹션. [docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md)이 `bm-*` 줄을 추가한다.
 
 - [ ] **Step 1: 실패하는 테스트 추가 (`tests/repo.bats` 끝에 append)**
 
@@ -824,7 +825,7 @@ description: Start, commit, hand off for review and prepare the merge of agent w
 
 # Agent git workflow
 
-Policy: docs/specs/2026-10-07-git-review-policy-design.md. Never commit to `main`, force-push, rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree.
+Policy: docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md. Never commit to `main`, force-push, rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree.
 
 ## Start
 
@@ -927,7 +928,7 @@ ln -s ../../.agents/skills/branch-review .claude/skills/branch-review
 `````markdown
 # Review records
 
-One file per reviewed branch: `docs/reviews/<branch-slug>.md`, for example `plan-02-git-review-tooling.md`. The author agent writes it from the raw reviewer output in `.review-out/` and commits it with `Task: review`. Policy: `docs/specs/2026-10-07-git-review-policy-design.md`, section 5.
+One file per reviewed branch: `docs/reviews/<branch-slug>.md`, for example `rev-2026-10-08-tscgvpsz-git-review-tooling.md`. The author agent writes it from the raw reviewer output in `.review-out/` and commits it with `Task: review`. Policy: `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5.
 
 ## Template
 
@@ -986,7 +987,7 @@ Expected: PASS(총 67 tests).
 Run: `make check` (PASS)
 ```bash
 git add .claude/agents .claude/skills .claude/settings.json .agents docs/reviews AGENTS.md tests/repo.bats
-git commit -m "docs: add reviewer agent, git and review skills, and code review rules" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: 3"
+git commit -m "docs: add reviewer agent, git and review skills, and code review rules" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: qq4h1djv" --trailer "Task: 3"
 ```
 
 ---
@@ -999,23 +1000,23 @@ git commit -m "docs: add reviewer agent, git and review skills, and code review 
 - [ ] Progress log에 결과(테스트 수, 커버리지 %, 특이사항)를 `Verified`로 기록하고, 이 계획 파일을 `completed/`로 옮긴다.
 
 ```bash
-git mv docs/plans/active/2026-10-07-02-git-review-tooling.md docs/plans/completed/
-git commit -m "docs: complete plan 02" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: none"
+git mv docs/plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md docs/plans/completed/
+git commit -m "docs: complete the git-review-tooling plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: qq4h1djv" --trailer "Task: none"
 ```
 
-- [ ] 1차 리뷰(작성자와 다른 벤더): 작성 도구가 Claude Code면 `make review BRANCH=plan/02-git-review-tooling REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
+- [ ] 1차 리뷰(작성자와 다른 벤더): 작성 도구가 Claude Code면 `make review BRANCH=plan/qq4h1djv-git-review-tooling REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
   **Assumption:** (이 Step에서 확인) 두 원문 파일이 실제 리뷰 내용을 담았는지, 리뷰 뒤 `git status`가 깨끗하고 `git worktree list`에 리뷰 worktree가 남지 않았는지 확인한다. 어긋나면 그 내용을 리뷰 기록에 P1로 적고 고친다.
-- [ ] 원문을 `docs/reviews/rev-2026-10-08-plan-02-git-review-tooling.md`로 옮겨 적고(`docs/reviews/README.md` 형식) 커밋한다.
+- [ ] 원문을 `docs/reviews/rev-2026-10-08-tscgvpsz-git-review-tooling.md`로 옮겨 적고(`docs/reviews/README.md` 형식) 커밋한다.
 
 ```bash
-git add docs/reviews/plan-02-git-review-tooling.md
-git commit -m "docs: record review of plan 02" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 02" --trailer "Task: review"
+git add docs/reviews/rev-2026-10-08-tscgvpsz-git-review-tooling.md
+git commit -m "docs: record review of the git-review-tooling plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: qq4h1djv" --trailer "Task: review"
 ```
 
 - [ ] 지적마다 재현하거나 근거를 인용해 검증하고, 받아들인 지적은 하나당 커밋 하나로 고친다(`--trailer "Review-Finding: R1-F<n>"`). 거절은 근거와 함께 기록한다.
-- [ ] 고친 것이 있으면 2차 리뷰: `make review BRANCH=plan/02-git-review-tooling REVIEWER=<같은 리뷰어> ROUND=2 REVIEW_BASE=<리뷰한 head>`. 2회차 뒤 남은 이견은 사람이 결정한다.
-- [ ] `git-workflow` 스킬의 "Prepare the merge"대로 `.review-out/merge-plan-02-git-review-tooling.txt`를 쓰고, 사람에게 병합을 요청한다. 사람은 `main` 체크아웃에서 `git merge --no-ff plan/02-git-review-tooling -F <그 파일의 절대 경로>`를 실행한다.
-- [ ] 병합 뒤 worktree와 브랜치를 정리한다: `git worktree remove <경로>` → `git branch -d plan/02-git-review-tooling`
+- [ ] 고친 것이 있으면 2차 리뷰: `make review BRANCH=plan/qq4h1djv-git-review-tooling REVIEWER=<같은 리뷰어> ROUND=2 REVIEW_BASE=<리뷰한 head>`. 2회차 뒤 남은 이견은 사람이 결정한다.
+- [ ] `git-workflow` 스킬의 "Prepare the merge"대로 `.review-out/merge-plan-02-git-review-tooling.txt`를 쓰고, 사람에게 병합을 요청한다. 사람은 `main` 체크아웃에서 `git merge --no-ff plan/qq4h1djv-git-review-tooling -F <그 파일의 절대 경로>`를 실행한다.
+- [ ] 병합 뒤 worktree와 브랜치를 정리한다: `git worktree remove <경로>` → `git branch -d plan/qq4h1djv-git-review-tooling`
 
 ---
 
@@ -1030,5 +1031,5 @@ git commit -m "docs: record review of plan 02" --trailer "Assisted-by: <도구> 
 | 2026-10-08 | Verified | Subagent-driven 진행: Task 1 `20ae84e`, Task 2 `de7f265`, Task 3 `3cf3a83`. 태스크 리뷰 3회와 최종 리뷰(opus) 뒤 fix wave로 `SDD-T1-F1`, `SDD-T2-F1·F3·F4`, `SDD-T3-F1~F9`를 고침(커밋마다 `Review-Finding` 트레일러) |
 | 2026-10-08 | Verified | code.claude.com/docs/en/sub-agents.md: `tools`/`disallowedTools`는 도구 이름만 받고, `permissionMode: plan`은 Bash를 허용 목록으로 제한하지 않음. frontmatter `hooks.PreToolUse`는 exit 2일 때만 막고 `--agent`에서도 적용됨 → 계획에 없던 `scripts/review-bash-guard.sh` 훅을 추가함(`git diff/log/show` + 안전 문자 토큰만 허용, `--ou*` 차단, 실패 시 `|| exit 2`) |
 | 2026-10-08 | Assumption | 훅 명령은 POSIX 셸로 실행되고 `$CLAUDE_PROJECT_DIR`은 리뷰 worktree 루트다. Claude 리뷰어를 실제로 실행할 때 허용되지 않는 명령이 막히는지 확인한다 |
-| 2026-10-08 | Verified | 셸은 명령마다 새로 뜰 수 있어 `export AGENT_ID`가 커밋 사이에 남지 않음(최종 리뷰가 `git interpret-trailers`로 빈 트레일러 재현) → 계획 02~05의 커밋 단계를 신원 값을 그대로 적는 형태로 바꿈(`146447a`) |
+| 2026-10-08 | Verified | 셸은 명령마다 새로 뜰 수 있어 `export AGENT_ID`가 커밋 사이에 남지 않음(최종 리뷰가 `git interpret-trailers`로 빈 트레일러 재현) → git-review-tooling·[vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md)·[docs-skills](plan-2026-10-07-hydaxf15-docs-skills.md)·[vm-rollout](plan-2026-10-07-qtvzskgx-vm-rollout.md) 계획의 커밋 단계를 신원 값을 그대로 적는 형태로 바꿈(`146447a`) |
 | 2026-10-08 | Open question | 미룬 지적: 리뷰어 설정(에이전트·가드)이 리뷰 대상 브랜치에서 옴, `Review-Finding` 값 미검증, `review.sh`의 브랜치 이름 검사 없음, worktreeConfig는 값과 무관하게 막아야 함(스펙 §2) 등. 목록은 리뷰 기록에 옮긴다 |

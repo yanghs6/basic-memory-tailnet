@@ -1,10 +1,11 @@
 ---
 status: final
+id: tscgvpsz
 ---
 
-# Review: plan/02-git-review-tooling
+# Review: plan/qq4h1djv-git-review-tooling
 
-Cross-vendor review per `docs/specs/spec-2026-10-07-git-review-policy.md`, section 5. Author: claude-code (Claude Opus controller, Sonnet/Opus implementers). Reviewer: codex, run with `make review BRANCH=plan/02-git-review-tooling REVIEWER=codex`.
+Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5. Author: claude-code (Claude Opus controller, Sonnet/Opus implementers). Reviewer: codex, run with `make review BRANCH=plan/qq4h1djv-git-review-tooling REVIEWER=codex`.
 
 | Round | Reviewer | Base | Reviewed head | Verdict |
 |---|---|---|---|---|
@@ -21,7 +22,7 @@ Cross-vendor review per `docs/specs/spec-2026-10-07-git-review-policy.md`, secti
 
 ## Notes
 
-- Verified (plan 02 Assumptions): the codex change review ran with `sandbox: read-only`; both raw reports held real review content; afterwards `git status` was clean and neither the review worktree nor a `review-base/*` branch remained.
+- Verified (the [git-review-tooling plan](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md) Assumptions): the codex change review ran with `sandbox: read-only`; both raw reports held real review content; afterwards `git status` was clean and neither the review worktree nor a `review-base/*` branch remained.
 - Codex could not run `make check` (no Docker in its sandbox). Test evidence comes from the author: 92 bats tests and 96.88% line coverage at R1 (plan Progress log); 98 tests and 97.00% after the R1 fixes (`make check` before 5887498).
 - R1-F1 changed the Claude change-review command, so spec section 5 was amended to match `review.sh` in 5887498 (also records the Codex read-only flag).
 - Assumption: the Claude reviewer path (`claude --agent branch-reviewer` with the Bash guard hook) has run only against stubs. Confirm on the first review of a branch not authored by Claude that a disallowed command is blocked.

@@ -2,9 +2,9 @@
 load helpers
 
 # Antigravity truncates a rule file at 24,000 bytes, the smallest limit of the four agents
-# (docs/research/rsch-2026-10-15-agent-repo-conventions.md, section 1).
+# (docs/research/rsch-2026-10-15-f20fshxg-agent-repo-conventions.md, section 1).
 AGENTS_MD_MAX_BYTES=24000
-# Measured on the VM (plan 05 Progress log, 2026-10-13): healthy 161s after the first deploy, 192s after a reboot.
+# Measured on the VM (the vm-rollout plan Progress log, 2026-10-13): healthy 161s after the first deploy, 192s after a reboot.
 MIN_START_PERIOD_SECONDS=240
 # An image line with a version tag and a sha256 digest.
 PINNED_IMAGE='^ +image: [a-z0-9./_-]+:[0-9.]+(-[a-z]+)?@sha256:[0-9a-f]{64}$'

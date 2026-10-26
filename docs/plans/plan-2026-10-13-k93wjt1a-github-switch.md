@@ -1,9 +1,10 @@
 ---
 status: completed
-spec: docs/specs/spec-2026-10-13-github-pr-workflow.md
+id: k93wjt1a
+spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 ---
 
-# 08 GitHub Switch Implementation Plan
+# k93wjt1a GitHub Switch Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -23,22 +24,22 @@ spec: docs/specs/spec-2026-10-13-github-pr-workflow.md
 
 **Tech Stack:** bash 3.2 호환 셸, bats-core 1.14.0 + bats-assert, jq(테스트 이미지), GitHub Actions(`ubuntu-24.04`, `actions/checkout` v6.1.0 = `d23441a48e516b6c34aea4fa41551a30e30af803`), GitHub REST API(ruleset, 저장소 설정), `gh` CLI
 
-**Spec:** `docs/specs/spec-2026-10-13-github-pr-workflow.md` (특히 3·5·6·7·9·10·11절)
+**Spec:** `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md` (특히 3·5·6·7·9·10·11절)
 
-**Sequence:** 계획 8. 다음 전제를 모두 만족한 뒤 시작한다.
+**Sequence:** 다음 전제를 모두 만족한 뒤 시작한다.
 - 스펙과 이 계획을 담은 `work/workflow-alignment`가 `main`에 병합됐다.
-- 계획 06이 병합됐다(`c10fb5c`, 충족).
+- [test-pruning 계획](plan-2026-10-13-g57mry4b-test-pruning.md)이 병합됐다(`c10fb5c`, 충족).
 - 아래 "전제: 사람 작업" 1~3이 끝났다.
 
 ## Global Constraints
 
 - 스펙 결정: 머신 계정이 PR을 열고, 사람만 승인·병합한다. 병합 방식은 squash 하나다. PR 하나는 계획 하나다.
 - AGENTS.md: 스크립트는 `#!/usr/bin/env bash` 다음 줄에 `set -euo pipefail`을 두고, `scripts/lib/common.sh`를 source하고, 실패는 `die`로 알린다. macOS bash 3.2에서 돌아야 한다.
-- 테스트를 먼저 쓴다(RED 확인 후 GREEN). ADR 0004를 따른다. 대표 성공 경로 1개, 조용히 넘어갈 실패 경로, 정책 검사만 쓰고, 문구만 보는 테스트는 쓰지 않는다. 입력값만 다르면 반복문 하나로 묶는다.
+- 테스트를 먼저 쓴다(RED 확인 후 GREEN). [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)을 따른다. 대표 성공 경로 1개, 조용히 넘어갈 실패 경로, 정책 검사만 쓰고, 문구만 보는 테스트는 쓰지 않는다. 입력값만 다르면 반복문 하나로 묶는다.
 - "never weaken a test to make it pass." 기존 테스트의 assertion을 지우거나 약하게 바꾸지 않는다.
 - 외부 Action은 전체 커밋 SHA로 고정한다. 워크플로 권한은 `contents: read`만 준다. `pull_request_target`은 쓰지 않는다. `${{ }}`는 `run:` 줄에 넣지 않고 `env:`로 넘긴다.
-- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: 08`, `Task: <N|review|none>`. `Co-authored-by`, `Signed-off-by`는 쓰지 않는다.
-- PR 제목은 `<type>: <description>`이고, PR 본문 마지막 문단은 `Assisted-by`와 `Plan: 08`이다.
+- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: k93wjt1a`, `Task: <N|review|none>`. `Co-authored-by`, `Signed-off-by`는 쓰지 않는다.
+- PR 제목은 `<type>: <description>`이고, PR 본문 마지막 문단은 `Assisted-by`와 `Plan: k93wjt1a`이다.
 - VM의 외부 IP와 Tailscale IP를 커밋, PR, 코멘트, 문서 어디에도 적지 않는다.
 - 사람은 GitHub의 "Update branch"를 누르지 않는다. 브랜치 갱신은 에이전트가 `git merge origin/main`으로 한다(스펙 9절).
 - worktree에 `.env`나 `backups/`를 만들거나 복사하지 않는다.
@@ -59,8 +60,8 @@ scripts/check-pr.sh (새 파일)  tests/check_pr.bats (새 파일)              
 .github/workflows/ci.yml  .github/workflows/pr-rules.yml  .github/rulesets/main.json
 .github/pull_request_template.md  tests/github.bats (새 파일)  Makefile  scripts/review.sh(로그 한 줄)   Task 2
 AGENTS.md  .agents/skills/git-workflow/SKILL.md  .agents/skills/git-workflow/references/review-and-merge.md
-docs/runbooks/github.md (새 파일)  docs/runbooks/accounts.md  docs/ARCHITECTURE.md  README.md
-docs/specs/2026-10-07-git-review-policy-design.md(상태 줄)                                       Task 3
+docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md (새 파일)  docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md  docs/ARCHITECTURE.md  README.md
+docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md(상태 줄)                                       Task 3
 이 계획 파일(Progress log), 필요하면 .github/rulesets/main.json                                  Task 4, 마무리
 ```
 
@@ -68,7 +69,7 @@ docs/specs/2026-10-07-git-review-policy-design.md(상태 줄)                   
 
 ### 전제: 사람 작업 (계획 시작 전, 스펙 10절 1~2단계)
 
-사용자가 자기 터미널에서 한다. `gh auth login`은 대화형이라 Claude Code의 `!`에서는 입력을 받지 못하므로, 별도 터미널 앱에서 실행한다. 에이전트는 명령을 안내하고 결과만 확인한다. 이 절차는 Task 3에서 `docs/runbooks/rbk-2026-10-14-github.md`로 옮긴다.
+사용자가 자기 터미널에서 한다. `gh auth login`은 대화형이라 Claude Code의 `!`에서는 입력을 받지 못하므로, 별도 터미널 앱에서 실행한다. 에이전트는 명령을 안내하고 결과만 확인한다. 이 절차는 Task 3에서 `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md`로 옮긴다.
 
 - [ ] **1. 머신 계정**
   1. 새 이메일로 GitHub 계정(예: `yanghs6-bot`)을 만들고 2FA를 켠다. 약관상 사람이 직접 만들어야 한다.
@@ -112,27 +113,27 @@ Expected: 원격 `main`에 로컬 이력 전체와 원격의 `LICENSE` 커밋이
 
 ### 시작: 브랜치, worktree, 초안 PR (에이전트)
 
-- [ ] `git fetch origin` 후 `origin/main`에서 worktree와 `plan/08-github-switch` 브랜치를 만든다. 방법은 git-workflow 스킬을 따른다.
+- [ ] `git fetch origin` 후 `origin/main`에서 worktree와 `plan/k93wjt1a-github-switch` 브랜치를 만든다. 방법은 git-workflow 스킬을 따른다.
 - [ ] 첫 커밋으로 이 계획 파일을 `docs/plans/backlog/`에서 `docs/plans/active/`로 옮긴다.
 
 ```bash
-git mv docs/plans/backlog/2026-10-13-08-github-switch.md docs/plans/active/2026-10-13-08-github-switch.md
-git commit -m "docs: start plan 08 GitHub switch" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 08" --trailer "Task: none"
-git push -u origin plan/08-github-switch
+git mv docs/plans/plan-2026-10-13-k93wjt1a-github-switch.md docs/plans/plan-2026-10-13-k93wjt1a-github-switch.md
+git commit -m "docs: start the github-switch plan" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: k93wjt1a" --trailer "Task: none"
+git push -u origin plan/k93wjt1a-github-switch
 ```
 
 - [ ] 초안 PR을 연다. 이 시점에는 PR 템플릿과 CI가 아직 없으므로 본문은 직접 쓴다.
 
 ```bash
 cat >"$TMPDIR/pr-08.md" <<'EOF'
-Switch the repository to the GitHub pull-request workflow (plan 08).
+Switch the repository to the GitHub pull-request workflow (the github-switch plan).
 
-Plan file docs/plans/active/2026-10-13-08-github-switch.md, spec docs/specs/2026-10-13-github-pr-workflow-design.md.
+Plan file docs/plans/plan-2026-10-13-k93wjt1a-github-switch.md, spec docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md.
 
 Assisted-by: <tool> <model>
-Plan: 08
+Plan: k93wjt1a
 EOF
-gh pr create --draft --base main --head plan/08-github-switch --title "ci: switch to the GitHub pull-request workflow" --body-file "$TMPDIR/pr-08.md"
+gh pr create --draft --base main --head plan/k93wjt1a-github-switch --title "ci: switch to the GitHub pull-request workflow" --body-file "$TMPDIR/pr-08.md"
 ```
 
 Expected: `gh pr create`가 PR URL을 출력한다. PR 작성자는 머신 계정이다. 번호를 Progress log에 적는다.
@@ -235,7 +236,7 @@ Expected: FAIL. `check_pr.bats` 6개가 `scripts/check-pr.sh: No such file or di
 
 ```bash
 #!/usr/bin/env bash
-# Check a pull request's title and body (docs/specs/2026-10-13-github-pr-workflow-design.md, sections 5 and 6).
+# Check a pull request's title and body (docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, sections 5 and 6).
 # The squash merge makes the title the commit subject and the body the commit message, so the title follows
 # the commit format and the body's last paragraph carries the Assisted-by and Plan trailers.
 # Usage: PR_TITLE=<title> PR_BODY=<body> check-pr.sh   (the pr-rules workflow passes both from the event)
@@ -318,7 +319,7 @@ Expected: exit 0. `check_pr.bats` 6개가 모두 ok이고, 커버리지 목록�
 
 ```bash
 git add scripts/check-pr.sh tests/check_pr.bats
-git commit -m "feat: check pull request titles and trailers" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 08" --trailer "Task: 1"
+git commit -m "feat: check pull request titles and trailers" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: k93wjt1a" --trailer "Task: 1"
 git push
 ```
 
@@ -388,7 +389,7 @@ Expected: FAIL. `github.bats` 2개가 실패한다. 하나는 `no workflows unde
 
 ```yaml
 # Lint, all tests and the coverage gate for every pull request into main
-# (docs/specs/2026-10-13-github-pr-workflow-design.md, section 6).
+# (docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, section 6).
 name: ci
 
 on:
@@ -417,7 +418,7 @@ jobs:
 
 ```yaml
 # Branch name, commit trailers, and the PR title and body that become the squash commit
-# (docs/specs/2026-10-13-github-pr-workflow-design.md, section 6). Runs again when the title or body is edited.
+# (docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, section 6). Runs again when the title or body is edited.
 name: pr-rules
 
 on:
@@ -548,7 +549,7 @@ Expected:
 
 ```bash
 git add .github tests/github.bats Makefile scripts/review.sh
-git commit -m "ci: add the check and pr-rules workflows, the main ruleset and the PR template" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 08" --trailer "Task: 2"
+git commit -m "ci: add the check and pr-rules workflows, the main ruleset and the PR template" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: k93wjt1a" --trailer "Task: 2"
 git push
 gh pr checks --watch
 ```
@@ -558,12 +559,12 @@ Expected: PR에 `check`와 `pr-rules`가 생기고 둘 다 pass다. 실패하면
 ### Task 3: 문서와 스킬
 
 **Files:**
-- Create: `docs/runbooks/rbk-2026-10-14-github.md`
-- Modify: `AGENTS.md:29-33`(Git), `AGENTS.md`의 Safety 끝과 Map, `.agents/skills/git-workflow/SKILL.md`(전체), `.agents/skills/git-workflow/references/review-and-merge.md`(전체), `docs/runbooks/rbk-2026-10-12-accounts.md`(끝에 절 추가), `docs/ARCHITECTURE.md:30` 다음 줄, `README.md:15` 다음 줄, `docs/specs/spec-2026-10-07-git-review-policy.md:3` 다음 줄
+- Create: `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md`
+- Modify: `AGENTS.md:29-33`(Git), `AGENTS.md`의 Safety 끝과 Map, `.agents/skills/git-workflow/SKILL.md`(전체), `.agents/skills/git-workflow/references/review-and-merge.md`(전체), `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`(끝에 절 추가), `docs/ARCHITECTURE.md:30` 다음 줄, `README.md:15` 다음 줄, `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md:3` 다음 줄
 
 **Interfaces:**
 - Consumes: Task 2의 체크 이름(`check`, `pr-rules`)과 Make 기본값, `.github/rulesets/main.json`
-- Produces: 런북 `docs/runbooks/rbk-2026-10-14-github.md`의 절 이름. 계획 09와 스킬이 이 런북을 링크한다.
+- Produces: 런북 `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md`의 절 이름. [review-posting 계획](plan-2026-10-13-znbc3ase-review-posting.md)과 스킬이 이 런북을 링크한다.
   - `## 1. 머신 계정과 토큰`
   - `## 2. 공개 전 점검`
   - `## 3. 처음 push`
@@ -576,7 +577,7 @@ Expected: PR에 `check`와 `pr-rules`가 생기고 둘 다 pass다. 실패하면
 `## Git` 절(`AGENTS.md:29-33`)을 다음으로 바꾼다.
 
 ```markdown
-## Git (policy: docs/specs/2026-10-13-github-pr-workflow-design.md on top of docs/specs/2026-10-07-git-review-policy-design.md)
+## Git (policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md on top of docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md)
 - Work only in your own git worktree on `plan/<NN>-<slug>` or `work/<slug>`, branched from `origin/main` after `git fetch origin`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) with `git branch -m` before you push; on a detached HEAD (Codex app) run `git switch -c <branch> origin/main` first. Per-tool steps: the `git-workflow` skill.
 - Never commit or push to `main`, force-push, rebase or rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree.
 - End every commit message with the trailers `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>`, `Plan: <NN|none>` and `Task: <N|review|none>`; add `Review-Finding: R<n>-F<m>` (cross-vendor review) or `SDD-T<task>-F<n>` (in-plan task review) to review fixes. Never add `Co-authored-by` or `Signed-off-by`.
@@ -593,7 +594,7 @@ Safety 절 끝(`- The user types the Tailscale auth key ...` 다음)에 한 줄�
 Map 절의 `- \`docs/research/\` ...` 다음에 한 줄을 넣는다.
 
 ```markdown
-- `.github/` CI workflows, the `main` ruleset (`rulesets/main.json`) and the PR template; GitHub setup and token rotation: `docs/runbooks/github.md`.
+- `.github/` CI workflows, the `main` ruleset (`rulesets/main.json`) and the PR template; GitHub setup and token rotation: `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md`.
 ```
 
 - [ ] **Step 2: `.agents/skills/git-workflow/SKILL.md` (전체 교체)**
@@ -606,7 +607,7 @@ description: Git workflow for agent work in this repo, from the first file chang
 
 # Agent git workflow
 
-Policy: docs/specs/2026-10-13-github-pr-workflow-design.md (pull requests, review, merge) on top of docs/specs/2026-10-07-git-review-policy-design.md (branches, worktrees, trailers). Never commit or push to `main`, force-push, rebase or rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree. Never approve or merge a pull request.
+Policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md (pull requests, review, merge) on top of docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md (branches, worktrees, trailers). Never commit or push to `main`, force-push, rebase or rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree. Never approve or merge a pull request.
 
 ## Start
 
@@ -646,7 +647,7 @@ When the plan's tasks are done, read [references/review-and-merge.md](references
 ```markdown
 # Review and merge
 
-The phases after the last task commit, in order. Policy: docs/specs/2026-10-13-github-pr-workflow-design.md, sections 8 and 9.
+The phases after the last task commit, in order. Policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, sections 8 and 9.
 
 ## Review
 
@@ -688,12 +689,12 @@ After `gh pr view <PR> --json state` shows `MERGED`:
 3. The human updates the main checkout with `git pull --ff-only`.
 ```
 
-- [ ] **Step 4: `docs/runbooks/rbk-2026-10-14-github.md` (새 파일, 한국어)**
+- [ ] **Step 4: `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md` (새 파일, 한국어)**
 
 ````markdown
 # GitHub 운영: 머신 계정, 첫 push, 저장소 설정
 
-정책: [GitHub PR 워크플로 스펙](../specs/2026-10-13-github-pr-workflow-design.md). 저장소: `https://github.com/yanghs6/basic-memory-tailnet` (공개). 이 런북의 명령은 사용자가 자기 터미널에서 실행합니다. `gh auth login`은 대화형이라 별도 터미널 앱에서 실행합니다.
+정책: [GitHub PR 워크플로 스펙](../specs/spec-2026-10-13-pr762r68-github-pr-workflow.md). 저장소: `https://github.com/yanghs6/basic-memory-tailnet` (공개). 이 런북의 명령은 사용자가 자기 터미널에서 실행합니다. `gh auth login`은 대화형이라 별도 터미널 앱에서 실행합니다.
 
 ## 1. 머신 계정과 토큰
 
@@ -727,7 +728,7 @@ git log -p <ref> | grep -cF '<GCP 프로젝트 ID>'
 - 첫 명령에 걸린 줄이 테스트용 자리표시자인지 하나씩 확인합니다. 예: `127.0.0.1`, `203.0.113.10`, `tail1234.ts.net`, `agent@example.com`, `tskey-auth-test123`.
 - 나머지 명령은 모두 `0`이어야 합니다.
 - **실제 값이 걸리면 push하지 않습니다.** 현재 파일만 고쳐도 과거 커밋에는 값이 남습니다. 공개를 허용할지, 이력을 정리할지를 사용자가 정합니다(스펙 11절). 실제 자격증명이면 공개 여부와 관계없이 폐기하고 교체합니다.
-- `plan/05-vm-rollout`은 push하지 않습니다. 커밋 하나에 VM Tailscale IP가 있습니다. 계획 05는 스펙 11절의 `plan/05-vm-rollout-public` 절차로 공개합니다.
+- `plan/qtvzskgx-vm-rollout`은 push하지 않습니다. 커밋 하나에 VM Tailscale IP가 있습니다. vm-rollout 계획은 스펙 11절의 `plan/qtvzskgx-vm-rollout-public` 절차로 공개합니다.
 
 ## 3. 처음 push
 
@@ -742,7 +743,7 @@ git push -u origin main
 
 ## 4. 저장소 설정과 ruleset
 
-계획 08의 PR이 병합된 **뒤에** 적용합니다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 합니다. 그 전에 걸면 어떤 PR도 병합할 수 없습니다.
+github-switch 계획의 PR이 병합된 **뒤에** 적용합니다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 합니다. 그 전에 걸면 어떤 PR도 병합할 수 없습니다.
 
 ```bash
 export GH_CONFIG_DIR="$HOME/.config/gh-yanghs6"
@@ -752,7 +753,7 @@ gh api -X PATCH "$R" -F allow_squash_merge=true -F allow_merge_commit=false -F a
 gh api -X PUT "$R/actions/permissions/workflow" -f default_workflow_permissions=read -F can_approve_pull_request_reviews=false
 gh api -X PUT "$R/actions/permissions/fork-pr-contributor-approval" -f approval_policy=all_external_contributors
 gh api -X PATCH "$R" -f 'security_and_analysis[secret_scanning][status]=enabled' -f 'security_and_analysis[secret_scanning_push_protection][status]=enabled'
-gh api "$R/commits/<계획 08 PR의 head SHA>/check-runs" --jq '.check_runs[] | "\(.name) \(.app.id) \(.app.slug)"'
+gh api "$R/commits/<github-switch 계획 PR의 head SHA>/check-runs" --jq '.check_runs[] | "\(.name) \(.app.id) \(.app.slug)"'
 gh api -X POST "$R/rulesets" --input .github/rulesets/main.json
 unset GH_CONFIG_DIR
 ```
@@ -782,15 +783,15 @@ ruleset의 우회 목록은 비어 있어서, 사용자도 `main`에 직접 push
 1. Settings → Rules → Rulesets → `main` → Enforcement를 Disabled로 바꿉니다.
 2. 필요한 변경을 합니다.
 3. Enforcement를 Active로 되돌리고, 4절의 확인 명령으로 규칙 5개가 다시 보이는지 확인합니다.
-4. 무엇을 왜 했는지 [운영 런북](operations.md)의 Incident log에 적습니다.
+4. 무엇을 왜 했는지 [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 Incident log에 적습니다.
 ````
 
-- [ ] **Step 5: `docs/runbooks/rbk-2026-10-12-accounts.md` 끝에 절 추가**
+- [ ] **Step 5: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md` 끝에 절 추가**
 
 ```markdown
 ## 6. GitHub
 
-저장소는 개인 계정 `yanghs6`의 공개 저장소 `basic-memory-tailnet`입니다. 에이전트는 따로 만든 머신 계정으로 push하고 PR을 엽니다. 승인과 병합은 개인 계정으로만 합니다. 머신 계정 만들기, 토큰 등록, 저장소 설정은 [GitHub 런북](github.md)에 있습니다.
+저장소는 개인 계정 `yanghs6`의 공개 저장소 `basic-memory-tailnet`입니다. 에이전트는 따로 만든 머신 계정으로 push하고 PR을 엽니다. 승인과 병합은 개인 계정으로만 합니다. 머신 계정 만들기, 토큰 등록, 저장소 설정은 [GitHub 런북](rbk-2026-10-14-ppmby9v6-github.md)에 있습니다.
 ```
 
 - [ ] **Step 6: `docs/ARCHITECTURE.md`, `README.md`, 기존 정책 스펙**
@@ -798,19 +799,19 @@ ruleset의 우회 목록은 비어 있어서, 사용자도 `main`에 직접 push
 `docs/ARCHITECTURE.md:30`(리뷰·스킬 도구 행) 다음에 한 행을 넣는다.
 
 ```markdown
-| GitHub `yanghs6/basic-memory-tailnet` | 원격 (공개) | PR과 squash 병합, CI `check`·`pr-rules`(`.github/workflows/`), ruleset `main`(`.github/rulesets/main.json`). 에이전트는 머신 계정으로 PR을 열고 사람만 승인·병합. [GitHub 런북](runbooks/github.md) |
+| GitHub `yanghs6/basic-memory-tailnet` | 원격 (공개) | PR과 squash 병합, CI `check`·`pr-rules`(`.github/workflows/`), ruleset `main`(`.github/rulesets/main.json`). 에이전트는 머신 계정으로 PR을 열고 사람만 승인·병합. [GitHub 런북](runbooks/rbk-2026-10-14-ppmby9v6-github.md) |
 ```
 
 `README.md:15`(`- 교차 리뷰(...)` 줄) 다음에 한 줄을 넣는다.
 
 ```markdown
-- 에이전트 작업을 PR로 올릴 때: GitHub CLI `gh`(머신 계정으로 로그인, [GitHub 런북](docs/runbooks/github.md))
+- 에이전트 작업을 PR로 올릴 때: GitHub CLI `gh`(머신 계정으로 로그인, [GitHub 런북](docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md))
 ```
 
-`docs/specs/spec-2026-10-07-git-review-policy.md:3`(상태 줄) 다음에 한 줄을 넣는다.
+`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md:3`(상태 줄) 다음에 한 줄을 넣는다.
 
 ```markdown
-- 부분 대체 (2026-10-13): 3절의 브랜치 기준점, 4절의 병합 트레일러, 5절의 리뷰 기록 위치, 6절 전체는 [GitHub PR 워크플로 스펙](2026-10-13-github-pr-workflow-design.md)이 대체한다.
+- 부분 대체 (2026-10-13): 3절의 브랜치 기준점, 4절의 병합 트레일러, 5절의 리뷰 기록 위치, 6절 전체는 [GitHub PR 워크플로 스펙](spec-2026-10-13-pr762r68-github-pr-workflow.md)이 대체한다.
 ```
 
 - [ ] **Step 7: 확인**
@@ -827,8 +828,8 @@ Expected: 출력 없음(exit 1). 옛 병합 절차가 남아 있지 않다.
 - [ ] **Step 8: 커밋과 push**
 
 ```bash
-git add AGENTS.md .agents/skills/git-workflow docs/runbooks/github.md docs/runbooks/accounts.md docs/ARCHITECTURE.md README.md docs/specs/2026-10-07-git-review-policy-design.md
-git commit -m "docs: describe the GitHub pull-request workflow for agents and humans" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 08" --trailer "Task: 3"
+git add AGENTS.md .agents/skills/git-workflow docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md docs/ARCHITECTURE.md README.md docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md
+git commit -m "docs: describe the GitHub pull-request workflow for agents and humans" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: k93wjt1a" --trailer "Task: 3"
 git push
 ```
 
@@ -867,8 +868,8 @@ Expected: `check 15368 github-actions`, `pr-rules 15368 github-actions`. 다르�
 - [ ] **Step 4: Progress log 기록과 커밋**
 
 ```bash
-git add docs/plans/active/2026-10-13-08-github-switch.md
-git commit -m "docs: record the first CI runs of plan 08" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 08" --trailer "Task: 4"
+git add docs/plans/plan-2026-10-13-k93wjt1a-github-switch.md
+git commit -m "docs: record the first CI runs of the github-switch plan" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: k93wjt1a" --trailer "Task: 4"
 git push
 ```
 
@@ -877,22 +878,22 @@ git push
 - [ ] `make check`와 `make check-git`이 통과하는지 확인한다.
 - [ ] 계획 파일을 `docs/plans/completed/`로 옮겨 커밋하고(`Task: none`) push한다.
 - [ ] git-workflow 스킬의 Review 절을 따른다.
-  - `make review BRANCH=plan/08-github-switch REVIEWER=<다른 벤더>`를 실행한다. Codex 리뷰는 사용량 비용이 들므로 사용자의 승인을 받은 뒤 실행한다.
+  - `make review BRANCH=plan/k93wjt1a-github-switch REVIEWER=<다른 벤더>`를 실행한다. Codex 리뷰는 사용량 비용이 들므로 사용자의 승인을 받은 뒤 실행한다.
   - 두 리포트를 PR 코멘트로 게시하고 Review record 코멘트를 만든다.
 - [ ] 지적을 검증하고 고친다. 2회차까지만 돈다.
 - [ ] CI가 통과하고 Review record에 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고, 사용자에게 PR 번호를 알린다.
-- [ ] **사람:** 병합 전에 `docs/runbooks/rbk-2026-10-14-github.md` 4-1절의 저장소 설정을 적용하고, 확인 명령에서 `PR_TITLE`, `PR_BODY`, `true`, `false`, `false`를 본다.
+- [ ] **사람:** 병합 전에 `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md` 4-1절의 저장소 설정을 적용하고, 확인 명령에서 `PR_TITLE`, `PR_BODY`, `true`, `false`, `false`를 본다.
 - [ ] **사람:** Approve 후 Squash and merge를 누른다.
-- [ ] **사람:** 병합 뒤에 `docs/runbooks/rbk-2026-10-14-github.md` 4-2절을 따른다. main 체크아웃을 갱신하고, check-run 출력을 확인하고, ruleset을 적용한 뒤 공개 API로 규칙 5개를 확인한다. 스펙 Open question 4(secret scanning)의 결과는 계획 09의 첫 커밋에서 Progress log에 적는다.
+- [ ] **사람:** 병합 뒤에 `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md` 4-2절을 따른다. main 체크아웃을 갱신하고, check-run 출력을 확인하고, ruleset을 적용한 뒤 공개 API로 규칙 5개를 확인한다. 스펙 Open question 4(secret scanning)의 결과는 [review-posting 계획](plan-2026-10-13-znbc3ase-review-posting.md)의 첫 커밋에서 Progress log에 적는다.
 - [ ] 에이전트는 git-workflow 스킬의 Clean up 절로 worktree를 정리한다.
-- [ ] squash 커밋의 작성자와 `Co-authored-by` 자동 추가 여부(스펙 Open question 3)를 확인한다. 명령은 `git log -1 --format='%an <%ae>%n%b' origin/main`이고, 결과는 계획 09의 첫 커밋에서 기록한다.
+- [ ] squash 커밋의 작성자와 `Co-authored-by` 자동 추가 여부(스펙 Open question 3)를 확인한다. 명령은 `git log -1 --format='%an <%ae>%n%b' origin/main`이고, 결과는 [review-posting 계획](plan-2026-10-13-znbc3ase-review-posting.md)의 첫 커밋에서 기록한다.
 
 ## Progress log
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
 | 2026-10-14 | Verified | 전제 1~3 확인. `origin`이 `https://github.com/yanghs6/basic-memory-tailnet.git`이고 로컬 `main` = `origin/main` = `de91861`(원격 `LICENSE` 커밋 `c3f0943`을 병합)이다. GitHub의 브랜치는 `main` 하나다. `gh api user`는 머신 계정 `yangtestdev`이고 이 저장소에 `push: true`, `admin: false`다. credential helper는 이 저장소에만 `!gh auth git-credential`이다. 머신 계정 이름이 정해졌다(스펙 Open question 5). |
-| 2026-10-14 | Verified | 브랜치 이름은 `plan/08-github-switch` 대신 `plan/08-gh-switch`로 했다. 이 세션의 worktree 가드는 한 명령에 `git`이 두 번 나오면 거부한다. 첫 커밋 `21fbb8e`, 초안 PR #1(작성자 `yangtestdev`). |
+| 2026-10-14 | Verified | 브랜치 이름은 `plan/k93wjt1a-github-switch` 대신 `plan/k93wjt1a-gh-switch`로 했다. 이 세션의 worktree 가드는 한 명령에 `git`이 두 번 나오면 거부한다. 첫 커밋 `21fbb8e`, 초안 PR #1(작성자 `yangtestdev`). |
 | 2026-10-14 | Command | Task 1 (`5cf968f`): `make test`에서 `check_pr.bats` 6개가 먼저 실패했다(exit 127). 스크립트를 넣은 뒤 `make check`는 exit 0이고, `check-pr.sh` 97.30%, 전체 96.97%다. 이 커밋에는 하네스 안내를 따른 `Claude-Session` 트레일러가 더 붙었다. 이력 재작성 금지라서 그대로 둔다. |
 | 2026-10-14 | Command | Task 2 (`254b0fc`): `make test`에서 `github.bats` 2개가 먼저 실패했다. 파일을 넣은 뒤 `make check`는 exit 0이고, 156 ok, 전체 96.97%다. `make check-git`은 `OK: git policy (3 commits since origin/main)`이다. |
 | 2026-10-14 | Command | Task 3 (`a71b574`): `make check`는 exit 0이고 156 ok다. Step 7의 `grep -rnE 'no-ff\|Review-Record\|merge-<branch' ...`는 출력이 없다. `tests/main_checkout.bats:76-79`가 `ls <your worktree>/backups`와 `git worktree remove <your worktree>`를 한 줄에서 찾으므로, review-and-merge.md의 Clean up 1·2항목을 한 항목으로 합쳤다. |

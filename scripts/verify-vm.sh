@@ -3,7 +3,7 @@
 # loopback-only binding of both ports, tailnet-only Serve that sends 443 to Basic Memory and 8443 to SilverBullet
 # (no Funnel on either), and that the public IP refuses common ports. With --read-only it writes no notes and does
 # not log in. Firewall rules and the tailnet policy cannot be read from here; audit them by hand
-# (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit).
+# (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit).
 # In the ssh access mode it runs the same checks through a temporary SSH tunnel on 127.0.0.1 and, instead of Serve,
 # checks that Tailscale does not expose the VM and that sshd accepts keys only.
 # Usage: make verify, or make probe (read-only)
@@ -52,7 +52,7 @@ check_serve() {
   funnel="$(jq -r '[(.AllowFunnel // {})[] | select(. == true)] | length' <<<"$serve")" \
     || die "unexpected tailscale serve status (not JSON): $serve"
   ((funnel == 0)) \
-    || die "Funnel is on for this node: the unauthenticated endpoint is public; turn it off (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit)"
+    || die "Funnel is on for this node: the unauthenticated endpoint is public; turn it off (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"
   for pair in "443 $bm_port" "$SB_HTTPS_PORT $sb_port"; do
     read -r https_port local_port <<<"$pair"
     target="$(serve_proxy "$serve" "$https_port")" || die "unexpected tailscale serve status (not JSON): $serve"
@@ -98,7 +98,7 @@ open_verify_tunnel() {
 check_tailscale_off() {
   step "check Tailscale does not expose the VM (BM_ACCESS=ssh)"
   if vm_tailscale_logged_in; then
-    die "Tailscale is logged in on the VM but BM_ACCESS=ssh: log it out (docs/runbooks/rbk-2026-10-12-operations.md, Access mode change)"
+    die "Tailscale is logged in on the VM but BM_ACCESS=ssh: log it out (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Access mode change)"
   fi
   log "OK: Tailscale does not expose the VM (not installed, logged out or down)"
 }
@@ -108,9 +108,9 @@ check_sshd_auth() {
   step "check sshd accepts keys only (BM_ACCESS=ssh)"
   config="$(remote "sudo -n sshd -T")" || die "could not read the sshd config on $BM_VM_HOST: $(access_hint)"
   grep -qx 'passwordauthentication no' <<<"$config" \
-    || die "sshd on the VM accepts passwords: set PasswordAuthentication no (docs/runbooks/rbk-2026-10-12-gcp-vm.md, section 8)"
+    || die "sshd on the VM accepts passwords: set PasswordAuthentication no (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md, section 8)"
   grep -qx 'kbdinteractiveauthentication no' <<<"$config" \
-    || die "sshd on the VM accepts keyboard-interactive logins: set KbdInteractiveAuthentication no (docs/runbooks/rbk-2026-10-12-gcp-vm.md, section 8)"
+    || die "sshd on the VM accepts keyboard-interactive logins: set KbdInteractiveAuthentication no (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md, section 8)"
   log "OK: sshd accepts keys only"
 }
 
@@ -131,7 +131,7 @@ probe_port() {
 # link-local and unspecified ranges (probing those would say nothing about the VM's public side).
 validate_public_ip() {
   local ip="$1" a b c d hint
-  hint="look up the VM's public IP as described in docs/runbooks/rbk-2026-10-12-gcp-vm.md"
+  hint="look up the VM's public IP as described in docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md"
   [[ "$ip" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]] \
     || die "BM_VM_PUBLIC_IP must be the VM's public IPv4 (got '$ip'): $hint"
   a=$((10#${BASH_REMATCH[1]})) b=$((10#${BASH_REMATCH[2]})) c=$((10#${BASH_REMATCH[3]})) d=$((10#${BASH_REMATCH[4]}))
@@ -208,9 +208,9 @@ main() {
   fi
   check_public_closed "$port" "$sb_port"
   if [[ "$mode" == ssh ]]; then
-    log "OK: automated VM checks passed (access: ssh); audit firewall rules by hand (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit)"
+    log "OK: automated VM checks passed (access: ssh); audit firewall rules by hand (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"
   else
-    log "OK: automated VM checks passed; audit firewall rules and the tailnet policy by hand (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit)"
+    log "OK: automated VM checks passed; audit firewall rules and the tailnet policy by hand (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"
   fi
 }
 

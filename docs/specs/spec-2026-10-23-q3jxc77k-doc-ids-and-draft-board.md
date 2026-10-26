@@ -1,14 +1,15 @@
 ---
 status: approved
+id: q3jxc77k
 date: 2026-10-26
 ---
 
 # 문서 고유 ID와 초안 보드 — 설계
 
-- 구현 계획: [계획 26](../plans/plan-2026-10-26-26-doc-ids.md) 하나에 이력 재작성까지 담는다. 이 개편이 그 계획의 이름도 새 ID로 바꾼다.
-- 근거 조사: [다중 에이전트 초안 공유 조사](../research/rsch-2026-10-23-multi-agent-draft-sharing.md)
-- 결정: [ADR 0009](../decisions/adr-2026-10-23-0009-doc-ids-and-draft-board.md)
-- 대체 범위: [문서 체계 설계](spec-2026-10-15-doc-system.md)의 번호 규칙(`make new-doc`의 "가장 큰 번호 + 1", 계획 `NN`·ADR `NNNN`), [Git 리뷰 정책](spec-2026-10-07-git-review-policy.md)의 브랜치 이름 `plan/<NN>-<slug>`, [GitHub PR 워크플로](spec-2026-10-13-github-pr-workflow.md)의 트레일러 `Plan: <NN|none>`. [웹 커넥터 계획](../plans/plan-2026-10-22-25-web-connector.md)에 있던 "Pending Requirements" 절은 이 스펙 §1로 옮겼다.
+- 구현 계획: [doc-ids 계획](../plans/plan-2026-10-26-e3svnr3h-doc-ids.md) 하나에 이력 재작성까지 담는다. 이 개편이 그 계획의 이름도 새 ID로 바꾼다.
+- 근거 조사: [다중 에이전트 초안 공유 조사](../research/rsch-2026-10-23-fak5h16f-multi-agent-draft-sharing.md)
+- 결정: [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)
+- 대체 범위: [문서 체계 설계](spec-2026-10-15-sgpbx1gq-doc-system.md)의 번호 규칙(`make new-doc`의 "가장 큰 번호 + 1", 계획 `NN`·ADR `NNNN`), [Git 리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)의 브랜치 이름 `plan/<NN>-<slug>`, [GitHub PR 워크플로](spec-2026-10-13-pr762r68-github-pr-workflow.md)의 트레일러 `Plan: <NN|none>`. [웹 커넥터 계획](../plans/plan-2026-10-22-d3dpb00s-web-connector.md)에 있던 "Pending Requirements" 절은 이 스펙 §1로 옮겼다.
 
 ## 1. 목적과 범위
 
@@ -28,7 +29,7 @@ date: 2026-10-26
 
 **범위 밖**
 - 다른 저장소(회사 저장소)와 전역 지침(`~/.agents/AGENTS.md`)에 초안 보드를 적용하는 일. 이 저장소에서 쓴 뒤 따로 정한다.
-- 에이전트 기억 미러의 색인 hook이 초안 보드를 함께 보여 주는 일. 계획 24를 맡은 세션과 정할 후속 항목이다(§7).
+- 에이전트 기억 미러의 색인 hook이 초안 보드를 함께 보여 주는 일. [agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md)을 맡은 세션과 정할 후속 항목이다(§7).
 - Codex 클라우드 같은 클라우드 실행 환경이 승인 전 초안을 읽는 일. 클라우드에는 승인돼 저장소에 들어간 문서만 맡긴다.
 - 초안의 동시 편집 잠금. 초안 하나는 주인 에이전트 하나만 쓴다.
 - GitHub에 남은 옛 PR 제목·본문과 PR 참조(`refs/pull/*`)의 옛 커밋. 사용자가 고칠 수 없는 범위다.
@@ -38,7 +39,7 @@ date: 2026-10-26
 2. `make new-id`가 새 ID를 출력하고, `make new-doc TYPE=<type> SLUG=<slug> [ID=<id>]`가 그 ID(없으면 새 ID)로 문서를 만든다. 번호를 고르는 코드는 남지 않는다.
 3. `make check-git`과 `pr-rules`가 `plan/<ID>-<slug>`와 `Plan: <ID|none>`을 받는다. 옛 형식(`plan/NN-…`, `Plan: NN`)은 개편 PR이 병합된 뒤의 결과 PR(Task 5)부터 거부한다.
 4. 저장소 안 문서·스킬·`AGENTS.md`·스크립트 주석·테스트의 옛 번호 인용과 옛 경로가 새 이름으로 바뀐다. 문서 링크·경로 검사가 통과하고, §3.4의 옛 번호 grep이 대응표 밖에서 0건이다.
-5. 옛 번호·옛 이름과 새 ID를 잇는 대응표가 ADR 0009의 부록으로 남는다.
+5. 옛 번호·옛 이름과 새 ID를 잇는 대응표가 [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)의 부록으로 남는다.
 6. 이력 재작성을 하면(§3.5):
    - 재작성한 `main`의 어느 커밋에도 대응표의 옛 경로가 없다.
    - 파일 내용과 커밋 메시지에 옛 번호 패턴이 없다(대응표 부록 제외).
@@ -59,20 +60,20 @@ date: 2026-10-26
 바뀔 범위(2026-10-23 읽기 전용 전수 조사):
 - **Verified:** 타입 문서는 스펙 10, 계획 25, ADR 8(이 스펙과 함께 9), 런북 5, 조사 4, 리뷰 기록 10개다. `id` 키를 가진 문서는 없다.
 - **Verified:** 저장소 안 인용은 "계획 NN" 654곳(49개 파일), "ADR NNNN" 266곳, 본문 속 `Plan: NN` 178곳, `plan/NN-…` 194곳, 문서 상대 링크 136곳, 백틱 문서 경로 333곳, front matter 경로(`spec` 21, `amended-by` 12, `superseded-by` 1)다.
-- **Verified:** 번호가 아닌 숫자가 섞여 있다. "ADR 6개" 같은 개수, "계획 1/5" 같은 분수, `scripts/lib/docs.sh:94`의 "ADR 2026"(연도), "결정 N", "Task N", "R1-F1", PR "#NN"이다. 계획 02~04는 한때 03~05에서 번호가 바뀌었다(`docs/specs/spec-2026-10-07-git-review-policy.md:178`).
-- **Verified:** `tests/repo-cloud-neutral.bats:6,31`이 `rbk-2026-10-12-gcp-vm.md`를 이름으로 고정하고, 스크립트 다섯 곳(`scripts/bootstrap-vm.sh:55,57`, `scripts/verify-vm.sh:111,113,134`, `scripts/lib/vm.sh:53`)이 그 경로를 메시지에 쓴다. `.github/workflows/ci.yml:2`, `pr-rules.yml:2`, `tests/repo-config.bats:5`, `Makefile`, 코드 블록 안의 경로는 문서 경로 검사(`tests/repo-docs.bats:53-67`) 범위 밖이다.
+- **Verified:** 번호가 아닌 숫자가 섞여 있다. "ADR 6개" 같은 개수, "계획 1/5" 같은 분수, `scripts/lib/docs.sh:94`의 "ADR 2026"(연도), "결정 N", "Task N", "R1-F1", PR "#NN"이다. 계획 02~04는 한때 03~05에서 번호가 바뀌었다(`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md:178`).
+- **Verified:** `tests/repo-cloud-neutral.bats:6,31`이 `rbk-2026-10-12-tcjs7m6x-gcp-vm.md`를 이름으로 고정하고, 스크립트 다섯 곳(`scripts/bootstrap-vm.sh:55,57`, `scripts/verify-vm.sh:111,113,134`, `scripts/lib/vm.sh:53`)이 그 경로를 메시지에 쓴다. `.github/workflows/ci.yml:2`, `pr-rules.yml:2`, `tests/repo-config.bats:5`, `Makefile`, 코드 블록 안의 경로는 문서 경로 검사(`tests/repo-docs.bats:53-67`) 범위 밖이다.
 
 git 이력:
 - **Verified:** `main`은 커밋 158개이고, 139개에 `Plan` 트레일러가 있으며 그중 109개가 숫자다. 제목 40개가 계획·ADR 번호나 `Merge plan/0N-…`를 쓰고, 본문 123줄이 문서 경로나 번호를 쓴다. 문서 이름은 `eda0d92`(#13)에서 지금 형식으로 한 번 바뀌었으므로 이력에는 세 세대의 이름이 있다.
-- **Verified:** `main` 룰셋에 `non_fast_forward`, `required_linear_history`, `deletion`, `pull_request`, `required_status_checks`가 있고 `bypass_actors`는 비어 있다(`.github/rulesets/main.json`). 그래서 규칙 하나만 꺼서는 `main`에 직접 push할 수 없고, [GitHub 런북](../runbooks/rbk-2026-10-14-github.md)의 "긴급 변경" 절대로 Enforcement 전체를 잠시 꺼야 한다. 이 Mac의 push는 머신 계정으로 나간다.
+- **Verified:** `main` 룰셋에 `non_fast_forward`, `required_linear_history`, `deletion`, `pull_request`, `required_status_checks`가 있고 `bypass_actors`는 비어 있다(`.github/rulesets/main.json`). 그래서 규칙 하나만 꺼서는 `main`에 직접 push할 수 없고, [GitHub 런북](../runbooks/rbk-2026-10-14-ppmby9v6-github.md)의 "긴급 변경" 절대로 Enforcement 전체를 잠시 꺼야 한다. 이 Mac의 push는 머신 계정으로 나간다.
 - **Verified:** HEAD에 없는 옛 문서도 이력에 있다. 지워진 OCI 시절 ADR과 런북, `docs/plans/{active,backlog,completed}/` 하위 폴더의 계획, 이름 끝이 `-design`인 스펙, 코드 접두어 없는 런북·리뷰·조사 이름이 있고, 서로 다른 두 문서가 ADR 번호 0001을 썼다.
 - **Verified:** 문서가 증거로 인용한 7자리 16진 문자열은 213종이다.
 - **Verified (2026-10-26, Command: `git rev-list --merges --count origin/main`, `gh api .../issues/comments`):** `main` 커밋 158개 가운데 merge 커밋이 12개다(룰셋이 생기기 전의 `Merge plan/0N-…`). PR은 #1~#20이고, PR 코멘트는 머신 계정 87개와 GitGuardian 봇 3개다.
 - **Verified (2026-10-23, Command: `git filter-repo --version`):** 이 Mac에 `git filter-repo`가 없다. 이 설계는 그 도구를 쓰지 않는다(§3.5).
-- **Verified ([조사 노트](../research/rsch-2026-10-23-multi-agent-draft-sharing.md) §4):** 공개 저장소에서 push한 커밋은 force-push나 삭제 뒤에도 PR 참조와 저장소 네트워크로 접근할 수 있다.
+- **Verified ([조사 노트](../research/rsch-2026-10-23-fak5h16f-multi-agent-draft-sharing.md) §4):** 공개 저장소에서 push한 커밋은 force-push나 삭제 뒤에도 PR 참조와 저장소 네트워크로 접근할 수 있다.
 
 Basic Memory:
-- **Verified ([에이전트 기억 미러 설계](spec-2026-10-22-agent-memory-mirror.md) §2):** `write_note`는 `title`·`content`·`directory`가 필수이고 `metadata`·`overwrite`를 받으며, 같은 경로에 노트가 있으면 `overwrite` 없이 오류를 낸다. `search_notes`에는 폴더 인자가 없고 `metadata_filters`로 frontmatter를 거른다. 터널이 꺼져 있으면 `ECONNREFUSED`다.
+- **Verified ([에이전트 기억 미러 설계](spec-2026-10-22-at2p2mw9-agent-memory-mirror.md) §2):** `write_note`는 `title`·`content`·`directory`가 필수이고 `metadata`·`overwrite`를 받으며, 같은 경로에 노트가 있으면 `overwrite` 없이 오류를 낸다. `search_notes`에는 폴더 인자가 없고 `metadata_filters`로 frontmatter를 거른다. 터널이 꺼져 있으면 `ECONNREFUSED`다.
 - **Verified (2026-10-22, `~/.codex/config.toml:115-116`):** 이 Mac의 Codex CLI는 `make tunnel`의 `http://127.0.0.1:18737/mcp`로 Basic Memory에 닿는다. Claude Code도 같은 주소를 쓴다.
 - **Assumption:** SilverBullet이 마운트하는 노트 폴더(`compose.yaml`의 `${BM_KNOWLEDGE_DIR}/basic-memory`)가 Basic Memory `main` 프로젝트의 루트라서, `agent-drafts/` 노트가 SilverBullet에 보인다. Task에서 확인한다.
 
@@ -102,8 +103,8 @@ Basic Memory:
 
 ### 3.3 초안 보드 (Basic Memory)
 
-- **경로:** `agent-drafts/<프로젝트 키>/<코드>-<ID>-<slug>`이고 노트 제목도 같다. 프로젝트 키는 [에이전트 기억 미러 설계](spec-2026-10-22-agent-memory-mirror.md) §3.2와 같은 규칙(`origin` 주소에서 만든 `<owner>-<repo>`, 이 저장소는 `yanghs6-basic-memory-tailnet`)이다. 프로젝트는 `main`이다.
-  - **내 결정:** 이 개편은 기억 미러(계획 24)보다 먼저라서 그 계획의 helper(`scripts/lib/agent-memory.sh`)와 `BM_MEMORY_DEVICE`를 쓸 수 없다. `doc-authoring` 스킬이 두 값을 얻는 명령을 적는다. 프로젝트 키는 `git remote get-url origin`을 그 규칙대로 정규화한 값이다. 기기 이름은 `BM_MEMORY_DEVICE`가 있으면 그 값, 없으면 `hostname -s`를 소문자로 바꾼 값이다. 계획 24가 helper를 만들면 스킬이 그것을 쓰게 바꾼다.
+- **경로:** `agent-drafts/<프로젝트 키>/<코드>-<ID>-<slug>`이고 노트 제목도 같다. 프로젝트 키는 [에이전트 기억 미러 설계](spec-2026-10-22-at2p2mw9-agent-memory-mirror.md) §3.2와 같은 규칙(`origin` 주소에서 만든 `<owner>-<repo>`, 이 저장소는 `yanghs6-basic-memory-tailnet`)이다. 프로젝트는 `main`이다.
+  - **내 결정:** 이 개편은 기억 미러([agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md))보다 먼저라서 그 계획의 helper(`scripts/lib/agent-memory.sh`)와 `BM_MEMORY_DEVICE`를 쓸 수 없다. `doc-authoring` 스킬이 두 값을 얻는 명령을 적는다. 프로젝트 키는 `git remote get-url origin`을 그 규칙대로 정규화한 값이다. 기기 이름은 `BM_MEMORY_DEVICE`가 있으면 그 값, 없으면 `hostname -s`를 소문자로 바꾼 값이다. agent-memory-mirror 계획이 helper를 만들면 스킬이 그것을 쓰게 바꾼다.
 - **frontmatter(`write_note`의 `metadata`):**
 
 | 키 | 값 |
@@ -133,7 +134,7 @@ Basic Memory:
 
 ### 3.4 기존 문서 소급 적용 (이름 변경)
 
-- 기존 타입 문서 62개 전부에 ID를 하나씩 정한다. 이 스펙과 ADR 0009도 포함한다. `git mv`로 새 이름으로 바꾸고, front matter에 `id`를 더한다.
+- 기존 타입 문서 62개 전부에 ID를 하나씩 정한다. 이 스펙과 [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)도 포함한다. `git mv`로 새 이름으로 바꾸고, front matter에 `id`를 더한다.
   - 리뷰 기록(`docs/reviews/`)도 바꾼다. slug의 `plan-NN-` 접두어는 뺀다.
 - **바꿀 인용:**
   - 문서 상대 링크, 백틱 경로, front matter 경로(`spec`, `amended-by`, `superseded-by`)
@@ -143,8 +144,8 @@ Basic Memory:
   - 사람이 읽는 인용은 "<slug> 계획", "<slug> ADR" 형태로 바꾸고, 같은 문장에 링크가 없으면 링크를 단다.
 - **바꾸지 않는 것:** §2의 번호 아닌 숫자(개수, 분수, 연도, 결정 N, Task N, 리뷰 ID, PR 번호)
   - **내 결정:** 자동 치환은 대응표에 있는 정확한 패턴만 바꾼다. 남은 후보는 grep 목록으로 사람이 확인한다. 옛 번호가 바뀌었던 계획 02~05는 이름을 바꾸기 전에 당시 번호를 확인한다.
-- **증거 문장:** 완료된 계획의 Progress log와 리뷰 기록에 든 브랜치 이름·트레일러·경로도 바꾼다. 증거를 고쳐 쓰지 않는다는 규칙(`doc-authoring`)의 일회성 예외로, ADR 0009에 근거를 남긴다. SHA는 §3.5에서 따로 다룬다.
-- **대응표:** ADR 0009 부록에 옛 이름, 옛 번호, 새 ID, 새 이름을 적는다.
+- **증거 문장:** 완료된 계획의 Progress log와 리뷰 기록에 든 브랜치 이름·트레일러·경로도 바꾼다. 증거를 고쳐 쓰지 않는다는 규칙(`doc-authoring`)의 일회성 예외로, [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)에 근거를 남긴다. SHA는 §3.5에서 따로 다룬다.
+- **대응표:** [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 부록에 옛 이름, 옛 번호, 새 ID, 새 이름을 적는다.
   - **내 결정:** 옛 이름은 이력 재작성의 텍스트 치환(§3.5)에 걸리지 않는 형태로 적는다. 예: 확장자와 경로를 빼고 날짜·번호·slug를 띄어 쓴다. 그래야 재작성 뒤에도 대응표가 남는다.
 - **에이전트 메모리(저장소 밖):** 사용자 메모리의 색인에 대응표 위치를 한 줄 더한다. 메모리 본문의 옛 번호는 고치지 않는다(사용자 결정 4).
 
@@ -176,7 +177,7 @@ Basic Memory:
   - 이 허가는 이 재작성 한 번에만 쓴다. 다른 작업의 force-push 근거가 되지 않는다.
 - **절차:**
   1. 새 `--mirror` clone을 두 개 만든다. 하나는 되돌리기용으로 손대지 않고 보관한다.
-  2. 작업용 clone에서 재작성 스크립트를 실행한다. 치환 규칙은 §3.4에서 HEAD에 쓴 규칙과 ADR 0009 대응표를 그대로 쓰고, 시대별 대응을 더한다.
+  2. 작업용 clone에서 재작성 스크립트를 실행한다. 치환 규칙은 §3.4에서 HEAD에 쓴 규칙과 [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 대응표를 그대로 쓰고, 시대별 대응을 더한다.
   3. 검증:
      - 커밋 수, 각 커밋의 저자·커미터·날짜, merge 구조가 원래와 같다.
      - 어느 커밋의 tree에도 대응표의 옛 경로가 없다.
@@ -202,7 +203,7 @@ Basic Memory:
 ## 4. 보안
 
 - 승인 전 초안은 공개 저장소에 들어가지 않고 Basic Memory에만 있다. Basic Memory에는 앱 인증이 없어서 보호막은 네트워크 경계다(ssh 터널, tailnet, 웹 커넥터를 켜면 GitHub 한 명 OAuth). 초안에 비밀값을 쓰지 않는다는 규칙은 지금과 같다.
-- 승인된 문서는 지금처럼 공개된다. 공개 텍스트 검사(계획 18)는 저장소에 들어오는 문서에만 적용된다.
+- 승인된 문서는 지금처럼 공개된다. 공개 텍스트 검사([public-text-guard 계획](../plans/plan-2026-10-22-v9whrbs6-public-text-guard.md))는 저장소에 들어오는 문서에만 적용된다.
 - 이력 재작성은 force-push다.
   - 되돌리기용 `--mirror` clone을 보관하고, 사용자 OK 뒤에만 push한다.
   - 공개 저장소라 옛 커밋은 PR 참조로 계속 접근할 수 있다. 그래서 이 재작성으로 공개된 내용을 회수할 수는 없다.
@@ -240,10 +241,10 @@ Basic Memory:
 
 | 계획 | 범위 | 시작 조건 |
 |---|---|---|
-| doc-ids (지금 체계로 26) | Task 1: ID 도구와 검사(§3.1, §3.2). Task 2: 기존 문서 이름 변경과 인용 갱신, 대응표, ADR 0009 accepted(§3.4). Task 3: 규칙·스킬·템플릿과 초안 보드 흐름(§3.3, §3.6), 완료 조건 7 확인. Task 4: 이력 재작성과 PR #1~#20 수정(§3.5, 사용자와 함께, 단계마다 OK). Task 5: 옛 형식 거부와 결과 기록(결과 PR) | 이 스펙의 승인. Task 2는 감독 세션이 다른 세션의 병합 순서를 정한 뒤. Task 4는 §3.5의 조건 |
+| doc-ids (지금 체계로 26) | Task 1: ID 도구와 검사(§3.1, §3.2). Task 2: 기존 문서 이름 변경과 인용 갱신, 대응표, [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) accepted(§3.4). Task 3: 규칙·스킬·템플릿과 초안 보드 흐름(§3.3, §3.6), 완료 조건 7 확인. Task 4: 이력 재작성과 PR #1~#20 수정(§3.5, 사용자와 함께, 단계마다 OK). Task 5: 옛 형식 거부와 결과 기록(결과 PR) | 이 스펙의 승인. Task 2는 감독 세션이 다른 세션의 병합 순서를 정한 뒤. Task 4는 §3.5의 조건 |
 
 - Task 1~3은 하나의 PR이다. Task 4는 그 PR이 병합된 뒤 하고, Task 5는 재작성 뒤 첫 PR이다.
-- 계획 24를 맡은 세션과 정할 일:
+- [agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md)을 맡은 세션과 정할 일:
   - 그 계획의 문서 이름과 브랜치도 이 개편으로 바뀐다.
   - 색인 hook이 초안 보드를 보여 줄지는 범위 밖 후속이다.
   - `agent-drafts/` 폴더는 이 스펙이 쓴다.

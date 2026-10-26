@@ -1,5 +1,6 @@
 ---
 status: current
+id: t79ex2ny
 reviewed: 2026-10-16
 ---
 
@@ -71,36 +72,36 @@ codex mcp add basic-memory --url <URL>
 - `ssh` 모드에서는 `localhost`가 아니라 `127.0.0.1`을 씁니다. 터널은 IPv4 `127.0.0.1`에만 열리는데, `localhost`가 IPv6 `::1`로 풀리면 연결이 거부됩니다.
 - 웹 UI는 `tailscale` 모드에서 `https://agent-hub.<tailnet>.ts.net:8443`, `ssh` 모드에서 `http://127.0.0.1:13000`입니다.
 - 확인: `claude mcp get basic-memory`가 `Connected`, Codex 세션의 `/mcp`에 `basic-memory`가 보입니다. VM에 닿지 않을 때 시작한 세션에는 도구가 없으므로 `/mcp`로 다시 연결하거나 새로 시작합니다.
-- **Assumption ([VM 런북](rbk-2026-10-12-gcp-vm.md) 8단계의 Windows 설정):** Windows: PowerShell에서 `make tunnel`이 출력하는 `ssh -N ...` 명령을 그대로 실행하고 같은 URL을 등록합니다.
+- **Assumption ([VM 런북](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 8단계의 Windows 설정):** Windows: PowerShell에서 `make tunnel`이 출력하는 `ssh -N ...` 명령을 그대로 실행하고 같은 URL을 등록합니다.
 
 ## 접속 방식 바꾸기 (Access mode change)
 
 `tailscale` → `ssh` 순서입니다. 2·5단계는 VM·클라우드를 바꾸므로 사용자 OK 후 진행합니다.
 
 1. `make backup` (롤백 지점)
-2. [VM 런북](rbk-2026-10-12-gcp-vm.md) 8단계 1번의 `allow-iap-ssh` 규칙
+2. [VM 런북](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 8단계 1번의 `allow-iap-ssh` 규칙
 3. `~/.ssh/config`에 별칭을 넣고 대화형 `ssh ubuntu@agent-hub-iap true`. 실패하면 멈추고 2단계 규칙을 지웁니다(Tailscale 경로는 그대로).
-4. `.env`: `BM_ACCESS=ssh`, `BM_VM_HOST=agent-hub-iap`. 계획 12 이전의 `.env`면 `.env.example`의 `BM_ACCESS_CHECK_URL`, `BM_TUNNEL_MCP_PORT`, `BM_TUNNEL_WEB_PORT`도 추가합니다. `make access-check`는 `ok`, `make status`는 Tailscale 로그인 경고(예상)를 냅니다.
+4. `.env`: `BM_ACCESS=ssh`, `BM_VM_HOST=agent-hub-iap`. [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) 이전의 `.env`면 `.env.example`의 `BM_ACCESS_CHECK_URL`, `BM_TUNNEL_MCP_PORT`, `BM_TUNNEL_WEB_PORT`도 추가합니다. `make access-check`는 `ok`, `make status`는 Tailscale 로그인 경고(예상)를 냅니다.
 5. `ssh ubuntu@agent-hub-iap 'sudo tailscale serve reset && sudo tailscale logout'`, Tailscale admin console에서 VM 기기 삭제
    - 로그아웃(또는 패키지 제거)까지 합니다. tailscaled 데몬만 멈추면 `verify`가 상태를 읽지 못해 실패합니다.
 6. `make probe verify status`
 7. 기기마다 `claude mcp remove basic-memory -s user`, `codex mcp remove basic-memory` 후 "에이전트 연결"대로 터널 URL로 다시 등록
 8. Exposure audit을 하고 점검 기록과 Incident log에 남깁니다.
 
-롤백: 5단계 전이면 `.env`를 되돌리고 `allow-iap-ssh`를 지웁니다. 5단계 뒤 IAP가 안 되면 [부트스트랩 런북](rbk-2026-10-12-bootstrap.md) 문제 해결의 "22번을 지운 뒤 접속 불가" 행대로 내 IP/32 규칙을 만들고, `BM_ACCESS=tailscale`과 새 인증 키로 `make vm-bootstrap HOST=<공인 IP>`를 실행합니다.
+롤백: 5단계 전이면 `.env`를 되돌리고 `allow-iap-ssh`를 지웁니다. 5단계 뒤 IAP가 안 되면 [부트스트랩 런북](rbk-2026-10-12-ha5w72pm-bootstrap.md) 문제 해결의 "22번을 지운 뒤 접속 불가" 행대로 내 IP/32 규칙을 만들고, `BM_ACCESS=tailscale`과 새 인증 키로 `make vm-bootstrap HOST=<공인 IP>`를 실행합니다.
 
 ## 정지된 VM
 
 VM이 정지돼 있으면(`TERMINATED`) 다시 만들지 않고 시작합니다. 디스크의 데이터가 그대로 있어서, 재구축하면 마지막 백업 이후의 노트를 잃습니다.
 
-1. 사용자가 상태를 확인하고 시작합니다. 새 셸이면 먼저 [rbk-2026-10-12-gcp-vm.md](rbk-2026-10-12-gcp-vm.md) 0단계의 `INSTANCE`, `ZONE`을 설정합니다.
+1. 사용자가 상태를 확인하고 시작합니다. 새 셸이면 먼저 [rbk-2026-10-12-tcjs7m6x-gcp-vm.md](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 0단계의 `INSTANCE`, `ZONE`을 설정합니다.
 
    ```bash
    gcloud compute instances describe "$INSTANCE" --zone="$ZONE" --configuration=bm-personal --format='value(status)'
    gcloud compute instances start "$INSTANCE" --zone="$ZONE" --configuration=bm-personal
    ```
 
-2. 정지 후 시작하면 외부 IP가 바뀝니다([rbk-2026-10-12-gcp-vm.md](rbk-2026-10-12-gcp-vm.md) 5단계의 조회 명령). 새 IP를 `.env`의 `BM_VM_PUBLIC_IP`에 적습니다.
+2. 정지 후 시작하면 외부 IP가 바뀝니다([rbk-2026-10-12-tcjs7m6x-gcp-vm.md](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 5단계의 조회 명령). 새 IP를 `.env`의 `BM_VM_PUBLIC_IP`에 적습니다.
 3. `make status`와 `make probe`로 확인합니다. 실제 장애였다면 Incident log에 행을 추가합니다.
 
 ## VM 재구축 순서
@@ -108,8 +109,8 @@ VM이 정지돼 있으면(`TERMINATED`) 다시 만들지 않고 시작합니다.
 VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 합니다(에이전트의 `bm-recover` 스킬이 같은 순서를 따릅니다).
 
 1. 최신 백업(`.sha256`과 `.manifest` 포함)이 main 체크아웃의 `backups/`에 있는지 확인합니다.
-2. [rbk-2026-10-12-gcp-vm.md](rbk-2026-10-12-gcp-vm.md)대로 VM을 다시 만들고 방화벽을 정리합니다. 옛 인스턴스와 디스크는 복원이 검증되기 전에는 지우지 않습니다. `ssh` 모드면 `~/.ssh/config` 별칭의 `HostName`을 새 인스턴스 이름으로 바꾼 뒤, 3단계 대신 [rbk-2026-10-12-bootstrap.md](rbk-2026-10-12-bootstrap.md)의 "ssh 모드 순서"를 따릅니다.
-3. [rbk-2026-10-12-bootstrap.md](rbk-2026-10-12-bootstrap.md) 1단계(옛 `agent-hub` 기기 삭제, 호스트 키 정리)와 2~4단계(부트스트랩, Tailscale SSH 확인, `default-allow-ssh` 삭제)를 합니다.
+2. [rbk-2026-10-12-tcjs7m6x-gcp-vm.md](rbk-2026-10-12-tcjs7m6x-gcp-vm.md)대로 VM을 다시 만들고 방화벽을 정리합니다. 옛 인스턴스와 디스크는 복원이 검증되기 전에는 지우지 않습니다. `ssh` 모드면 `~/.ssh/config` 별칭의 `HostName`을 새 인스턴스 이름으로 바꾼 뒤, 3단계 대신 [rbk-2026-10-12-ha5w72pm-bootstrap.md](rbk-2026-10-12-ha5w72pm-bootstrap.md)의 "ssh 모드 순서"를 따릅니다.
+3. [rbk-2026-10-12-ha5w72pm-bootstrap.md](rbk-2026-10-12-ha5w72pm-bootstrap.md) 1단계(옛 `agent-hub` 기기 삭제, 호스트 키 정리)와 2~4단계(부트스트랩, Tailscale SSH 확인, `default-allow-ssh` 삭제)를 합니다.
 4. 배포 전에 `make status`의 이미지와 `compose.yaml`의 `image:`를 비교합니다(위의 이미지 점검). 아직 아무것도 배포하지 않은 VM에서는 `make status`가 `could not query containers`로 끝나는 것이 정상이며 비교는 건너뜁니다(에이전트는 `git diff main -- compose.yaml`이 비어 있는지만 확인). 그다음 `make deploy`, `make restore BACKUP=<절대 경로>`를 합니다.
 5. Exposure audit을 다시 합니다(방화벽을 새로 만들었으므로).
 6. Incident log와 점검 기록에 행을 추가합니다.
@@ -130,7 +131,7 @@ VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 �
 
 스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@agent-hub sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다.
 
-**Verified (2026-10-13, 계획 05 Step 14):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=agent-hub`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 노드가 이미 tailnet에 있으면 키 프롬프트에 아무것도 넣지 않고 Enter만 누릅니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다.
+**Verified (2026-10-13, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Step 14):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=agent-hub`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 노드가 이미 tailnet에 있으면 키 프롬프트에 아무것도 넣지 않고 Enter만 누릅니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다.
 
 **Verified (2026-10-13, Tailscale v1.104.1 소스 `cmd/tailscale/cli/serve_v2.go`의 `applyFunnel`):** 또한 `serve --bg`는 자기가 설정하는 포트(443)의 Funnel만 끄고(`Removing Funnel for ...` 출력) 다른 포트의 Funnel은 그대로 둡니다. 그래서 `tailscale funnel status`에 443 말고 다른 포트의 Funnel이 남아 있으면 `ssh ubuntu@agent-hub sudo tailscale serve reset`을 사용자 OK 후에 실행하고, Serve를 다시 설정합니다. `serve reset`은 443과 8443 설정을 모두 지우므로, 그 뒤 `make vm-bootstrap HOST=agent-hub`로 두 포트를 다시 설정합니다.
 
@@ -143,7 +144,7 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다.
 - 배포 **다음 날**과 **매월 초**에 청구 보고서를 SKU별로 봅니다: Cloud Console → Billing → Reports에서 프로젝트로 필터링하고 Group by를 SKU로 둡니다.
   - **Assumption:** 메뉴 이름은 바뀔 수 있고, 보고서에는 하루쯤 지연이 있음.
 - e2-micro 인스턴스, standard persistent disk, 외부 IP, 네트워크(아웃바운드) SKU의 금액이 모두 0이어야 합니다. Budget 알림(월 $1)이 오면 같은 보고서를 확인합니다.
-- 0이 아니면 사용자가 "그 금액을 감수"와 "다른 호스트" 중에서 결정합니다. 결과는 [ADR 0001](../decisions/adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md)에 Verified로 남깁니다.
+- 0이 아니면 사용자가 "그 금액을 감수"와 "다른 호스트" 중에서 결정합니다. 결과는 [basic-memory-on-gcp-tailscale ADR](../decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md)에 Verified로 남깁니다.
 - 무료 아웃바운드는 월 1GB(북미 → 전 세계, 중국·호주 제외)입니다. Tailscale DERP 중계 트래픽도 포함되므로 같은 보고서로 확인합니다.
 
 **Open question:** `ssh` 모드에서는 IAP 터널 트래픽이 무료 송신 한도(월 1GB)에 들어가는지 아직 확인하지 못했습니다. 이전한 다음 달 SKU별 청구에서 확인합니다.
@@ -152,7 +153,7 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다.
 
 | 날짜 | 원인 | 사용한 백업 | 데이터 손실 구간 | 비고 |
 |---|---|---|---|---|
-| 2026-10-15 | 장애 아님: 접속 방식을 `tailscale`에서 `ssh`로 바꿈(계획 12 Task 8) | 사용 안 함(롤백 지점 `bm-20261015T090644Z.tgz`) | 없음 | VM의 Tailscale은 로그아웃만 함(패키지 유지), admin console의 `agent-hub` 기기 삭제. 2026-10-16 `make verify` 통과 |
+| 2026-10-15 | 장애 아님: 접속 방식을 `tailscale`에서 `ssh`로 바꿈([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8) | 사용 안 함(롤백 지점 `bm-20261015T090644Z.tgz`) | 없음 | VM의 Tailscale은 로그아웃만 함(패키지 유지), admin console의 `agent-hub` 기기 삭제. 2026-10-16 `make verify` 통과 |
 
 ### 점검 기록 (Exposure audit)
 

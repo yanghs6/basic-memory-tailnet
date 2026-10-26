@@ -41,7 +41,7 @@ access_mode() {
   local mode="${BM_ACCESS:-tailscale}"
   case "$mode" in
     tailscale | ssh) printf '%s\n' "$mode" ;;
-    *) die "BM_ACCESS must be tailscale or ssh (got '$mode'): set it in .env in the main checkout (docs/runbooks/rbk-2026-10-12-bootstrap.md)" ;;
+    *) die "BM_ACCESS must be tailscale or ssh (got '$mode'): set it in .env in the main checkout (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)" ;;
   esac
 }
 
@@ -50,7 +50,7 @@ access_hint() {
   local mode
   mode="$(access_mode)" || return 1
   if [[ "$mode" == ssh ]]; then
-    printf 'check the ProxyCommand for %s in ~/.ssh/config and its login (docs/runbooks/rbk-2026-10-12-gcp-vm.md)\n' "$BM_VM_HOST"
+    printf 'check the ProxyCommand for %s in ~/.ssh/config and its login (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md)\n' "$BM_VM_HOST"
   else
     printf 'is %s reachable over Tailscale SSH? (ssh %s@%s true)\n' "$BM_VM_HOST" "$BM_VM_USER" "$BM_VM_HOST"
   fi

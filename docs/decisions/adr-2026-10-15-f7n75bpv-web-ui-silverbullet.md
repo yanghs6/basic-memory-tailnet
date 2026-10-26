@@ -1,11 +1,12 @@
 ---
 status: accepted
+id: f7n75bpv
 date: 2026-10-14
 ---
 
-# ADR 0005: 웹 UI로 SilverBullet
+# ADR f7n75bpv: 웹 UI로 SilverBullet
 
-- 설계: [SilverBullet 웹 UI 설계](../specs/spec-2026-10-14-silverbullet-web-ui.md)
+- 설계: [SilverBullet 웹 UI 설계](../specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md)
 
 ## 맥락
 
@@ -26,14 +27,14 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 
 ## 근거
 
-**Verified (2026-10-14 스파이크와 계획 10):**
+**Verified (2026-10-14 스파이크와 [web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md)):**
 - SilverBullet 서버는 1.7~10.6 MiB이고, 색인은 브라우저(IndexedDB)에서 합니다.
 - 위키링크, Linked Mentions, `Graph: Explore`, 트리, 목차가 내장 기능만으로 동작합니다.
 - 에이전트가 쓴 내용은 5초 안에 열린 페이지에 반영되고, SilverBullet에서 쓴 내용은 Basic Memory `search_notes`에 반영됩니다.
 - 새 페이지 frontmatter를 SilverBullet 훅이 미리 채우면 Basic Memory가 파일을 다시 쓰지 않습니다. 그래서 줄바꿈이 사라지지 않습니다(훅 전 2/2 손실, 훅 뒤 0/2).
 - 인증 없는 SilverBullet은 다른 사이트의 단순 POST로 셸을 실행하고 프록시를 엽니다. `SB_USER`와 `SB_SHELL_BACKEND=off`로 막습니다.
-- 계획 10의 로컬 확인(2026-10-15, 새 브라우저 origin)에서 대시보드 일곱 절, 트리·목차 기본 배치, 테마, 글꼴, 정보 줄, 노트 검색, 그래프가 동작했습니다. 새 페이지의 줄바꿈이 남았고, Basic Memory에는 노트만 색인됐습니다.
-- 계획 10의 로컬 확인 결과는 계획 10 파일(`docs/plans/plan-2026-10-14-10-web-ui-local.md`)의 Progress log에 있습니다.
+- [web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md)의 로컬 확인(2026-10-15, 새 브라우저 origin)에서 대시보드 일곱 절, 트리·목차 기본 배치, 테마, 글꼴, 정보 줄, 노트 검색, 그래프가 동작했습니다. 새 페이지의 줄바꿈이 남았고, Basic Memory에는 노트만 색인됐습니다.
+- [web-ui-local 계획](../plans/plan-2026-10-14-n6xpm12e-web-ui-local.md)의 로컬 확인 결과는 web-ui-local 계획 파일(`docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md`)의 Progress log에 있습니다.
 
 ## 결과
 
@@ -44,9 +45,9 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 
 ## VM 측정
 
-계획 11에서 두 컨테이너를 함께 띄운 뒤의 메모리·스왑 사용량을 여기에 기록합니다. OOM이 나면 [ADR 0002](adr-2026-10-12-0002-vm-sizing.md)를 다시 판단합니다.
+[web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)에서 두 컨테이너를 함께 띄운 뒤의 메모리·스왑 사용량을 여기에 기록합니다. OOM이 나면 [vm-sizing ADR](adr-2026-10-12-mdq5exsf-vm-sizing.md)을 다시 판단합니다.
 
-**Verified (계획 11, 2026-10-15, `agent-hub-01` e2-micro amd64):**
+**Verified ([web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md), 2026-10-15, `agent-hub-01` e2-micro amd64):**
 
 컨테이너 열은 `docker stats`의 상주 메모리입니다. 스왑으로 나간 페이지는 세지 않습니다.
 

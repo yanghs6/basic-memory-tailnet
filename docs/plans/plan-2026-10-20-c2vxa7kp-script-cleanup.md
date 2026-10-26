@@ -1,9 +1,10 @@
 ---
 status: completed
-spec: docs/specs/spec-2026-10-15-script-test-layout.md
+id: c2vxa7kp
+spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 ---
 
-# 16 Script Cleanup Implementation Plan
+# c2vxa7kp Script Cleanup Implementation Plan
 
 > **For agentic workers:** Task를 순서대로 하나씩 구현한다. 모든 Task가 같은 스크립트와 라이브러리를 고치므로 한 worktree에서 한 명만 쓴다. 도구가 서브에이전트를 지원하면 Task마다 새 서브에이전트와 리뷰를 쓰고, 아니면 한 세션에서 실행한다. VM을 바꾸는 Step은 Task 7의 `make deploy` 하나이고, 메인 세션에서 사용자 OK를 받은 뒤 한다. Step은 체크박스(`- [ ]`)로 추적한다.
 
@@ -12,15 +13,15 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 **Architecture:**
 - 라이브러리마다 맨 위에 이중 source 방지 줄과 함수 색인을 둔다. 관심사 라이브러리는 `common.sh`를 source하고, 스크립트는 직접 부르는 함수가 있는 라이브러리만 source한다. 방지 줄이 있으므로 같은 라이브러리를 여러 번 source해도 된다.
 - 함수는 먼저 옛 이름의 스크립트에서 옮기고 합친다(Task 1~5). 이름 변경은 마지막 Task 6에서 한다. 이름 변경 커밋에서는 경로 참조만 고쳐서 `git log --follow`가 옛 이력을 따라가게 한다.
-- 지금 있는 테스트가 안전망이다. 이 계획은 기존 테스트 파일에서 스크립트·라이브러리 경로만 고친다. 예외는 "Decisions"의 P3, P7에 적은 기대값 두 개다. 옮긴 함수의 테스트는 새 짝 파일 `tests/lib-vm.bats`, `tests/lib-sb.bats`, `tests/lib-git.bats`로 옮긴다. 테스트 파일의 이름 변경과 분할은 계획 17이 한다.
+- 지금 있는 테스트가 안전망이다. 이 계획은 기존 테스트 파일에서 스크립트·라이브러리 경로만 고친다. 예외는 "Decisions"의 P3, P7에 적은 기대값 두 개다. 옮긴 함수의 테스트는 새 짝 파일 `tests/lib-vm.bats`, `tests/lib-sb.bats`, `tests/lib-git.bats`로 옮긴다. 테스트 파일의 이름 변경과 분할은 [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md)이 한다.
 - Task마다 끝에 `make check`를 돌리고, 테스트 이름 목록을 Task 전과 비교해 Progress log에 적는다(스펙 11절).
 
-**Spec:** `docs/specs/spec-2026-10-15-script-test-layout.md` (특히 §3, §4, §5, §2.1의 규칙 위반, §10, §11)
+**Spec:** `docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md` (특히 §3, §4, §5, §2.1의 규칙 위반, §10, §11)
 
-**Sequence:** 계획 16. 다음을 모두 만족한 뒤 시작한다.
-- 문서 체계 계획 14(PR #13, `eda0d92`)가 병합됐다(충족). 계획 15(PR #14, `e648d5a`)도 병합됐다.
+**Sequence:** 다음을 모두 만족한 뒤 시작한다.
+- 문서 체계 [doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)(PR #13, `eda0d92`)이 병합됐다(충족). [doc-body-backfill 계획](plan-2026-10-16-hyajr3k3-doc-body-backfill.md)(PR #14, `e648d5a`)도 병합됐다.
 - 열린 PR #10(`work/docker-log-rotation`)도 `compose.yaml`, `docs/ARCHITECTURE.md`, `tests/repo.bats`를 고친다. 나중에 병합되는 쪽이 `git merge origin/main`으로 충돌을 푼다. 리베이스하지 않는다.
-- 계획 17은 이 계획의 PR이 병합된 `main`에서 쓴다(스펙 10절).
+- [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md)은 이 계획의 PR이 병합된 `main`에서 쓴다(스펙 10절).
 
 ## Decisions
 
@@ -30,7 +31,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - **P2. deploy는 이미지 pull을 공간 파일보다 먼저 한다.** 지금 순서는 공간 파일 쓰기 → pull → (바뀌었으면) 다시 만들기다. P1의 함수는 쓰기와 다시 만들기를 한 번에 하므로, pull을 앞으로 옮긴다. 다시 만들 때 새 이미지를 쓰고, pull이 실패하면 VM의 공간 파일은 그대로 남는다. 순서를 설명한 `docs/ARCHITECTURE.md`(주요 흐름의 배포)도 고친다.
 - **P3. `BM_ACCESS` 확인은 `require_vm`이 한 번 한다.** 지금은 `remote()`가 부를 때마다 확인한다(`common.sh:136-138`). 스펙 중복 7번에 따라 `remote()`의 확인을 빼고, VM을 쓰는 모든 스크립트가 처음에 `require_vm`을 부른다. `tests/common.bats`의 "remote checks BM_ACCESS …" 테스트는 `require_vm`을 검사하는 테스트로 바뀐다. 스크립트 단위의 불변식("모드를 읽지 않는 VM 타깃도 멈춘다")은 `tests/access.bats`의 logs 테스트가 계속 지킨다.
 - **P4. 노트 폴더의 존재 확인은 sb.sh의 `notes_file_state`가 한다.** `sb-space.sh:37,47`은 `--local`도 다루므로 VM 전용인 `remote_exists`를 쓸 수 없다. 대신 두 함수가 같은 sh 조각 `exists_cmd`(vm.sh)를 쓰고, 둘 다 `present`나 `absent`를 출력한다.
-- **P5. `AGENTS.md`는 이 계획에서 고치지 않는다.** 스펙 10절에 따라 Invariants·Skills·Map은 계획 17이 고친다. 그 사이에도 Invariants의 "source `scripts/lib/common.sh`"는 틀린 말이 아니다. 모든 라이브러리가 `common.sh`를 source하기 때문이다.
+- **P5. `AGENTS.md`는 이 계획에서 고치지 않는다.** 스펙 10절에 따라 Invariants·Skills·Map은 [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md)이 고친다. 그 사이에도 Invariants의 "source `scripts/lib/common.sh`"는 틀린 말이 아니다. 모든 라이브러리가 `common.sh`를 source하기 때문이다.
 - **P6. VM에서는 브랜치에서 확인한다.** 이 계획은 VM의 상태를 바꾸지 않으므로 결과 PR을 따로 두지 않는다. Task 7에서 OK가 필요 없는 확인(`make access-check probe status logs backup verify`)은 바로 하고, `make deploy`만 사용자 OK를 받아 이 브랜치에서 한 번 실행한다. P2의 새 순서와 P1의 함수를 실제로 증명하는 것은 deploy뿐이기 때문이다. 관리 페이지(`silverbullet/agent-hub.md`)의 스크립트 이름 한 줄도 그때 VM에 반영된다.
 - **P7. 두 터널은 `tunnel_args` 하나로 ssh 인자를 만든다.** 함수는 ssh를 실행하지 않고 인자 배열만 만든다. ssh는 호출하는 쪽이 실행한다. 그래야 verify의 `ssh … &`에서 `$!`가 ssh 자신이 되어, 끝날 때 터널을 죽일 수 있다. 함수 안에서 실행하면 `$!`는 하위 셸의 pid가 되고 ssh는 남는다. `ExitOnForwardFailure`는 함수가 넣고, 다른 옵션은 인자로 받아 그 뒤에 둔다. 그래서 `tests/vm_ops.bats:204`의 verify 터널 기대 줄에서 옵션 순서만 바뀐다(`-o ExitOnForwardFailure=yes -o BatchMode=yes -o ConnectTimeout=10`). `make tunnel`의 줄과 `running:` 로그는 그대로다.
 
@@ -44,8 +45,8 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - 기록 문서(완료 계획, 스펙, ADR, 리뷰, 조사)에 남은 옛 스크립트 이름은 그대로 둔다(스펙 4절).
 - 테스트는 `make test`/`make check`로만 돌린다. 테스트를 약하게 만들어 통과시키지 않는다. 테스트 이름 목록 비교: `grep -h '^@test' tests/*.bats | sort`.
 - 줄 번호는 `e648d5a` 기준이다. 앞 Task를 거치면 줄이 밀리므로, Task마다 `grep -n`으로 위치를 다시 찾는다.
-- `git add` 전에 `git status`를 본다. 커밋 트레일러: `Assisted-by: claude-code claude-opus-5-5`, `Plan: 16`, `Task: <N|review|none>`.
-- PR: 브랜치 `plan/16-script-cleanup`, 제목 `refactor: split the script libraries, merge duplicates and rename scripts`, 본문 마지막 문단은 `Assisted-by`와 `Plan: 16`이다.
+- `git add` 전에 `git status`를 본다. 커밋 트레일러: `Assisted-by: claude-code claude-opus-5-5`, `Plan: c2vxa7kp`, `Task: <N|review|none>`.
+- PR: 브랜치 `plan/c2vxa7kp-script-cleanup`, 제목 `refactor: split the script libraries, merge duplicates and rename scripts`, 본문 마지막 문단은 `Assisted-by`와 `Plan: c2vxa7kp`이다.
 
 ## Review Focus
 
@@ -67,7 +68,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 | `scripts/*.sh`, `scripts/remote/bootstrap.sh` | source 줄, 중복 제거, 이름 변경, usage 줄 | 1~6 |
 | `Makefile` | local-up 한 줄, 포트 기본값 주석, 새 스크립트 경로, deploy 설명 | 1, 3, 4, 6 |
 | `tests/lib-vm.bats`, `tests/lib-sb.bats`, `tests/lib-git.bats` (새 파일) | 새 라이브러리의 짝 테스트 | 1~4 |
-| `tests/common.bats` | VM 테스트를 `lib-vm.bats`로 보내고 `mask`만 남김(이름 변경은 계획 17) | 1 |
+| `tests/common.bats` | VM 테스트를 `lib-vm.bats`로 보내고 `mask`만 남김(이름 변경은 [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md)) | 1 |
 | 그 밖의 `tests/*.bats` | 스크립트·라이브러리 경로, P7 기대 줄 | 1, 5, 6 |
 | `.claude/agents/branch-reviewer.md`, `docs/ARCHITECTURE.md`, 스킬 3개, `compose.yaml`, `silverbullet/agent-hub.md` | 새 스크립트 이름, 라이브러리 구성, deploy 순서 | 1, 4, 6 |
 
@@ -75,7 +76,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 
 ### Start: branch, worktree, draft PR
 
-- [x] `git fetch origin` 뒤 `origin/main`에서 `plan/16-script-cleanup` 브랜치를 만든다(`git-workflow` 스킬의 Start). worktree `repo-structure`를 다시 쓴다(`.review-out/`에 계획 13~15의 리뷰 기록이 있으니 지우지 않는다).
+- [x] `git fetch origin` 뒤 `origin/main`에서 `plan/c2vxa7kp-script-cleanup` 브랜치를 만든다(`git-workflow` 스킬의 Start). worktree `repo-structure`를 다시 쓴다(`.review-out/`에 [doc-system-foundation](plan-2026-10-16-wyz3h870-doc-system-foundation.md)·[doc-rename-and-checks](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)·[doc-body-backfill](plan-2026-10-16-hyajr3k3-doc-body-backfill.md) 계획의 리뷰 기록이 있으니 지우지 않는다).
 - [x] 첫 커밋에서 이 파일의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다(`Task: none`).
 - [x] 참조 목록(스펙 11절)을 Progress log에 적는다. 명령은 Task 6 Step 2와 같다.
 
@@ -399,7 +400,7 @@ Expected: `make check` exit 0. 점검은 두 파일만 출력한다. `scripts/bo
 - Rename (`git mv`): 스펙 4절 표의 13개 — `backup.sh`→`backup-notes.sh`, `restore.sh`→`restore-notes.sh`, `remote/bootstrap.sh`→`remote/provision-vm.sh`, `deploy.sh`→`deploy-stack.sh`, `status.sh`→`show-status.sh`, `logs.sh`→`show-logs.sh`, `sb-space.sh`→`sync-sb-space.sh`, `sb-fonts.sh`→`upload-sb-fonts.sh`, `review.sh`→`review-branch.sh`, `review-record.sh`→`post-review-record.sh`, `review-bash-guard.sh`→`guard-reviewer-bash.sh`, `access-check.sh`→`check-access.sh`, `tunnel.sh`→`open-tunnel.sh`
 - Modify: Step 2 명령이 찾는 모든 곳(`e648d5a` 기준 30개 파일, 79줄), 모든 실행 스크립트의 usage 줄, `Makefile:103`의 deploy 설명
 
-- [x] **Step 1: 실패하는 테스트로 바꾸기** — 테스트 안의 스크립트 경로를 새 이름으로 바꾼다. `vm_ops.bats`, `backup_restore.bats`, `main_checkout.bats`, `access.bats`, `sb_space.bats`, `sb_fonts.bats`, `review.bats`, `review_record.bats`, `review_bash_guard.bats:5`, `bootstrap.bats:11`, `repo.bats:197-198`이다. 테스트 이름에 든 옛 스크립트 이름(`backup_restore.bats:467`의 "a backup made by backup.sh …")은 계획 17이 파일을 나눌 때 바꾼다. `review_bash_guard.bats:29`, `:89`의 `scripts/review.sh`, `scripts/?.sh`는 경로가 아니라 가드에 넣는 입력 문자열이므로 두지 않는다.
+- [x] **Step 1: 실패하는 테스트로 바꾸기** — 테스트 안의 스크립트 경로를 새 이름으로 바꾼다. `vm_ops.bats`, `backup_restore.bats`, `main_checkout.bats`, `access.bats`, `sb_space.bats`, `sb_fonts.bats`, `review.bats`, `review_record.bats`, `review_bash_guard.bats:5`, `bootstrap.bats:11`, `repo.bats:197-198`이다. 테스트 이름에 든 옛 스크립트 이름(`backup_restore.bats:467`의 "a backup made by backup.sh …")은 [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md)이 파일을 나눌 때 바꾼다. `review_bash_guard.bats:29`, `:89`의 `scripts/review.sh`, `scripts/?.sh`는 경로가 아니라 가드에 넣는 입력 문자열이므로 두지 않는다.
 
 - [x] **Step 2: 실패 확인과 참조 목록**
 
@@ -465,8 +466,8 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 
 ## Follow-ups
 
-- 계획 17(테스트 정리와 생성 규칙): 테스트 파일 이름 변경과 분할(`common.bats` → `lib-common.bats` 포함), 픽스처 이동, 테스트 도우미와 중복 정리, `.bats` lint, 검사 1~5, `script-authoring` 스킬과 `make new-script`, `AGENTS.md`의 Invariants·Skills·Map(P5).
-- 계획 12의 미룬 작은 개선(`make tunnel`의 같은 포트 안내, Ctrl-C INT trap 등)은 이 계획의 범위 밖이다. 계획 12 파일의 Follow-ups에 남아 있다.
+- [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md)(테스트 정리와 생성 규칙): 테스트 파일 이름 변경과 분할(`common.bats` → `lib-common.bats` 포함), 픽스처 이동, 테스트 도우미와 중복 정리, `.bats` lint, 검사 1~5, `script-authoring` 스킬과 `make new-script`, `AGENTS.md`의 Invariants·Skills·Map(P5).
+- [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md)의 미룬 작은 개선(`make tunnel`의 같은 포트 안내, Ctrl-C INT trap 등)은 이 계획의 범위 밖이다. access-modes 계획 파일의 Follow-ups에 남아 있다.
 - 최종 리뷰 M4(원래 있던 동작, 사용자 결정으로 미룸): `scripts/restore-notes.sh:118-122`는 VM의 답이 `present`가 아니면 모두 "이전 데이터 없음"으로 읽는다. `present`·`absent` 외의 답이면 멈추도록 테스트를 먼저 쓰고 고친다.
 - `bm-diagnose`의 `references/failure-messages.md`에는 `<step>: request to <url> failed` 앞에 `curl: (28) Operation timed out`이 찍히는 경우(서버가 30초 안에 답하지 못함)의 행이 없다. 2026-10-21 배포 직후 `make verify`에서 나왔다(Progress log). 행 추가를 검토한다.
 
@@ -474,8 +475,8 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
-| 2026-10-20 | Command | `git fetch origin` 뒤 worktree `repo-structure`에서 `git switch -c plan/16-script-cleanup --no-track origin/main`(`e648d5a`). `make new-doc TYPE=plan SLUG=script-cleanup` → 이 파일(번호 16). |
-| 2026-10-20 | Verified | 스펙 2.1과 5절의 위치를 `e648d5a`에서 다시 확인했다. 스펙 기준 `87e86d4` 뒤로 스크립트 줄은 바뀌지 않았다. 바뀐 것은 계획 13이 더한 `scripts/lib/docs.sh`(`common.sh`를 source하지 않고 방지 줄이 없음)와 `scripts/create-doc.sh`다. Task 1이 `docs.sh`를 맞춘다. |
+| 2026-10-20 | Command | `git fetch origin` 뒤 worktree `repo-structure`에서 `git switch -c plan/c2vxa7kp-script-cleanup --no-track origin/main`(`e648d5a`). `make new-doc TYPE=plan SLUG=script-cleanup` → 이 파일(번호 16). |
+| 2026-10-20 | Verified | 스펙 2.1과 5절의 위치를 `e648d5a`에서 다시 확인했다. 스펙 기준 `87e86d4` 뒤로 스크립트 줄은 바뀌지 않았다. 바뀐 것은 [doc-system-foundation 계획](plan-2026-10-16-wyz3h870-doc-system-foundation.md)이 더한 `scripts/lib/docs.sh`(`common.sh`를 source하지 않고 방지 줄이 없음)와 `scripts/create-doc.sh`다. Task 1이 `docs.sh`를 맞춘다. |
 | 2026-10-20 | Verified | 참조 목록(Task 6 Step 2의 `git grep`): 30개 파일, 79줄. `Makefile` 12, `tests/vm_ops.bats` 14, `docs/ARCHITECTURE.md` 7, `tests/backup_restore.bats` 5, `scripts/deploy.sh`·`scripts/restore.sh`·`tests/main_checkout.bats` 각 4, `tests/access.bats` 3, `scripts/lib/common.sh`·`scripts/review.sh`·`tests/repo.bats`·`tests/review_bash_guard.bats` 각 2, 나머지 18개 파일 각 1(스킬 3, `.claude/agents/branch-reviewer.md`, `compose.yaml`, `silverbullet/agent-hub.md`, 스크립트 8, 테스트 4). |
 | 2026-10-20 | Verified | 사용자 결정: 계획과 Decisions P1~P7대로 진행하고, 실행 방식은 A(Native: 한 세션에서 구현, 끝에 브랜치 전체 리뷰 한 번)로 한다. |
 | 2026-10-20 | Verified | 초안 PR #15(draft)를 열었다. Start의 첫 커밋 `5eebe31`에서 `make check` exit 0, 213 ok, 커버리지 94.51%. |
@@ -493,7 +494,7 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 | 2026-10-20 | Verified | Task 7 Step 2(VM, ssh 모드): `make access-check` exit 0(`ssh ubuntu@agent-hub-iap: ok`), `make probe` exit 0(MCP 읽기 전용, SilverBullet, 두 포트 loopback, Tailscale 꺼짐, sshd 키 전용, 공인 IP 포트 6개 닫힘), `make status` exit 0(memory 41%, swap 530/1023 MB, `access: ssh`, `tailscale: not installed or logged out`), `make logs` exit 0(230줄), `make backup` exit 0(main checkout `backups/bm-20261020T062444Z.tgz`, 정지 → manifest → 전송 → 재시작), `make verify` exit 0(MCP 쓰기·읽기·삭제, SilverBullet 로그인 포함). `make tunnel`을 백그라운드로 열어 `verify-mcp.sh --read-only http://127.0.0.1:18737/mcp` OK, `http://127.0.0.1:13000/.ping` 200을 확인하고 닫았다. `running: ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -L 127.0.0.1:18737:… -L 127.0.0.1:13000:…` 줄은 예전과 같다. |
 | 2026-10-21 | Verified | 최종 리뷰(새 컨텍스트의 Opus, 범위 `e648d5a..6887739`): Critical 0, Important 0, Minor 4, 머지 가능. 리뷰어가 Review Focus 다섯 가지를 macOS bash 3.2에서 직접 실행해 확인했다. 리뷰어가 판단을 보류한 12개 항목은 모두 그대로 두기로 판정했다(스펙 범위 밖이거나 원래 있던 동작). |
 | 2026-10-21 | Verified | 사용자 결정: Minor 중 M1~M3만 지금 고치고, M4(`scripts/restore-notes.sh:118-122`가 `present`·`absent` 외의 답을 "이전 데이터 없음"으로 읽음, 원래 있던 동작)는 테스트와 함께 후속 작업으로 둔다. 이 브랜치에서 `make deploy verify`를 실행하고, Codex 교차 리뷰를 PR #15에 게시한다. |
-| 2026-10-21 | Verified | 최종 리뷰 수정: M1 `scripts/sync-sb-space.sh` 머리 주석의 중간 실패 원인을 "pull, recreate"에서 "recreate, marker 제거"로 고쳤다(P2 뒤로 pull은 marker 전에 끝난다). M2 `scripts/show-status.sh`의 메모리 읽기 실패 안내에 `ssh … free -m` 확인을 되살리고 `access_hint`는 SSH 실패 때의 안내로 남겼다. RED `make test` exit 2(새 테스트 "status points to free -m …" 하나만 실패), GREEN `make check` exit 0, 220개, not ok 0, 커버리지 94.50%. M3 계획 07의 `scripts/status.sh:34`를 `scripts/show-status.sh:34`로 고쳤다. |
+| 2026-10-21 | Verified | 최종 리뷰 수정: M1 `scripts/sync-sb-space.sh` 머리 주석의 중간 실패 원인을 "pull, recreate"에서 "recreate, marker 제거"로 고쳤다(P2 뒤로 pull은 marker 전에 끝난다). M2 `scripts/show-status.sh`의 메모리 읽기 실패 안내에 `ssh … free -m` 확인을 되살리고 `access_hint`는 SSH 실패 때의 안내로 남겼다. RED `make test` exit 2(새 테스트 "status points to free -m …" 하나만 실패), GREEN `make check` exit 0, 220개, not ok 0, 커버리지 94.50%. M3 [ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md)의 `scripts/status.sh:34`를 `scripts/show-status.sh:34`로 고쳤다. |
 | 2026-10-21 | Verified | Task 7 Step 3(사용자 OK, 이 브랜치 `f594154`, `origin/main`은 `e648d5a` 그대로여서 merge 없음): `make deploy verify`의 deploy 부분은 성공했다. compose.yaml과 VM `.env`를 올리고, 고정 digest 이미지 두 개를 pull(Pulled)한 뒤 공간 파일을 썼다(`changed` 없음, Basic Memory 다시 만들기 없음). `up -d --wait`에서 두 컨테이너는 Running에서 Healthy가 됐고 다시 만들어지지 않았다. 이어진 `make verify`는 `tools/list`에서 `curl: (28) Operation timed out after 30002 milliseconds with 0 bytes received`로 멈췄다(make exit 2). 같은 실행에서 `initialize`도 14초 걸렸고, Basic Memory 로그에는 그 요청이 `200 OK`로 남았다. 이 브랜치는 `scripts/verify-mcp.sh`의 요청 경로와 시간 제한(`REQUEST_TIMEOUT_SECONDS=30`)을 바꾸지 않았다. |
 | 2026-10-21 | Assumption | 첫 verify의 시간 초과 원인: 배포가 관리 페이지를 다시 쓴 직후 Basic Memory가 파일을 다시 색인하느라 1GB VM에서 응답이 30초를 넘겼다. 확인하지 않았다. |
 | 2026-10-21 | Verified | 2분 뒤(`bm-diagnose` 순서): `make access-check` exit 0(`ssh ubuntu@agent-hub-iap: ok`), `make status` exit 0(memory 62%, swap 508/1023 MB, 두 컨테이너 healthy, `access: ssh`, `tailscale: not installed or logged out`), `make probe` exit 0(`initialize` 1초, `tools/list ok`, 나머지 검사 모두 OK). 다시 돌린 `make verify` exit 0: MCP 쓰기·읽기·삭제, SilverBullet 로그인·쿠키·셸 꺼짐, 두 포트 loopback, Tailscale 꺼짐, sshd 키 전용, 공인 IP 포트 6개 닫힘. |

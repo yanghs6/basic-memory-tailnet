@@ -2,7 +2,7 @@
 load helpers
 
 # Script rules: strict mode, bash 3.2, no Funnel, no template blank left by make new-script, and the layout checks of
-# the script-test layout spec section 9 (pair tests, names, sources, the scripts/...sh paths the docs name). ADR 0007
+# the script-test layout spec section 9 (pair tests, names, sources, the scripts/...sh paths the docs name). The structure-checks ADR
 # allows the layout and blank checks; the verbs come from the table in the script-authoring skill.
 
 # A scripts/...sh path; example paths with < or { do not match it.

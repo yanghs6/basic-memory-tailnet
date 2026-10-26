@@ -1,39 +1,40 @@
 ---
 status: completed
-spec: docs/specs/spec-2026-10-15-doc-system.md
+id: wyz3h870
+spec: docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md
 ---
 
-# 13 Doc System Foundation Implementation Plan
+# wyz3h870 Doc System Foundation Implementation Plan
 
 > **For agentic workers:** Implement the tasks in order, one at a time: with a fresh subagent and a review per task where the tool supports it (superpowers:subagent-driven-development), otherwise in one session (superpowers:executing-plans). Nothing here touches the VM or cloud resources. Task 2 and Task 4 change `AGENTS.md` only with the wording the user approved in the start section. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 문서 타입 레지스트리(`docs/README.md`), 타입별 템플릿과 `doc-authoring` 스킬, `make new-doc`, Gemini CLI의 `AGENTS.md` 로딩, ADR 0007을 더해 네 에이전트가 저장소 파일만으로 같은 위치·이름·형식의 새 문서를 만들게 한다. 기존 문서는 옮기지 않는다(계획 14).
+**Goal:** 문서 타입 레지스트리(`docs/README.md`), 타입별 템플릿과 `doc-authoring` 스킬, `make new-doc`, Gemini CLI의 `AGENTS.md` 로딩, [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md)을 더해 네 에이전트가 저장소 파일만으로 같은 위치·이름·형식의 새 문서를 만들게 한다. 기존 문서는 옮기지 않는다([doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)).
 
 **Architecture:**
-- `docs/README.md`의 `## 문서 타입` 표가 레지스트리다. `scripts/lib/docs.sh`의 `doc_types`가 표를 탭으로 나눈 줄로 읽고, `scripts/create-doc.sh`(`make new-doc`)와 계획 14의 `tests/repo-docs.bats`가 같은 함수를 쓴다.
+- `docs/README.md`의 `## 문서 타입` 표가 레지스트리다. `scripts/lib/docs.sh`의 `doc_types`가 표를 탭으로 나눈 줄로 읽고, `scripts/create-doc.sh`(`make new-doc`)와 [doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)의 `tests/repo-docs.bats`가 같은 함수를 쓴다.
 - 템플릿 다섯 개는 `.agents/skills/doc-authoring/assets/`에 두고, 스킬이 타입 고르기·상태 바꾸기·레이블·새 타입 더하기를 안내한다. 표의 내용은 스킬에 되풀이하지 않는다.
 - `create-doc.sh`는 오늘 날짜와 slug로 이름을 만들고, 번호가 있는 타입(plan `NN`, adr `NNNN`)은 모든 로컬·원격 추적 브랜치와 작업 트리에서 옛 이름과 새 이름의 번호를 모아 가장 큰 값 + 1을 쓴다.
-- `.gemini/settings.json`이 Gemini CLI에 `AGENTS.md`를 읽게 하고, `tests/repo.bats`가 그 설정과 `AGENTS.md` 24,000바이트 한도를 검사한다. ADR 0007이 이런 구조 검사를 허용한다.
+- `.gemini/settings.json`이 Gemini CLI에 `AGENTS.md`를 읽게 하고, `tests/repo.bats`가 그 설정과 `AGENTS.md` 24,000바이트 한도를 검사한다. [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md)이 이런 구조 검사를 허용한다.
 
 **Tech Stack:** bash 3.2 호환 셸, awk, git(`for-each-ref`, `ls-tree`), bats-core + bats-assert, jq(테스트 이미지), Agent Skills 명세
 
-**Spec:** `docs/specs/spec-2026-10-15-doc-system.md` (특히 §3, §4, §5, §6, §7, §8.1, §8.2, §8.4, §10). 파일 이름은 `docs/specs/spec-2026-10-15-script-test-layout.md` §4, §6을 따른다.
+**Spec:** `docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md` (특히 §3, §4, §5, §6, §7, §8.1, §8.2, §8.4, §10). 파일 이름은 `docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md` §4, §6을 따른다.
 
-**Sequence:** 계획 13. 다음을 모두 만족한 뒤 시작한다.
+**Sequence:** 다음을 모두 만족한 뒤 시작한다.
 - 이 계획과 두 스펙의 문서 PR(#9)이 `main`에 병합됐다.
-- 계획 11이 병합됐다(PR #6, `4c84dba`, 충족).
-- 계획 12의 결과 PR(Task 8)과는 고치는 파일이 겹치지 않는다. 그 PR은 계획 12 파일, ADR 0006, 접속 방식 설계, `rbk-2026-10-12-operations.md`, `rbk-2026-10-12-gcp-vm.md`만 고친다. 그래서 어느 쪽이 먼저 병합돼도 된다.
+- [web-ui-vm-rollout 계획](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)이 병합됐다(PR #6, `4c84dba`, 충족).
+- [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md)의 결과 PR(Task 8)과는 고치는 파일이 겹치지 않는다. 그 PR은 access-modes 계획 파일, [access-modes ADR](../decisions/adr-2026-10-15-cz8c26gp-access-modes.md), 접속 방식 설계, `rbk-2026-10-12-t79ex2ny-operations.md`, `rbk-2026-10-12-tcjs7m6x-gcp-vm.md`만 고친다. 그래서 어느 쪽이 먼저 병합돼도 된다.
 
 ## Global Constraints
 
-- 기존 문서의 이름, 위치, 본문, 상태 줄을 바꾸지 않는다(계획 14·15). 예외: ADR 0004 머리의 "일부 대체" 한 줄, `README.md`의 스킬 목록과 문서 지도 한 줄, `AGENTS.md`의 승인된 줄.
-- `AGENTS.md`는 시작 절에서 사용자가 승인한 문구 그대로 고친다. 승인 전에는 고치지 않는다(계획 10 때 자동 모드에서 막힌 적이 있다).
-- 새 파일 이름은 스크립트·테스트 구조 설계를 따른다: `scripts/create-doc.sh`, `scripts/lib/docs.sh`, `tests/create-doc.bats`, `tests/lib-docs.bats`. 기존 파일 이름(`tests/repo.bats`, `tests/common.bats` 등)은 계획 17이 바꾼다.
+- 기존 문서의 이름, 위치, 본문, 상태 줄을 바꾸지 않는다([doc-rename-and-checks](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)·[doc-body-backfill](plan-2026-10-16-hyajr3k3-doc-body-backfill.md) 계획). 예외: [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 머리의 "일부 대체" 한 줄, `README.md`의 스킬 목록과 문서 지도 한 줄, `AGENTS.md`의 승인된 줄.
+- `AGENTS.md`는 시작 절에서 사용자가 승인한 문구 그대로 고친다. 승인 전에는 고치지 않는다([web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md) 때 자동 모드에서 막힌 적이 있다).
+- 새 파일 이름은 스크립트·테스트 구조 설계를 따른다: `scripts/create-doc.sh`, `scripts/lib/docs.sh`, `tests/create-doc.bats`, `tests/lib-docs.bats`. 기존 파일 이름(`tests/repo.bats`, `tests/common.bats` 등)은 [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md)이 바꾼다.
 - 스크립트 규칙(`AGENTS.md` Invariants): `#!/usr/bin/env bash` 다음 `set -euo pipefail`, `scripts/lib/common.sh` source, 실패는 `die`로, macOS bash 3.2(`mapfile`, 연관 배열, `${x,,}`, 빈 배열 전개 금지), 이름 붙은 상수, 실패할 수 있는 `x="$(fn)"` 뒤 `|| exit 1`.
-- 테스트를 먼저 쓴다(RED → GREEN). `make test`/`make check`로만 돌린다. ADR 0004: 레지스트리나 템플릿의 문구를 되풀이하는 테스트를 쓰지 않는다. 테스트는 레지스트리를 읽어 반복문으로 확인한다.
+- 테스트를 먼저 쓴다(RED → GREEN). `make test`/`make check`로만 돌린다. [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md): 레지스트리나 템플릿의 문구를 되풀이하는 테스트를 쓰지 않는다. 테스트는 레지스트리를 읽어 반복문으로 확인한다.
 - 템플릿과 스킬 파일에는 실제로 있는 파일만 상대 링크로 걸고, 없는 `docs/...md` 경로를 쓰지 않는다. `tests/repo.bats`의 문서 경로 검사는 `.agents/skills`를 코드 블록까지 읽는다.
-- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: 13`, `Task: <N|review|none>`. `Co-authored-by`, `Signed-off-by`, `Claude-Session`, 세션 링크, `Generated with`는 넣지 않는다.
-- PR: 브랜치 `plan/13-doc-system-foundation`, 제목 `feat: add the document registry, templates and make new-doc`, 본문 마지막 문단은 `Assisted-by`와 `Plan: 13`이다.
+- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: wyz3h870`, `Task: <N|review|none>`. `Co-authored-by`, `Signed-off-by`, `Claude-Session`, 세션 링크, `Generated with`는 넣지 않는다.
+- PR: 브랜치 `plan/wyz3h870-doc-system-foundation`, 제목 `feat: add the document registry, templates and make new-doc`, 본문 마지막 문단은 `Assisted-by`와 `Plan: wyz3h870`이다.
 - 증거는 이 계획의 Progress log에 `Verified` / `Command` / `Assumption` / `Open question`으로 남긴다.
 
 ## Review Focus
@@ -57,21 +58,21 @@ spec: docs/specs/spec-2026-10-15-doc-system.md
 | `tests/create-doc.bats` | 생성 명령의 짝 테스트 | 3 |
 | `.gemini/settings.json` | Gemini CLI가 `AGENTS.md`를 읽게 함 | 4 |
 | `tests/repo.bats` | Gemini 설정과 `AGENTS.md` 크기 검사 | 4 |
-| ADR 0007(`make new-doc`이 만든 경로) | 구조 검사의 허용 범위 | 4 |
+| [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md)(`make new-doc`이 만든 경로) | 구조 검사의 허용 범위 | 4 |
 
 ---
 
 ### 시작: 브랜치, worktree, `AGENTS.md` 문구 승인, 초안 PR
 
 - [x] `gh pr view 9 --json state`가 `MERGED`다.
-- [x] `git fetch origin` 후 `origin/main`에서 worktree와 `plan/13-doc-system-foundation` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] `git fetch origin` 후 `origin/main`에서 worktree와 `plan/wyz3h870-doc-system-foundation` 브랜치를 만든다(`git-workflow` 스킬의 Start).
 - [x] 사용자 OK: `main`의 `AGENTS.md`를 다시 읽고, Task 2 Step 6과 Task 4 Step 6의 바뀌는 줄을 지금 줄 번호와 함께 사용자에게 보여 승인을 받는다. 승인한 날짜와 줄 번호를 Progress log에 `Verified`로 적는다. 대상 줄이 이 계획을 쓴 뒤 바뀌었으면 바뀐 문장에 맞춰 다시 보여 준다.
 - [x] 첫 커밋으로 이 계획 파일을 `active/`로 옮기고 push한 뒤 초안 PR을 연다. 이 계획은 레지스트리가 생기기 전에 썼으므로 옛 규칙(폴더 이동)을 따른다.
 
 ```bash
-git mv docs/plans/backlog/2026-10-16-13-doc-system-foundation.md docs/plans/active/2026-10-16-13-doc-system-foundation.md
-git commit -m "docs: start plan 13 doc system foundation" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 13" --trailer "Task: none"
-git push -u origin plan/13-doc-system-foundation
+git mv docs/plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md docs/plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md
+git commit -m "docs: start the doc-system-foundation plan" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: wyz3h870" --trailer "Task: none"
+git push -u origin plan/wyz3h870-doc-system-foundation
 gh pr create --draft --base main --title "feat: add the document registry, templates and make new-doc" --body-file "$TMPDIR/pr-13.md"
 ```
 
@@ -149,7 +150,7 @@ Expected: `lib-docs.bats`의 두 테스트가 `scripts/lib/docs.sh`가 없어 �
 #!/usr/bin/env bash
 # Document helpers for scripts/*.sh: read the document type registry (the table under "## 문서 타입" in
 # docs/README.md) and number new documents. Source scripts/lib/common.sh first (die, log).
-# Must stay compatible with macOS bash 3.2. Spec: docs/specs/2026-10-15-doc-system-design.md, sections 3 and 8.2.
+# Must stay compatible with macOS bash 3.2. Spec: docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md, sections 3 and 8.2.
 #   doc_types REGISTRY -> every type row as tab-separated fields
 
 readonly DOC_TYPES_HEADING="## 문서 타입"
@@ -194,14 +195,14 @@ doc_types() {
 
 - [x] **Step 4: 레지스트리 작성 (`docs/README.md`)**
 
-템플릿 경로는 Task 2가 만든다. 이 Task에서는 아직 없어도 된다(템플릿 존재 검사는 계획 14).
+템플릿 경로는 Task 2가 만든다. 이 Task에서는 아직 없어도 된다(템플릿 존재 검사는 [doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)).
 
 ```markdown
 # 문서 지도
 
-이 저장소의 문서가 어디에 있고 새 문서를 어떻게 만드는지 정한다. 문서를 만들거나 상태를 바꿀 때는 `doc-authoring` 스킬을 쓰고, 새 문서는 `make new-doc TYPE=<타입> SLUG=<slug>`로 만든다. 근거는 [문서 체계 설계](specs/2026-10-15-doc-system-design.md)다.
+이 저장소의 문서가 어디에 있고 새 문서를 어떻게 만드는지 정한다. 문서를 만들거나 상태를 바꿀 때는 `doc-authoring` 스킬을 쓰고, 새 문서는 `make new-doc TYPE=<타입> SLUG=<slug>`로 만든다. 근거는 [문서 체계 설계](specs/spec-2026-10-15-sgpbx1gq-doc-system.md)다.
 
-**전환 중 (계획 14가 병합될 때까지):** 기존 문서는 아직 옛 이름(`2026-10-12-...-design.md`, `0004-...md` 등)과 옛 계획 폴더(`docs/plans/backlog/`, `active/`, `completed/`)에 있고 front matter가 없다. 새 문서만 아래 규칙으로 만든다. 옛 이름의 계획은 `git-workflow` 스킬대로 폴더를 옮기고, 새 이름의 계획은 `status`를 바꾼다.
+**전환 중 (doc-rename-and-checks 계획이 병합될 때까지):** 기존 문서는 아직 옛 이름(`2026-10-12-...-design.md`, `0004-...md` 등)과 옛 계획 폴더(`docs/plans/backlog/`, `active/`, `completed/`)에 있고 front matter가 없다. 새 문서만 아래 규칙으로 만든다. 옛 이름의 계획은 `git-workflow` 스킬대로 폴더를 옮기고, 새 이름의 계획은 `status`를 바꾼다.
 
 ## 문서 타입
 
@@ -215,7 +216,7 @@ doc_types() {
 | review | rev | 없음 | `docs/reviews/` | final | status | 금지 | 동결 | 영어 | 없음 |
 
 - `번호`: `없음`이면 이름에 번호가 없다. `NN`·`NNNN`이면 날짜 뒤에 그 자릿수의 번호가 온다. `make new-doc`이 모든 로컬·원격 추적 브랜치와 작업 트리에서 가장 큰 번호 + 1을 고른다. 그래서 먼저 `git fetch origin`을 한다.
-- `새 문서`: `금지`인 타입은 `make new-doc`이 만들지 않는다. 기존 파일은 그대로 둔다. 리뷰 기록은 계획 09부터 PR 댓글이다.
+- `새 문서`: `금지`인 타입은 `make new-doc`이 만들지 않는다. 기존 파일은 그대로 둔다. 리뷰 기록은 review-posting 계획부터 PR 댓글이다.
 - `make new-doc`과 문서 검사는 이 표를 읽는다. 셀을 비우거나 열을 빼면 둘 다 그 행 번호와 함께 실패한다.
 - `docs/ARCHITECTURE.md`는 표 밖의 단일 파일이다. front matter(`status: current`, `reviewed`)는 갖지만 이름 양식과 템플릿은 없다.
 
@@ -278,7 +279,7 @@ Expected: exit 0. `lib-docs.bats`의 두 테스트가 통과하고, `relative li
 
 ```bash
 git add docs/README.md scripts/lib/docs.sh tests/lib-docs.bats
-git commit -m "feat: add the document type registry and its parser" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 13" --trailer "Task: 1"
+git commit -m "feat: add the document type registry and its parser" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: wyz3h870" --trailer "Task: 1"
 git push
 ```
 
@@ -581,7 +582,7 @@ Every agent creates documents the same way from repo files alone. The type regis
   - ADR: `proposed`, then `accepted`; later `superseded` or `deprecated`.
   - runbook: `reviewed` is the day you last followed the steps or checked them against the system.
 - To replace a document, write the new one (its "대체 범위" line says what it replaces) and, in the same commit, give the old one `status: superseded` and `superseded-by: <path>`, or `amended-by: <path>` when only part changes.
-- Until plan 14 merges, older documents keep their old names and have no front matter, and old-name plans still move between `docs/plans/backlog/`, `active/` and `completed/` as `git-workflow` says. Do not rename them by hand: plan 14 does.
+- Until the doc-rename-and-checks plan merges, older documents keep their old names and have no front matter, and old-name plans still move between `docs/plans/backlog/`, `active/` and `completed/` as `git-workflow` says. Do not rename them by hand: the doc-rename-and-checks plan does.
 
 ## Labels and evidence
 
@@ -633,7 +634,7 @@ Expected: `AGENTS.md and README.md list every skill`만 `AGENTS.md:doc-authoring
 
 이 worktree에서 새 세션으로 아래 세 프롬프트를 실행한다. 바꾸지 말고 계획만 말하라고 덧붙인다(`claude -p "<프롬프트> 아무것도 바꾸지 말고 계획만 말해 주세요."`, 또는 `codex exec`). 두 도구 중 설치된 것으로 한다.
 1. "새 ADR을 하나 써야 합니다. 어디에 어떤 이름과 형식으로 만들지 알려 주세요." → `doc-authoring`을 고르고 `make new-doc TYPE=adr`과 `git fetch origin`을 말한다.
-2. "계획 14를 backlog에 추가하려고 합니다. 파일을 어떻게 만드나요?" → `make new-doc TYPE=plan`을 말하고 `docs/superpowers/`를 쓰지 않는다.
+2. "doc-rename-and-checks 계획을 backlog에 추가하려고 합니다. 파일을 어떻게 만드나요?" → `make new-doc TYPE=plan`을 말하고 `docs/superpowers/`를 쓰지 않는다.
 3. 근접 오답: "skill-authoring 스킬의 Gotchas에 한 줄을 더하려고 합니다." → `doc-authoring`이 아니라 `skill-authoring`을 고른다.
 
 결과(도구, 고른 스킬, 어긋난 점)를 Progress log에 적는다. 틀리게 고르면 설명(description)을, 틀리게 행동하면 본문을 고친 뒤 다시 돌린다.
@@ -647,7 +648,7 @@ Expected: exit 0. `tests/skills.bats` 전체와 `relative links in markdown file
 
 ```bash
 git add .agents/skills/doc-authoring .claude/skills/doc-authoring AGENTS.md README.md
-git commit -m "feat: add the doc-authoring skill and its templates" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 13" --trailer "Task: 2"
+git commit -m "feat: add the doc-authoring skill and its templates" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: wyz3h870" --trailer "Task: 2"
 git push
 ```
 
@@ -848,7 +849,7 @@ next_doc_number() {
 # Create a document from the template of its type (the table under "## 문서 타입" in docs/README.md). The name is
 # <code>-<YYYY-MM-DD>-<slug>.md, with the next free number after the date for numbered types (plan NN, adr NNNN).
 # Numbers come from every local and remote-tracking branch and the working tree, so run git fetch origin first.
-# Prints the new path on stdout. Spec: docs/specs/2026-10-15-doc-system-design.md, section 8.2.
+# Prints the new path on stdout. Spec: docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md, section 8.2.
 # Usage: make new-doc TYPE=<type> SLUG=<slug>
 set -euo pipefail
 
@@ -919,21 +920,21 @@ Expected: `docs/research/rsch-<오늘>-plan13-smoke.md` 한 줄과 `created …`
 
 ```bash
 git add scripts/create-doc.sh scripts/lib/docs.sh tests/create-doc.bats Makefile
-git commit -m "feat: add make new-doc to create documents from their templates" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 13" --trailer "Task: 3"
+git commit -m "feat: add make new-doc to create documents from their templates" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: wyz3h870" --trailer "Task: 3"
 git push
 ```
 
 ---
 
-### Task 4: 에이전트 진입점과 ADR 0007
+### Task 4: 에이전트 진입점과 structure-checks ADR
 
 **Files:**
-- Create: `.gemini/settings.json`, ADR 0007(`make new-doc TYPE=adr SLUG=structure-checks`가 출력한 경로)
-- Modify: `tests/repo.bats`(상수 하나, 테스트 둘), `AGENTS.md`(Notes and language, Map; 승인된 문구), `docs/decisions/adr-2026-10-13-0004-test-scope.md`(머리 한 줄)
+- Create: `.gemini/settings.json`, [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md)(`make new-doc TYPE=adr SLUG=structure-checks`가 출력한 경로)
+- Modify: `tests/repo.bats`(상수 하나, 테스트 둘), `AGENTS.md`(Notes and language, Map; 승인된 문구), `docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md`(머리 한 줄)
 
 **Interfaces:**
 - Consumes: Task 3의 `make new-doc`
-- Produces: `tests/repo.bats`의 `AGENTS_MD_MAX_BYTES=24000`, ADR 0007의 경로(계획 14가 ADR 0004의 `amended-by`에 쓴다)
+- Produces: `tests/repo.bats`의 `AGENTS_MD_MAX_BYTES=24000`, [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md)의 경로([doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)이 [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)의 `amended-by`에 쓴다)
 
 - [x] **Step 1: 실패하는 테스트 작성 (`tests/repo.bats`)**
 
@@ -941,7 +942,7 @@ git push
 
 ```bash
 # Antigravity truncates a rule file at 24,000 bytes, the smallest limit of the four agents
-# (docs/research/2026-10-15-agent-repo-conventions.md, section 1).
+# (docs/research/rsch-2026-10-15-f20fshxg-agent-repo-conventions.md, section 1).
 AGENTS_MD_MAX_BYTES=24000
 ```
 
@@ -977,7 +978,7 @@ Expected: `Gemini CLI reads AGENTS.md through .gemini/settings.json`만 실패�
 }
 ```
 
-- [x] **Step 4: ADR 0007 만들기**
+- [x] **Step 4: [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md) 만들기**
 
 ```bash
 git fetch origin
@@ -992,21 +993,21 @@ status: accepted
 date: <오늘>
 ---
 
-# ADR 0007: 문서·스크립트 구조 검사를 허용하는 범위
+# ADR q36rwq5s: 문서·스크립트 구조 검사를 허용하는 범위
 
-- 설계: [문서 체계 설계](../specs/2026-10-15-doc-system-design.md) 8.4절, [스크립트·테스트 구조 설계](../specs/2026-10-15-script-test-layout-design.md) 9절
-- 대체 범위: [ADR 0004](0004-test-scope.md) 결정 2의 "문구·형식만 확인하는 테스트" 금지 가운데, 아래 결정 1의 구조 검사
+- 설계: [문서 체계 설계](../specs/spec-2026-10-15-sgpbx1gq-doc-system.md) 8.4절, [스크립트·테스트 구조 설계](../specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md) 9절
+- 대체 범위: [test-scope ADR](adr-2026-10-13-a878ypj5-test-scope.md) 결정 2의 "문구·형식만 확인하는 테스트" 금지 가운데, 아래 결정 1의 구조 검사
 
 ## 맥락과 문제
 
-- ADR 0004 결정 2는 문구·형식만 확인하는 테스트를 새로 쓰지 않게 했습니다. 그때 지운 것은 문서 문장을 되풀이하는 검사(`AGENTS.md` 줄 수, 런북 섹션 이름 등)였습니다.
+- test-scope ADR 결정 2는 문구·형식만 확인하는 테스트를 새로 쓰지 않게 했습니다. 그때 지운 것은 문서 문장을 되풀이하는 검사(`AGENTS.md` 줄 수, 런북 섹션 이름 등)였습니다.
 - Claude Code, Codex, Gemini CLI, Antigravity가 같은 위치와 이름으로 문서와 스크립트를 만들려면 위치, 이름, 메타데이터를 기계로 확인해야 합니다. 문서 체계 설계 2절의 문제(제각각인 상태 표기, 낡은 경로, PR 구성에 따라 달라지는 active 폴더)는 모두 메타데이터와 위치 문제였습니다.
 - 이런 검사도 "형식 확인"으로 읽힐 수 있어서, 무엇을 허용하는지 정해야 합니다.
 
 ## 검토한 대안
 
-1. ADR 0004를 그대로 두고 템플릿과 스킬만 둡니다: 바꿀 것이 없습니다. 도구 하나가 템플릿을 무시해도 아무도 모릅니다.
-2. 섹션 이름과 레이블까지 검사합니다: 어긋남을 가장 많이 잡습니다. 문서 문구를 되풀이하는 변경 감지 테스트가 되어 ADR 0004의 취지와 어긋납니다.
+1. test-scope ADR을 그대로 두고 템플릿과 스킬만 둡니다: 바꿀 것이 없습니다. 도구 하나가 템플릿을 무시해도 아무도 모릅니다.
+2. 섹션 이름과 레이블까지 검사합니다: 어긋남을 가장 많이 잡습니다. 문서 문구를 되풀이하는 변경 감지 테스트가 되어 test-scope ADR의 취지와 어긋납니다.
 3. 위치, 이름, 메타데이터, 파일 존재만 검사합니다: 2절의 문제를 모두 잡고 문장은 묶지 않습니다. 사용자가 고른 강제 수준 B입니다.
 
 ## 결정
@@ -1017,17 +1018,17 @@ date: <오늘>
 
 ## 결과
 
-- 계획 13이 `.gemini/settings.json`과 `AGENTS.md` 크기 검사를, 계획 14가 문서 이름·위치·메타데이터 검사를, 계획 17이 스크립트 짝과 이름 검사를 더합니다.
-- ADR 0004의 나머지 결정은 그대로입니다.
+- doc-system-foundation 계획이 `.gemini/settings.json`과 `AGENTS.md` 크기 검사를, doc-rename-and-checks 계획이 문서 이름·위치·메타데이터 검사를, test-cleanup 계획이 스크립트 짝과 이름 검사를 더합니다.
+- test-scope ADR의 나머지 결정은 그대로입니다.
 - 확인 방법: `make check`. 새 테스트가 결정 2에 해당하면 리뷰에서 지적합니다.
 ```
 
-- [x] **Step 5: ADR 0004 머리에 한 줄**
+- [x] **Step 5: [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 머리에 한 줄**
 
-`docs/decisions/adr-2026-10-13-0004-test-scope.md` 3행(`- 상태: Accepted (2026-10-13)`) 바로 뒤에 넣는다. `<ADR 0007 파일 이름>`은 Step 4의 파일 이름이다. front matter의 `amended-by`로 옮기는 일은 계획 14가 한다.
+`docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md` 3행(`- 상태: Accepted (2026-10-13)`) 바로 뒤에 넣는다. `<structure-checks ADR 파일 이름>`은 Step 4의 파일 이름이다. front matter의 `amended-by`로 옮기는 일은 [doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)이 한다.
 
 ```markdown
-- 일부 대체: [ADR 0007](<ADR 0007 파일 이름>)이 결정 2의 "문구·형식만 확인하는 테스트" 금지에서 구조 검사를 허용합니다.
+- 일부 대체: [structure-checks ADR](<structure-checks ADR 파일 이름>)이 결정 2의 "문구·형식만 확인하는 테스트" 금지에서 구조 검사를 허용합니다.
 ```
 
 - [x] **Step 6: `AGENTS.md` (시작 절에서 승인한 문구)**
@@ -1051,7 +1052,7 @@ date: <오늘>
 - [x] **Step 7: 통과 확인**
 
 Run: `make check`
-Expected: exit 0. 새 두 테스트, `tests/skills.bats`, 상대 링크(ADR 0007의 세 링크, ADR 0004의 링크), 문서 경로 검사(`AGENTS.md`의 `docs/README.md`)가 통과한다. `wc -c AGENTS.md`가 24,000 이하다.
+Expected: exit 0. 새 두 테스트, `tests/skills.bats`, 상대 링크([structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md)의 세 링크, [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)의 링크), 문서 경로 검사(`AGENTS.md`의 `docs/README.md`)가 통과한다. `wc -c AGENTS.md`가 24,000 이하다.
 
 - [ ] **Step 8: Gemini CLI 확인 (사용자, 선택)**
 
@@ -1061,7 +1062,7 @@ Expected: exit 0. 새 두 테스트, `tests/skills.bats`, 상대 링크(ADR 0007
 
 ```bash
 git add .gemini/settings.json tests/repo.bats AGENTS.md docs/decisions
-git commit -m "feat: load AGENTS.md in Gemini CLI and allow structure checks (ADR 0007)" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 13" --trailer "Task: 4"
+git commit -m "feat: load AGENTS.md in Gemini CLI and allow structure checks (the structure-checks ADR)" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: wyz3h870" --trailer "Task: 4"
 git push
 ```
 
@@ -1072,35 +1073,35 @@ git push
 - [x] 문서와 코드가 맞는지 본다: `README.md`의 스킬 목록, `AGENTS.md`의 Skills·Map, `docs/README.md`의 저장소 밖 문서 표, `make help`의 `new-doc`.
 - [x] Progress log에 그날 `make check`의 테스트 수와 커버리지 %를 `Verified`로 적고, 계획 파일을 `docs/plans/completed/`로 옮겨 커밋·push한다(`Task: none`). 이 계획은 옛 이름이므로 폴더를 옮긴다.
 - [ ] PR 본문의 Verification에 `make check` 결과와 CI(`check`, `pr-rules`) 결과를 적는다.
-- [ ] 다른 벤더의 읽기 전용 리뷰(`make review BRANCH=plan/13-doc-system-foundation REVIEWER=<다른 벤더>`)는 사용자 승인 후 실행한다. PR 코멘트 게시도 승인 후 한다.
+- [ ] 다른 벤더의 읽기 전용 리뷰(`make review BRANCH=plan/wyz3h870-doc-system-foundation REVIEWER=<다른 벤더>`)는 사용자 승인 후 실행한다. PR 코멘트 게시도 승인 후 한다.
 - [ ] 지적을 검증하고 하나당 커밋 하나로 고친다. 2회차까지만 돈다.
 - [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
 - [ ] 병합 뒤 worktree를 정리한다(`backups/`·`.env` 확인 먼저).
 
 ## Follow-ups (이 계획 밖)
 
-- 계획 14: 모든 문서 이름 변경과 참조 갱신, 계획 폴더 통합, front matter, 문서 검사(`tests/repo-docs.bats`, 스펙 8.3절 1~6), 증거 위치 변경(D4). `docs/README.md`와 `doc-authoring` 스킬의 "전환 중" 문장을 지우고, ADR 0004의 "일부 대체" 줄을 front matter `amended-by`로 옮긴다. 계획 12 결과 PR이 병합된 뒤 시작한다.
-- 최종 리뷰(2026-10-16, opus)의 Minor 8건은 사용자 결정으로 이 PR에서 고쳤다(Progress log). 계획 14로 넘기는 것은 M1의 나머지다: `AGENTS.md`의 Active work 줄과 리뷰 규칙 3은 문구 승인이 필요하므로 계획 14가 증거 위치 변경(D4)과 함께 고친다. 계획 14 자신의 계획 파일은 새 이름이므로 그 시작 절은 폴더 이동 대신 `status`를 바꾼다.
+- [doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md): 모든 문서 이름 변경과 참조 갱신, 계획 폴더 통합, front matter, 문서 검사(`tests/repo-docs.bats`, 스펙 8.3절 1~6), 증거 위치 변경(D4). `docs/README.md`와 `doc-authoring` 스킬의 "전환 중" 문장을 지우고, [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)의 "일부 대체" 줄을 front matter `amended-by`로 옮긴다. [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md) 결과 PR이 병합된 뒤 시작한다.
+- 최종 리뷰(2026-10-16, opus)의 Minor 8건은 사용자 결정으로 이 PR에서 고쳤다(Progress log). [doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)으로 넘기는 것은 M1의 나머지다: `AGENTS.md`의 Active work 줄과 리뷰 규칙 3은 문구 승인이 필요하므로 doc-rename-and-checks 계획이 증거 위치 변경(D4)과 함께 고친다. doc-rename-and-checks 계획 자신의 계획 파일은 새 이름이므로 그 시작 절은 폴더 이동 대신 `status`를 바꾼다.
 - Gemini CLI가 실제로 `AGENTS.md`를 읽는지(Task 4 Step 8)는 사용자가 이번에는 확인하지 않기로 함. `Assumption`으로 남는다.
-- 계획 15: 본문 소급(템플릿 절 구성, 레이블 표기 통일, README 중복 삭제).
-- 계획 16·17: 스크립트·테스트 구조 설계. `scripts/lib/docs.sh`의 이중 source 방지 줄과 `lib-*.bats` 규칙은 계획 16이 다른 라이브러리와 함께 맞춘다.
+- [doc-body-backfill 계획](plan-2026-10-16-hyajr3k3-doc-body-backfill.md): 본문 소급(템플릿 절 구성, 레이블 표기 통일, README 중복 삭제).
+- [script-cleanup](plan-2026-10-20-c2vxa7kp-script-cleanup.md)·[test-cleanup](plan-2026-10-21-hf9kadp3-test-cleanup.md) 계획: 스크립트·테스트 구조 설계. `scripts/lib/docs.sh`의 이중 source 방지 줄과 `lib-*.bats` 규칙은 script-cleanup 계획이 다른 라이브러리와 함께 맞춘다.
 
 ## Progress log
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
-| 2026-10-16 | Command | 시작: `plan/13-doc-system-foundation`을 `origin/main` `16aa61f`(PR #9 병합)에서 만들고(worktree `repo-structure` 재사용) 계획을 `active/`로 옮김(`8995db9`). 초안 PR #11. 실행은 사용자 결정대로 네이티브(executing-plans). |
+| 2026-10-16 | Command | 시작: `plan/wyz3h870-doc-system-foundation`을 `origin/main` `16aa61f`(PR #9 병합)에서 만들고(worktree `repo-structure` 재사용) 계획을 `active/`로 옮김(`8995db9`). 초안 PR #11. 실행은 사용자 결정대로 네이티브(executing-plans). |
 | 2026-10-16 | Verified | 사용자가 `AGENTS.md` 문구 다섯 곳을 승인함(2026-10-16, `16aa61f` 기준 39·40행 교체, 41행 뒤 한 줄, 46행 앞 두 줄, 71행 앞 Skills 한 줄). 승인은 첫 커밋 뒤, 첫 `AGENTS.md` 수정(Task 2 Step 6) 전에 받음. |
 | 2026-10-16 | Verified | Task 1 `5675854`: RED `make test` exit 2(`lib-docs.bats` 두 테스트, `scripts/lib/docs.sh` 없음), GREEN `make check` exit 0, 201 ok, 0 not ok, 커버리지 94.89%(`docs.sh`는 bats 안에서 source만 해 28%, Task 3에서 스크립트가 부름). |
 | 2026-10-16 | Verified | Task 2: RED `make test`에서 `AGENTS.md and README.md list every skill`과 함께 문서 경로 검사도 실패함. 계획의 SKILL.md Gotchas 줄에 쓴 예시 경로 표기를 검사가 없는 파일로 읽음 → "docs Markdown path"로 바꿈(계획 결함). `README.md`를 고친 뒤 남은 실패는 `AGENTS.md:doc-authoring` 하나. |
-| 2026-10-16 | Verified | Task 2 Step 7 스킬 시험(Codex `codex exec --sandbox read-only`, 이 worktree): (1) 새 ADR → `doc-authoring`, fetch 후 `make new-doc TYPE=adr`, 새 이름 `adr-YYYY-MM-DD-NNNN-<slug>.md`. (2) 계획 14 → `doc-authoring`, `make new-doc TYPE=plan`, `status: backlog`(폴더 아님). (3) 근접 오답 → `skill-authoring`. 세 경우 모두 기대대로. Claude Code도 세션 중 `doc-authoring`을 스킬 목록에 올림. |
+| 2026-10-16 | Verified | Task 2 Step 7 스킬 시험(Codex `codex exec --sandbox read-only`, 이 worktree): (1) 새 ADR → `doc-authoring`, fetch 후 `make new-doc TYPE=adr`, 새 이름 `adr-YYYY-MM-DD-NNNN-<slug>.md`. (2) [doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md) → `doc-authoring`, `make new-doc TYPE=plan`, `status: backlog`(폴더 아님). (3) 근접 오답 → `skill-authoring`. 세 경우 모두 기대대로. Claude Code도 세션 중 `doc-authoring`을 스킬 목록에 올림. |
 | 2026-10-16 | Verified | Task 2 `7927d93`: `make check` exit 0, 201 ok, 0 not ok, 커버리지 94.89%. |
 | 2026-10-16 | Verified | Task 3: RED `make test` exit 2(`create-doc.bats` 세 테스트, 스크립트 없음), GREEN `make check` exit 0, 204 ok, 0 not ok, 커버리지 95.12%(`create-doc.sh` 100%, `docs.sh` 63.27%). macOS(bash 3.2, BSD sed·date)에서 `make new-doc TYPE=research SLUG=plan13-smoke` → 조사 폴더의 `rsch-2026-10-16-plan13-smoke.md`(확인 뒤 지움), `status: snapshot`, `{{date}}`가 날짜로 바뀜, 확인 뒤 지움. |
 | 2026-10-16 | Verified | Task 3 `0d07d32`: `make check` exit 0, 204 ok, 커버리지 95.12%. |
-| 2026-10-16 | Verified | Task 4: RED `make test` exit 2(`Gemini CLI reads AGENTS.md through .gemini/settings.json`만 실패, 크기 검사는 처음부터 통과), GREEN `make check` exit 0, 206 ok, 0 not ok, 커버리지 95.12%. `git fetch origin` 뒤 `make new-doc TYPE=adr SLUG=structure-checks` → `docs/decisions/adr-2026-10-16-0007-structure-checks.md`(번호 0007). `AGENTS.md` 9,080바이트(한도 24,000). `make help`에 `new-doc`. |
+| 2026-10-16 | Verified | Task 4: RED `make test` exit 2(`Gemini CLI reads AGENTS.md through .gemini/settings.json`만 실패, 크기 검사는 처음부터 통과), GREEN `make check` exit 0, 206 ok, 0 not ok, 커버리지 95.12%. `git fetch origin` 뒤 `make new-doc TYPE=adr SLUG=structure-checks` → `docs/decisions/adr-2026-10-16-q36rwq5s-structure-checks.md`(번호 0007). `AGENTS.md` 9,080바이트(한도 24,000). `make help`에 `new-doc`. |
 | 2026-10-16 | Assumption | Gemini CLI가 `.gemini/settings.json`으로 `AGENTS.md`를 읽는다(근거 조사 §1의 설정 문서 기준). Gemini CLI는 이 Mac에 설치돼 있으나 `/memory show` 확인은 대화형이라 사용자 선택으로 남김. |
 | 2026-10-16 | Verified | Task 4 `0f4a05b`: `make check` exit 0, 206 ok, 커버리지 95.12%. |
-| 2026-10-16 | Verified | 최종 리뷰(opus, `16aa61f..0f4a05b`, 정적 읽기): Ready to merge, Critical 0, Important 0, Minor 9. Minor 1~8은 Follow-ups(계획 14)로 넘김. Minor 9(끝낸 Step 미체크, 스펙 5.2)는 이 커밋에서 체크함. 실행자 판정 두 건(승인 시점, Gotchas 문구)에 리뷰어 동의. |
+| 2026-10-16 | Verified | 최종 리뷰(opus, `16aa61f..0f4a05b`, 정적 읽기): Ready to merge, Critical 0, Important 0, Minor 9. Minor 1~8은 Follow-ups([doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md))로 넘김. Minor 9(끝낸 Step 미체크, 스펙 5.2)는 이 커밋에서 체크함. 실행자 판정 두 건(승인 시점, Gotchas 문구)에 리뷰어 동의. |
 | 2026-10-16 | Verified | PR #11 CI(`7771898`): `check` pass, `pr-rules` pass, GitGuardian pass. |
 | 2026-10-16 | Verified | 사용자 결정: 최종 리뷰 Minor를 이 PR에서 고치고 Gemini 확인은 제외. 커밋(`Review-Finding: SDD-final-M<n>`): M1·M8 `d87dcee`(git-workflow의 새 이름 계획 `status` 흐름, Gemini folder trust 안내, PR 템플릿), M3·M6·M7 `fbe5510`(레지스트리 행 예시, `reviewed` 규칙, 리뷰 기록을 `git-workflow`로), M2 `5c3347c`(머리·구분 행 확인, RED: 열을 바꾼 표가 통과 → GREEN), M4 `a328b2f`(템플릿이 있는 타입의 `금지` 거부 테스트, 검사를 빼면 이 테스트만 실패함을 확인), M5 `b97507b`(같은 날 같은 slug의 번호 문서 거부, RED → GREEN, macOS에서 두 번째 실행 거부 확인). 같은 파일에 걸친 지적은 대화형 hunk 스테이징을 쓸 수 없어 파일 단위로 묶음. |
 | 2026-10-16 | Verified | **Verified (공식 문서, 2026-10-16):** Gemini CLI folder trust는 기본으로 꺼져 있고, 켜져 있으면 신뢰하지 않은 폴더의 `.gemini/settings.json`을 읽지 않는다(geminicli.com, Trusted Folders). 이 Mac의 `~/.gemini/settings.json`에는 folder trust 설정이 없다. |

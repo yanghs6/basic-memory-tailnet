@@ -1,11 +1,12 @@
 ---
 status: current
+id: ppmby9v6
 reviewed: 2026-10-14
 ---
 
 # GitHub 운영: 머신 계정, 첫 push, 저장소 설정
 
-정책: [GitHub PR 워크플로 스펙](../specs/spec-2026-10-13-github-pr-workflow.md). 저장소: `https://github.com/yanghs6/basic-memory-tailnet` (공개). 이 런북의 명령은 사용자가 자기 터미널에서 실행합니다. `gh auth login`은 대화형이라 별도 터미널 앱에서 실행합니다.
+정책: [GitHub PR 워크플로 스펙](../specs/spec-2026-10-13-pr762r68-github-pr-workflow.md). 저장소: `https://github.com/yanghs6/basic-memory-tailnet` (공개). 이 런북의 명령은 사용자가 자기 터미널에서 실행합니다. `gh auth login`은 대화형이라 별도 터미널 앱에서 실행합니다.
 
 ## 1. 머신 계정과 토큰
 
@@ -44,7 +45,7 @@ git log -p <ref> | grep -cF '<GCP 프로젝트 ID>'
 - 첫 명령에 걸린 줄이 테스트용 자리표시자인지 하나씩 확인합니다. 예: `127.0.0.1`, `203.0.113.10`, `tail1234.ts.net`, `agent@example.com`, `tskey-auth-test123`.
 - 나머지 명령은 모두 `0`이어야 합니다.
 - **실제 값이 걸리면 push하지 않습니다.** 현재 파일만 고쳐도 과거 커밋에는 값이 남습니다. 공개를 허용할지, 이력을 정리할지를 사용자가 정합니다(스펙 11절). 실제 자격증명이면 공개 여부와 관계없이 폐기하고 교체합니다.
-- `plan/05-vm-rollout`은 push하지 않습니다. 커밋 하나에 VM Tailscale IP가 있습니다. 계획 05는 스펙 11절의 `plan/05-vm-rollout-public` 절차로 공개합니다.
+- `plan/qtvzskgx-vm-rollout`은 push하지 않습니다. 커밋 하나에 VM Tailscale IP가 있습니다. [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)은 스펙 11절의 `plan/qtvzskgx-vm-rollout-public` 절차로 공개합니다.
 
 ## 3. 처음 push
 
@@ -59,7 +60,7 @@ git push -u origin main
 
 ## 4. 저장소 설정과 ruleset
 
-두 번에 나눠 적용합니다. 저장소 설정은 계획 08의 PR을 병합하기 **전에**, ruleset은 병합한 **뒤에** 적용합니다. 저장소 설정 전의 squash 메시지 기본값은 커밋 메시지 목록(`COMMIT_MESSAGES`)이라, 그대로 병합하면 브랜치 커밋 메시지가 `main`에 남습니다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 합니다. 그 전에 걸면 어떤 PR도 병합할 수 없습니다.
+두 번에 나눠 적용합니다. 저장소 설정은 [github-switch 계획](../plans/plan-2026-10-13-k93wjt1a-github-switch.md)의 PR을 병합하기 **전에**, ruleset은 병합한 **뒤에** 적용합니다. 저장소 설정 전의 squash 메시지 기본값은 커밋 메시지 목록(`COMMIT_MESSAGES`)이라, 그대로 병합하면 브랜치 커밋 메시지가 `main`에 남습니다. 필수 체크는 워크플로가 `main`에 들어간 뒤에 걸어야 합니다. 그 전에 걸면 어떤 PR도 병합할 수 없습니다.
 
 ### 4-1. 병합 전: 저장소 설정
 
@@ -120,4 +121,4 @@ ruleset의 우회 목록은 비어 있어서, 사용자도 `main`에 직접 push
 1. Settings → Rules → Rulesets → `main` → Enforcement를 Disabled로 바꿉니다.
 2. 필요한 변경을 합니다.
 3. Enforcement를 Active로 되돌리고, 4절의 확인 명령으로 규칙 5개가 다시 보이는지 확인합니다.
-4. 무엇을 왜 했는지 [운영 런북](rbk-2026-10-12-operations.md)의 Incident log에 적습니다.
+4. 무엇을 왜 했는지 [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 Incident log에 적습니다.

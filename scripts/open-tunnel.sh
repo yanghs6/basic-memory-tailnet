@@ -20,7 +20,7 @@ main() {
   local mcp_port="${BM_TUNNEL_MCP_PORT:-$DEFAULT_TUNNEL_MCP_PORT}" web_port="${BM_TUNNEL_WEB_PORT:-$DEFAULT_TUNNEL_WEB_PORT}"
   mode="$(access_mode)" || exit 1
   [[ "$mode" == ssh ]] \
-    || die "make tunnel is for BM_ACCESS=ssh; in tailscale mode clients use https://<host>.<tailnet>.ts.net/mcp (docs/runbooks/rbk-2026-10-12-operations.md)"
+    || die "make tunnel is for BM_ACCESS=ssh; in tailscale mode clients use https://<host>.<tailnet>.ts.net/mcp (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md)"
   require_vm nc
   require_free_port BM_TUNNEL_MCP_PORT "$mcp_port"
   require_free_port BM_TUNNEL_WEB_PORT "$web_port"

@@ -1,9 +1,10 @@
 ---
 status: backlog
-spec: docs/specs/spec-2026-10-22-web-connector.md
+id: d3dpb00s
+spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 ---
 
-# 25 Web Connector Implementation Plan
+# d3dpb00s Web Connector Implementation Plan
 
 > **For agentic workers:** Task를 순서대로 하나씩 구현한다. 도구가 서브에이전트를 지원하면 Task마다 새 서브에이전트와 리뷰를 쓰고, 아니면 한 세션에서 실행한다. VM이나 클라우드를 바꾸는 Step은 메인 세션에서 사용자와 함께, 단계마다 OK를 받고 한다. Step은 체크박스(`- [ ]`)로 추적한다.
 
@@ -14,13 +15,13 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
 - `cloudflared`(프로필 `tunnel`)가 나가는 연결로 공개 호스트명을 게이트웨이에 잇는다. 프로필은 `COMPOSE_PROFILES`로 켠다(VM은 `.env`, 로컬은 Make).
 - 셸 쪽은 `BM_WEB` 값 검사, `vm_env`, 배포, `verify`, `status`를 늘리고, 새 `scripts/verify-web.sh`가 로컬과 공개 URL의 OAuth 메타데이터를 같은 방식으로 확인한다.
 
-**Spec:** `docs/specs/spec-2026-10-22-web-connector.md` (§3.3 `BM_WEB`, §3.4 게이트웨이, §5 테스트, §7 순서). 결정: `docs/decisions/adr-2026-10-22-0008-web-connector.md`.
+**Spec:** `docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md` (§3.3 `BM_WEB`, §3.4 게이트웨이, §5 테스트, §7 순서). 결정: `docs/decisions/adr-2026-10-22-fcvznmdc-web-connector.md`.
 
-**Sequence:** 계획 25. 다음을 모두 만족한 뒤 시작한다.
+**Sequence:** 다음을 모두 만족한 뒤 시작한다.
 - 이 계획·스펙·ADR을 담은 docs PR이 병합됐다.
-- **Reported (2026-10-23, 감독 세션이 전달한 사용자 결정):** [문서 고유 ID와 초안 보드 설계](../specs/spec-2026-10-23-doc-ids-and-draft-board.md)의 문서 체계 개편이 모든 계획보다 먼저다. Task 1~3(코드 PR)은 그 개편 PR이 병합된 뒤 시작하고, 에이전트 기억 미러의 코드보다 먼저 한다. 개편이 이 계획의 파일 이름, 브랜치 이름(`plan/25-web-connector`), 트레일러(`Plan: 25`)를 새 규칙으로 바꾼다.
-- Task 1~3은 개선 백로그의 계획 18·22·23과 나란히 진행할 수 있다. 나중에 병합하는 쪽이 `git merge origin/main`으로 맞춘다.
-- Task 4는 코드 PR이 병합되고, 스펙 §8의 사용자 준비물(도메인, GitHub 계정과 숫자 id)이 있고, 감독 세션이 시작을 알릴 때 한다. **Reported (2026-10-23, 같은 경로):** VM 작업은 한 번에 하나씩, 계획 21 Task 4 → 이 계획 Task 4 → 에이전트 기억 미러의 VM Task → 계획 07 순서로 한다.
+- **Reported (2026-10-23, 감독 세션이 전달한 사용자 결정):** [문서 고유 ID와 초안 보드 설계](../specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md)의 문서 체계 개편이 모든 계획보다 먼저다. Task 1~3(코드 PR)은 그 개편 PR이 병합된 뒤 시작하고, 에이전트 기억 미러의 코드보다 먼저 한다. 개편이 이 계획의 파일 이름, 브랜치 이름(`plan/d3dpb00s-web-connector`), 트레일러(`Plan: d3dpb00s`)를 새 규칙으로 바꾼다.
+- Task 1~3은 개선 백로그의 [public-text-guard](plan-2026-10-22-v9whrbs6-public-text-guard.md)·[agent-guidance](plan-2026-10-22-x4d2x4eq-agent-guidance.md)·[review-and-local-isolation](plan-2026-10-22-z064dkcv-review-and-local-isolation.md) 계획과 나란히 진행할 수 있다. 나중에 병합하는 쪽이 `git merge origin/main`으로 맞춘다.
+- Task 4는 코드 PR이 병합되고, 스펙 §8의 사용자 준비물(도메인, GitHub 계정과 숫자 id)이 있고, 감독 세션이 시작을 알릴 때 한다. **Reported (2026-10-23, 같은 경로):** VM 작업은 한 번에 하나씩, [recovery-drill 계획](plan-2026-10-22-zw0shxee-recovery-drill.md) Task 4 → 이 계획 Task 4 → 에이전트 기억 미러의 VM Task → [ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md) 순서로 한다.
 
 ## 배경
 
@@ -34,14 +35,14 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
 ## Global Constraints
 
 - 스크립트 규칙(`AGENTS.md` Invariants): `#!/usr/bin/env bash` 다음 줄 `set -euo pipefail`, `scripts/lib/` 라이브러리 source, 고칠 방법을 담은 `die`, macOS bash 3.2, `x="$(fn)"` 뒤 `|| exit 1`, 이름 붙인 상수. 새 스크립트는 `make new-script`로 짝 테스트와 함께 만든다(`script-authoring` 스킬).
-- 테스트를 먼저 쓴다. 범위는 `docs/decisions/adr-2026-10-13-0004-test-scope.md`를 따른다. 기존 bats 테스트는 고치지 않는다(스펙 완료 조건 2).
+- 테스트를 먼저 쓴다. 범위는 `docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md`를 따른다. 기존 bats 테스트는 고치지 않는다(스펙 완료 조건 2).
 - 이미지: `python:<3.12.x>-slim@sha256:<digest>`, `cloudflare/cloudflared:<버전>@sha256:<digest>`. 둘 다 `tests/repo-config.bats:10`의 형식이고, 릴리스 노트를 읽고 고른다.
 - 게이트웨이 값(스펙 §3.4): 허용 목록은 위 18개 그대로, 소유자는 `sub == BM_WEB_GITHUB_USER_ID`(숫자만), `forward_incoming_headers=False`, `allowed_client_redirect_uris=["https://claude.ai/api/mcp/auth_callback"]`, 동의 화면 기본값(켜짐), `cache_ttl_seconds=300`.
 - `cloudflared`는 `tunnel run`과 환경변수 토큰만 쓴다. `--url`과 `trycloudflare`는 어디에도 없다.
 - 웹 서비스의 compose 변수는 `${VAR:-}`만 쓴다. 비밀값 셋(`BM_WEB_GITHUB_CLIENT_SECRET`, `BM_WEB_JWT_KEY`, `BM_WEB_TUNNEL_TOKEN`)은 출력·명령 인자·저장소에 두지 않는다.
 - 스크립트는 `BM_WEB_HOST`와 그 호스트명이 풀리는 IP를 출력하지 않는다. Progress log와 PR에는 `mcp.<domain>` 자리표시자만 쓴다.
 - `BM_WEB`이 없거나 `off`면 Make 타깃의 동작과 출력이 지금과 같다.
-- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: 25`, `Task: <N|review|none>`.
+- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: d3dpb00s`, `Task: <N|review|none>`.
 
 ## Review Focus
 
@@ -68,13 +69,13 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
 | `scripts/deploy-stack.sh`, `scripts/restore-notes.sh` 및 각 bats | 웹 설정 확인, `gateway/` 업로드, 꺼질 때 웹 컨테이너 삭제 | 2 |
 | `scripts/verify-vm.sh`, `scripts/show-status.sh` 및 각 bats | 공개 URL 확인, loopback·공인 포트, 저장소 크기 | 2 |
 | `.env.example` | 웹 변수와 설명 | 2 |
-| `AGENTS.md`, `docs/ARCHITECTURE.md`, `README.md`, 운영 런북, 새 웹 커넥터 런북, `.agents/skills/bm-upgrade/SKILL.md`, ADR 0008 | 규칙과 문서 | 3 |
+| `AGENTS.md`, `docs/ARCHITECTURE.md`, `README.md`, 운영 런북, 새 웹 커넥터 런북, `.agents/skills/bm-upgrade/SKILL.md`, [web-connector ADR](../decisions/adr-2026-10-22-fcvznmdc-web-connector.md) | 규칙과 문서 | 3 |
 
 ---
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/25-web-connector` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/d3dpb00s-web-connector` 브랜치를 만든다(`git-workflow` 스킬의 Start).
 - [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: Gateway, compose services and local verification
@@ -102,7 +103,7 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
 - [ ] **Step 2: 실패하는 스크립트 테스트 작성.** `make new-script NAME=verify-web`으로 `scripts/verify-web.sh`와 `tests/verify-web.bats`를 만든다. curl 스텁 응답은 `tests/fixtures/verify-web/`, `dig` 스텁은 `tests/stubs/dig`에 둔다. 테스트:
   - "passes when the gateway answers 401 with resource_metadata, serves both metadata documents and refuses a foreign redirect URI": 각 검사의 `OK:` 줄을 확인한다.
   - 실패 경우 표(`@test` 하나에 case 반복): 토큰 없는 `POST /mcp`가 200, `WWW-Authenticate`에 `resource_metadata` 없음, 보호 리소스 메타데이터의 `resource`가 `BASE_URL/mcp`가 아님, `code_challenge_methods_supported`에 `S256` 없음, `client_id_metadata_document_supported`가 true가 아님, `token_endpoint_auth_methods_supported`에 `none` 없음, `/register`가 2xx. 모두 실패해야 한다.
-  - "--public fails when the host resolves to a private, CGNAT or loopback address and never prints the host or the addresses": `dig` 스텁이 RFC 1918 주소, CGNAT(`100.64.0.0/10`) 안의 주소, loopback 주소를 돌려줄 때 실패한다. 계획 18의 공개 텍스트 검사는 RFC 1918, link-local, CIDR 표기만 허용하므로, CGNAT 예시는 파일에 낱개 주소로 쓰지 않고 테스트가 실행 중에 `100.64.0.0/10` 안의 주소를 만든다. 공개 주소일 때는 통과한다. 두 경우 모두 출력에 호스트명과 주소가 없다.
+  - "--public fails when the host resolves to a private, CGNAT or loopback address and never prints the host or the addresses": `dig` 스텁이 RFC 1918 주소, CGNAT(`100.64.0.0/10`) 안의 주소, loopback 주소를 돌려줄 때 실패한다. [public-text-guard 계획](plan-2026-10-22-v9whrbs6-public-text-guard.md)의 공개 텍스트 검사는 RFC 1918, link-local, CIDR 표기만 허용하므로, CGNAT 예시는 파일에 낱개 주소로 쓰지 않고 테스트가 실행 중에 `100.64.0.0/10` 안의 주소를 만든다. 공개 주소일 때는 통과한다. 두 경우 모두 출력에 호스트명과 주소가 없다.
 - [ ] **Step 3: 실패하는 Make·라이브러리 테스트 작성.** `tests/lib-vm.bats`에 `web_mode`가 빈 값·`on`·`off`를 받고 `On`·`yes`를 거절하는 테스트를 더한다. `tests/repo-make.bats`에 새 테스트 하나를 더한다. "make local-up with BM_WEB=on hands COMPOSE_PROFILES=web to compose and runs the same compose command": docker 스텁이 받은 환경을 기록하게 하고, `COMPOSE_PROFILES=web`과 `docker compose -f compose.yaml up -d --wait` 줄을 확인한다. `BM_WEB=yes`면 compose 호출 전에 `BM_WEB must be on or off`로 실패한다. 기존 `:55` 테스트는 그대로 통과해야 한다.
 - [ ] **Step 4: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패한다(서비스·파일·스크립트·Make 처리 없음).
 - [ ] **Step 5: 게이트웨이 동작 테스트 작성(`gateway/test_gateway.py`, `unittest.IsolatedAsyncioTestCase`).** 가짜 백엔드는 21개 도구와 `new_tool`을 가진 FastMCP 서버다. 받은 요청 헤더와 호출된 도구 이름을 기록하며, 같은 프로세스의 uvicorn 스레드에서 빈 포트로 띄운다. 인증은 `StaticTokenVerifier`로 `owner`(sub `"4242"`), `other`(sub `"5151"`), `no-sub`, `login-sub`(sub `"octocat"`) 토큰을 만든다. 게이트웨이는 `build_gateway(settings, auth=verifier)`로 조립한다.
@@ -131,9 +132,9 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
 - [ ] **Step 8: 통과 확인.**
   - Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
   - Run: `.env`에 `BM_WEB=on`과 가짜 GitHub 값(`BM_WEB_GITHUB_USER_ID=4242`, client id·secret 아무 값, `BM_WEB_JWT_KEY=$(openssl rand -hex 32)`)을 넣고 `make local-up local-verify local-down`. 사용자가 main checkout `.env`에 직접 넣는다. Expected: `verify-web.sh`의 `OK:` 넷, `unittest`의 `OK`, 기존 MCP·SilverBullet 검사 통과. 결과를 Progress log에 `Verified`로 적는다.
-  - Run: `BM_WEB` 줄을 지우고 `make local-up local-verify local-down`. Expected: 출력과 컨테이너가 계획 25 전과 같다(`gateway` 없음).
+  - Run: `BM_WEB` 줄을 지우고 `make local-up local-verify local-down`. Expected: 출력과 컨테이너가 web-connector 계획 전과 같다(`gateway` 없음).
   - `docker stats --no-stream`의 게이트웨이 메모리를 Progress log에 적는다.
-- [ ] **Step 9: 커밋.** `git commit -m "feat: add the OAuth gateway and tunnel services for the claude.ai web connector" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 25" --trailer "Task: 1"`
+- [ ] **Step 9: 커밋.** `git commit -m "feat: add the OAuth gateway and tunnel services for the claude.ai web connector" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: d3dpb00s" --trailer "Task: 1"`
 
 ### Task 2: BM_WEB on the VM: settings, deploy, restore, verify and status
 
@@ -173,12 +174,12 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
   - `show-status.sh`: `on`이면 `gateway_store_summary -> "<KiB> <registrations>"`를 한 번의 `remote`로 읽어 한 줄로 알린다. 컨테이너 목록은 VM `.env`의 프로필로 기존 `ps`에 함께 나온다.
   - `.env.example`: 스펙 §3.3의 표 순서로 변수와 한 줄 설명을 쓴다. 비밀값은 빈 값으로 두고 만드는 명령을 주석으로 단다.
 - [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋.** `git commit -m "feat: deploy, verify and report the web connector behind BM_WEB" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 25" --trailer "Task: 2"`
+- [ ] **Step 5: 커밋.** `git commit -m "feat: deploy, verify and report the web connector behind BM_WEB" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: d3dpb00s" --trailer "Task: 2"`
 
 ### Task 3: Rules and documents
 
 **Files:**
-- Modify: `AGENTS.md:13`, `:22`, `docs/ARCHITECTURE.md`(스펙 §3.6의 네 곳), `README.md`, `docs/runbooks/rbk-2026-10-12-operations.md`(Exposure audit), `.agents/skills/bm-upgrade/SKILL.md`, `docs/decisions/adr-2026-10-22-0008-web-connector.md`(front matter)
+- Modify: `AGENTS.md:13`, `:22`, `docs/ARCHITECTURE.md`(스펙 §3.6의 네 곳), `README.md`, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`(Exposure audit), `.agents/skills/bm-upgrade/SKILL.md`, `docs/decisions/adr-2026-10-22-fcvznmdc-web-connector.md`(front matter)
 - Create: 새 런북(`make new-doc TYPE=runbook SLUG=web-connector`)
 
 **Interfaces:**
@@ -196,9 +197,9 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
   - 운영 런북 Exposure audit: 공개 호스트명 하나, OAuth App 콜백, 커넥터 목록, 저장소 크기·등록 수를 더한다.
   - `bm-upgrade` 스킬(`skill-authoring` 스킬로 편집): 업그레이드 뒤 `tools/list`와 `ALLOWED_TOOLS`를 비교하고, `BM_WEB=on`이면 `make verify`의 웹 검사를 확인한다.
   - ARCHITECTURE·README: 스펙 §3.6.
-  - ADR 0008: `status: accepted`, `date`를 그날로.
+  - [web-connector ADR](../decisions/adr-2026-10-22-fcvznmdc-web-connector.md): `status: accepted`, `date`를 그날로.
 - [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0. 문서 링크·경로 테스트(`tests/repo-docs.bats:100`) 통과.
-- [ ] **Step 5: 커밋.** `git commit -m "docs: document the web connector and redefine the public ingress invariant" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 25" --trailer "Task: 3"`
+- [ ] **Step 5: 커밋.** `git commit -m "docs: document the web connector and redefine the public ingress invariant" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: d3dpb00s" --trailer "Task: 3"`
 
 ### Code PR: review and merge
 
@@ -209,7 +210,7 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
 ### Task 4: VM rollout and claude.ai check (with the user, OK at every step)
 
 **Files:**
-- Modify: 이 계획(Progress log, `status`), `docs/decisions/adr-2026-10-22-0008-web-connector.md`(이전 결과 절)
+- Modify: 이 계획(Progress log, `status`), `docs/decisions/adr-2026-10-22-fcvznmdc-web-connector.md`(이전 결과 절)
 
 - [ ] **Step 1: 준비 확인.** 런북의 준비 절을 사용자가 마쳤는지, main checkout `.env`에 웹 값이 있는지 확인한다. 값을 대화로 받지 않는다. `make status`로 현재 메모리·스왑을 적는다.
 - [ ] **Step 2: 백업.** `make backup`. 결과 파일 이름을 Progress log에 적는다.
@@ -223,13 +224,13 @@ spec: docs/specs/spec-2026-10-22-web-connector.md
   - `make tunnel`을 거친 Claude Code로 그 노트를 지운다.
   - `make logs`의 감사 줄에 세 호출이 있는지 본다.
 - [ ] **Step 7: 24시간 관찰.** 다음 날 `make status`(메모리, 스왑, 저장소 크기)와 `make logs`의 감사 줄 `ms` 중앙값을 적는다. OOM이 있었거나 스왑이 가득 찼으면 `BM_WEB=off`로 배포하고(OK) 스펙 §6대로 사용자와 다시 정한다. 읽기 중앙값이 500 ms를 넘으면 Follow-ups에 적는다.
-- [ ] **Step 8: 결과 PR.** ADR 0008에 "이전 결과" 절을 더하고, 이 계획의 `status`를 `completed`로 바꿔 `work/web-connector-rollout` 브랜치에서 커밋·push하고 PR을 연다(`Task: 4`). 호스트명과 IP는 쓰지 않는다.
+- [ ] **Step 8: 결과 PR.** [web-connector ADR](../decisions/adr-2026-10-22-fcvznmdc-web-connector.md)에 "이전 결과" 절을 더하고, 이 계획의 `status`를 `completed`로 바꿔 `work/web-connector-rollout` 브랜치에서 커밋·push하고 PR을 연다(`Task: 4`). 호스트명과 IP는 쓰지 않는다.
 
 ## Follow-ups
 
 - ChatGPT 연결은 별도 스펙으로 다룬다(스펙 §1 범위 밖).
 - 읽기 지연 중앙값이 500 ms를 넘으면, 백엔드 연결을 재사용하는 클라이언트로 바꾸는 work 브랜치를 만든다(스펙 §3.4).
-- 개선 백로그의 계획 19 Task 4와 계획 20은 이 계획이 바꾼 `AGENTS.md:13`과 신뢰 경계를 기준으로 쓴다(그 계획들의 몫).
+- 개선 백로그의 [invariant-enforcement 계획](plan-2026-10-22-m97w7hqe-invariant-enforcement.md) Task 4와 [agent-sandbox 계획](plan-2026-10-22-k3bd8k47-agent-sandbox.md)은 이 계획이 바꾼 `AGENTS.md:13`과 신뢰 경계를 기준으로 쓴다(그 계획들의 몫).
 
 ## Progress log
 

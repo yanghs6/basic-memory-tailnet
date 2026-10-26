@@ -1,9 +1,10 @@
 ---
 status: completed
-spec: docs/specs/spec-2026-10-15-doc-system.md
+id: pqffvttt
+spec: docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md
 ---
 
-# 14 Doc Rename And Checks Implementation Plan
+# pqffvttt Doc Rename And Checks Implementation Plan
 
 > **For agentic workers:** Task를 순서대로 하나씩 구현한다. 도구가 서브에이전트를 지원하면 Task마다 새 서브에이전트와 리뷰를 쓰고, 아니면 한 세션에서 실행한다. VM이나 클라우드를 바꾸는 Step은 없다. `AGENTS.md`는 시작 절에서 사용자가 승인한 문구로만 고친다. Step은 체크박스(`- [ ]`)로 추적한다.
 
@@ -12,14 +13,14 @@ spec: docs/specs/spec-2026-10-15-doc-system.md
 **Architecture:**
 - 이름 변경은 손으로 하지 않는다. 시작 시점의 `main`에서 옛 경로 → 새 경로 표를 스크립트로 만들고, `git mv`와 참조 고치기(perl)를 그 표로 한 번에 한다. 스크립트는 저장소 밖 scratch 폴더에 두고 커밋하지 않는다.
 - 참조 고치기는 옛 파일 이름(basename)을 앞이 파일 이름 글자가 아닌 곳에서만 바꾼다. 그래서 `docs/runbooks/…` 경로, 같은 폴더의 상대 링크, 백틱 안의 이름이 모두 바뀌고, 두 번 돌려도 결과가 같다. `docs/` 아래 Markdown의 코드 블록은 그때의 명령·출력 기록이므로 바꾸지 않는다.
-- 검사는 `scripts/lib/docs.sh`의 `doc_types`로 레지스트리를 읽어 반복문으로 한다(ADR 0007). 계획 13의 파서를 그대로 쓴다.
+- 검사는 `scripts/lib/docs.sh`의 `doc_types`로 레지스트리를 읽어 반복문으로 한다([structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md)). [doc-system-foundation 계획](plan-2026-10-16-wyz3h870-doc-system-foundation.md)의 파서를 그대로 쓴다.
 - Task 1은 이름과 경로, Task 2는 front matter, Task 3은 문장(생애 주기와 D4)이다. 각 Task가 끝날 때 `make check`가 통과한다.
 
-**Spec:** `docs/specs/spec-2026-10-15-doc-system.md` (특히 §3.1, §4, §6.3, §6.4, §8.3, §9, §10)
+**Spec:** `docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md` (특히 §3.1, §4, §6.3, §6.4, §8.3, §9, §10)
 
-**Sequence:** 계획 14. 다음을 모두 만족한 뒤 시작한다.
-- 계획 13(PR #11, `03432a1`)이 병합됐다(충족).
-- 계획 12의 결과 PR(#12, `4cedf49`)이 병합됐다(충족). 그 PR이 고친 계획 12 파일, ADR 0006, 접속 방식 설계, 런북을 이 계획이 옮긴다.
+**Sequence:** 다음을 모두 만족한 뒤 시작한다.
+- [doc-system-foundation 계획](plan-2026-10-16-wyz3h870-doc-system-foundation.md)(PR #11, `03432a1`)이 병합됐다(충족).
+- [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md)의 결과 PR(#12, `4cedf49`)이 병합됐다(충족). 그 PR이 고친 access-modes 계획 파일, [access-modes ADR](../decisions/adr-2026-10-15-cz8c26gp-access-modes.md), 접속 방식 설계, 런북을 이 계획이 옮긴다.
 - 열린 PR #10(`work/docker-log-rotation`)은 `docs/ARCHITECTURE.md`와 `tests/repo.bats`를 고친다. 이 계획도 두 파일을 고치므로(front matter, 옮기는 경로 검사), 나중에 병합되는 쪽이 `git merge origin/main`으로 충돌을 푼다. 리베이스하지 않는다.
 
 ## Global Constraints
@@ -29,14 +30,14 @@ spec: docs/specs/spec-2026-10-15-doc-system.md
 - 바꾸지 않는 것(스펙 §9): 증거(명령, 출력, SHA, 날짜, 측정값), ADR의 결정 문장, 스펙의 사용자 결정, 완료 계획의 체크박스, 계획 본문에 복사된 파일 내용(코드 블록), 기록 문서 속 옛 스크립트 이름, 이름이나 번호로 인용되는 런북 제목(스펙 §5.4). 리뷰 기록은 이름과 `status: final`만 바꾼다.
 - 경로를 고칠 때: 옮긴 문서는 새 경로로, 지워진 문서는 경로 대신 말로 풀어 쓴다(스펙 §9). 다른 저장소의 파일은 저장소 이름을 앞에 붙여 이 저장소 경로와 구별한다.
 - `AGENTS.md`는 시작 절에서 사용자가 승인한 문구로만 고친다.
-- 검사 테스트는 문구를 되풀이하지 않는다(ADR 0004, 0007). 레지스트리를 읽어 반복문으로 확인하고, 실패 메시지는 파일, 어긋난 값, 고칠 곳을 함께 출력한다.
-- 테스트는 `make test`/`make check`로만 돌린다. `git add`하기 전에 `git status`를 본다. 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: 14`, `Task: <N|review|none>`.
-- PR: 브랜치 `plan/14-doc-rename-and-checks`, 제목 `refactor: rename every document to the registry rules and check them`, 본문 마지막 문단은 `Assisted-by`와 `Plan: 14`다.
+- 검사 테스트는 문구를 되풀이하지 않는다([test-scope](../decisions/adr-2026-10-13-a878ypj5-test-scope.md), [structure-checks](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md) ADR). 레지스트리를 읽어 반복문으로 확인하고, 실패 메시지는 파일, 어긋난 값, 고칠 곳을 함께 출력한다.
+- 테스트는 `make test`/`make check`로만 돌린다. `git add`하기 전에 `git status`를 본다. 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: pqffvttt`, `Task: <N|review|none>`.
+- PR: 브랜치 `plan/pqffvttt-doc-rename-and-checks`, 제목 `refactor: rename every document to the registry rules and check them`, 본문 마지막 문단은 `Assisted-by`와 `Plan: pqffvttt`다.
 
 ## Review Focus
 
 1. **이름을 바꾼 문서를 가리키던 참조가 남음.** 경로가 아니라 이름만 쓴 곳(같은 폴더 상대 링크, 백틱 속 파일 이름, 스크립트 메시지의 런북 경로)도 있다. → Task 1 Step 1의 경로 검사가 추적 중인 모든 Markdown(코드 블록 밖)과 `scripts/`, 스킬, `AGENTS.md`를 보고, 기존 상대 링크 검사와 bats의 스크립트 메시지 단언이 나머지를 잡는다.
-2. **계획을 한 단계 위 폴더로 옮기면서 깨지는 상대 링크.** 계획 12의 `../../runbooks/…` 링크가 그렇다. → Task 1 Step 3의 perl이 옮긴 계획 파일의 `](../../`를 `](../`로 고치고, 상대 링크 검사가 확인한다.
+2. **계획을 한 단계 위 폴더로 옮기면서 깨지는 상대 링크.** [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md)의 `../../runbooks/…` 링크가 그렇다. → Task 1 Step 3의 perl이 옮긴 계획 파일의 `](../../`를 `](../`로 고치고, 상대 링크 검사가 확인한다.
 3. **URL이나 다른 저장소 경로를 이 저장소 경로로 오인함.** `code.claude.com/docs/…`, `design-docs/index.md`, SilverBullet 저장소의 `docs/API/…`. → Task 1 Step 1 검사의 앞 글자 규칙(앞이 경로 글자면 건너뜀)과 Step 4의 저장소 이름 붙이기.
 4. **기록을 바꿈.** 참조 고치기가 코드 블록 속 명령이나 Progress log의 SHA를 건드리면 기록이 사실과 달라진다. → perl은 `docs/` 아래 Markdown의 코드 블록을 건너뛰고, Step 5에서 바뀐 것이 경로와 Step 4의 손 수정뿐인지 본다.
 5. **front matter 값이 사실과 다름.** 대체 관계, 상태 날짜, 계획의 근거 스펙. → Task 2 Step 3의 표가 각 값의 근거(머리 줄, 병합일)를 적고, 검사 3이 경로 존재와 허용 값을 확인한다.
@@ -55,7 +56,7 @@ spec: docs/specs/spec-2026-10-15-doc-system.md
 
 ### 시작: 브랜치, `AGENTS.md` 문구 승인, 초안 PR
 
-- [x] `git fetch origin` 뒤 `origin/main`에서 `plan/14-doc-rename-and-checks` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] `git fetch origin` 뒤 `origin/main`에서 `plan/pqffvttt-doc-rename-and-checks` 브랜치를 만든다(`git-workflow` 스킬의 Start).
 - [x] 사용자 OK: `AGENTS.md`에서 바뀌는 곳을 보여 승인받고 Progress log에 `Verified`로 적는다. (a) Task 1이 바꾸는 문서 경로: 4행(Read first), 30행(`## Git`의 정책 경로), 54행(GitHub 런북). (b) Task 3 Step 1의 문구: 5·41·49·60행.
 - [x] 첫 커밋에서 이 계획 파일의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
@@ -79,7 +80,7 @@ spec: docs/specs/spec-2026-10-15-doc-system.md
 load helpers
 
 # Document structure checks: location, file name and front matter only, read from the registry in docs/README.md
-# (doc system spec section 8.3). ADR 0007 allows these checks; ADR 0004 still bans checks on wording.
+# (doc system spec section 8.3). The structure-checks ADR allows these checks; the test-scope ADR still bans checks on wording.
 
 # Files under docs/ that keep their names and belong to no type (spec section 3.1).
 SINGLE_FILES="docs/README.md docs/ARCHITECTURE.md docs/reviews/README.md"
@@ -284,50 +285,50 @@ git grep -lIF -f "$S/old-names.txt" | xargs perl "$S/rewrite-doc-refs.pl" "$S/re
 2026-10-16에 `main` `4cedf49`에서 만든 표다. 시작할 때 다시 만들고 같은지 본다.
 
 ```text
-docs/decisions/0001-basic-memory-on-gcp-tailscale.md	docs/decisions/adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md
-docs/decisions/0002-vm-sizing.md	docs/decisions/adr-2026-10-12-0002-vm-sizing.md
-docs/decisions/0003-skill-structure.md	docs/decisions/adr-2026-10-13-0003-skill-structure.md
-docs/decisions/0004-test-scope.md	docs/decisions/adr-2026-10-13-0004-test-scope.md
-docs/decisions/0005-web-ui-silverbullet.md	docs/decisions/adr-2026-10-15-0005-web-ui-silverbullet.md
-docs/decisions/0006-access-modes.md	docs/decisions/adr-2026-10-15-0006-access-modes.md
-docs/plans/backlog/2026-10-13-07-ipv6-egress.md	docs/plans/plan-2026-10-13-07-ipv6-egress.md
-docs/plans/completed/2026-10-07-01-local-foundation.md	docs/plans/plan-2026-10-07-01-local-foundation.md
-docs/plans/completed/2026-10-07-02-git-review-tooling.md	docs/plans/plan-2026-10-07-02-git-review-tooling.md
-docs/plans/completed/2026-10-07-03-vm-scripts.md	docs/plans/plan-2026-10-07-03-vm-scripts.md
-docs/plans/completed/2026-10-07-04-docs-skills.md	docs/plans/plan-2026-10-07-04-docs-skills.md
-docs/plans/completed/2026-10-07-05-vm-rollout.md	docs/plans/plan-2026-10-07-05-vm-rollout.md
-docs/plans/completed/2026-10-13-06-test-pruning.md	docs/plans/plan-2026-10-13-06-test-pruning.md
-docs/plans/completed/2026-10-13-08-github-switch.md	docs/plans/plan-2026-10-13-08-github-switch.md
-docs/plans/completed/2026-10-13-09-review-posting.md	docs/plans/plan-2026-10-13-09-review-posting.md
-docs/plans/completed/2026-10-14-10-web-ui-local.md	docs/plans/plan-2026-10-14-10-web-ui-local.md
-docs/plans/completed/2026-10-14-11-web-ui-vm-rollout.md	docs/plans/plan-2026-10-14-11-web-ui-vm-rollout.md
-docs/plans/completed/2026-10-15-12-access-modes.md	docs/plans/plan-2026-10-15-12-access-modes.md
-docs/plans/completed/2026-10-16-13-doc-system-foundation.md	docs/plans/plan-2026-10-16-13-doc-system-foundation.md
-docs/research/2026-10-13-agent-oss-git-strategies.md	docs/research/rsch-2026-10-13-agent-oss-git-strategies.md
-docs/research/2026-10-15-agent-repo-conventions.md	docs/research/rsch-2026-10-15-agent-repo-conventions.md
-docs/reviews/plan-01-local-foundation.md	docs/reviews/rev-2026-10-07-plan-01-local-foundation.md
-docs/reviews/plan-02-git-review-tooling.md	docs/reviews/rev-2026-10-08-plan-02-git-review-tooling.md
-docs/reviews/plan-03-vm-scripts.md	docs/reviews/rev-2026-10-08-plan-03-vm-scripts.md
-docs/reviews/plan-04-docs-skills.md	docs/reviews/rev-2026-10-12-plan-04-docs-skills.md
-docs/reviews/plan-06-test-pruning.md	docs/reviews/rev-2026-10-13-plan-06-test-pruning.md
-docs/reviews/work-backup-skip-model-cache.md	docs/reviews/rev-2026-10-13-work-backup-skip-model-cache.md
-docs/reviews/work-rename-agent-hub.md	docs/reviews/rev-2026-10-12-work-rename-agent-hub.md
-docs/reviews/work-skill-best-practices.md	docs/reviews/rev-2026-10-13-work-skill-best-practices.md
-docs/reviews/work-slow-start-health.md	docs/reviews/rev-2026-10-13-work-slow-start-health.md
-docs/reviews/work-workflow-alignment.md	docs/reviews/rev-2026-10-13-work-workflow-alignment.md
-docs/runbooks/accounts.md	docs/runbooks/rbk-2026-10-12-accounts.md
-docs/runbooks/bootstrap.md	docs/runbooks/rbk-2026-10-12-bootstrap.md
-docs/runbooks/gcp-vm.md	docs/runbooks/rbk-2026-10-12-gcp-vm.md
-docs/runbooks/github.md	docs/runbooks/rbk-2026-10-14-github.md
-docs/runbooks/operations.md	docs/runbooks/rbk-2026-10-12-operations.md
-docs/specs/2026-10-07-basic-memory-oci-tailscale-design.md	docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md
-docs/specs/2026-10-07-git-review-policy-design.md	docs/specs/spec-2026-10-07-git-review-policy.md
-docs/specs/2026-10-12-basic-memory-gcp-tailscale-design.md	docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md
-docs/specs/2026-10-13-github-pr-workflow-design.md	docs/specs/spec-2026-10-13-github-pr-workflow.md
-docs/specs/2026-10-14-silverbullet-web-ui-design.md	docs/specs/spec-2026-10-14-silverbullet-web-ui.md
-docs/specs/2026-10-15-access-modes-design.md	docs/specs/spec-2026-10-15-access-modes.md
-docs/specs/2026-10-15-doc-system-design.md	docs/specs/spec-2026-10-15-doc-system.md
-docs/specs/2026-10-15-script-test-layout-design.md	docs/specs/spec-2026-10-15-script-test-layout.md
+docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md	docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md
+docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md	docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md
+docs/decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md	docs/decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md
+docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md	docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md
+docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md	docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md
+docs/decisions/adr-2026-10-15-cz8c26gp-access-modes.md	docs/decisions/adr-2026-10-15-cz8c26gp-access-modes.md
+docs/plans/plan-2026-10-13-gaewewkf-ipv6-egress.md	docs/plans/plan-2026-10-13-gaewewkf-ipv6-egress.md
+docs/plans/plan-2026-10-07-sqzn0teq-local-foundation.md	docs/plans/plan-2026-10-07-sqzn0teq-local-foundation.md
+docs/plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md	docs/plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md
+docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md	docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md
+docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md	docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md
+docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md	docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md
+docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md	docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md
+docs/plans/plan-2026-10-13-k93wjt1a-github-switch.md	docs/plans/plan-2026-10-13-k93wjt1a-github-switch.md
+docs/plans/plan-2026-10-13-znbc3ase-review-posting.md	docs/plans/plan-2026-10-13-znbc3ase-review-posting.md
+docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md	docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md
+docs/plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md	docs/plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md
+docs/plans/plan-2026-10-15-ctv444ep-access-modes.md	docs/plans/plan-2026-10-15-ctv444ep-access-modes.md
+docs/plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md	docs/plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md
+docs/research/rsch-2026-10-13-djx2fzm5-agent-oss-git-strategies.md	docs/research/rsch-2026-10-13-djx2fzm5-agent-oss-git-strategies.md
+docs/research/rsch-2026-10-15-f20fshxg-agent-repo-conventions.md	docs/research/rsch-2026-10-15-f20fshxg-agent-repo-conventions.md
+docs/reviews/rev-2026-10-07-bwvfm8bx-local-foundation.md	docs/reviews/rev-2026-10-07-bwvfm8bx-local-foundation.md
+docs/reviews/rev-2026-10-08-tscgvpsz-git-review-tooling.md	docs/reviews/rev-2026-10-08-tscgvpsz-git-review-tooling.md
+docs/reviews/rev-2026-10-08-ejeb10qw-vm-scripts.md	docs/reviews/rev-2026-10-08-ejeb10qw-vm-scripts.md
+docs/reviews/rev-2026-10-12-aqhzgwq1-docs-skills.md	docs/reviews/rev-2026-10-12-aqhzgwq1-docs-skills.md
+docs/reviews/rev-2026-10-13-g6358b35-test-pruning.md	docs/reviews/rev-2026-10-13-g6358b35-test-pruning.md
+docs/reviews/rev-2026-10-13-agxyktrn-work-backup-skip-model-cache.md	docs/reviews/rev-2026-10-13-agxyktrn-work-backup-skip-model-cache.md
+docs/reviews/rev-2026-10-12-qyfzj5ht-work-rename-agent-hub.md	docs/reviews/rev-2026-10-12-qyfzj5ht-work-rename-agent-hub.md
+docs/reviews/rev-2026-10-13-ycht90mr-work-skill-best-practices.md	docs/reviews/rev-2026-10-13-ycht90mr-work-skill-best-practices.md
+docs/reviews/rev-2026-10-13-af5vkb8q-work-slow-start-health.md	docs/reviews/rev-2026-10-13-af5vkb8q-work-slow-start-health.md
+docs/reviews/rev-2026-10-13-aqjax47t-work-workflow-alignment.md	docs/reviews/rev-2026-10-13-aqjax47t-work-workflow-alignment.md
+docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md	docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md
+docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md	docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md
+docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md	docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md
+docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md	docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md
+docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md	docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md
+docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md	docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md
+docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md	docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md
+docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md	docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
+docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md	docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
+docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md	docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md
+docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md	docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md
+docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md	docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md
+docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md	docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 ```
 
 - [x] **Step 4: 남은 경로 고치기**
@@ -337,11 +338,11 @@ Expected: 이름 검사는 통과하고, 경로 검사에 이름 변경으로 �
 
 | 파일(새 이름) | 경로 | 고치는 방법 |
 |---|---|---|
-| `docs/plans/plan-2026-10-07-04-docs-skills.md` | OCI 시절 ADR 0001, OCI VM 런북 | 지워진 문서다. 경로를 "OCI 시절의 ADR 0001(계획 04에서 지움)", "OCI VM 런북(계획 04에서 지움)"처럼 풀어 쓴다 |
-| `docs/plans/plan-2026-10-07-05-vm-rollout.md` | 계획 05 리뷰 기록 파일 | 만들어지지 않은 파일이다. "계획 05의 리뷰 기록(PR 댓글)"으로 풀어 쓴다 |
-| `docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md` | OCI VM 런북 | "OCI VM 런북(계획 04에서 지움)"으로 풀어 쓴다 |
-| `docs/plans/plan-2026-10-16-13-doc-system-foundation.md` | 테스트 예시 `2026-10-01-draft.md`, 지운 확인용 조사 문서 | 경로 앞의 폴더를 떼고 "ADR 폴더의 `2026-10-01-draft.md`", "확인 뒤 지운 `rsch-2026-10-16-plan13-smoke.md`"로 쓴다 |
-| `docs/specs/spec-2026-10-14-silverbullet-web-ui.md` | SilverBullet 저장소의 `API/view.md`, `API/widget.md`(그 저장소의 docs 폴더) | 다른 저장소 파일이다. `silverbullet/docs/API/view.md:39-58`처럼 저장소 이름을 앞에 붙인다 |
+| `docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md` | OCI 시절 basic-memory-on-oci-tailscale ADR, OCI VM 런북 | 지워진 문서다. 경로를 "OCI 시절의 basic-memory-on-oci-tailscale ADR([docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md)에서 지움)", "OCI VM 런북(docs-skills 계획에서 지움)"처럼 풀어 쓴다 |
+| `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md` | [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) 리뷰 기록 파일 | 만들어지지 않은 파일이다. "vm-rollout 계획의 리뷰 기록(PR 댓글)"으로 풀어 쓴다 |
+| `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md` | OCI VM 런북 | "OCI VM 런북([docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md)에서 지움)"으로 풀어 쓴다 |
+| `docs/plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md` | 테스트 예시 `2026-10-01-draft.md`, 지운 확인용 조사 문서 | 경로 앞의 폴더를 떼고 "ADR 폴더의 `2026-10-01-draft.md`", "확인 뒤 지운 `rsch-2026-10-16-plan13-smoke.md`"로 쓴다 |
+| `docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md` | SilverBullet 저장소의 `API/view.md`, `API/widget.md`(그 저장소의 docs 폴더) | 다른 저장소 파일이다. `silverbullet/docs/API/view.md:39-58`처럼 저장소 이름을 앞에 붙인다 |
 
 새로 나오는 경로도 같은 규칙으로 고친다. 고친 내용을 Progress log에 적는다.
 
@@ -362,7 +363,7 @@ Expected: 경로가 아닌 낱말이 바뀐 줄은 Step 4에서 손으로 고친
 git status --short
 git add -A docs tests/repo-docs.bats
 git add -u
-git commit -m "refactor: rename every document to the registry rules and fix references" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 14" --trailer "Task: 1"
+git commit -m "refactor: rename every document to the registry rules and fix references" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: pqffvttt" --trailer "Task: 1"
 git push
 ```
 
@@ -461,7 +462,7 @@ front_problems() {
 - [x] **Step 2: 실패 확인**
 
 Run: `make test`
-Expected: front matter 검사가 계획 13·14와 ADR 0007을 뺀 모든 타입 문서와 ARCHITECTURE를 "no front matter"로 들며 실패한다. `{{` 검사는 통과한다(계획 13의 템플릿 내용은 코드 블록 안이다).
+Expected: front matter 검사가 [doc-system-foundation](plan-2026-10-16-wyz3h870-doc-system-foundation.md)·doc-rename-and-checks 계획과 [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md)을 뺀 모든 타입 문서와 ARCHITECTURE를 "no front matter"로 들며 실패한다. `{{` 검사는 통과한다(doc-system-foundation 계획의 템플릿 내용은 코드 블록 안이다).
 
 - [x] **Step 3: front matter 달기**
 
@@ -469,44 +470,44 @@ Expected: front matter 검사가 계획 13·14와 ADR 0007을 뺀 모든 타입 
 
 | 파일 | status | date / reviewed | 그 밖의 키 | 근거 |
 |---|---|---|---|---|
-| `docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md` | superseded | date 2026-10-12 | superseded-by: `docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md` | 머리 줄 "대체됨 (2026-10-12)" |
-| `docs/specs/spec-2026-10-07-git-review-policy.md` | approved | date 2026-10-07 | amended-by: `docs/specs/spec-2026-10-13-github-pr-workflow.md` | "승인됨 (2026-10-07)", "부분 대체 (2026-10-13)" |
-| `docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md` | approved | date 2026-10-12 | amended-by: `[docs/specs/spec-2026-10-15-access-modes.md, docs/specs/spec-2026-10-15-doc-system.md]` | 접속 방식 설계가 "tailnet 안에서만" 전제를 넓힘, 문서 체계 설계가 §5 문서 배치를 대체 |
-| `docs/specs/spec-2026-10-13-github-pr-workflow.md` | approved | date 2026-10-13 | | "승인됨 (2026-10-13)" |
-| `docs/specs/spec-2026-10-14-silverbullet-web-ui.md` | approved | date 2026-10-14 | amended-by: `docs/specs/spec-2026-10-15-access-modes.md` | 접속 방식 설계가 웹 UI 노출 방식을 맞춤 |
-| `docs/specs/spec-2026-10-15-access-modes.md` | approved | date 2026-10-15 | | PR #7 병합(2026-10-15). 머리 줄의 "초안"은 낡은 표기 |
-| `docs/specs/spec-2026-10-15-doc-system.md` | approved | date 2026-10-16 | | "승인 (2026-10-16)" |
-| `docs/specs/spec-2026-10-15-script-test-layout.md` | approved | date 2026-10-16 | | "승인 (2026-10-16)" |
-| `docs/decisions/adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md` | accepted | date 2026-10-12 | | "Accepted (2026-10-12)" |
-| `docs/decisions/adr-2026-10-12-0002-vm-sizing.md` | accepted | date 2026-10-14 | | "Accepted (2026-10-14)" |
-| `docs/decisions/adr-2026-10-13-0003-skill-structure.md` | accepted | date 2026-10-13 | | |
-| `docs/decisions/adr-2026-10-13-0004-test-scope.md` | accepted | date 2026-10-13 | amended-by: `docs/decisions/adr-2026-10-16-0007-structure-checks.md` | 머리의 "일부 대체" 줄을 이 키로 옮기고 지운다 |
-| `docs/decisions/adr-2026-10-15-0005-web-ui-silverbullet.md` | accepted | date 2026-10-14 | | "Accepted (2026-10-14)" |
-| `docs/decisions/adr-2026-10-15-0006-access-modes.md` | accepted | date 2026-10-15 | | 머리 줄의 "계획 12 병합일" 자리를 PR #8 병합일(2026-10-15)로 |
-| 계획 01, 02, 03 | completed | | spec: `docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md`(02는 `docs/specs/spec-2026-10-07-git-review-policy.md`) | 각 계획의 Spec 줄의 첫 경로 |
-| 계획 04, 05 | completed | | spec: `docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md` | |
-| 계획 06 | completed | | spec: none | "별도 스펙 없음" |
-| 계획 07 | backlog | | spec: none | 아직 스펙 없음 |
-| 계획 08, 09 | completed | | spec: `docs/specs/spec-2026-10-13-github-pr-workflow.md` | |
-| 계획 10, 11 | completed | | spec: `docs/specs/spec-2026-10-14-silverbullet-web-ui.md` | |
-| 계획 12 | completed | | spec: `docs/specs/spec-2026-10-15-access-modes.md` | |
-| 계획 13 | completed | | spec: `docs/specs/spec-2026-10-15-doc-system.md` | 이미 front matter가 있다. `status`만 확인한다 |
+| `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md` | superseded | date 2026-10-12 | superseded-by: `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md` | 머리 줄 "대체됨 (2026-10-12)" |
+| `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md` | approved | date 2026-10-07 | amended-by: `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md` | "승인됨 (2026-10-07)", "부분 대체 (2026-10-13)" |
+| `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md` | approved | date 2026-10-12 | amended-by: `[docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md, docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md]` | 접속 방식 설계가 "tailnet 안에서만" 전제를 넓힘, 문서 체계 설계가 §5 문서 배치를 대체 |
+| `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md` | approved | date 2026-10-13 | | "승인됨 (2026-10-13)" |
+| `docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md` | approved | date 2026-10-14 | amended-by: `docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md` | 접속 방식 설계가 웹 UI 노출 방식을 맞춤 |
+| `docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md` | approved | date 2026-10-15 | | PR #7 병합(2026-10-15). 머리 줄의 "초안"은 낡은 표기 |
+| `docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md` | approved | date 2026-10-16 | | "승인 (2026-10-16)" |
+| `docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md` | approved | date 2026-10-16 | | "승인 (2026-10-16)" |
+| `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md` | accepted | date 2026-10-12 | | "Accepted (2026-10-12)" |
+| `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md` | accepted | date 2026-10-14 | | "Accepted (2026-10-14)" |
+| `docs/decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md` | accepted | date 2026-10-13 | | |
+| `docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md` | accepted | date 2026-10-13 | amended-by: `docs/decisions/adr-2026-10-16-q36rwq5s-structure-checks.md` | 머리의 "일부 대체" 줄을 이 키로 옮기고 지운다 |
+| `docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md` | accepted | date 2026-10-14 | | "Accepted (2026-10-14)" |
+| `docs/decisions/adr-2026-10-15-cz8c26gp-access-modes.md` | accepted | date 2026-10-15 | | 머리 줄의 "access-modes 계획 병합일" 자리를 PR #8 병합일(2026-10-15)로 |
+| [local-foundation](plan-2026-10-07-sqzn0teq-local-foundation.md), [git-review-tooling](plan-2026-10-07-qq4h1djv-git-review-tooling.md), [vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md) 계획 | completed | | spec: `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`(git-review-tooling은 `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`) | 각 계획의 Spec 줄의 첫 경로 |
+| [docs-skills](plan-2026-10-07-hydaxf15-docs-skills.md), [vm-rollout](plan-2026-10-07-qtvzskgx-vm-rollout.md) 계획 | completed | | spec: `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md` | |
+| [test-pruning 계획](plan-2026-10-13-g57mry4b-test-pruning.md) | completed | | spec: none | "별도 스펙 없음" |
+| [ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md) | backlog | | spec: none | 아직 스펙 없음 |
+| [github-switch](plan-2026-10-13-k93wjt1a-github-switch.md), [review-posting](plan-2026-10-13-znbc3ase-review-posting.md) 계획 | completed | | spec: `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md` | |
+| [web-ui-local](plan-2026-10-14-n6xpm12e-web-ui-local.md), [web-ui-vm-rollout](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md) 계획 | completed | | spec: `docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md` | |
+| [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md) | completed | | spec: `docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md` | |
+| [doc-system-foundation 계획](plan-2026-10-16-wyz3h870-doc-system-foundation.md) | completed | | spec: `docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md` | 이미 front matter가 있다. `status`만 확인한다 |
 | 런북 accounts, bootstrap | current | reviewed 2026-10-15 | | 마지막 변경일(**Assumption:** 마지막 변경 때 내용을 실제와 대조했다고 본다) |
-| 런북 gcp-vm, operations | current | reviewed 2026-10-16 | | 계획 12 결과 PR에서 확인 |
+| 런북 gcp-vm, operations | current | reviewed 2026-10-16 | | [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md) 결과 PR에서 확인 |
 | 런북 github | current | reviewed 2026-10-14 | | 마지막 변경일 |
 | 조사 2개 | snapshot | | | |
 | 리뷰 10개 | final | | | 본문은 그대로 |
 | `docs/ARCHITECTURE.md` | current | reviewed 2026-10-15 | | 마지막 변경일 |
 
-계획 14는 시작 커밋에서 `active`다.
+doc-rename-and-checks 계획은 시작 커밋에서 `active`다.
 
 - [x] **Step 4: 상태 줄과 낡은 상태 문구**
 
-- 상태 줄: 첫 `##` 앞의 머리에서 `상태:` 줄의 상태 낱말과 날짜를 지운다. 남는 문장이 있으면 `- `로 시작하는 줄로 남기고, 없으면 줄을 지운다. 대상: 스펙 8개, ADR 6개, 조사 2개, 계획 07의 `> **상태:** 백로그.` 줄. 예: GCP 설계의 상태 줄 "상태: 승인됨 (2026-10-12). OCI 설계(링크)를 대체한다. …"는 "OCI 설계(링크)를 대체한다. …"만 남는다(링크는 그대로 둔다). OCI 설계의 "이전 상태" 줄은 그때의 기록이므로 둔다.
+- 상태 줄: 첫 `##` 앞의 머리에서 `상태:` 줄의 상태 낱말과 날짜를 지운다. 남는 문장이 있으면 `- `로 시작하는 줄로 남기고, 없으면 줄을 지운다. 대상: 스펙 8개, ADR 6개, 조사 2개, [ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md)의 `> **상태:** 백로그.` 줄. 예: GCP 설계의 상태 줄 "상태: 승인됨 (2026-10-12). OCI 설계(링크)를 대체한다. …"는 "OCI 설계(링크)를 대체한다. …"만 남는다(링크는 그대로 둔다). OCI 설계의 "이전 상태" 줄은 그때의 기록이므로 둔다.
 - 낡은 상태 문구(스펙 §2의 예):
-  - GCP 설계 4행 "구현 계획 (진행 중은 …, 대기는 …, 완료는 …)" → "구현 계획 (계획은 `docs/plans/`, 상태는 각 계획의 front matter)". 8행의 계획 04 "(진행 중, 이 설계로 확장)" → "(완료, 이 설계로 확장)".
-  - 웹 UI 설계 4행 "구현 계획 (대기는 …)" → "구현 계획". 6행의 계획 11 "계획 10이 병합된 뒤 시작한다"는 그때의 순서 기록이므로 둔다. 두 계획이 끝났다는 사실은 계획의 front matter가 말한다.
-  - ADR 0004 머리의 "일부 대체" 줄은 지운다(Step 3에서 `amended-by`로 옮김).
+  - GCP 설계 4행 "구현 계획 (진행 중은 …, 대기는 …, 완료는 …)" → "구현 계획 (계획은 `docs/plans/`, 상태는 각 계획의 front matter)". 8행의 [docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md) "(진행 중, 이 설계로 확장)" → "(완료, 이 설계로 확장)".
+  - 웹 UI 설계 4행 "구현 계획 (대기는 …)" → "구현 계획". 6행의 [web-ui-vm-rollout 계획](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md) "web-ui-local 계획이 병합된 뒤 시작한다"는 그때의 순서 기록이므로 둔다. 두 계획이 끝났다는 사실은 계획의 front matter가 말한다.
+  - [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 머리의 "일부 대체" 줄은 지운다(Step 3에서 `amended-by`로 옮김).
 
 - [x] **Step 5: 통과 확인**
 
@@ -518,7 +519,7 @@ Expected: exit 0. 검사 6개가 모두 통과한다. `git diff --word-diff`에�
 ```bash
 git status --short
 git add -u docs tests/repo-docs.bats
-git commit -m "docs: give every document front matter and drop the status lines" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 14" --trailer "Task: 2"
+git commit -m "docs: give every document front matter and drop the status lines" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: pqffvttt" --trailer "Task: 2"
 git push
 ```
 
@@ -528,7 +529,7 @@ git push
 
 **Files:**
 - Modify: `AGENTS.md`(승인된 문구), `.agents/skills/git-workflow/SKILL.md`, `.agents/skills/git-workflow/references/review-and-merge.md`, `.agents/skills/branch-review/SKILL.md`, `.agents/skills/bm-upgrade/SKILL.md`, `.agents/skills/doc-authoring/SKILL.md`, `.agents/skills/doc-authoring/assets/plan.md`, `docs/README.md`, `.github/pull_request_template.md`
-- Test: 기존 검사 전체(`tests/skills.bats`, `tests/repo.bats`, `tests/repo-docs.bats`). 문구 테스트는 쓰지 않는다(ADR 0004).
+- Test: 기존 검사 전체(`tests/skills.bats`, `tests/repo.bats`, `tests/repo-docs.bats`). 문구 테스트는 쓰지 않는다([test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)).
 
 **Interfaces:**
 - Consumes: Task 1의 계획 폴더 통합, Task 2의 front matter
@@ -551,7 +552,7 @@ Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, co
 - `review-and-merge.md` Review 1 → "Set a finished plan's front matter `status` to `completed` (commit with `Task: none`) and push. Put the CI results in the PR body's Verification."
 - `branch-review` SKILL.md 20행의 앞 문장 → "3. The plan's Progress log records a passing `make check`, the PR body's Verification records passing CI (`check`, `pr-rules`), and `scripts/check-git.sh origin/main <branch>` passes."(그 뒤 문장은 그대로)
 - `bm-upgrade` SKILL.md 43행의 "Record the outcome (Verified/Command) in the active plan's Progress log or in a new ADR under `docs/decisions/`." → "Record the outcome (Verified/Command) in the active plan's Progress log, or, without a plan, in the PR body's Verification; a decision goes in a new ADR (`make new-doc TYPE=adr`)."
-- `doc-authoring` SKILL.md: "Until plan 14 merges, …" 항목을 지운다. "Record evidence …" 항목 끝에 "; the PR's CI results go in the PR body's Verification"을 더한다.
+- `doc-authoring` SKILL.md: "Until the doc-rename-and-checks plan merges, …" 항목을 지운다. "Record evidence …" 항목 끝에 "; the PR's CI results go in the PR body's Verification"을 더한다.
 - 계획 템플릿 Finish 첫 항목 뒤에 "- [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다." 한 줄을 더한다.
 - `docs/README.md`의 "전환 중" 문단을 지운다.
 - PR 템플릿 Verification 설명 → "Commands and results (for example `make check`: N ok, 0 not ok, coverage X%) and CI (`check`, `pr-rules`)."
@@ -571,7 +572,7 @@ Expected: exit 0. `wc -c AGENTS.md`가 24,000 이하다.
 ```bash
 git status --short
 git add -u
-git commit -m "docs: keep plan state in front matter and CI evidence in the PR body" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 14" --trailer "Task: 3"
+git commit -m "docs: keep plan state in front matter and CI evidence in the PR body" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: pqffvttt" --trailer "Task: 3"
 git push
 ```
 
@@ -586,26 +587,26 @@ git push
 
 ## Follow-ups
 
-- 계획 15: 본문 소급(템플릿 절 구성, 레이블 표기 통일, README의 `AGENTS.md` 중복 삭제). 이 계획 다음에 시작한다.
-- 계획 16·17: 스크립트·테스트 구조 설계. 계획 16은 이 계획이 병합된 뒤 시작한다(런북 이름이 바뀐 뒤의 스크립트 메시지를 기준으로 한다).
+- [doc-body-backfill 계획](plan-2026-10-16-hyajr3k3-doc-body-backfill.md): 본문 소급(템플릿 절 구성, 레이블 표기 통일, README의 `AGENTS.md` 중복 삭제). 이 계획 다음에 시작한다.
+- [script-cleanup](plan-2026-10-20-c2vxa7kp-script-cleanup.md)·[test-cleanup](plan-2026-10-21-hf9kadp3-test-cleanup.md) 계획: 스크립트·테스트 구조 설계. script-cleanup 계획은 이 계획이 병합된 뒤 시작한다(런북 이름이 바뀐 뒤의 스크립트 메시지를 기준으로 한다).
 
 ## Progress log
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
-| 2026-10-16 | Command | 시작: `plan/14-doc-rename-and-checks`를 `origin/main` `4cedf49`(PR #12 병합)에서 만들고(worktree `repo-structure` 재사용), `make new-doc TYPE=plan`으로 만든 이 계획을 첫 커밋으로 넣음(사용자 결정: 문서 PR 없이 같은 PR에서 실행). 실행은 사용자 결정대로 가능한 Task를 병렬로: Task 1 뒤 Task 2(이 worktree)와 Task 3(별도 worktree의 서브에이전트)을 함께. |
+| 2026-10-16 | Command | 시작: `plan/pqffvttt-doc-rename-and-checks`를 `origin/main` `4cedf49`(PR #12 병합)에서 만들고(worktree `repo-structure` 재사용), `make new-doc TYPE=plan`으로 만든 이 계획을 첫 커밋으로 넣음(사용자 결정: 문서 PR 없이 같은 PR에서 실행). 실행은 사용자 결정대로 가능한 Task를 병렬로: Task 1 뒤 Task 2(이 worktree)와 Task 3(별도 worktree의 서브에이전트)을 함께. |
 | 2026-10-16 | Verified | 사용자가 `AGENTS.md` 변경을 승인함(2026-10-16, `4cedf49` 기준): (a) 이름 변경으로 바뀌는 경로 4·30·54행, (b) Task 3 Step 1의 문구 5·41·49·60행. |
 | 2026-10-16 | Verified | Task 1 RED `make test`: 이름·위치 검사와 경로 검사 실패, 레지스트리·번호 검사 통과. 시작 시점에 다시 만든 이름 변경표가 계획의 표와 같음(44행, `diff` 출력 없음). |
-| 2026-10-16 | Verified | Task 1 Step 3: `git mv` 44개, perl이 76개 파일의 참조를 고침. Step 4에서 계획대로 남은 경로 다섯 묶음을 고침(계획 04 6곳, 계획 05 1곳, OCI 설계 1곳, 계획 13 2곳, 웹 UI 설계 2곳). 계획에 없던 두 가지: (1) `tests/cloud_neutral.bats`의 예외 패턴이 정규식으로 이스케이프된 `gcp-vm\.md`라 perl이 놓쳐 클라우드 이름 검사 3개가 실패함 → 새 이름으로 고침(이스케이프된 옛 이름은 이것과 계획 04 코드 블록의 기록뿐). (2) 옮긴 계획의 `](../../` 규칙이 원래부터 `docs/plans/`에 있던 이 계획의 Review Focus 문장도 바꿈 → 되돌림. |
+| 2026-10-16 | Verified | Task 1 Step 3: `git mv` 44개, perl이 76개 파일의 참조를 고침. Step 4에서 계획대로 남은 경로 다섯 묶음을 고침([docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md) 6곳, [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) 1곳, OCI 설계 1곳, [doc-system-foundation 계획](plan-2026-10-16-wyz3h870-doc-system-foundation.md) 2곳, 웹 UI 설계 2곳). 계획에 없던 두 가지: (1) `tests/cloud_neutral.bats`의 예외 패턴이 정규식으로 이스케이프된 `gcp-vm\.md`라 perl이 놓쳐 클라우드 이름 검사 3개가 실패함 → 새 이름으로 고침(이스케이프된 옛 이름은 이것과 docs-skills 계획 코드 블록의 기록뿐). (2) 옮긴 계획의 `](../../` 규칙이 원래부터 `docs/plans/`에 있던 이 계획의 Review Focus 문장도 바꿈 → 되돌림. |
 | 2026-10-16 | Verified | Task 1 GREEN `make check`: exit 0, 210 ok, 0 not ok, 커버리지 94.51%. 스테이징한 rename 44개, 경로가 아닌 낱말만 바뀐 줄 없음(`git diff --cached -M --word-diff=porcelain`). |
-| 2026-10-16 | Verified | Task 2 RED `make test`: front matter 검사 실패, `{{` 검사 통과. 계획 결함 두 가지: (1) 검사 3·5가 리뷰 폴더의 단일 파일 `docs/reviews/README.md`도 타입 문서로 셈 → 검사 2처럼 `SINGLE_FILES`를 건너뛰게 고침. (2) 계획 13 파일은 템플릿 이전에 써서 front matter가 없었음 → 다른 문서처럼 새로 닮(`status: completed`). |
-| 2026-10-16 | Verified | Task 2: 표대로 45개(이름을 바꾼 44개와 ARCHITECTURE)에 front matter를 닮. 머리의 상태 줄 19곳을 정리함(상태 낱말과 날짜만 지움, 상태만 있던 ADR 0003~0006 줄과 ADR 0004의 "일부 대체" 줄은 지움, 조사 문서는 "YYYY-MM-DD 시점의 스냅샷이다"로). OCI 설계의 "이전 상태" 줄은 기록이라 둠. GCP 설계 4·8행과 웹 UI 설계 4행의 낡은 계획 상태 문구를 고침. GREEN `make check` exit 0, 0 not ok. |
-| 2026-10-16 | Verified | Task 3(서브에이전트, 별도 worktree, Task 2와 병렬): `ff6e7b5`(브랜치 `plan/14-doc-rename-and-checks-t3`), 파일 9개. 그쪽 `make check` 210 ok, 94.51%, `AGENTS.md` 9,216바이트. Step 3의 grep은 승인된 새 문구 4줄에도 걸림(`make check`는 Progress log, CI는 PR 본문을 한 줄에 함께 말함). 옛 지시는 남지 않음. |
+| 2026-10-16 | Verified | Task 2 RED `make test`: front matter 검사 실패, `{{` 검사 통과. 계획 결함 두 가지: (1) 검사 3·5가 리뷰 폴더의 단일 파일 `docs/reviews/README.md`도 타입 문서로 셈 → 검사 2처럼 `SINGLE_FILES`를 건너뛰게 고침. (2) [doc-system-foundation 계획](plan-2026-10-16-wyz3h870-doc-system-foundation.md) 파일은 템플릿 이전에 써서 front matter가 없었음 → 다른 문서처럼 새로 닮(`status: completed`). |
+| 2026-10-16 | Verified | Task 2: 표대로 45개(이름을 바꾼 44개와 ARCHITECTURE)에 front matter를 닮. 머리의 상태 줄 19곳을 정리함(상태 낱말과 날짜만 지움, 상태만 있던 [skill-structure](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md)·[test-scope](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)·[web-ui-silverbullet](../decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md)·[access-modes](../decisions/adr-2026-10-15-cz8c26gp-access-modes.md) ADR 줄과 test-scope ADR의 "일부 대체" 줄은 지움, 조사 문서는 "YYYY-MM-DD 시점의 스냅샷이다"로). OCI 설계의 "이전 상태" 줄은 기록이라 둠. GCP 설계 4·8행과 웹 UI 설계 4행의 낡은 계획 상태 문구를 고침. GREEN `make check` exit 0, 0 not ok. |
+| 2026-10-16 | Verified | Task 3(서브에이전트, 별도 worktree, Task 2와 병렬): `ff6e7b5`(브랜치 `plan/pqffvttt-doc-rename-and-checks-t3`), 파일 9개. 그쪽 `make check` 210 ok, 94.51%, `AGENTS.md` 9,216바이트. Step 3의 grep은 승인된 새 문구 4줄에도 걸림(`make check`는 Progress log, CI는 PR 본문을 한 줄에 함께 말함). 옛 지시는 남지 않음. |
 | 2026-10-16 | Verified | 세 Task를 합친 `615ccd0`(Task 3은 `ff6e7b5`를 cherry-pick): `make check` exit 0, 0 not ok, 커버리지 94.51%, `AGENTS.md` 9,216바이트. `AGENTS.md`의 네 줄이 승인 문구와 같음을 diff로 확인. |
 | 2026-10-16 | Verified | 최종 리뷰(opus, `4cedf49..615ccd0`): 수정 후 병합 가능, Critical 0, Important 1, Minor 9. 옛 이름 44개는 코드 블록 밖 어디에도 남지 않았고, 코드 블록 안 줄은 하나도 바뀌지 않았다는 확인을 받음. |
-| 2026-10-16 | Verified | I1 수정 `61529c0`(`Review-Finding: SDD-final-I1`): git·리뷰 정책 167~168행과 GitHub PR 워크플로 187행이 옛 계획 폴더 규칙을 말하는데 대체 연결이 없었음 → 두 정책 스펙에 `amended-by: …doc-system`, GCP 설계에 스크립트·테스트 구조 스펙을 더하고, 문서 체계·스크립트 구조 스펙의 "대체 범위"에 대체하는 규칙을 적음(스펙 §5.1의 승인 스펙 수정). 문서 사이의 의미 관계라 실패 테스트는 쓰지 않음(ADR 0004). `make check` exit 0, 0 not ok. |
+| 2026-10-16 | Verified | I1 수정 `61529c0`(`Review-Finding: SDD-final-I1`): git·리뷰 정책 167~168행과 GitHub PR 워크플로 187행이 옛 계획 폴더 규칙을 말하는데 대체 연결이 없었음 → 두 정책 스펙에 `amended-by: …doc-system`, GCP 설계에 스크립트·테스트 구조 스펙을 더하고, 문서 체계·스크립트 구조 스펙의 "대체 범위"에 대체하는 규칙을 적음(스펙 §5.1의 승인 스펙 수정). 문서 사이의 의미 관계라 실패 테스트는 쓰지 않음([test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)). `make check` exit 0, 0 not ok. |
 | 2026-10-16 | Assumption | 런북 `reviewed`는 마지막 변경일로 둠(마지막 변경 때 내용을 실제와 대조했다고 봄). |
 | 2026-10-16 | Verified | 판정(M5): Global Constraints는 리뷰 기록에서 "이름과 `status: final`만" 바꾼다고 했지만, 리뷰 본문 10개의 문서 경로도 새 이름으로 바뀜. 스펙 §9의 참조 갱신과 경로 검사(검사 6)가 요구하는 변경이고, 바뀐 것은 경로뿐이다(최종 리뷰가 확인). |
-| 2026-10-16 | Verified | 사용자 결정: 최종 리뷰 Minor 9건을 이 PR에서 고친 뒤 Codex 리뷰. `AGENTS.md` 41행은 사용자가 보여 준 문구를 승인함. 커밋(`Review-Finding: SDD-final-M<n>`): M4 `7853ba1`(추적하지 않는 Markdown 밖 파일은 검사에서 뺌, RED: `docs/specs/.DS_Store`로 검사 2·3 실패 → GREEN), M3 `b6bd1e0`(번호·경로 검사 실패 메시지에 파일 이름, 임시 중복 계획과 README의 없는 경로로 확인 뒤 되돌림), M1·M7 `ef4fc22`(work 브랜치 증거는 PR 본문, 결정은 ADR: `AGENTS.md` 41행·doc-authoring·skill-authoring, doc-authoring Gotcha는 `tests/repo-docs.bats`), M2·M6·M8·M9 `9771f58`(SilverBullet 경로에 `silverbulletmd/silverbullet/`, 스크립트 구조 스펙의 OCI 줄 번호 삭제, 계획 07의 줄 번호 기준일 문장과 제목의 "(backlog)" 삭제, ADR 0003·0004의 빈 줄). 커밋마다 `make check` exit 0, 0 not ok. `AGENTS.md` 9,281바이트. |
+| 2026-10-16 | Verified | 사용자 결정: 최종 리뷰 Minor 9건을 이 PR에서 고친 뒤 Codex 리뷰. `AGENTS.md` 41행은 사용자가 보여 준 문구를 승인함. 커밋(`Review-Finding: SDD-final-M<n>`): M4 `7853ba1`(추적하지 않는 Markdown 밖 파일은 검사에서 뺌, RED: `docs/specs/.DS_Store`로 검사 2·3 실패 → GREEN), M3 `b6bd1e0`(번호·경로 검사 실패 메시지에 파일 이름, 임시 중복 계획과 README의 없는 경로로 확인 뒤 되돌림), M1·M7 `ef4fc22`(work 브랜치 증거는 PR 본문, 결정은 ADR: `AGENTS.md` 41행·doc-authoring·skill-authoring, doc-authoring Gotcha는 `tests/repo-docs.bats`), M2·M6·M8·M9 `9771f58`(SilverBullet 경로에 `silverbulletmd/silverbullet/`, 스크립트 구조 스펙의 OCI 줄 번호 삭제, [ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md)의 줄 번호 기준일 문장과 제목의 "(backlog)" 삭제, [skill-structure](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md)·[test-scope](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) ADR의 빈 줄). 커밋마다 `make check` exit 0, 0 not ok. `AGENTS.md` 9,281바이트. |
 | 2026-10-16 | Verified | Codex R1(`4cedf49..3ad52b0`): 지적 없음, mergeable. |
 | 2026-10-16 | Verified | 사용자 요청: PR 본문이 일정 길이에서 끊겨 보여 읽기 어려움. 원인은 저장소 스크립트가 아니라(`post-review.sh`는 65,536바이트를 넘는 댓글을 거부할 뿐 자르지 않음) 본문을 고정 폭으로 줄바꿈해 쓴 것이고, GitHub은 PR 본문의 줄바꿈을 그대로 보여 줌. `git-workflow` Publish 1과 PR 템플릿에 "문단과 목록 항목은 한 줄로"를 적고, PR #13 본문을 그렇게 다시 씀. `make check` exit 0, 0 not ok. |

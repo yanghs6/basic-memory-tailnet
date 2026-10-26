@@ -1,16 +1,17 @@
 ---
 status: approved
+id: at2p2mw9
 date: 2026-10-23
 ---
 
 # 에이전트 기억 미러 (Claude Code·Codex → Basic Memory) — 설계
 
-- 구현 계획: 계획 24 하나에 배포까지 담는다(§7). 코드 PR이 병합된 뒤 회사 Mac과 개인 Mac에 설치하고, 결과는 결과 PR로 남긴다.
+- 구현 계획: [agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md) 하나에 배포까지 담는다(§7). 코드 PR이 병합된 뒤 회사 Mac과 개인 Mac에 설치하고, 결과는 결과 PR로 남긴다.
 - 출처:
   - 2026-10-22 사용자와의 브레인스토밍, 같은 날의 로컬 확인·서버 도구 스키마 조회, Claude Code·Codex·Basic Memory 공식 문서와 소스(§2)
   - 2026-10-23 웹·소스 조사와 Codex(`gpt-6.1-sol`) 교차 검토, 사용자 결정 8
 - 2026-10-23 개정: 조회 방식을 "질문마다 검색해 넣기"에서 "세션 시작 때 색인 + 필요할 때 에이전트가 MCP로 조회"로 바꿨다(결정 8). 결정 2와 7을 남긴 채 결정 8로 고쳤다. §3.4는 새 방식으로 다시 썼다.
-- [VM 접속 방식 설계](spec-2026-10-15-access-modes.md)의 `ssh` 모드 터널(`http://127.0.0.1:18737/mcp`) 위에 얹는다. 모든 계획은 [GitHub PR 워크플로](spec-2026-10-13-github-pr-workflow.md)를 따른다.
+- [VM 접속 방식 설계](spec-2026-10-15-jr59pvyf-access-modes.md)의 `ssh` 모드 터널(`http://127.0.0.1:18737/mcp`) 위에 얹는다. 모든 계획은 [GitHub PR 워크플로](spec-2026-10-13-pr762r68-github-pr-workflow.md)를 따른다.
 
 ## 1. 목적과 범위
 
@@ -157,7 +158,7 @@ Basic Memory 서버 (0.23.2, 터널 경유 `tools/list`):
 - **Verified (2026-10-23):** 기억 파일 56개의 언어(한글 비율 10% 이상이면 한국어). 이 저장소의 Claude 기억은 영어 24개, 다른 프로젝트의 Claude 기억은 한국어 23개, Codex 기억은 9개 중 한국어 8개다.
 - **Verified (2026-10-23, Command: `ls ~/.codex/memories`):** memories를 켠 뒤 폴더에 `extensions`, `manual`, `phase2_workspace_diff.md`, `raw_memories.md`, `rollout_summaries`가 생겼다. `memory_summary.md`와 `MEMORY.md`는 아직 없다. `phase2_workspace_diff.md`는 소스 README의 "쓰고 지운다"와 달리 남아 있다. 2단계가 끝나지 않았거나 실패한 것으로 보이는데, 확인하지는 않았다. 동기화는 이 파일을 이름으로 빼므로 영향이 없다(§3.3).
 
-**Assumption (계획 24 Task 1에서 서버로 확인):** 위 소스 조사로 대부분 풀렸고, 남은 것은 다음과 같다.
+**Assumption ([agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md) Task 1에서 서버로 확인):** 위 소스 조사로 대부분 풀렸고, 남은 것은 다음과 같다.
 - frontmatter 합치기와 `type: agent_memory`가 실제 서버에서도 소스대로다.
 - 검색어 없이 `metadata_filters`(`project`와 `mirror`, 또는 `device`와 `mirror`)만으로 `search_notes`를 부르면 그 노트 목록(제목, permalink, 본문, 갱신 시각)이 나오고 `has_more`로 페이지를 넘길 수 있다. 색인 hook(§3.4)과 전체 다시 맞추기(§3.3)가 이 호출을 쓴다.
 - VM에서 `text` 검색 한 번이 2초 안에 끝난다. 한국어 명사 검색어가 조사가 붙은 본문과 맞는다.
@@ -273,7 +274,7 @@ agent-memory/
   - 대상: Tailscale `tskey-<종류>-<id>-<secret>`, GitHub `gh[pousr]_`·`github_pat_`, AWS `AKIA`·`ASIA`, Slack `xoxb-`·`xoxp-`, Anthropic `sk-ant-`, OpenAI(`T3BlbkFJ` 포함), Google `AIza`, PEM·PGP 개인 키.
   - 패턴은 gitleaks 기본 설정의 길이 조건을 따른다. 접두어만 맞추면 테스트 값(`tskey-auth-ssh123`)이나 자리표시자(`xoxb-your-token-here`)까지 걸리기 때문이다.
   - **Verified (2026-10-22):** 지금 기억 파일 중 이 패턴에 걸리는 파일은 없다.
-  - 패턴 자체는 계획 24 Global Constraints에 있다. Basic Memory에는 인증이 없고 웹 커넥터가 열릴 수 있기 때문이다. Codex는 생성한 기억에서 비밀값을 지운다고 문서에 적혀 있지만, Claude 기억에는 그런 장치가 없다.
+  - 패턴 자체는 [agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md) Global Constraints에 있다. Basic Memory에는 인증이 없고 웹 커넥터가 열릴 수 있기 때문이다. Codex는 생성한 기억에서 비밀값을 지운다고 문서에 적혀 있지만, Claude 기억에는 그런 장치가 없다.
 - **종료 코드:** 사람이 실행한 `make memory-sync`는 실패한 항목이 있으면 1로 끝난다. hook에서 부를 때(`HOOK=1`)는 백그라운드에서 돌고 항상 0으로 끝나며, 결과는 상태 폴더의 로그에 남긴다. 상태 폴더는 백그라운드로 넘기기 전에 만든다. 새 Mac에서 첫 hook이 로그를 쓸 곳이 없어 조용히 끝나지 않게 하기 위해서다.
 - **전체 다시 맞추기 (`make memory-sync FULL=1`, 2026-10-23 추가, 설계 판단):** 백업 복원(`make restore`)이나 VM 재구축 뒤에는 VM의 노트가 옛 상태로 돌아간다. 그런데 로컬 상태 파일은 이미 올렸다고 보므로, 아무것도 다시 보내지 않는다.
   - `FULL=1`이면 상태 파일을 믿지 않고 원본 전부를 `write_note(overwrite=true)`로 보낸다.
@@ -381,11 +382,11 @@ agent-memory/
    - `<`·`>`를 지워 태그처럼 보이지 않게 한다.
    - Codex 기억 생성 에이전트에는 넣지 않는다(§3.4).
 
-   이런 노트를 신뢰할 수 없는 입력으로 다룰지, 그리고 누가 그것을 정할지는 아직 주인이 없다. 계획 20(agent sandbox)은 이 문제를 범위 밖 후속 항목으로만 적었다(`plan-2026-10-22-20-agent-sandbox.md:212`). 그래서 §8 Open question 3으로 둔다.
+   이런 노트를 신뢰할 수 없는 입력으로 다룰지, 그리고 누가 그것을 정할지는 아직 주인이 없다. [agent-sandbox 계획](../plans/plan-2026-10-22-k3bd8k47-agent-sandbox.md)(agent sandbox)은 이 문제를 범위 밖 후속 항목으로만 적었다(`plan-2026-10-22-k3bd8k47-agent-sandbox.md:212`). 그래서 §8 Open question 3으로 둔다.
 
 ## 5. 테스트와 검증
 
-[ADR 0004](../decisions/adr-2026-10-13-0004-test-scope.md) 기준(불변식, 대표 성공 경로, 조용한 실패)으로 스크립트마다 bats 테스트를 둔다. MCP는 `tests/stubs/curl`로 흉내 내고, 가짜 홈 폴더 fixture에 Claude·Codex 기억 파일을 둔다.
+[test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 기준(불변식, 대표 성공 경로, 조용한 실패)으로 스크립트마다 bats 테스트를 둔다. MCP는 `tests/stubs/curl`로 흉내 내고, 가짜 홈 폴더 fixture에 Claude·Codex 기억 파일을 둔다.
 
 | 종류 | 테스트 |
 |---|---|
@@ -419,10 +420,10 @@ agent-memory/
 |---|---|---|
 | 24 agent-memory-mirror | Task 1: `scripts/lib/mcp.sh`와 §2 Assumption 확인(목록 호출, 검색 지연, frontmatter 합치기, 검색어 로그). Task 2: 키 라이브러리. Task 3: 동기화. Task 4: 색인(2026-10-23 개정, 조회 대신). Task 5: hook 등록, `.env.example`, ARCHITECTURE·operations 런북·README, `AGENTS.md`(사용자 승인). 코드 PR로 병합한다. Task 6: 병합 뒤 회사 Mac → 개인 Mac 설치와 수동 확인(사용자와 함께), 결과 PR. 개인 Mac은 먼저 준비 상태(메인 체크아웃과 `.env`, `make tunnel`, Codex 0.163 이상과 `hooks`·`memories`, `jq`)를 확인하고, 빠진 것은 operations 런북의 에이전트 연결 절차로 맞춘다 | 이 설계 승인 |
 
-**Verified (2026-10-22):** 개선 백로그 계획 18~23은 PR #18로 `main`에 병합됐다(`5c8c079`). `origin/work/web-connector`의 웹 커넥터 스펙은 24를 이 설계에 남기고 25를 쓴다. `make new-doc`은 가장 큰 번호 다음(26)을 고르므로, 만든 뒤 24로 이름을 바꿨다. 계획 19·22·25도 `AGENTS.md`나 `Makefile`을 고치므로, 나중에 병합하는 쪽이 `git merge origin/main`으로 충돌을 푼다.
+**Verified (2026-10-22):** 개선 백로그 [public-text-guard](../plans/plan-2026-10-22-v9whrbs6-public-text-guard.md)·[invariant-enforcement](../plans/plan-2026-10-22-m97w7hqe-invariant-enforcement.md)·[agent-sandbox](../plans/plan-2026-10-22-k3bd8k47-agent-sandbox.md)·[recovery-drill](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md)·[agent-guidance](../plans/plan-2026-10-22-x4d2x4eq-agent-guidance.md)·[review-and-local-isolation](../plans/plan-2026-10-22-z064dkcv-review-and-local-isolation.md) 계획은 PR #18로 `main`에 병합됐다(`5c8c079`). `origin/work/web-connector`의 웹 커넥터 스펙은 24를 이 설계에 남기고 25를 쓴다. `make new-doc`은 가장 큰 번호 다음(26)을 고르므로, 만든 뒤 24로 이름을 바꿨다. invariant-enforcement·agent-guidance·[web-connector](../plans/plan-2026-10-22-d3dpb00s-web-connector.md) 계획도 `AGENTS.md`나 `Makefile`을 고치므로, 나중에 병합하는 쪽이 `git merge origin/main`으로 충돌을 푼다.
 
 ## 8. Open questions
 
 1. 개인 Mac에 설치하는 시점(사용자 일정). 회사 Mac에서 먼저 확인한 뒤 진행한다.
 2. 사용자 전역 지침 `~/.agents/AGENTS.md`에 넣을 문구(§3.8).
-3. 에이전트가 읽는 Basic Memory 노트(미러, 사람이 쓴 노트, 웹 커넥터로 쓴 노트)를 신뢰할 수 없는 입력으로 다룰지, 그리고 그 결정을 어느 계획이 맡을지(§4.6). 계획 20은 이를 범위 밖 후속 항목으로만 적었다. 그때까지 이 설계는 "사실로 쓴 머리 줄, 태그 문자 제거, 출처 밝히기"로만 대응한다.
+3. 에이전트가 읽는 Basic Memory 노트(미러, 사람이 쓴 노트, 웹 커넥터로 쓴 노트)를 신뢰할 수 없는 입력으로 다룰지, 그리고 그 결정을 어느 계획이 맡을지(§4.6). [agent-sandbox 계획](../plans/plan-2026-10-22-k3bd8k47-agent-sandbox.md)은 이를 범위 밖 후속 항목으로만 적었다. 그때까지 이 설계는 "사실로 쓴 머리 줄, 태그 문자 제거, 출처 밝히기"로만 대응한다.

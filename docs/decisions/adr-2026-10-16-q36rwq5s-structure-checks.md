@@ -1,23 +1,24 @@
 ---
 status: accepted
+id: q36rwq5s
 date: 2026-10-16
 ---
 
-# ADR 0007: 문서·스크립트 구조 검사를 허용하는 범위
+# ADR q36rwq5s: 문서·스크립트 구조 검사를 허용하는 범위
 
-- 설계: [문서 체계 설계](../specs/spec-2026-10-15-doc-system.md) 8.4절, [스크립트·테스트 구조 설계](../specs/spec-2026-10-15-script-test-layout.md) 9절
-- 대체 범위: [ADR 0004](adr-2026-10-13-0004-test-scope.md) 결정 2의 "문구·형식만 확인하는 테스트" 금지 가운데, 아래 결정 1의 구조 검사
+- 설계: [문서 체계 설계](../specs/spec-2026-10-15-sgpbx1gq-doc-system.md) 8.4절, [스크립트·테스트 구조 설계](../specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md) 9절
+- 대체 범위: [test-scope ADR](adr-2026-10-13-a878ypj5-test-scope.md) 결정 2의 "문구·형식만 확인하는 테스트" 금지 가운데, 아래 결정 1의 구조 검사
 
 ## 맥락과 문제
 
-- ADR 0004 결정 2는 문구·형식만 확인하는 테스트를 새로 쓰지 않게 했습니다. 그때 지운 것은 문서 문장을 되풀이하는 검사(`AGENTS.md` 줄 수, 런북 섹션 이름 등)였습니다.
+- [test-scope ADR](adr-2026-10-13-a878ypj5-test-scope.md) 결정 2는 문구·형식만 확인하는 테스트를 새로 쓰지 않게 했습니다. 그때 지운 것은 문서 문장을 되풀이하는 검사(`AGENTS.md` 줄 수, 런북 섹션 이름 등)였습니다.
 - Claude Code, Codex, Gemini CLI, Antigravity가 같은 위치와 이름으로 문서와 스크립트를 만들려면 위치, 이름, 메타데이터를 기계로 확인해야 합니다. 문서 체계 설계 2절의 문제(제각각인 상태 표기, 낡은 경로, PR 구성에 따라 달라지는 active 폴더)는 모두 메타데이터와 위치 문제였습니다.
 - 이런 검사도 "형식 확인"으로 읽힐 수 있어서, 무엇을 허용하는지 정해야 합니다.
 
 ## 검토한 대안
 
-1. ADR 0004를 그대로 두고 템플릿과 스킬만 둡니다: 바꿀 것이 없습니다. 도구 하나가 템플릿을 무시해도 아무도 모릅니다.
-2. 섹션 이름과 레이블까지 검사합니다: 어긋남을 가장 많이 잡습니다. 문서 문구를 되풀이하는 변경 감지 테스트가 되어 ADR 0004의 취지와 어긋납니다.
+1. [test-scope ADR](adr-2026-10-13-a878ypj5-test-scope.md)을 그대로 두고 템플릿과 스킬만 둡니다: 바꿀 것이 없습니다. 도구 하나가 템플릿을 무시해도 아무도 모릅니다.
+2. 섹션 이름과 레이블까지 검사합니다: 어긋남을 가장 많이 잡습니다. 문서 문구를 되풀이하는 변경 감지 테스트가 되어 [test-scope ADR](adr-2026-10-13-a878ypj5-test-scope.md)의 취지와 어긋납니다.
 3. 위치, 이름, 메타데이터, 파일 존재만 검사합니다: 2절의 문제를 모두 잡고 문장은 묶지 않습니다. 사용자가 고른 강제 수준 B입니다.
 
 ## 결정
@@ -28,6 +29,6 @@ date: 2026-10-16
 
 ## 결과
 
-- 계획 13이 `.gemini/settings.json`과 `AGENTS.md` 크기 검사를, 계획 14가 문서 이름·위치·메타데이터 검사를, 계획 17이 스크립트 짝과 이름 검사를 더합니다.
-- ADR 0004의 나머지 결정은 그대로입니다.
+- [doc-system-foundation 계획](../plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md)이 `.gemini/settings.json`과 `AGENTS.md` 크기 검사를, [doc-rename-and-checks 계획](../plans/plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)이 문서 이름·위치·메타데이터 검사를, [test-cleanup 계획](../plans/plan-2026-10-21-hf9kadp3-test-cleanup.md)이 스크립트 짝과 이름 검사를 더합니다.
+- [test-scope ADR](adr-2026-10-13-a878ypj5-test-scope.md)의 나머지 결정은 그대로입니다.
 - 확인 방법: `make check`. 새 테스트가 결정 2에 해당하면 리뷰에서 지적합니다.

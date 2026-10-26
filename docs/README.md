@@ -1,20 +1,20 @@
 # 문서 지도
 
-이 저장소의 문서가 어디에 있고 새 문서를 어떻게 만드는지 정한다. 문서를 만들거나 상태를 바꿀 때는 `doc-authoring` 스킬을 쓰고, 새 문서는 `make new-doc TYPE=<타입> SLUG=<slug>`로 만든다. 근거는 [문서 체계 설계](specs/spec-2026-10-15-doc-system.md)다.
+이 저장소의 문서가 어디에 있고 새 문서를 어떻게 만드는지 정한다. 문서를 만들거나 상태를 바꿀 때는 `doc-authoring` 스킬을 쓰고, 새 문서는 `make new-doc TYPE=<타입> SLUG=<slug>`로 만든다. 근거는 [문서 체계 설계](specs/spec-2026-10-15-sgpbx1gq-doc-system.md)다.
 
 ## 문서 타입
 
-| 타입 | 코드 | 번호 | 위치 | 상태 값 | 필수 키 | 새 문서 | 성격 | 언어 | 템플릿 |
-|---|---|---|---|---|---|---|---|---|---|
-| spec | spec | 없음 | `docs/specs/` | draft, approved, superseded | status, date | 허용 | 기록 | 한국어 | `.agents/skills/doc-authoring/assets/spec.md` |
-| plan | plan | NN | `docs/plans/` | backlog, active, completed, dropped | status, spec | 허용 | 진행 중엔 갱신, 끝나면 기록 | 제목 영어, 본문 한국어 | `.agents/skills/doc-authoring/assets/plan.md` |
-| adr | adr | NNNN | `docs/decisions/` | proposed, accepted, superseded, deprecated | status, date | 허용 | 기록 | 한국어 | `.agents/skills/doc-authoring/assets/adr.md` |
-| runbook | rbk | 없음 | `docs/runbooks/` | current, retired | status, reviewed | 허용 | 계속 고침 | 한국어 | `.agents/skills/doc-authoring/assets/runbook.md` |
-| research | rsch | 없음 | `docs/research/` | snapshot | status | 허용 | 기록(고정) | 한국어 | `.agents/skills/doc-authoring/assets/research.md` |
-| review | rev | 없음 | `docs/reviews/` | final | status | 금지 | 동결 | 영어 | 없음 |
+| 타입 | 코드 | 위치 | 상태 값 | 필수 키 | 새 문서 | 성격 | 언어 | 템플릿 |
+|---|---|---|---|---|---|---|---|---|
+| spec | spec | `docs/specs/` | draft, approved, superseded | status, date | 허용 | 기록 | 한국어 | `.agents/skills/doc-authoring/assets/spec.md` |
+| plan | plan | `docs/plans/` | backlog, active, completed, dropped | status, spec | 허용 | 진행 중엔 갱신, 끝나면 기록 | 제목 영어, 본문 한국어 | `.agents/skills/doc-authoring/assets/plan.md` |
+| adr | adr | `docs/decisions/` | proposed, accepted, superseded, deprecated | status, date | 허용 | 기록 | 한국어 | `.agents/skills/doc-authoring/assets/adr.md` |
+| runbook | rbk | `docs/runbooks/` | current, retired | status, reviewed | 허용 | 계속 고침 | 한국어 | `.agents/skills/doc-authoring/assets/runbook.md` |
+| research | rsch | `docs/research/` | snapshot | status | 허용 | 기록(고정) | 한국어 | `.agents/skills/doc-authoring/assets/research.md` |
+| review | rev | `docs/reviews/` | final | status | 금지 | 동결 | 영어 | 없음 |
 
-- `번호`: `없음`이면 이름에 번호가 없다. `NN`·`NNNN`이면 날짜 뒤에 그 자릿수의 번호가 온다. `make new-doc`이 모든 로컬·원격 추적 브랜치와 작업 트리에서 가장 큰 번호 + 1을 고른다. 그래서 먼저 `git fetch origin`을 한다.
-- `새 문서`: `금지`인 타입은 `make new-doc`이 만들지 않는다. 기존 파일은 그대로 둔다. 리뷰 기록은 계획 09부터 PR 댓글이다.
+- 모든 타입의 문서는 무작위 ID를 가진다(파일 이름과 front matter `id`). `make new-doc`은 모든 로컬·원격 추적 브랜치와 작업 트리의 문서 이름에 없는 ID를 고른다. 그래서 먼저 `git fetch origin`을 한다. `make new-id`는 ID 하나만 출력한다.
+- `새 문서`: `금지`인 타입은 `make new-doc`이 만들지 않는다. 기존 파일은 그대로 둔다. 리뷰 기록은 [review-posting 계획](plans/plan-2026-10-13-znbc3ase-review-posting.md)부터 PR 댓글이다.
 - `make new-doc`과 문서 검사는 이 표를 읽는다. 셀을 비우거나 열을 빼면 둘 다 그 행 번호와 함께 실패한다.
 - `docs/ARCHITECTURE.md`는 표 밖의 단일 파일이다. front matter(`status: current`, `reviewed`)는 갖지만 이름 양식과 템플릿은 없다.
 
@@ -28,17 +28,18 @@
 
 ## 파일 이름
 
-- 번호가 없는 타입: `<코드>-<YYYY-MM-DD>-<slug>.md`
-- 번호가 있는 타입: `<코드>-<YYYY-MM-DD>-<번호>-<slug>.md`(plan은 두 자리, adr은 네 자리)
+- 모든 타입: `<코드>-<YYYY-MM-DD>-<ID>-<slug>.md`. ID는 `0123456789abcdefghjkmnpqrstvwxyz`의 8자이고, front matter의 `id`와 같다. 저장소 안에서 두 문서가 같은 ID를 쓰지 않는다.
 - 날짜는 문서를 처음 만든 날이다. slug는 영어 소문자와 숫자를 하이픈 하나로 잇는다.
+- ID는 순서를 뜻하지 않는다. 본문에서 다른 문서는 "<slug> 계획", "<slug> ADR"처럼 slug로 부르고 링크를 단다.
 - 이름을 바꾸지 않는 단일 파일: `README.md`, `docs/README.md`, `docs/ARCHITECTURE.md`, `docs/reviews/README.md`
 
 ## 메타데이터
 
-파일 맨 위의 YAML front matter에 한 줄에 하나씩 쓴다. 키와 값은 영어 소문자다. 키는 아래 여섯 개만 쓴다.
+파일 맨 위의 YAML front matter에 한 줄에 하나씩 쓴다. 키와 값은 영어 소문자다. 키는 아래 일곱 개만 쓴다.
 
 | 키 | 값 | 쓰는 타입 |
 |---|---|---|
+| `id` | 파일 이름의 ID | 모든 타입 |
 | `status` | 타입별 상태 값 | 모든 타입과 ARCHITECTURE |
 | `date` | `YYYY-MM-DD`, 마지막으로 상태가 바뀐 날 | spec, adr |
 | `spec` | 근거 문서의 저장소 기준 경로, 없으면 `none` | plan |

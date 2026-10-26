@@ -1,5 +1,6 @@
 ---
 status: current
+id: ha5w72pm
 reviewed: 2026-10-15
 ---
 
@@ -11,9 +12,9 @@ reviewed: 2026-10-15
 
 ## 준비
 
-- `.env`는 main 체크아웃에 있습니다([accounts 3단계](rbk-2026-10-12-accounts.md)). `BM_TAILNET_DOMAIN`(`tailscale` 모드만)과 `BM_VM_PUBLIC_IP`가 채워져 있는지 사용자가 확인합니다(에이전트는 읽을 수 없음). 없으면 main 체크아웃에서 `cp .env.example .env` 후 채웁니다.
+- `.env`는 main 체크아웃에 있습니다([accounts 3단계](rbk-2026-10-12-hqxjjqy8-accounts.md)). `BM_TAILNET_DOMAIN`(`tailscale` 모드만)과 `BM_VM_PUBLIC_IP`가 채워져 있는지 사용자가 확인합니다(에이전트는 읽을 수 없음). 없으면 main 체크아웃에서 `cp .env.example .env` 후 채웁니다.
 - 사람은 VM 대상 Make 타깃을 main 체크아웃에서 실행합니다. 에이전트는 자기 worktree에서 실행해도 되며, 그때도 `.env`와 `backups/`는 main 체크아웃의 것을 씁니다. 에이전트가 worktree에서 `deploy`·`restore`를 할 때는 먼저 `git diff main -- compose.yaml`이 아무것도 출력하지 않는지 확인합니다(bm-upgrade의 사용자 승인 배포는 예외).
-- `tailscale` 모드만: [accounts 런북 5단계](rbk-2026-10-12-accounts.md)대로 1회용 인증 키를 **지금** 발급합니다(만료 1일).
+- `tailscale` 모드만: [accounts 런북 5단계](rbk-2026-10-12-hqxjjqy8-accounts.md)대로 1회용 인증 키를 **지금** 발급합니다(만료 1일).
 
 ## 순서
 
@@ -37,11 +38,11 @@ reviewed: 2026-10-15
 
 ## ssh 모드 순서
 
-1. [VM 런북](rbk-2026-10-12-gcp-vm.md) 3단계와 8단계: `default-allow-ssh`를 지우고 `allow-iap-ssh`를 만들고, `~/.ssh/config`에 `agent-hub-iap`를 넣고(VM을 다시 만들어 인스턴스 이름이 바뀌었으면 별칭의 `HostName`도 새 이름으로 바꿉니다), 대화형 `ssh ubuntu@agent-hub-iap true`로 호스트 키를 수락합니다.
+1. [VM 런북](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 3단계와 8단계: `default-allow-ssh`를 지우고 `allow-iap-ssh`를 만들고, `~/.ssh/config`에 `agent-hub-iap`를 넣고(VM을 다시 만들어 인스턴스 이름이 바뀌었으면 별칭의 `HostName`도 새 이름으로 바꿉니다), 대화형 `ssh ubuntu@agent-hub-iap true`로 호스트 키를 수락합니다.
 2. `.env`: `BM_ACCESS=ssh`, `BM_VM_HOST=agent-hub-iap`. `BM_TAILNET_DOMAIN`은 필요 없습니다. `make access-check`가 `ssh ubuntu@agent-hub-iap: ok`를 출력해야 합니다.
 3. `make vm-bootstrap HOST=agent-hub-iap` → 인증 키를 묻지 않고 스왑·Docker·데이터 디렉터리만 준비합니다(`access mode ssh: skipping Tailscale`).
 4. `make deploy sb-fonts verify status`
-5. 다른 터미널에서 `make tunnel`을 띄우고 [운영 런북](rbk-2026-10-12-operations.md)의 "에이전트 연결"대로 클라이언트를 등록합니다.
+5. 다른 터미널에서 `make tunnel`을 띄우고 [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 "에이전트 연결"대로 클라이언트를 등록합니다.
 
 완료 조건(ssh 모드):
 
@@ -53,7 +54,7 @@ reviewed: 2026-10-15
 ## 완료 조건
 
 - [ ] `make verify`가 `OK: MCP round trip passed`, `OK: SilverBullet checks passed`, `listens on 127.0.0.1 only`(8737과 3000), `tailscale serve is tailnet only`, `refuses ports 22 80 443 8443 8737 3000`을 모두 출력한다.
-- [ ] [운영 런북](rbk-2026-10-12-operations.md)의 Exposure audit(수동 점검)을 마치고 결과를 기록했다.
+- [ ] [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit(수동 점검)을 마치고 결과를 기록했다.
 - [ ] `make status`에 두 컨테이너의 `(healthy)`, `proxy http://127.0.0.1:8737`, `proxy http://127.0.0.1:3000`이 보이고, 스왑이 활성이다(`no active swap` 경고가 없음).
 - [ ] `make backup`이 main 체크아웃의 `backups/`에 `bm-*.tgz`와 `.sha256`, `.manifest`를 만든다.
 
@@ -61,17 +62,17 @@ reviewed: 2026-10-15
 
 | 증상 | 확인 |
 |---|---|
-| `upload failed` | 공인 IP(정지 후 시작하면 바뀜, [rbk-2026-10-12-gcp-vm.md](rbk-2026-10-12-gcp-vm.md) 5단계), SSH 키, `default-allow-ssh`의 소스 IP/32(다른 네트워크면 다시 `update`), 재구축이면 `ssh-keygen -R <공인 IP>` |
+| `upload failed` | 공인 IP(정지 후 시작하면 바뀜, [rbk-2026-10-12-tcjs7m6x-gcp-vm.md](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 5단계), SSH 키, `default-allow-ssh`의 소스 IP/32(다른 네트워크면 다시 `update`), 재구축이면 `ssh-keygen -R <공인 IP>` |
 | `not on the tailnet and no auth key given` | VM이 아직 tailnet에 없습니다. 인증 키를 붙여 넣어 다시 실행 |
 | `tailscale up failed` | 키 만료·재사용 여부, Pre-approved, `tag:agent-hub`의 `tagOwners` |
-| 배포 뒤(22번 삭제 뒤) 부트스트랩을 다시 실행해야 함 | **Assumption (계획 05 항목 29에서 확인):** `make vm-bootstrap HOST=agent-hub` (Tailscale SSH 사용) |
-| `Serve is not active` | [accounts 3단계](rbk-2026-10-12-accounts.md)의 MagicDNS와 HTTPS Certificates를 켠 뒤 `make vm-bootstrap`을 다시 실행 |
-| `Funnel is on for this node` | Funnel을 끄고([운영 런북](rbk-2026-10-12-operations.md)의 Exposure audit) 다시 실행 |
+| 배포 뒤(22번 삭제 뒤) 부트스트랩을 다시 실행해야 함 | **Assumption ([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) 항목 29에서 확인):** `make vm-bootstrap HOST=agent-hub` (Tailscale SSH 사용) |
+| `Serve is not active` | [accounts 3단계](rbk-2026-10-12-hqxjjqy8-accounts.md)의 MagicDNS와 HTTPS Certificates를 켠 뒤 `make vm-bootstrap`을 다시 실행 |
+| `Funnel is on for this node` | Funnel을 끄고([운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit) 다시 실행 |
 | `Host key verification failed` / `REMOTE HOST IDENTIFICATION HAS CHANGED` | VM을 다시 만들면 호스트 키가 바뀝니다. `ssh-keygen -R agent-hub` 후 대화형 `ssh ubuntu@agent-hub true`로 새 키를 수락 |
 | `make vm-bootstrap` 중 `REMOTE HOST IDENTIFICATION HAS CHANGED` (공인 IP) | 재구축한 VM이 같은 공인 IP를 쓰면 옛 키와 충돌합니다. `ssh-keygen -R <공인 IP>` 후 다시 실행 |
 | 새 노드 이름이 `agent-hub-1` | 옛 `agent-hub` 기기가 admin console에 남아 있습니다. 옛 기기를 삭제한 뒤 `make vm-bootstrap`을 다시 실행해 이름을 확인(`tailscale status`) |
-| `ssh ubuntu@agent-hub` 실패 | 정책의 `ssh` 규칙([accounts 4단계](rbk-2026-10-12-accounts.md)) |
-| 22번을 지운 뒤 접속 불가 | 22번 규칙을 gcloud로 다시 추가합니다. 최후 수단은 GCP 시리얼 콘솔입니다(**Assumption:** 시리얼 포트 활성화와 로컬 비밀번호가 필요해 바로 쓸 수 없을 수 있음, 계획 05에서 확인). 규칙 추가: `gcloud compute firewall-rules create temp-ssh --configuration=bm-personal --network=default --allow=tcp:22 --source-ranges="<내 IP>/32"` (**Assumption:** 새 규칙 이름은 자유). 접속 후 `sudo tailscale status`를 확인하고, 해결되면 이 규칙을 다시 지웁니다 |
+| `ssh ubuntu@agent-hub` 실패 | 정책의 `ssh` 규칙([accounts 4단계](rbk-2026-10-12-hqxjjqy8-accounts.md)) |
+| 22번을 지운 뒤 접속 불가 | 22번 규칙을 gcloud로 다시 추가합니다. 최후 수단은 GCP 시리얼 콘솔입니다(**Assumption:** 시리얼 포트 활성화와 로컬 비밀번호가 필요해 바로 쓸 수 없을 수 있음, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 확인). 규칙 추가: `gcloud compute firewall-rules create temp-ssh --configuration=bm-personal --network=default --allow=tcp:22 --source-ranges="<내 IP>/32"` (**Assumption:** 새 규칙 이름은 자유). 접속 후 `sudo tailscale status`를 확인하고, 해결되면 이 규칙을 다시 지웁니다 |
 | `BM_ACCESS must be tailscale or ssh` | `.env`의 `BM_ACCESS`를 소문자 `tailscale`이나 `ssh`로 고치거나 비웁니다 |
-| `ssh` 모드에서 `upload failed: check the ProxyCommand ...` | [VM 런북](rbk-2026-10-12-gcp-vm.md) 8단계: `allow-iap-ssh` 규칙, `~/.ssh/config`의 별칭, `gcloud` 로그인 |
-| `Tailscale is logged in on the VM but BM_ACCESS=ssh` | 모드를 바꾸는 중이면 [운영 런북](rbk-2026-10-12-operations.md)의 "접속 방식 바꾸기" 5단계를 마칩니다 |
+| `ssh` 모드에서 `upload failed: check the ProxyCommand ...` | [VM 런북](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 8단계: `allow-iap-ssh` 규칙, `~/.ssh/config`의 별칭, `gcloud` 로그인 |
+| `Tailscale is logged in on the VM but BM_ACCESS=ssh` | 모드를 바꾸는 중이면 [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 "접속 방식 바꾸기" 5단계를 마칩니다 |

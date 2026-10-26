@@ -1,13 +1,14 @@
 ---
 status: completed
-spec: docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md
+id: hydaxf15
+spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 ---
 
-# 04 Docs and Skills Implementation Plan
+# hydaxf15 Docs and Skills Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 저장소 전용 스킬 3개, README, 아키텍처 문서, 런북 4개, ADR 2개를 GCP 기준으로 갖추고, worktree에서 백업을 잃는 문제(최종 리뷰 C1)와 GCP 전환에 필요한 스크립트 변경(스왑, `status`, 클라우드 중립 문구)을 끝낸 뒤, 로컬에서 저장소 전체를 검증한다. 이 계획이 끝나면 사용자가 런북만 보고 VM 배포(계획 05)를 진행할 수 있다.
+**Goal:** 저장소 전용 스킬 3개, README, 아키텍처 문서, 런북 4개, ADR 2개를 GCP 기준으로 갖추고, worktree에서 백업을 잃는 문제(최종 리뷰 C1)와 GCP 전환에 필요한 스크립트 변경(스왑, `status`, 클라우드 중립 문구)을 끝낸 뒤, 로컬에서 저장소 전체를 검증한다. 이 계획이 끝나면 사용자가 런북만 보고 VM 배포([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md))를 진행할 수 있다.
 
 **Architecture:**
 - 스킬 정본은 `.agents/skills/`(Codex·Antigravity)에 두고, Claude Code용으로 `.claude/skills/<name>` 심볼릭 링크를 둔다. frontmatter는 Agent Skills 표준 필드만 쓴다.
@@ -15,9 +16,9 @@ spec: docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md
 
 **Tech Stack:** Bash(macOS 3.2 호환), GNU Make, Docker Compose, Basic Memory 0.23.2, Tailscale(Serve, SSH), bats-core 1.14.0 + bats-support/assert, kcov, shellcheck 0.11.0, shfmt 3.12.0, jq, curl
 
-**Spec:** `docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md` (Task 4~8과 재작성 기준). Task 1~3은 대체된 `docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md`를 기준으로 진행했다.
+**Spec:** `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md` (Task 4~8과 재작성 기준). Task 1~3은 대체된 `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`를 기준으로 진행했다.
 
-**Sequence:** 계획 4/5. 전제: 계획 03 완료·병합. 다음 계획: `docs/plans/plan-2026-10-07-05-vm-rollout.md`. Task 1~3 완료(f5ad88c), GCP 스펙 커밋(b695766) 뒤 Task 4~8을 진행한다(아래 "2026-10-12 변경: GCP 전환").
+**Sequence:** 계획 4/5. 전제: [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md) 완료·병합. 다음 계획: `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md`. Task 1~3 완료(f5ad88c), GCP 스펙 커밋(b695766) 뒤 Task 4~8을 진행한다(아래 "2026-10-12 변경: GCP 전환").
 
 ## Global Constraints
 
@@ -47,9 +48,9 @@ spec: docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md
   - 코드, 주석, 스크립트 메시지, `AGENTS.md`, `SKILL.md`는 영어로 쓴다.
   - README, runbooks, ARCHITECTURE, ADR은 한국어로 쓴다.
   - 저장소 노트에는 `Verified` / `Command` / `Assumption` / `Open question` 표기를 쓴다.
-- Git (`docs/specs/spec-2026-10-07-git-review-policy.md`):
-  - 이 계획은 `plan/04-docs-skills` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
-  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: 04`, `Task: N`을 단다. 커밋 명령의 `Assisted-by` 값은 시작 단계에서 정한 신원을 그대로 적는다(셸 변수는 명령 사이에 남지 않을 수 있다).
+- Git (`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`):
+  - 이 계획은 `plan/hydaxf15-docs-skills` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
+  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: hydaxf15`, `Task: N`을 단다. 커밋 명령의 `Assisted-by` 값은 시작 단계에서 정한 신원을 그대로 적는다(셸 변수는 명령 사이에 남지 않을 수 있다).
   - `Co-authored-by`와 `Signed-off-by`는 넣지 않는다(사용자 전역 설정과 저장소 정책).
   - 매 커밋 전에 `make check`를 실행한다.
 - 수명주기 작업은 Make 타깃으로만 한다. raw `docker compose`나 `ssh`는 실패 진단에만 쓰고, 그 이유를 기록한다.
@@ -63,8 +64,8 @@ spec: docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md
 ## Review Focus
 
 1. **깨진 상대 링크:** 문서가 늘면서 링크가 깨지면, 런북을 따라가던 사용자가 중간에 막힌다. → Task 2에서 Markdown 링크 검사 테스트를 추가한다.
-2. **비표준 스킬 frontmatter:** Claude 전용 키(`disable-model-invocation` 등)를 넣으면 Codex·Antigravity가 스킬을 거부할 수 있다. → 계획 02의 스킬 구조 테스트가 새 `bm-*` 스킬도 검사한다.
-3. **Claude Code에서 스킬이 안 보임:** Claude Code는 `.agents/skills/`를 읽지 않으므로 링크가 빠지면 스킬이 사라진다. → 계획 02의 링크 검사 테스트가 새 스킬에도 적용된다. Task 1은 세 스킬이 있는지 검사하는 테스트를 추가한다.
+2. **비표준 스킬 frontmatter:** Claude 전용 키(`disable-model-invocation` 등)를 넣으면 Codex·Antigravity가 스킬을 거부할 수 있다. → [git-review-tooling 계획](plan-2026-10-07-qq4h1djv-git-review-tooling.md)의 스킬 구조 테스트가 새 `bm-*` 스킬도 검사한다.
+3. **Claude Code에서 스킬이 안 보임:** Claude Code는 `.agents/skills/`를 읽지 않으므로 링크가 빠지면 스킬이 사라진다. → [git-review-tooling 계획](plan-2026-10-07-qq4h1djv-git-review-tooling.md)의 링크 검사 테스트가 새 스킬에도 적용된다. Task 1은 세 스킬이 있는지 검사하는 테스트를 추가한다.
 4. **진단이 데이터를 바꿈:** `bm-diagnose`가 `make verify`(노트 쓰기·삭제)나 `make local-up`을 실행하면 읽기 전용 약속이 깨진다. → 스킬은 `make probe`, `status`, `logs`만 실행하고 나머지는 제안만 한다. 자동 테스트가 없으므로 리뷰에서 확인한다.
 5. **업그레이드 롤백이 데이터를 무시함:** 새 버전이 SQLite·설정을 마이그레이션했다면 이전 이미지만 되돌려서는 안 된다. → `bm-upgrade`는 업그레이드 직전 백업을 롤백 지점으로 삼고, `make restore`가 이미지(compose)와 데이터를 함께 되돌린다.
 
@@ -88,7 +89,7 @@ GCP 전환 (2026-10-12)
 Makefile scripts/lib/common.sh scripts/backup.sh scripts/restore.sh           Task 4 (Makefile은 include 부분만)
 .agents/skills/git-workflow/SKILL.md                                          Task 4
 tests/main_checkout.bats (새 파일) tests/common.bats tests/backup_restore.bats tests/helpers.bash  Task 4
-README.md docs/ARCHITECTURE.md docs/runbooks/*.md docs/decisions/*.md         Task 5 (oci-vm.md → gcp-vm.md, ADR 0001 이름 변경)
+README.md docs/ARCHITECTURE.md docs/runbooks/*.md docs/decisions/*.md         Task 5 (rbk-2026-10-12-vebvx40g-oci-vm.md → rbk-2026-10-12-tcjs7m6x-gcp-vm.md, ADR 0001 이름 변경)
 .agents/skills/{bm-upgrade,bm-recover,bm-diagnose}/SKILL.md tests/repo.bats   Task 5
 scripts/remote/bootstrap.sh scripts/status.sh scripts/bootstrap-vm.sh         Task 6
 scripts/verify-vm.sh Makefile(status 도움말) .env.example tests/stubs/*         Task 6
@@ -102,13 +103,13 @@ AGENTS.md tests/repo.bats                                                     Ta
 
 - [ ] 이 계획을 진행할 에이전트 신원을 기록한다: `<도구> <모델 ID>` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다. 커밋마다 이 값을 `Assisted-by:` 트레일러에 그대로 적는다.
 - [ ] 전용 worktree와 브랜치를 만든다. 한 계획 브랜치는 한 번에 한 worktree에서만 진행한다.
-  - Claude Code: `claude --worktree plan-04-docs-skills`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/04-docs-skills`
-  - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-04-docs-skills -b plan/04-docs-skills main` 후 그 디렉터리에서 작업
+  - Claude Code: `claude --worktree plan-04-docs-skills`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/hydaxf15-docs-skills`
+  - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-04-docs-skills -b plan/hydaxf15-docs-skills main` 후 그 디렉터리에서 작업
 - [ ] 첫 커밋으로 이 계획 파일을 `backlog/`에서 `active/`로 옮긴다.
 
 ```bash
-git mv docs/plans/backlog/2026-10-07-04-docs-skills.md docs/plans/active/
-git commit -m "docs: activate plan 04" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 04" --trailer "Task: none"
+git mv docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md docs/plans/active/
+git commit -m "docs: activate the docs-skills plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: none"
 ```
 
 ---
@@ -119,11 +120,11 @@ git commit -m "docs: activate plan 04" --trailer "Assisted-by: <도구> <모델 
 - Create: `.agents/skills/bm-upgrade/SKILL.md`, `.agents/skills/bm-recover/SKILL.md`, `.agents/skills/bm-diagnose/SKILL.md`
 - Create (symlink): `.claude/skills/bm-upgrade`, `.claude/skills/bm-recover`, `.claude/skills/bm-diagnose`
 - Modify: `AGENTS.md`(`Read first`, `Map`, `Skills`)
-- Test: `tests/repo.bats`(운영 스킬 존재 테스트 추가. 스킬 구조 테스트는 계획 02에 있다)
+- Test: `tests/repo.bats`(운영 스킬 존재 테스트 추가. 스킬 구조 테스트는 [git-review-tooling 계획](plan-2026-10-07-qq4h1djv-git-review-tooling.md)에 있다)
 
 **Interfaces:**
-- Consumes: 계획 01~03의 모든 Make 타깃 이름, 계획 02의 스킬 구조 테스트와 `## Skills` 섹션
-- Produces: 스킬 이름 `bm-upgrade`, `bm-recover`, `bm-diagnose`. Task 2의 `docs/runbooks/rbk-2026-10-12-operations.md`에는 "Idle reclamation"과 "Incident log" 섹션이 있어야 한다(`bm-recover`, `bm-diagnose`가 참조).
+- Consumes: [local-foundation](plan-2026-10-07-sqzn0teq-local-foundation.md)·[git-review-tooling](plan-2026-10-07-qq4h1djv-git-review-tooling.md)·[vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md) 계획의 모든 Make 타깃 이름, git-review-tooling 계획의 스킬 구조 테스트와 `## Skills` 섹션
+- Produces: 스킬 이름 `bm-upgrade`, `bm-recover`, `bm-diagnose`. Task 2의 `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`에는 "Idle reclamation"과 "Incident log" 섹션이 있어야 한다(`bm-recover`, `bm-diagnose`가 참조).
 
 - [ ] **Step 1: 실패하는 테스트 추가 (`tests/repo.bats` 끝에 append)**
 
@@ -179,11 +180,11 @@ Each step changes cloud resources or data. Confirm with the user before steps 3,
 
 1. Confirm the VM is really gone: `make status` fails and the user sees the instance stopped or terminated in the OCI console. For anything transient, use `bm-diagnose` instead.
 2. Choose the newest backup with a checksum: `ls -t backups/bm-*.tgz | head -n 1` and check `<file>.sha256` exists. If there is none, tell the user the notes cannot be restored and continue with an empty VM only if they agree.
-3. The user creates a new VM following `docs/runbooks/oci-vm.md` (temporary port 22 rule) and removes the old `bm-node` machine in the Tailscale admin console so the new VM can take the name. Ask for the new public IP and update `BM_VM_PUBLIC_IP` in `.env`.
-4. The user creates a new one-off auth key (`docs/runbooks/accounts.md`). Run `make vm-bootstrap HOST=<new-public-ip>`; the user pastes the key at the prompt.
+3. The user creates a new VM following `docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md` (temporary port 22 rule) and removes the old `bm-node` machine in the Tailscale admin console so the new VM can take the name. Ask for the new public IP and update `BM_VM_PUBLIC_IP` in `.env`.
+4. The user creates a new one-off auth key (`docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`). Run `make vm-bootstrap HOST=<new-public-ip>`; the user pastes the key at the prompt.
 5. Check `ssh ubuntu@bm-node true`, then ask the user to delete the port 22 ingress rule.
 6. Run `make deploy`, then `make restore BACKUP=<file from step 2>`; the user types yes and the target runs verify.
-7. Run `make status` and add a row to "Incident log" in `docs/runbooks/operations.md` (date, cause, backup used, data loss window).
+7. Run `make status` and add a row to "Incident log" in `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md` (date, cause, backup used, data loss window).
 ```
 
 `.agents/skills/bm-diagnose/SKILL.md`:
@@ -200,15 +201,15 @@ Read-only: run only `tailscale status`, `ssh ubuntu@bm-node true`, `make status`
 Work top-down and stop at the first layer that fails:
 
 1. Tailnet: `tailscale status | grep bm-node` on this machine. Missing or offline: the VM is down or logged out; check the OCI console (terminated means `bm-recover`).
-2. SSH: `ssh ubuntu@bm-node true`. Failing while the tailnet is fine: check the Tailscale policy `ssh` rule for `tag:bm-server` (docs/runbooks/accounts.md).
+2. SSH: `ssh ubuntu@bm-node true`. Failing while the tailnet is fine: check the Tailscale policy `ssh` rule for `tag:bm-server` (docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md).
 3. Container: `make status`. Not `(healthy)`: run `make logs` and quote the first error.
-4. Memory warning from `make status`: idle-reclaim risk; see "Idle reclamation" in docs/runbooks/operations.md.
+4. Memory warning from `make status`: idle-reclaim risk; see "Idle reclamation" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md.
 5. Serve: `make status` must show `proxy http://127.0.0.1:8737`. Missing: bootstrap step `configure_serve` did not run.
 6. MCP: `make probe` (initialize and tools/list only; writes nothing) and read the failing step:
    - `initialize: request ... failed`: DNS or HTTPS; check MagicDNS and HTTPS certificates in the Tailscale admin console.
    - `initialize: HTTP 4xx`: Host header or path; propose comparing against a local container (`make local-up local-verify` starts a container and writes a test note, so the user decides).
    - `tools/list: missing tool`: the image changed; see `bm-upgrade`.
-   - `Tailscale Funnel is on` or `accepts connections on port N`: exposure problem; point the user to "Exposure audit" in docs/runbooks/operations.md.
+   - `Tailscale Funnel is on` or `accepts connections on port N`: exposure problem; point the user to "Exposure audit" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md.
    - Probe passes but agents cannot write: check data permissions (`ssh ubuntu@bm-node ls -ln /srv/basic-memory`, owner must be 1000) and disk space (`ssh ubuntu@bm-node df -h /srv`), then propose `make verify`, which writes and deletes a test note.
 7. Report the failing layer, the evidence (command and output excerpt) and the proposed fix.
 ```
@@ -227,7 +228,7 @@ ln -s ../../.agents/skills/bm-diagnose .claude/skills/bm-diagnose
 
 `Read first:` 줄을 다음으로 바꾼다.
 ```markdown
-Read first: `docs/specs/2026-10-07-basic-memory-oci-tailscale-design.md`, then `docs/ARCHITECTURE.md`.
+Read first: `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`, then `docs/ARCHITECTURE.md`.
 ```
 
 `## Map`의 마지막 줄 뒤에 다음 줄을 추가한다.
@@ -235,7 +236,7 @@ Read first: `docs/specs/2026-10-07-basic-memory-oci-tailscale-design.md`, then `
 - `docs/runbooks/` accounts, VM creation, bootstrap, operations (incident log); `docs/decisions/` ADRs.
 ```
 
-`## Skills` 섹션(계획 02에서 생김)의 끝에 다음 세 줄을 추가한다.
+`## Skills` 섹션([git-review-tooling 계획](plan-2026-10-07-qq4h1djv-git-review-tooling.md)에서 생김)의 끝에 다음 세 줄을 추가한다.
 ```markdown
 - `bm-upgrade`: bump the pinned Basic Memory image and roll it out safely.
 - `bm-recover`: rebuild after the VM is reclaimed or broken, then restore the latest backup.
@@ -257,7 +258,7 @@ Expected: PASS(총 113 tests). `docs/ARCHITECTURE.md`는 Task 2에서 만든다(
 Run: `make check` (PASS)
 ```bash
 git add .agents .claude/skills AGENTS.md tests/repo.bats
-git commit -m "docs: add repo skills for upgrade, recovery and diagnosis" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 04" --trailer "Task: 1"
+git commit -m "docs: add repo skills for upgrade, recovery and diagnosis" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: 1"
 ```
 
 ---
@@ -266,13 +267,13 @@ git commit -m "docs: add repo skills for upgrade, recovery and diagnosis" --trai
 
 **Files:**
 - Create: `README.md`, `docs/ARCHITECTURE.md`
-- Create: `docs/runbooks/rbk-2026-10-12-accounts.md`, OCI VM 런북(`oci-vm.md`, 이 계획에서 GCP VM 런북으로 바뀜), `docs/runbooks/rbk-2026-10-12-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-operations.md`
-- Create: OCI 시절 ADR 0001(`0001-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜), `docs/decisions/adr-2026-10-12-0002-vm-sizing.md`
+- Create: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`, OCI VM 런북(`rbk-2026-10-12-vebvx40g-oci-vm.md`, 이 계획에서 GCP VM 런북으로 바뀜), `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`
+- Create: OCI 시절 basic-memory-on-oci-tailscale ADR(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜), `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`
 - Test: `tests/repo.bats`(Markdown 링크 검사 추가)
 
 **Interfaces:**
 - Consumes: Make 타깃 이름, 스킬 이름, 스펙의 사실 목록
-- Produces: `docs/runbooks/rbk-2026-10-12-operations.md`의 "Exposure audit", "Idle reclamation", "Incident log" 섹션(`verify-vm.sh`, `status.sh`, `bm-recover`, `bm-diagnose`가 참조)
+- Produces: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`의 "Exposure audit", "Idle reclamation", "Incident log" 섹션(`verify-vm.sh`, `status.sh`, `bm-recover`, `bm-diagnose`가 참조)
 
 - [ ] **Step 1: 실패하는 테스트 추가 (`tests/repo.bats` 끝에 append)**
 
@@ -298,7 +299,7 @@ markdown_files() {
 }
 
 @test "runbooks contain the sections scripts and skills point to" {
-  run grep -E '^## (Exposure audit|Idle reclamation|Incident log)' "$REPO_DIR/docs/runbooks/operations.md"
+  run grep -E '^## (Exposure audit|Idle reclamation|Incident log)' "$REPO_DIR/docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md"
   assert_line --partial "Exposure audit"
   assert_line --partial "Idle reclamation"
   assert_line --partial "Incident log"
@@ -315,7 +316,7 @@ Expected: FAIL. `runbooks contain…`가 파일 없음으로 실패한다. 링�
 
 여러 기기의 코딩 에이전트(Codex, Claude Code, Antigravity)가 같은 기억을 쓰도록, Basic Memory MCP 서버를 OCI Always Free VM에 올리고 Tailscale tailnet 안에서만 접근하게 만드는 저장소입니다.
 
-- 설계: [docs/specs/2026-10-07-basic-memory-oci-tailscale-design.md](docs/specs/2026-10-07-basic-memory-oci-tailscale-design.md)
+- 설계: [docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md](docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md)
 - 구조: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - 에이전트 지침: [AGENTS.md](AGENTS.md)
 
@@ -323,7 +324,7 @@ Expected: FAIL. `runbooks contain…`가 파일 없음으로 실패한다. 링�
 
 - macOS + Docker Desktop (실행 중이어야 함), `make`
 - `ssh`, `curl`, `jq`, `nc` (`brew install jq`; 나머지는 macOS 기본 포함)
-- VM 작업용: 이 Mac에 Tailscale 앱 설치·로그인 ([accounts 런북](docs/runbooks/accounts.md))
+- VM 작업용: 이 Mac에 Tailscale 앱 설치·로그인 ([accounts 런북](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md))
 
 ## 빠르게 시작하기
 
@@ -336,10 +337,10 @@ make local-down
 
 ## VM 구축 순서
 
-1. [계정 준비](docs/runbooks/accounts.md): OCI, Tailscale, 정책, 인증 키
-2. [VM 만들기](docs/runbooks/oci-vm.md): A1.Flex, Ubuntu 24.04, 임시 22번 규칙
-3. [부트스트랩](docs/runbooks/bootstrap.md): `make vm-bootstrap` → 22번 규칙 삭제 → `make deploy verify status`
-4. [운영](docs/runbooks/operations.md): 백업, 복원, 업그레이드, 유휴 회수 대응
+1. [계정 준비](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md): OCI, Tailscale, 정책, 인증 키
+2. [VM 만들기](docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md): A1.Flex, Ubuntu 24.04, 임시 22번 규칙
+3. [부트스트랩](docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md): `make vm-bootstrap` → 22번 규칙 삭제 → `make deploy verify status`
+4. [운영](docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md): 백업, 복원, 업그레이드, 유휴 회수 대응
 
 ## 범위 밖 (다음 목표)
 
@@ -389,7 +390,7 @@ make local-down
 
 - Basic Memory에는 인증이 없습니다(**Verified**). 접근 제어는 전적으로 Tailscale의 기기 인증과 정책에 맡깁니다.
 - 컨테이너 포트는 `127.0.0.1`에만 바인딩하고, Serve는 tailnet 전용(Funnel off)이며, OCI 공개 인바운드 규칙은 0개입니다.
-- 자동 검증 범위: `tests/repo.bats`(설정 파일)와 `make verify`/`make probe`(바인딩, Serve 상태, 공인 IP의 22·80·443·8737). OCI 인바운드 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/operations.md)의 Exposure audit으로 수동 점검합니다.
+- 자동 검증 범위: `tests/repo.bats`(설정 파일)와 `make verify`/`make probe`(바인딩, Serve 상태, 공인 IP의 22·80·443·8737). OCI 인바운드 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit으로 수동 점검합니다.
 - 비밀값은 Tailscale 인증 키 하나뿐이며, 저장소와 디스크에 남지 않습니다.
 
 ## 주요 흐름
@@ -399,10 +400,10 @@ make local-down
 - **백업:** `make backup` → (재시작 예약) 컨테이너 정지 → 파일별 체크섬 manifest → `/srv/basic-memory`를 tar로 받아옴 → 컨테이너 재시작 → sha256 저장
 - **복원:** `make restore` → 정지 → 임시 경로에 압축 해제 → manifest 대조 → 저장소 compose.yaml 적용 → 데이터 교체(기존은 `.prev-*`) → 기동 → verify. 정지 이후 실패하면 이전 데이터와 compose로 자동 롤백
 
-관련 결정: [ADR 0001](decisions/0001-basic-memory-on-oci-tailscale.md), [ADR 0002](decisions/0002-vm-sizing.md)
+관련 결정: [basic-memory-on-oci-tailscale ADR](decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md), [vm-sizing ADR](decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)
 ````
 
-- [ ] **Step 4: `docs/runbooks/rbk-2026-10-12-accounts.md` 작성**
+- [ ] **Step 4: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md` 작성**
 
 ````markdown
 # 계정 준비: OCI와 Tailscale
@@ -465,7 +466,7 @@ Settings → **Keys** → **Generate auth key**:
 키는 어디에도 저장하지 말고, `make vm-bootstrap` 프롬프트에 붙여 넣습니다.
 ````
 
-- [ ] **Step 5: OCI VM 런북(`oci-vm.md`, 이 계획에서 GCP VM 런북으로 바뀜) 작성**
+- [ ] **Step 5: OCI VM 런북(`rbk-2026-10-12-vebvx40g-oci-vm.md`, 이 계획에서 GCP VM 런북으로 바뀜) 작성**
 
 ````markdown
 # VM 만들기 (OCI 콘솔)
@@ -482,7 +483,7 @@ Compute → Instances → **Create instance**:
 |---|---|
 | Name | `bm-node` |
 | Image | Canonical Ubuntu 24.04 (**Minimal 아님**, aarch64) |
-| Shape | `VM.Standard.A1.Flex`, 1 OCPU / 4 GB ([ADR 0002](../decisions/0002-vm-sizing.md)) |
+| Shape | `VM.Standard.A1.Flex`, 1 OCPU / 4 GB ([the vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)) |
 | Networking | 새 VCN + public subnet, public IPv4 할당 |
 | SSH keys | 1단계의 공개키 업로드 |
 | Boot volume | 기본 50 GB |
@@ -499,10 +500,10 @@ Networking → VCN → Security Lists → Default security list → Ingress rule
 
 ## 4. 기록
 
-인스턴스의 Public IPv4를 `.env`의 `BM_VM_PUBLIC_IP`에 적고, [부트스트랩](bootstrap.md)으로 넘어갑니다.
+인스턴스의 Public IPv4를 `.env`의 `BM_VM_PUBLIC_IP`에 적고, [부트스트랩](rbk-2026-10-12-ha5w72pm-bootstrap.md)으로 넘어갑니다.
 ````
 
-- [ ] **Step 6: `docs/runbooks/rbk-2026-10-12-bootstrap.md` 작성**
+- [ ] **Step 6: `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md` 작성**
 
 ````markdown
 # 부트스트랩: VM을 tailnet에 올리고 배포하기
@@ -513,7 +514,7 @@ Networking → VCN → Security Lists → Default security list → Ingress rule
 cp .env.example .env    # BM_TAILNET_DOMAIN, BM_VM_PUBLIC_IP 채우기
 ```
 
-[accounts 런북 5단계](accounts.md)대로 1회용 인증 키를 발급해 둡니다.
+[accounts 런북 5단계](rbk-2026-10-12-hqxjjqy8-accounts.md)대로 1회용 인증 키를 발급해 둡니다.
 
 ## 순서
 
@@ -527,7 +528,7 @@ cp .env.example .env    # BM_TAILNET_DOMAIN, BM_VM_PUBLIC_IP 채우기
 ## 완료 조건
 
 - [ ] `make verify`가 `OK: MCP round trip passed`, `listens on 127.0.0.1 only`, `tailscale serve is tailnet only`, `refuses ports 22 80 443 8737`을 모두 출력한다.
-- [ ] [운영 런북](operations.md)의 Exposure audit(수동 점검)을 마치고 결과를 기록했다.
+- [ ] [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit(수동 점검)을 마치고 결과를 기록했다.
 - [ ] `make status`에 `(healthy)`, `proxy http://127.0.0.1:8737`이 보인다.
 - [ ] `make backup`이 `backups/bm-*.tgz`와 `.sha256`을 만든다.
 
@@ -537,11 +538,11 @@ cp .env.example .env    # BM_TAILNET_DOMAIN, BM_VM_PUBLIC_IP 채우기
 |---|---|
 | `upload failed` | 공인 IP, SSH 키, 22번 규칙의 Source IP |
 | `tailscale up failed` | 키 만료·재사용 여부, Pre-approved, `tag:bm-server`의 `tagOwners` |
-| `ssh ubuntu@bm-node` 실패 | 정책의 `ssh` 규칙([accounts 4단계](accounts.md)) |
+| `ssh ubuntu@bm-node` 실패 | 정책의 `ssh` 규칙([accounts 4단계](rbk-2026-10-12-hqxjjqy8-accounts.md)) |
 | 22번을 지운 뒤 접속 불가 | OCI 콘솔 → 인스턴스 → **Console connection**(시리얼 콘솔)으로 들어가 `sudo tailscale status` 확인 |
 ````
 
-- [ ] **Step 7: `docs/runbooks/rbk-2026-10-12-operations.md` 작성**
+- [ ] **Step 7: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md` 작성**
 
 ````markdown
 # 운영
@@ -587,7 +588,7 @@ Funnel이 켜져 있다는 경고가 나오면 VM에서 Serve 설정을 확인�
 OCI는 7일 동안 CPU(95번째 백분위), 네트워크, 메모리(A1만 해당)가 **모두** 20% 미만인 Always Free VM을 회수할 수 있습니다(**Verified**).
 
 - `make status`가 메모리 사용률 20% 미만 경고를 내면, 최신 백업이 있는지 먼저 확인하세요.
-- VM 크기는 평소 메모리 사용률이 20%를 넘도록 정했습니다([ADR 0002](../decisions/0002-vm-sizing.md)). 경고가 계속되면 ADR 0002의 재평가 기준을 따르세요.
+- VM 크기는 평소 메모리 사용률이 20%를 넘도록 정했습니다([vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)). 경고가 계속되면 vm-sizing ADR의 재평가 기준을 따르세요.
 - 회수 알림 메일을 받거나 VM이 사라지면 `bm-recover` 스킬을 씁니다.
 
 ## Incident log
@@ -603,12 +604,12 @@ OCI는 7일 동안 CPU(95번째 백분위), 네트워크, 메모리(A1만 해당
 
 - [ ] **Step 8: ADR 작성**
 
-OCI 시절 ADR 0001(`0001-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜):
+OCI 시절 basic-memory-on-oci-tailscale ADR(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜):
 ```markdown
-# ADR 0001: Basic Memory를 OCI Always Free + Tailscale에 자체 호스팅
+# ADR b229z2y6: Basic Memory를 OCI Always Free + Tailscale에 자체 호스팅
 
 - 상태: Accepted (2026-10-07)
-- 출처: [설계 스펙](../specs/2026-10-07-basic-memory-oci-tailscale-design.md)
+- 출처: [설계 스펙](../specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md)
 
 ## 맥락
 
@@ -629,15 +630,15 @@ OCI 시절 ADR 0001(`0001-basic-memory-on-oci-tailscale.md`, 이 계획에서 GC
 
 ## 결과
 
-- 유휴 회수 위험이 있습니다 → 메모리 사용률 기준으로 크기를 정하고([ADR 0002](0002-vm-sizing.md)), 백업·복원 경로를 둡니다.
+- 유휴 회수 위험이 있습니다 → 메모리 사용률 기준으로 크기를 정하고([vm-sizing ADR](adr-2026-10-12-mdq5exsf-vm-sizing.md)), 백업·복원 경로를 둡니다.
 - Tailscale 계정이 단일 장애점이 됩니다. 대신 인증 없는 엔드포인트가 인터넷에 노출되지 않습니다.
 ```
 
-`docs/decisions/adr-2026-10-12-0002-vm-sizing.md`:
+`docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`:
 ```markdown
-# ADR 0002: VM 크기 (A1.Flex 1 OCPU / 4 GB)
+# ADR mdq5exsf: VM 크기 (A1.Flex 1 OCPU / 4 GB)
 
-- 상태: Proposed (2026-10-07). 계획 05에서 VM 실측 후 Accepted로 바꿉니다.
+- 상태: Proposed (2026-10-07). vm-rollout 계획에서 VM 실측 후 Accepted로 바꿉니다.
 
 ## 맥락
 
@@ -670,7 +671,7 @@ Expected: PASS(총 115 tests). 링크 테스트가 README, ARCHITECTURE, 런북,
 Run: `make check` (PASS)
 ```bash
 git add README.md docs/ARCHITECTURE.md docs/runbooks docs/decisions tests/repo.bats
-git commit -m "docs: add README, architecture, runbooks and ADRs" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 04" --trailer "Task: 2"
+git commit -m "docs: add README, architecture, runbooks and ADRs" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: 2"
 ```
 
 
@@ -682,7 +683,7 @@ git commit -m "docs: add README, architecture, runbooks and ADRs" --trailer "Ass
 - Modify: 이 계획 파일의 Progress log
 
 **Interfaces:**
-- Consumes: 계획 01~04의 모든 타깃
+- Consumes: [local-foundation](plan-2026-10-07-sqzn0teq-local-foundation.md)·[git-review-tooling](plan-2026-10-07-qq4h1djv-git-review-tooling.md)·[vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md)·docs-skills 계획의 모든 타깃
 - Produces: 로컬 증거 기록(Verified/Command)
 
 - [ ] **Step 1: 깨끗한 상태에서 전체 검사**
@@ -701,8 +702,8 @@ Expected: `OK: MCP round trip passed`가 네 번 출력된다(재시작 전 2번
 
 이 파일 맨 아래 Progress log에 날짜, 명령, 결과(테스트 수, 커버리지 %, 메모리)를 `Verified`로 추가한다.
 ```bash
-git add docs/plans/active/2026-10-07-04-docs-skills.md
-git commit -m "docs: record local verification evidence" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 04" --trailer "Task: 3"
+git add docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md
+git commit -m "docs: record local verification evidence" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: 3"
 ```
 
 
@@ -710,7 +711,7 @@ git commit -m "docs: record local verification evidence" --trailer "Assisted-by:
 
 ## 2026-10-12 변경: GCP 전환
 
-Task 1~3은 OCI 설계를 기준으로 끝났다(f5ad88c, 최종 리뷰까지). 같은 날 OCI A1을 만들 수 없어 호스팅을 GCP 무료 e2-micro로 바꿨고, 설계는 `docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md`(b695766)로 대체됐다. 그래서 이 계획은 Task 4~8을 더해, Task 1~3이 만든 문서·스킬을 GCP 기준으로 다시 쓰고, 최종 리뷰의 호스트와 무관한 지적(C1, I3)과 GCP 전환에 필요한 코드 변경을 함께 끝낸다. Task 1~3의 본문은 기록으로 남긴다. 그 안의 OCI 문서 초안은 더 이상 기준이 아니며, Task 5가 정한 내용이 우선한다.
+Task 1~3은 OCI 설계를 기준으로 끝났다(f5ad88c, 최종 리뷰까지). 같은 날 OCI A1을 만들 수 없어 호스팅을 GCP 무료 e2-micro로 바꿨고, 설계는 `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`(b695766)로 대체됐다. 그래서 이 계획은 Task 4~8을 더해, Task 1~3이 만든 문서·스킬을 GCP 기준으로 다시 쓰고, 최종 리뷰의 호스트와 무관한 지적(C1, I3)과 GCP 전환에 필요한 코드 변경을 함께 끝낸다. Task 1~3의 본문은 기록으로 남긴다. 그 안의 OCI 문서 초안은 더 이상 기준이 아니며, Task 5가 정한 내용이 우선한다.
 
 | Task | 내용 | 담당 | 쓰는 파일 |
 |---|---|---|---|
@@ -722,11 +723,11 @@ Task 1~3은 OCI 설계를 기준으로 끝났다(f5ad88c, 최종 리뷰까지). 
 
 ### 실행 방식: 병렬 단계와 통합
 
-규칙: worktree 하나에는 쓰는 에이전트가 하나뿐이다. 그래서 파일이 겹치지 않는 Task 4와 Task 5는 각자 임시 worktree에서 동시에 진행하고, 결과 커밋을 `plan/04-docs-skills`에 cherry-pick으로 옮긴다. cherry-pick은 새 커밋을 더할 뿐 기존 히스토리를 바꾸지 않으며, 커밋 트레일러도 그대로 옮겨진다(`scripts/check-git.sh`는 병합이 아닌 모든 커밋의 트레일러를 검사한다).
+규칙: worktree 하나에는 쓰는 에이전트가 하나뿐이다. 그래서 파일이 겹치지 않는 Task 4와 Task 5는 각자 임시 worktree에서 동시에 진행하고, 결과 커밋을 `plan/hydaxf15-docs-skills`에 cherry-pick으로 옮긴다. cherry-pick은 새 커밋을 더할 뿐 기존 히스토리를 바꾸지 않으며, 커밋 트레일러도 그대로 옮겨진다(`scripts/check-git.sh`는 병합이 아닌 모든 커밋의 트레일러를 검사한다).
 
 **단계 A (병렬): Task 4 ∥ Task 5**
 
-컨트롤러가 `plan/04-docs-skills` worktree에서 기준 커밋을 정하고 임시 worktree 두 개를 만든다.
+컨트롤러가 `plan/hydaxf15-docs-skills` worktree에서 기준 커밋을 정하고 임시 worktree 두 개를 만든다.
 
 ```bash
 BASE="$(git rev-parse HEAD)"   # 이 계획 재작성 커밋
@@ -739,7 +740,7 @@ git worktree add "$MAIN/.claude/worktrees/p04-t5" -b work/p04-t5-gcp-docs "$BASE
 - 두 구현자 모두 이 계획의 Global Constraints와 자기 Task만 따른다. 상대 Task의 파일은 건드리지 않는다.
 - 각자 `make check`를 통과시킨 뒤 자기 브랜치에 커밋한다. `make check`는 worktree마다 따로 돌려도 안전하다. `make local-up`은 쓰지 않는다.
 
-**통합 (컨트롤러, `plan/04-docs-skills` worktree)**
+**통합 (컨트롤러, `plan/hydaxf15-docs-skills` worktree)**
 
 ```bash
 git cherry-pick "$BASE..work/p04-t4-main-checkout"
@@ -748,13 +749,13 @@ make check
 ```
 
 - Expected: 충돌 없이 끝나고(두 Task는 파일이 겹치지 않는다) `make check`가 PASS한다. 충돌이 나면 멈추고 원인을 Progress log에 기록한 뒤 사용자에게 알린다.
-- 임시 worktree를 지우기 전에 `ls "$MAIN/.claude/worktrees/p04-t4/backups" "$MAIN/.claude/worktrees/p04-t5/backups"`로 백업 파일이 없는지 확인하고, 그다음 `git worktree remove`로 지운다. 임시 브랜치는 계획 04가 병합된 뒤 사람이 `git branch -D`로 지운다.
+- 임시 worktree를 지우기 전에 `ls "$MAIN/.claude/worktrees/p04-t4/backups" "$MAIN/.claude/worktrees/p04-t5/backups"`로 백업 파일이 없는지 확인하고, 그다음 `git worktree remove`로 지운다. 임시 브랜치는 docs-skills 계획이 병합된 뒤 사람이 `git branch -D`로 지운다.
 - 실제로는 임시 worktree를 Agent worktree isolation이 만들었다(경로 `.claude/worktrees/agent-a5a0efb1c7ac22d6e`와 `.claude/worktrees/agent-a2883e065d67ce206`, 위 `p04-t4`·`p04-t5` 경로는 쓰이지 않았다). 브랜치는 `work/p04-t4-main-checkout`, `work/p04-t5-gcp-docs`와 isolation이 만든 `worktree-agent-a5a0efb1c7ac22d6e`, `worktree-agent-a2883e065d67ce206`이다.
-- Task 4·5의 SDD 태스크 리뷰는 cherry-pick된 커밋 범위(`plan/04-docs-skills` 위)를 대상으로 하며, 읽기 전용이라 단계 B와 동시에 진행한다.
+- Task 4·5의 SDD 태스크 리뷰는 cherry-pick된 커밋 범위(`plan/hydaxf15-docs-skills` 위)를 대상으로 하며, 읽기 전용이라 단계 B와 동시에 진행한다.
 
-**단계 B: Task 6** (Task 5의 `docs/runbooks/rbk-2026-10-12-gcp-vm.md`와 `rbk-2026-10-12-operations.md`에 의존)
+**단계 B: Task 6** (Task 5의 `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`와 `rbk-2026-10-12-t79ex2ny-operations.md`에 의존)
 
-- `plan/04-docs-skills` worktree에서 서브에이전트 하나가 진행한다.
+- `plan/hydaxf15-docs-skills` worktree에서 서브에이전트 하나가 진행한다.
 - 이 사이에 Task 4·5의 리뷰가 지적을 내도, 고치는 커밋은 Task 6 커밋이 끝난 뒤에 같은 worktree에서 한다(쓰는 에이전트는 하나).
 
 **단계 C: Task 7 → Task 8 → 마무리** (순서대로)
@@ -769,7 +770,7 @@ make check
 - 건드리지 않는다: `tests/repo.bats`, `AGENTS.md`, `docs/`, `.agents/skills/bm-*`(Task 5 소유)
 
 **Interfaces:**
-- Consumes: 계획 03의 `scripts/backup.sh`·`scripts/restore.sh`, 계획 02의 `git-workflow` 스킬, 스펙 `docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md` §7.1·§7.8
+- Consumes: [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md)의 `scripts/backup.sh`·`scripts/restore.sh`, [git-review-tooling 계획](plan-2026-10-07-qq4h1djv-git-review-tooling.md)의 `git-workflow` 스킬, 스펙 `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md` §7.1·§7.8
 - Produces:
   - `common.sh`의 `main_checkout_root [DIR]`: DIR(기본값은 이 스크립트가 든 저장소)이 속한 main 체크아웃의 절대 경로를 출력하고, git 저장소가 아니면 실패한다.
   - Makefile 변수 `MAIN_ROOT`: 항상 `$(MAIN_ROOT)/.env`를 읽는다. git 밖에서는 `$(CURDIR)`.
@@ -1100,7 +1101,7 @@ Expected: 둘 다 PASS. `make check`는 `make coverage`를 포함하고, kcov �
 Run: `make fmt && make check` (PASS)
 ```bash
 git add Makefile scripts/lib/common.sh scripts/backup.sh scripts/restore.sh .agents/skills/git-workflow/SKILL.md tests/helpers.bash tests/common.bats tests/main_checkout.bats
-git commit -m "fix: keep .env and backups in the main checkout" --trailer "Assisted-by: <시작 단계에서 정한 신원>" --trailer "Plan: 04" --trailer "Task: 4"
+git commit -m "fix: keep .env and backups in the main checkout" --trailer "Assisted-by: <시작 단계에서 정한 신원>" --trailer "Plan: hydaxf15" --trailer "Task: 4"
 ```
 
 **위험과 메모:**
@@ -1116,15 +1117,15 @@ git commit -m "fix: keep .env and backups in the main checkout" --trailer "Assis
 
 ### Task 5: 문서·스킬을 GCP 기준으로 다시 쓰기
 
-호스트가 OCI Always Free A1에서 GCP 무료 e2-micro로 바뀌었다(`docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md`). Task 1~2에서 만든 문서와 스킬 중 호스트에 묶인 부분을 모두 GCP 기준으로 바꾸고, 최종 리뷰(`final-review.md`)의 지적 중 아직 유효한 것(C1 문서 부분, I1, I2 점검 기준, I3, M1, M2, M3, M5, M7, M8, M9)을 함께 반영한다. 유휴 회수는 GCP에 없으므로 관련 내용(M4 포함)을 지운다.
+호스트가 OCI Always Free A1에서 GCP 무료 e2-micro로 바뀌었다(`docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`). Task 1~2에서 만든 문서와 스킬 중 호스트에 묶인 부분을 모두 GCP 기준으로 바꾸고, 최종 리뷰(`final-review.md`)의 지적 중 아직 유효한 것(C1 문서 부분, I1, I2 점검 기준, I3, M1, M2, M3, M5, M7, M8, M9)을 함께 반영한다. 유휴 회수는 GCP에 없으므로 관련 내용(M4 포함)을 지운다.
 
 Task 4(C1 코드: `Makefile`, `scripts/lib/common.sh`, `scripts/backup.sh`, `scripts/restore.sh`, `.agents/skills/git-workflow/SKILL.md`, `tests/main_checkout.bats`, `tests/common.bats`)와 병렬로 진행한다. 이 Task는 그 파일들과 `AGENTS.md`, `scripts/`, `Makefile`, `.env.example`, `tests/repo.bats` 외의 테스트를 건드리지 않는다. 스크립트 메시지의 옛 호스트 표현은 Task 6에서 고친다.
 
 **Files:**
-- Rename + 전체 재작성: OCI VM 런북(`oci-vm.md`, 이 계획에서 GCP VM 런북으로 바뀜) → `docs/runbooks/rbk-2026-10-12-gcp-vm.md`
-- Rename + 전체 재작성: OCI 시절 ADR 0001(`0001-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜) → `docs/decisions/adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md`
-- 전체 재작성: `docs/decisions/adr-2026-10-12-0002-vm-sizing.md`, `docs/runbooks/rbk-2026-10-12-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-operations.md`, `README.md`, `docs/ARCHITECTURE.md`
-- Modify: `docs/runbooks/rbk-2026-10-12-accounts.md`
+- Rename + 전체 재작성: OCI VM 런북(`rbk-2026-10-12-vebvx40g-oci-vm.md`, 이 계획에서 GCP VM 런북으로 바뀜) → `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`
+- Rename + 전체 재작성: OCI 시절 basic-memory-on-oci-tailscale ADR(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜) → `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md`
+- 전체 재작성: `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`, `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`, `README.md`, `docs/ARCHITECTURE.md`
+- Modify: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`
 - 전체 재작성: `.agents/skills/bm-recover/SKILL.md`, `.agents/skills/bm-diagnose/SKILL.md`, `.agents/skills/bm-upgrade/SKILL.md`
 - Test: `tests/repo.bats`(런북 섹션 테스트 수정, 이름 변경 테스트, 옛 용어 테스트, gcloud 설정 플래그 테스트 추가)
 
@@ -1134,12 +1135,12 @@ Task 4(C1 코드: `Makefile`, `scripts/lib/common.sh`, `scripts/backup.sh`, `scr
   - Task 4가 만드는 동작: Makefile은 어느 체크아웃에서 실행하든 main 체크아웃의 `.env`를 읽고, `backup.sh`는 main 체크아웃의 `backups/`에 저장하며 절대 경로를 출력한다.
   - Task 6이 만드는 동작: `make status`가 활성 스왑이 없으면 `no active swap`을 포함한 경고를 내고 `rerun 'make vm-bootstrap'`을 안내한다. 부트스트랩은 Docker 설치 전에 1GB `/swapfile`을 만든다.
 - Produces:
-  - `docs/runbooks/rbk-2026-10-12-gcp-vm.md`, `docs/decisions/adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md`
-  - `docs/runbooks/rbk-2026-10-12-operations.md`의 `## Exposure audit`, `## 비용 점검`, `## Incident log` 섹션(Task 6의 스크립트 메시지와 스킬이 참조)
-  - `docs/runbooks/rbk-2026-10-12-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-gcp-vm.md`, `docs/runbooks/rbk-2026-10-12-operations.md`의 파일 이름(Task 6의 스크립트 메시지가 가리킴)
+  - `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`, `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md`
+  - `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`의 `## Exposure audit`, `## 비용 점검`, `## Incident log` 섹션(Task 6의 스크립트 메시지와 스킬이 참조)
+  - `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`의 파일 이름(Task 6의 스크립트 메시지가 가리킴)
 
 규칙:
-- `OCI`와 `Oracle`(대소문자 무관, 단어 단위)은 `README.md`, `docs/ARCHITECTURE.md`, `docs/runbooks/*.md`, `.agents/skills/*/SKILL.md`, `docs/decisions/adr-2026-10-12-0002-vm-sizing.md`에 남기지 않는다. 떠난 이유로 `docs/decisions/adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md`(와 스펙)만 언급할 수 있다. Task 8이 `grep -rniwE 'oci|oracle'`로 확인한다.
+- `OCI`와 `Oracle`(대소문자 무관, 단어 단위)은 `README.md`, `docs/ARCHITECTURE.md`, `docs/runbooks/*.md`, `.agents/skills/*/SKILL.md`, `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`에 남기지 않는다. 떠난 이유로 `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md`(와 스펙)만 언급할 수 있다. Task 8이 `grep -rniwE 'oci|oracle'`로 확인한다.
 - 런북과 스킬의 모든 `gcloud <하위 명령>` 줄은 같은 줄에 `--configuration=bm-personal`을 쓴다. 예외는 `gcloud config configurations create`(설정을 만드는 줄)와 `gcloud config configurations list`(회사 설정이 아직 활성임을 보여 주는 줄)뿐이다. 여러 줄 명령은 첫 줄에 플래그를 둔다.
 - 본문(산문)에서 하위 명령 이름을 말할 때는 `gcloud` 뒤에 소문자 단어를 붙이지 않는다(`configurations activate`처럼 하위 명령만 쓴다).
 - 한국어 문서에는 `Verified` / `Command` / `Assumption` / `Open question` 표기를 쓴다. 스킬은 영어다.
@@ -1150,7 +1151,7 @@ Task 4(C1 코드: `Makefile`, `scripts/lib/common.sh`, `scripts/backup.sh`, `scr
 
 ```bash
 @test "runbooks contain the sections scripts and skills point to" {
-  run grep -E '^## (Exposure audit|Idle reclamation|Incident log)' "$REPO_DIR/docs/runbooks/operations.md"
+  run grep -E '^## (Exposure audit|Idle reclamation|Incident log)' "$REPO_DIR/docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md"
   assert_success
   assert_line --partial "Exposure audit"
   assert_line --partial "Idle reclamation"
@@ -1162,7 +1163,7 @@ Task 4(C1 코드: `Makefile`, `scripts/lib/common.sh`, `scripts/backup.sh`, `scr
 
 ```bash
 @test "runbooks contain the sections scripts and skills point to" {
-  run grep -E '^## (Exposure audit|비용 점검|Incident log)' "$REPO_DIR/docs/runbooks/operations.md"
+  run grep -E '^## (Exposure audit|비용 점검|Incident log)' "$REPO_DIR/docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md"
   assert_success
   assert_line --partial "Exposure audit"
   assert_line --partial "비용 점검"
@@ -1173,17 +1174,17 @@ Task 4(C1 코드: `Makefile`, `scripts/lib/common.sh`, `scripts/backup.sh`, `scr
 그 아래(파일 끝)에 세 테스트를 append한다.
 
 ```bash
-@test "the VM runbook is gcp-vm.md and the ADR 0001 file names the GCP host" {
-  [[ -f "$REPO_DIR/docs/runbooks/gcp-vm.md" ]] || fail "missing docs/runbooks/gcp-vm.md"
-  [[ ! -e "$REPO_DIR/docs/runbooks/oci-vm.md" ]] || fail "docs/runbooks/oci-vm.md should be renamed to gcp-vm.md"
-  [[ -f "$REPO_DIR/docs/decisions/0001-basic-memory-on-gcp-tailscale.md" ]] || fail "missing docs/decisions/0001-basic-memory-on-gcp-tailscale.md"
-  [[ ! -e "$REPO_DIR/docs/decisions/0001-basic-memory-on-oci-tailscale.md" ]] || fail "the old ADR 0001 should be renamed"
+@test "the VM runbook is rbk-2026-10-12-tcjs7m6x-gcp-vm.md and the ADR 0001 file names the GCP host" {
+  [[ -f "$REPO_DIR/docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md" ]] || fail "missing docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md"
+  [[ ! -e "$REPO_DIR/docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md" ]] || fail "docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md should be renamed to rbk-2026-10-12-tcjs7m6x-gcp-vm.md"
+  [[ -f "$REPO_DIR/docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md" ]] || fail "missing docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md"
+  [[ ! -e "$REPO_DIR/docs/decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md" ]] || fail "the old ADR 0001 should be renamed"
 }
 
 @test "human docs and operational skills carry no leftover OCI or idle-reclaim text" {
   # ADR 0001 is excluded on purpose: it records why the first host was given up.
   run grep -rniE '\b(OCI|Oracle)\b|A1\.Flex|reclaim|reclamation' \
-    "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR/docs/decisions/0002-vm-sizing.md" \
+    "$REPO_DIR/README.md" "$REPO_DIR/docs/ARCHITECTURE.md" "$REPO_DIR/docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md" \
     "$REPO_DIR/docs/runbooks" "$REPO_DIR"/.agents/skills/*/SKILL.md
   assert_failure 1
 }
@@ -1211,23 +1212,23 @@ Task 4(C1 코드: `Makefile`, `scripts/lib/common.sh`, `scripts/backup.sh`, `scr
 (옛 용어 테스트는 `.agents/skills/*/SKILL.md` 전체를 검사하므로 `git-workflow`와 `branch-review`에도 해당 단어가 없어야 한다. 현재 없다.)
 
 Run: `make test`
-Expected: FAIL. 섹션 테스트(`비용 점검` 없음), 이름 변경 테스트(`rbk-2026-10-12-gcp-vm.md` 없음), 옛 용어 테스트(문서에 옛 호스트 용어가 남아 있음), gcloud 테스트(`no gcloud commands were checked`)가 실패한다. 그 밖의 테스트는 통과한다.
+Expected: FAIL. 섹션 테스트(`비용 점검` 없음), 이름 변경 테스트(`rbk-2026-10-12-tcjs7m6x-gcp-vm.md` 없음), 옛 용어 테스트(문서에 옛 호스트 용어가 남아 있음), gcloud 테스트(`no gcloud commands were checked`)가 실패한다. 그 밖의 테스트는 통과한다.
 
 - [ ] **Step 2: 파일 이름 변경**
 
 Run:
 ```bash
-git mv docs/runbooks/oci-vm.md docs/runbooks/gcp-vm.md
-git mv docs/decisions/0001-basic-memory-on-oci-tailscale.md docs/decisions/0001-basic-memory-on-gcp-tailscale.md
+git mv docs/runbooks/rbk-2026-10-12-vebvx40g-oci-vm.md docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md
+git mv docs/decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md
 ```
 Expected: 에러 없음. `git status --short`에 두 줄의 `R`이 보인다.
 
-- [ ] **Step 3: `docs/runbooks/rbk-2026-10-12-gcp-vm.md` 전체 재작성**
+- [ ] **Step 3: `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md` 전체 재작성**
 
 ````markdown
 # VM 만들기 (gcloud)
 
-이 런북의 명령은 사용자가 자기 터미널에서 실행합니다. 에이전트는 VM, 방화벽, 클라우드 자원을 바꾸는 명령을 사용자의 OK 없이 실행하지 않습니다. 이 Mac의 활성 gcloud 설정은 회사 계정일 수 있으므로, **모든 gcloud 명령에 `--configuration=bm-personal`을 붙입니다**([accounts 1단계](accounts.md)).
+이 런북의 명령은 사용자가 자기 터미널에서 실행합니다. 에이전트는 VM, 방화벽, 클라우드 자원을 바꾸는 명령을 사용자의 OK 없이 실행하지 않습니다. 이 Mac의 활성 gcloud 설정은 회사 계정일 수 있으므로, **모든 gcloud 명령에 `--configuration=bm-personal`을 붙입니다**([accounts 1단계](rbk-2026-10-12-hqxjjqy8-accounts.md)).
 
 ## 0. 변수와 설정 확인
 
@@ -1237,7 +1238,7 @@ ZONE=us-west1-b
 gcloud config list --configuration=bm-personal
 ```
 
-Expected: `account`가 개인 계정이고 `project`가 이 저장소 전용 프로젝트입니다. 회사 계정이나 회사 프로젝트가 보이면 **여기서 멈추고** [accounts 1단계](accounts.md)를 다시 합니다.
+Expected: `account`가 개인 계정이고 `project`가 이 저장소 전용 프로젝트입니다. 회사 계정이나 회사 프로젝트가 보이면 **여기서 멈추고** [accounts 1단계](rbk-2026-10-12-hqxjjqy8-accounts.md)를 다시 합니다.
 
 옛 인스턴스가 아직 남아 있는 재구축이라면 `INSTANCE`에 다른 이름을 씁니다(옛 VM은 복원이 검증된 뒤에 지웁니다).
 
@@ -1275,7 +1276,7 @@ gcloud compute instances create "$INSTANCE" --configuration=bm-personal \
 
 Expected: 인스턴스가 `RUNNING`으로 만들어지고 `EXTERNAL_IP`가 한 줄 보입니다.
 
-**Assumption (계획 05에서 확인):** 26.04 Minimal에 `ss`(iproute2)와 `free`(procps)가 기본으로 있고, 메타데이터 키로 만든 `ubuntu`에게 암호 없는 sudo가 있습니다.
+**Assumption (vm-rollout 계획에서 확인):** 26.04 Minimal에 `ss`(iproute2)와 `free`(procps)가 기본으로 있고, 메타데이터 키로 만든 `ubuntu`에게 암호 없는 sudo가 있습니다.
 
 ## 3. 방화벽 정리
 
@@ -1294,9 +1295,9 @@ gcloud compute firewall-rules create default-allow-ssh --configuration=bm-person
 ```
 
 - `default-allow-internal`은 VPC 내부 전용이라 둡니다. 8737과 443은 열지 않습니다.
-- `default-allow-ssh`는 [부트스트랩](bootstrap.md)에서 Tailscale SSH를 확인한 **뒤에** 지웁니다.
+- `default-allow-ssh`는 [부트스트랩](rbk-2026-10-12-ha5w72pm-bootstrap.md)에서 Tailscale SSH를 확인한 **뒤에** 지웁니다.
 - 다른 네트워크에서 부트스트랩하면 내 IP가 바뀌므로 위 `update` 명령을 다시 실행합니다.
-- 이 명령들은 [운영 런북](operations.md)의 Exposure audit 기준(VPC 밖 소스를 허용하는 인바운드 규칙 0개)을 만족시키기 위한 것입니다. 마지막 확인은 거기서 합니다.
+- 이 명령들은 [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit 기준(VPC 밖 소스를 허용하는 인바운드 규칙 0개)을 만족시키기 위한 것입니다. 마지막 확인은 거기서 합니다.
 
 ## 4. 생성 결과 확인
 
@@ -1317,9 +1318,9 @@ Expected:
 gcloud compute instances describe "$INSTANCE" --zone="$ZONE" --configuration=bm-personal --format='value(networkInterfaces[0].accessConfigs[0].natIP)'
 ```
 
-이 값을 main 체크아웃 `.env`의 `BM_VM_PUBLIC_IP`에 적습니다(사용자가 직접 편집). 그다음 [부트스트랩](bootstrap.md)으로 넘어갑니다.
+이 값을 main 체크아웃 `.env`의 `BM_VM_PUBLIC_IP`에 적습니다(사용자가 직접 편집). 그다음 [부트스트랩](rbk-2026-10-12-ha5w72pm-bootstrap.md)으로 넘어갑니다.
 
-**Verified (2026-10-12, 실제 프로젝트):** 정지 후 시작하면 ephemeral 외부 IP가 바뀝니다. **Assumption (계획 05에서 확인):** 게스트 OS 재부팅으로는 바뀌지 않습니다.
+**Verified (2026-10-12, 실제 프로젝트):** 정지 후 시작하면 ephemeral 외부 IP가 바뀝니다. **Assumption (vm-rollout 계획에서 확인):** 게스트 OS 재부팅으로는 바뀌지 않습니다.
 
 ```bash
 gcloud compute instances stop "$INSTANCE" --zone="$ZONE" --configuration=bm-personal
@@ -1328,7 +1329,7 @@ gcloud compute instances describe "$INSTANCE" --zone="$ZONE" --configuration=bm-
 ```
 
 - 정지된 VM의 `status`는 `TERMINATED`입니다. 시작한 뒤에는 위 IP 조회 명령으로 새 IP를 읽어 `.env`의 `BM_VM_PUBLIC_IP`를 바꿉니다. `verify`가 옛 IP로 검사하지 않게 하려면 이 값을 반드시 맞춰 둡니다.
-- 정지된 VM은 지우거나 다시 만들지 않고 시작합니다. 디스크의 데이터가 그대로 있습니다([운영 런북](operations.md)).
+- 정지된 VM은 지우거나 다시 만들지 않고 시작합니다. 디스크의 데이터가 그대로 있습니다([운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)).
 
 ## 6. Spot으로 잘못 만든 경우
 
@@ -1359,18 +1360,18 @@ gcloud compute instances start "$INSTANCE" --zone="$ZONE" --configuration=bm-per
 
 ## 7. 재구축할 때의 정리
 
-VM을 다시 만드는 경우 옛 인스턴스와 디스크는 **복원이 검증되기 전에는 지우지 않습니다**. 복원 검증 뒤에 지울 때는 사용자가 직접 인스턴스 삭제 명령을 실행합니다(`--configuration=bm-personal`을 붙이고 `--zone`을 확인). 전체 순서는 [운영 런북](operations.md)의 "VM 재구축 순서"에 있습니다.
+VM을 다시 만드는 경우 옛 인스턴스와 디스크는 **복원이 검증되기 전에는 지우지 않습니다**. 복원 검증 뒤에 지울 때는 사용자가 직접 인스턴스 삭제 명령을 실행합니다(`--configuration=bm-personal`을 붙이고 `--zone`을 확인). 전체 순서는 [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 "VM 재구축 순서"에 있습니다.
 ````
 
-- [ ] **Step 4: `docs/decisions/adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md` 전체 재작성**
+- [ ] **Step 4: `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md` 전체 재작성**
 
 이 파일만 떠난 호스트(OCI)를 이름으로 언급할 수 있다.
 
 ````markdown
-# ADR 0001: Basic Memory를 GCP 무료 e2-micro + Tailscale에 자체 호스팅
+# ADR m4yy1sb7: Basic Memory를 GCP 무료 e2-micro + Tailscale에 자체 호스팅
 
 - 상태: Accepted (2026-10-12). 2026-10-07의 OCI Always Free 결정을 대체합니다.
-- 출처: [설계 스펙](../specs/2026-10-12-basic-memory-gcp-tailscale-design.md)
+- 출처: [설계 스펙](../specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)
 
 ## 맥락
 
@@ -1381,7 +1382,7 @@ VM을 다시 만드는 경우 옛 인스턴스와 디스크는 **복원이 검�
 ## 결정
 
 - GCP 무료 등급의 `e2-micro`(us-west1-b, Ubuntu 26.04 LTS Minimal amd64, `pd-standard` 30GB, STANDARD 프로비저닝)에서 Docker로 Basic Memory를 실행하고, Tailscale Serve로 tailnet 안에만 노출합니다.
-- VM과 방화벽은 [런북](../runbooks/gcp-vm.md)의 gcloud 명령으로 만듭니다(개인 gcloud 설정 `bm-personal`). 나머지는 이 저장소의 스크립트와 Make 타깃으로 처리합니다.
+- VM과 방화벽은 [런북](../runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md)의 gcloud 명령으로 만듭니다(개인 gcloud 설정 `bm-personal`). 나머지는 이 저장소의 스크립트와 Make 타깃으로 처리합니다.
 - 공인 SSH는 부트스트랩에만 쓰고 이후 Tailscale SSH로 전환하며, VPC 밖 소스를 허용하는 인바운드 규칙을 두지 않습니다.
 
 ## 대안
@@ -1393,19 +1394,19 @@ VM을 다시 만드는 경우 옛 인스턴스와 디스크는 **복원이 검�
 
 ## 결과
 
-- RAM이 1GB로 고정이라 스왑 1GB를 부트스트랩이 만듭니다([ADR 0002](0002-vm-sizing.md)).
+- RAM이 1GB로 고정이라 스왑 1GB를 부트스트랩이 만듭니다([vm-sizing ADR](adr-2026-10-12-mdq5exsf-vm-sizing.md)).
 - 무료 리전이 미국뿐이라 한국에서는 지연이 큽니다.
 - 정지 후 시작하면 외부 IP가 바뀝니다. 런북이 IP 조회와 `.env` 갱신을 안내합니다.
-- 외부 IPv4 요금($0.005/h, 2024-02-01부터)이 무료 등급에 포함되는지는 공식 문서에 없습니다(**Open question**). 배포 다음 날 청구 보고서를 SKU별로 확인합니다([운영 런북](../runbooks/operations.md)의 비용 점검).
+- 외부 IPv4 요금($0.005/h, 2024-02-01부터)이 무료 등급에 포함되는지는 공식 문서에 없습니다(**Open question**). 배포 다음 날 청구 보고서를 SKU별로 확인합니다([운영 런북](../runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 비용 점검).
 - Tailscale 계정이 단일 장애점이 됩니다. 대신 인증 없는 엔드포인트가 인터넷에 노출되지 않습니다.
 ````
 
-- [ ] **Step 5: `docs/decisions/adr-2026-10-12-0002-vm-sizing.md` 전체 재작성**
+- [ ] **Step 5: `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md` 전체 재작성**
 
 ````markdown
-# ADR 0002: VM 크기 (e2-micro 1GB + 스왑 1GB)
+# ADR mdq5exsf: VM 크기 (e2-micro 1GB + 스왑 1GB)
 
-- 상태: Proposed (2026-10-12). 계획 05에서 VM 실측 후 Accepted로 바꿉니다.
+- 상태: Proposed (2026-10-12). vm-rollout 계획에서 VM 실측 후 Accepted로 바꿉니다.
 
 ## 맥락
 
@@ -1414,7 +1415,7 @@ GCP 무료 등급의 VM은 `e2-micro`(1GB)뿐이고 크기를 바꿀 수 없습�
 ## 근거
 
 - **Verified (2026-10-07, Command: `docker stats --no-stream`):** 0.23.2 컨테이너 메모리 사용량은 기동 직후 212 MiB, `search_notes` 실행으로 임베딩 모델이 올라간 뒤 449 MiB입니다(Mac Docker Desktop 기준, arm64 이미지). VM은 amd64이므로 수치가 다를 수 있습니다(**Assumption**).
-- **Assumption:** Ubuntu 26.04 Minimal + dockerd + tailscaled의 기본 사용량은 아직 재지 않았습니다. 계획 05에서 `make status`로 측정합니다.
+- **Assumption:** Ubuntu 26.04 Minimal + dockerd + tailscaled의 기본 사용량은 아직 재지 않았습니다. vm-rollout 계획에서 `make status`로 측정합니다.
 - 산수: 임베딩 모델이 올라간 컨테이너만으로 449 / 1024 ≈ 44%입니다. 나머지 약 575 MiB에 OS, dockerd, tailscaled가 들어가야 하므로 여유가 작습니다. 그래서 스왑 파일 1GB를 둡니다.
 
 ## 결정
@@ -1423,12 +1424,12 @@ GCP 무료 등급의 VM은 `e2-micro`(1GB)뿐이고 크기를 바꿀 수 없습�
 
 ## 재평가 기준
 
-- 계획 05에서 배포 24시간 뒤, `make backup`으로 컨테이너를 재시작하고 `search_notes`로 임베딩 모델을 올린 상태에서 `make status`의 메모리·스왑 사용량을 기록합니다.
+- vm-rollout 계획에서 배포 24시간 뒤, `make backup`으로 컨테이너를 재시작하고 `search_notes`로 임베딩 모델을 올린 상태에서 `make status`의 메모리·스왑 사용량을 기록합니다.
 - 컨테이너가 OOM으로 재시작되거나(`make logs`, `make status`), 스왑 사용이 스왑 크기의 절반 이상으로 계속 유지되면 사용자가 결정합니다. 선택지는 현재 크기를 감수하는 것, 유료 소형 인스턴스(비용 발생), 다른 호스트입니다. **Assumption:** "스왑 크기의 절반 이상"이라는 기준값은 측정 후 조정합니다.
 - 측정 결과를 이 ADR에 Verified로 추가하고 상태를 Accepted로 바꿉니다.
 ````
 
-- [ ] **Step 6: `docs/runbooks/rbk-2026-10-12-accounts.md` 수정**
+- [ ] **Step 6: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md` 수정**
 
 첫 줄을 바꾼다.
 
@@ -1473,7 +1474,7 @@ Expected: 첫 명령에서 회사 설정이 계속 `IS_ACTIVE=True`입니다. �
 
 - 이후 **모든 gcloud 명령에 `--configuration=bm-personal`을 붙입니다.** 회사 설정은 활성 상태로 둡니다.
 - 설정 활성화(`configurations activate`)와 `auth application-default …`는 실행하지 않습니다. 회사 설정과 인증 정보를 건드리지 않기 위해서입니다.
-- **Open question:** 외부 IPv4 요금($0.005/h, 2024-02-01부터)이 무료 등급에 포함되는지는 공식 문서에 없습니다. 배포 다음 날 [운영 런북](operations.md)의 비용 점검으로 확인합니다.
+- **Open question:** 외부 IPv4 요금($0.005/h, 2024-02-01부터)이 무료 등급에 포함되는지는 공식 문서에 없습니다. 배포 다음 날 [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 비용 점검으로 확인합니다.
 ````
 
 `## 2. Tailscale 가입`의 3번 항목을 바꾼다.
@@ -1510,7 +1511,7 @@ new:
 `.env`, `backups/`, `.local-data/`는 **main 체크아웃에만** 둡니다. Makefile은 어느 체크아웃에서 실행하든 main 체크아웃의 `.env`를 읽고, `make backup`은 main 체크아웃의 `backups/`에 저장합니다. worktree 안에 `.env`나 백업을 따로 만들지 마세요. `git worktree remove`는 worktree 안의 git ignore 파일을 경고 없이 지웁니다.
 ```
 
-- [ ] **Step 7: `docs/runbooks/rbk-2026-10-12-bootstrap.md` 전체 재작성**
+- [ ] **Step 7: `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md` 전체 재작성**
 
 ````markdown
 # 부트스트랩: VM을 tailnet에 올리고 배포하기
@@ -1519,9 +1520,9 @@ new:
 
 ## 준비
 
-- `.env`는 main 체크아웃에 있습니다([accounts 3단계](accounts.md)). `BM_TAILNET_DOMAIN`과 `BM_VM_PUBLIC_IP`가 채워져 있는지 사용자가 확인합니다(에이전트는 읽을 수 없음). 없으면 main 체크아웃에서 `cp .env.example .env` 후 채웁니다.
+- `.env`는 main 체크아웃에 있습니다([accounts 3단계](rbk-2026-10-12-hqxjjqy8-accounts.md)). `BM_TAILNET_DOMAIN`과 `BM_VM_PUBLIC_IP`가 채워져 있는지 사용자가 확인합니다(에이전트는 읽을 수 없음). 없으면 main 체크아웃에서 `cp .env.example .env` 후 채웁니다.
 - 사람은 VM 대상 Make 타깃을 main 체크아웃에서 실행합니다. 에이전트는 자기 worktree에서 실행해도 되며, 그때도 `.env`와 `backups/`는 main 체크아웃의 것을 씁니다. 에이전트가 worktree에서 `deploy`·`restore`를 할 때는 먼저 `git diff main -- compose.yaml`이 아무것도 출력하지 않는지 확인합니다.
-- [accounts 런북 5단계](accounts.md)대로 1회용 인증 키를 **지금** 발급합니다(만료 1일).
+- [accounts 런북 5단계](rbk-2026-10-12-hqxjjqy8-accounts.md)대로 1회용 인증 키를 **지금** 발급합니다(만료 1일).
 
 ## 순서
 
@@ -1546,7 +1547,7 @@ new:
 ## 완료 조건
 
 - [ ] `make verify`가 `OK: MCP round trip passed`, `listens on 127.0.0.1 only`, `tailscale serve is tailnet only`, `refuses ports 22 80 443 8737`을 모두 출력한다.
-- [ ] [운영 런북](operations.md)의 Exposure audit(수동 점검)을 마치고 결과를 기록했다.
+- [ ] [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit(수동 점검)을 마치고 결과를 기록했다.
 - [ ] `make status`에 `(healthy)`, `proxy http://127.0.0.1:8737`이 보이고, 스왑이 활성이다(`no active swap` 경고가 없음).
 - [ ] `make backup`이 main 체크아웃의 `backups/`에 `bm-*.tgz`와 `.sha256`, `.manifest`를 만든다.
 
@@ -1554,19 +1555,19 @@ new:
 
 | 증상 | 확인 |
 |---|---|
-| `upload failed` | 공인 IP(정지 후 시작하면 바뀜, [gcp-vm.md](gcp-vm.md) 5단계), SSH 키, `default-allow-ssh`의 소스 IP/32(다른 네트워크면 다시 `update`), 재구축이면 `ssh-keygen -R <공인 IP>` |
+| `upload failed` | 공인 IP(정지 후 시작하면 바뀜, [rbk-2026-10-12-tcjs7m6x-gcp-vm.md](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 5단계), SSH 키, `default-allow-ssh`의 소스 IP/32(다른 네트워크면 다시 `update`), 재구축이면 `ssh-keygen -R <공인 IP>` |
 | `not on the tailnet and no auth key given` | VM이 아직 tailnet에 없습니다. 인증 키를 붙여 넣어 다시 실행 |
 | `tailscale up failed` | 키 만료·재사용 여부, Pre-approved, `tag:bm-server`의 `tagOwners` |
-| `Serve is not active` | [accounts 3단계](accounts.md)의 MagicDNS와 HTTPS Certificates를 켠 뒤 `make vm-bootstrap`을 다시 실행 |
-| `Funnel is on for this node` | Funnel을 끄고([운영 런북](operations.md)의 Exposure audit) 다시 실행 |
+| `Serve is not active` | [accounts 3단계](rbk-2026-10-12-hqxjjqy8-accounts.md)의 MagicDNS와 HTTPS Certificates를 켠 뒤 `make vm-bootstrap`을 다시 실행 |
+| `Funnel is on for this node` | Funnel을 끄고([운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit) 다시 실행 |
 | `Host key verification failed` / `REMOTE HOST IDENTIFICATION HAS CHANGED` | VM을 다시 만들면 호스트 키가 바뀝니다. `ssh-keygen -R bm-node` 후 대화형 `ssh ubuntu@bm-node true`로 새 키를 수락 |
 | `make vm-bootstrap` 중 `REMOTE HOST IDENTIFICATION HAS CHANGED` (공인 IP) | 재구축한 VM이 같은 공인 IP를 쓰면 옛 키와 충돌합니다. `ssh-keygen -R <공인 IP>` 후 다시 실행 |
 | 새 노드 이름이 `bm-node-1` | 옛 `bm-node` 기기가 admin console에 남아 있습니다. 옛 기기를 삭제한 뒤 `make vm-bootstrap`을 다시 실행해 이름을 확인(`tailscale status`) |
-| `ssh ubuntu@bm-node` 실패 | 정책의 `ssh` 규칙([accounts 4단계](accounts.md)) |
-| 22번을 지운 뒤 접속 불가 | 22번 규칙을 gcloud로 다시 추가합니다. 최후 수단은 GCP 시리얼 콘솔입니다(**Assumption:** 시리얼 포트 활성화와 로컬 비밀번호가 필요해 바로 쓸 수 없을 수 있음, 계획 05에서 확인). 규칙 추가: `gcloud compute firewall-rules create temp-ssh --configuration=bm-personal --network=default --allow=tcp:22 --source-ranges="<내 IP>/32"` (**Assumption:** 새 규칙 이름은 자유). 접속 후 `sudo tailscale status`를 확인하고, 해결되면 이 규칙을 다시 지웁니다 |
+| `ssh ubuntu@bm-node` 실패 | 정책의 `ssh` 규칙([accounts 4단계](rbk-2026-10-12-hqxjjqy8-accounts.md)) |
+| 22번을 지운 뒤 접속 불가 | 22번 규칙을 gcloud로 다시 추가합니다. 최후 수단은 GCP 시리얼 콘솔입니다(**Assumption:** 시리얼 포트 활성화와 로컬 비밀번호가 필요해 바로 쓸 수 없을 수 있음, vm-rollout 계획에서 확인). 규칙 추가: `gcloud compute firewall-rules create temp-ssh --configuration=bm-personal --network=default --allow=tcp:22 --source-ranges="<내 IP>/32"` (**Assumption:** 새 규칙 이름은 자유). 접속 후 `sudo tailscale status`를 확인하고, 해결되면 이 규칙을 다시 지웁니다 |
 ````
 
-- [ ] **Step 8: `docs/runbooks/rbk-2026-10-12-operations.md` 전체 재작성**
+- [ ] **Step 8: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md` 전체 재작성**
 
 ````markdown
 # 운영
@@ -1609,14 +1610,14 @@ new:
 
 VM이 정지돼 있으면(`TERMINATED`) 다시 만들지 않고 시작합니다. 디스크의 데이터가 그대로 있어서, 재구축하면 마지막 백업 이후의 노트를 잃습니다.
 
-1. 사용자가 상태를 확인하고 시작합니다. 새 셸이면 먼저 [gcp-vm.md](gcp-vm.md) 0단계의 `INSTANCE`, `ZONE`을 설정합니다.
+1. 사용자가 상태를 확인하고 시작합니다. 새 셸이면 먼저 [rbk-2026-10-12-tcjs7m6x-gcp-vm.md](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 0단계의 `INSTANCE`, `ZONE`을 설정합니다.
 
    ```bash
    gcloud compute instances describe "$INSTANCE" --zone="$ZONE" --configuration=bm-personal --format='value(status)'
    gcloud compute instances start "$INSTANCE" --zone="$ZONE" --configuration=bm-personal
    ```
 
-2. 정지 후 시작하면 외부 IP가 바뀝니다([gcp-vm.md](gcp-vm.md) 5단계의 조회 명령). 새 IP를 `.env`의 `BM_VM_PUBLIC_IP`에 적습니다.
+2. 정지 후 시작하면 외부 IP가 바뀝니다([rbk-2026-10-12-tcjs7m6x-gcp-vm.md](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 5단계의 조회 명령). 새 IP를 `.env`의 `BM_VM_PUBLIC_IP`에 적습니다.
 3. `make status`와 `make probe`로 확인합니다. 실제 장애였다면 Incident log에 행을 추가합니다.
 
 ## VM 재구축 순서
@@ -1624,8 +1625,8 @@ VM이 정지돼 있으면(`TERMINATED`) 다시 만들지 않고 시작합니다.
 VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 합니다(에이전트의 `bm-recover` 스킬이 같은 순서를 따릅니다).
 
 1. 최신 백업(`.sha256`과 `.manifest` 포함)이 main 체크아웃의 `backups/`에 있는지 확인합니다.
-2. [gcp-vm.md](gcp-vm.md)대로 VM을 다시 만들고 방화벽을 정리합니다. 옛 인스턴스와 디스크는 복원이 검증되기 전에는 지우지 않습니다.
-3. [bootstrap.md](bootstrap.md) 1단계(옛 `bm-node` 기기 삭제, 호스트 키 정리)와 2~4단계(부트스트랩, Tailscale SSH 확인, `default-allow-ssh` 삭제)를 합니다.
+2. [rbk-2026-10-12-tcjs7m6x-gcp-vm.md](rbk-2026-10-12-tcjs7m6x-gcp-vm.md)대로 VM을 다시 만들고 방화벽을 정리합니다. 옛 인스턴스와 디스크는 복원이 검증되기 전에는 지우지 않습니다.
+3. [rbk-2026-10-12-ha5w72pm-bootstrap.md](rbk-2026-10-12-ha5w72pm-bootstrap.md) 1단계(옛 `bm-node` 기기 삭제, 호스트 키 정리)와 2~4단계(부트스트랩, Tailscale SSH 확인, `default-allow-ssh` 삭제)를 합니다.
 4. 배포 전에 `make status`의 이미지와 `compose.yaml`의 `image:`를 비교합니다(위의 이미지 점검). 그다음 `make deploy`, `make restore BACKUP=<절대 경로>`를 합니다.
 5. Exposure audit을 다시 합니다(방화벽을 새로 만들었으므로).
 6. Incident log와 점검 기록에 행을 추가합니다.
@@ -1643,7 +1644,7 @@ VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 �
    `direction`이 `INGRESS`, `disabled`가 `False`이면서 소스가 `10.128.0.0/9`가 아닌 행이 없어야 합니다(`default-allow-ssh`는 부트스트랩이 끝나면 지워져 있어야 함). **Assumption:** 기본 `default` 네트워크 하나만 쓰는 프로젝트입니다.
 2. Tailscale admin console → Access controls의 정책 `nodeAttrs`에 **`"funnel"`이 없는지** 확인합니다.
 
-스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@bm-node sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다. **Assumption (계획 05에서 확인):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=bm-node`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다. 또한 **Assumption (계획 05에서 확인):** `serve --bg`가 443의 Funnel 플래그는 지우지만 다른 포트의 것은 지우지 않을 수 있습니다. 그 경우 `ssh ubuntu@bm-node sudo tailscale serve reset`을 사용자 OK 후에 실행합니다.
+스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@bm-node sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다. **Assumption (vm-rollout 계획에서 확인):** 부트스트랩 뒤에는 22번이 닫혀 있으므로 `make vm-bootstrap HOST=bm-node`를 Tailscale SSH로 실행해 Serve를 다시 설정합니다. 이 명령은 VM을 바꾸므로 사용자의 OK가 필요합니다. 또한 **Assumption (vm-rollout 계획에서 확인):** `serve --bg`가 443의 Funnel 플래그는 지우지만 다른 포트의 것은 지우지 않을 수 있습니다. 그 경우 `ssh ubuntu@bm-node sudo tailscale serve reset`을 사용자 OK 후에 실행합니다.
 
 ## 비용 점검
 
@@ -1651,7 +1652,7 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다. 외부 IP
 
 - 배포 **다음 날**과 **매월 초**에 청구 보고서를 SKU별로 봅니다: Cloud Console → Billing → Reports에서 프로젝트로 필터링하고 Group by를 SKU로 둡니다(**Assumption:** 메뉴 이름은 바뀔 수 있고, 보고서에는 하루쯤 지연이 있음).
 - e2-micro 인스턴스, standard persistent disk, 외부 IP, 네트워크(아웃바운드) SKU의 금액이 모두 0이어야 합니다. Budget 알림(월 $1)이 오면 같은 보고서를 확인합니다.
-- 0이 아니면 사용자가 "그 금액을 감수"와 "다른 호스트" 중에서 결정합니다. 결과는 [ADR 0001](../decisions/0001-basic-memory-on-gcp-tailscale.md)에 Verified로 남깁니다.
+- 0이 아니면 사용자가 "그 금액을 감수"와 "다른 호스트" 중에서 결정합니다. 결과는 [basic-memory-on-gcp-tailscale ADR](../decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md)에 Verified로 남깁니다.
 - 무료 아웃바운드는 월 1GB(북미 → 전 세계, 중국·호주 제외)입니다. Tailscale DERP 중계 트래픽도 포함되므로 같은 보고서로 확인합니다.
 
 ## Incident log
@@ -1672,9 +1673,9 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다. 외부 IP
 
 여러 기기의 코딩 에이전트(Codex, Claude Code, Antigravity)가 같은 기억을 쓰도록, Basic Memory MCP 서버를 GCP 무료 등급 e2-micro VM에 올리고 Tailscale tailnet 안에서만 접근하게 만드는 저장소입니다.
 
-- 설계: [docs/specs/2026-10-12-basic-memory-gcp-tailscale-design.md](docs/specs/2026-10-12-basic-memory-gcp-tailscale-design.md)
+- 설계: [docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md](docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)
 - 구조: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 결정 기록: [ADR 0001](docs/decisions/0001-basic-memory-on-gcp-tailscale.md), [ADR 0002](docs/decisions/0002-vm-sizing.md)
+- 결정 기록: [basic-memory-on-gcp-tailscale ADR](docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md), [vm-sizing ADR](docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)
 - 에이전트 지침: [AGENTS.md](AGENTS.md)
 
 ## 사전 요구사항 (Prerequisites)
@@ -1683,8 +1684,8 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다. 외부 IP
 - `ssh`, `curl`, `nc`, `git` (macOS 기본 포함)와 `jq` (`brew install jq`)
 - 교차 리뷰(`make review`)를 쓸 때만: 리뷰어 CLI인 `codex` 또는 `claude`
 - VM 작업용:
-  - Tailscale 앱 설치·로그인과 `tailscale` 명령(`tailscale version`으로 확인, [accounts 런북](docs/runbooks/accounts.md))
-  - Google Cloud SDK(`gcloud`)와 개인 계정용 설정 `bm-personal` ([accounts 1단계](docs/runbooks/accounts.md)). 스크립트는 gcloud를 쓰지 않고 런북의 사람 작업에만 씁니다.
+  - Tailscale 앱 설치·로그인과 `tailscale` 명령(`tailscale version`으로 확인, [accounts 런북](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md))
+  - Google Cloud SDK(`gcloud`)와 개인 계정용 설정 `bm-personal` ([accounts 1단계](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md)). 스크립트는 gcloud를 쓰지 않고 런북의 사람 작업에만 씁니다.
 
 ## 빠르게 시작하기
 
@@ -1701,10 +1702,10 @@ make local-down
 
 VM이나 클라우드 자원을 바꾸는 명령(`vm-bootstrap`, `deploy`, `restore`, gcloud 명령)은 사람이 승인한 뒤에만 실행합니다. `.env`와 `backups/`는 main 체크아웃에만 둡니다(`git worktree remove`가 worktree 안의 git ignore 파일을 경고 없이 지우기 때문입니다).
 
-1. [계정 준비](docs/runbooks/accounts.md): GCP 프로젝트·Budget 알림·gcloud `bm-personal`, Tailscale, 정책. Tailscale 인증 키는 부트스트랩 직전에 발급합니다(accounts 5단계, 만료 1일).
-2. [VM 만들기](docs/runbooks/gcp-vm.md): e2-micro, us-west1-b, Ubuntu 26.04 Minimal, pd-standard 30GB, 방화벽 정리, `default-allow-ssh`를 내 IP/32로 제한
-3. [부트스트랩](docs/runbooks/bootstrap.md): `make vm-bootstrap` → `ssh ubuntu@bm-node true` 확인 → `default-allow-ssh` 삭제 → `make deploy verify status`
-4. [운영](docs/runbooks/operations.md): 백업, 복원, 업그레이드, 정지된 VM 시작, 비용 점검
+1. [계정 준비](docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md): GCP 프로젝트·Budget 알림·gcloud `bm-personal`, Tailscale, 정책. Tailscale 인증 키는 부트스트랩 직전에 발급합니다(accounts 5단계, 만료 1일).
+2. [VM 만들기](docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md): e2-micro, us-west1-b, Ubuntu 26.04 Minimal, pd-standard 30GB, 방화벽 정리, `default-allow-ssh`를 내 IP/32로 제한
+3. [부트스트랩](docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md): `make vm-bootstrap` → `ssh ubuntu@bm-node true` 확인 → `default-allow-ssh` 삭제 → `make deploy verify status`
+4. [운영](docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md): 백업, 복원, 업그레이드, 정지된 VM 시작, 비용 점검
 
 ## 에이전트용 스킬
 
@@ -1745,7 +1746,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`bm-node
 | `compose.yaml` | Mac(로컬 검증)·VM | Basic Memory 컨테이너 정의 (같은 파일) |
 | Tailscale Serve | VM | tailnet HTTPS → `http://127.0.0.1:8737` |
 | Tailscale SSH | VM | 부트스트랩 이후의 유일한 관리 경로 |
-| gcloud 명령 | Mac (사람이 실행) | VM 생성, 방화벽, 정지·시작. [VM 런북](runbooks/gcp-vm.md)의 명령. 항상 `--configuration=bm-personal` |
+| gcloud 명령 | Mac (사람이 실행) | VM 생성, 방화벽, 정지·시작. [VM 런북](runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md)의 명령. 항상 `--configuration=bm-personal` |
 | `.env`, `backups/` | Mac, main 체크아웃 | 사용자 설정과 `make backup` 결과물 (둘 다 git ignore) |
 | 리뷰·스킬 도구 | Mac | `scripts/check-git.sh`(git 정책 검사), `scripts/review.sh`와 `scripts/review-bash-guard.sh`(다른 벤더의 읽기 전용 리뷰), `.agents/skills/`(에이전트용 스킬; `.claude/skills/`는 링크), `docs/reviews/`(리뷰 기록) |
 
@@ -1766,15 +1767,15 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`bm-node
 
 - Basic Memory에는 인증이 없습니다(**Verified**). 접근 제어는 전적으로 Tailscale의 기기 인증과 정책에 맡깁니다.
 - 컨테이너 포트는 `127.0.0.1`에만 바인딩하고, Serve는 tailnet 전용(Funnel off)이며, GCP 방화벽에는 VPC 밖의 소스를 허용하는 인바운드 규칙이 없습니다. `default-allow-rdp`·`default-allow-icmp`는 지우고, `default-allow-ssh`는 Tailscale SSH를 확인한 뒤 지웁니다. `default-allow-internal`은 VPC 내부(`10.128.0.0/9`) 전용이라 둡니다.
-- 자동 검증 범위: `tests/repo.bats`(설정 파일)와 `make verify`/`make probe`(바인딩, Serve 상태, 공인 IP의 22·80·443·8737). 방화벽 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/operations.md)의 Exposure audit으로 수동 점검합니다.
+- 자동 검증 범위: `tests/repo.bats`(설정 파일)와 `make verify`/`make probe`(바인딩, Serve 상태, 공인 IP의 22·80·443·8737). 방화벽 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit으로 수동 점검합니다.
 - 비밀값은 Tailscale 인증 키 하나뿐이며, 저장소와 디스크에 남지 않습니다.
 
 ## 자원과 비용
 
-- 1GB RAM에 스왑 1GB입니다. 부트스트랩이 스왑 파일을 만들고 `make status`는 스왑이 없으면 경고합니다([ADR 0002](decisions/0002-vm-sizing.md)).
+- 1GB RAM에 스왑 1GB입니다. 부트스트랩이 스왑 파일을 만들고 `make status`는 스왑이 없으면 경고합니다([vm-sizing ADR](decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)).
 - 무료 등급 조건: e2-micro 1대, 30GB 표준 영구 디스크, 월 1GB 아웃바운드(**Verified**, 2026-10-12). Spot VM과 balanced 디스크는 무료가 아닙니다.
 - 정지 후 시작하면 외부 IP가 바뀝니다. `.env`의 `BM_VM_PUBLIC_IP`를 갱신해야 `verify`가 맞는 IP를 검사합니다.
-- 외부 IPv4 요금이 무료 등급에 포함되는지는 **Open question**입니다. 배포 다음 날 SKU별 청구를 확인합니다([운영 런북](runbooks/operations.md)의 비용 점검).
+- 외부 IPv4 요금이 무료 등급에 포함되는지는 **Open question**입니다. 배포 다음 날 SKU별 청구를 확인합니다([운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 비용 점검).
 
 ## 주요 흐름
 
@@ -1783,7 +1784,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`bm-node
 - **백업:** `make backup` → 컨테이너 정지(재시작은 정지 전에 예약) → 파일별 체크섬 manifest → `/srv/basic-memory`를 tar로 받아옴 → sha256 저장 → 세 파일을 최종 이름으로 rename → 컨테이너 재시작. 아카이브는 main 체크아웃의 `backups/`에 저장됩니다.
 - **복원:** `make restore` → 정지 → 임시 경로에 압축 해제 → manifest 대조 → 저장소 compose.yaml 적용 → 데이터 교체(기존은 `.prev-*`) → 기동 → verify. 정지 이후 실패하면 이전 데이터와 compose로 자동 롤백
 
-관련 결정: [ADR 0001](decisions/0001-basic-memory-on-gcp-tailscale.md), [ADR 0002](decisions/0002-vm-sizing.md)
+관련 결정: [basic-memory-on-gcp-tailscale ADR](decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md), [vm-sizing ADR](decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)
 ````
 
 - [ ] **Step 11: 스킬 세 개 전체 재작성**
@@ -1801,20 +1802,20 @@ Read-only. Run only `make probe`, `make status` and `make logs` (plus `tailscale
 
 Work top-down and stop at the first layer that fails:
 
-1. Tailnet: `tailscale status | grep bm-node` on this machine. Missing or offline: the VM is stopped, deleted or logged out. Ask the user to check the instance (`gcloud compute instances describe <instance> --zone=us-west1-b --configuration=bm-personal --format='value(status)'`, which the user runs). `TERMINATED` means stopped: the user starts it and updates `BM_VM_PUBLIC_IP` (docs/runbooks/operations.md, "정지된 VM"); do not rebuild. Deleted or unusable means `bm-recover`.
-2. SSH: `ssh ubuntu@bm-node true`. Failing while the tailnet is fine: check the Tailscale policy `ssh` rule for `tag:bm-server` (docs/runbooks/accounts.md). After a rebuilt VM, "Host key verification failed" means the user must run `ssh-keygen -R bm-node` and accept the new key (see `bm-recover`).
+1. Tailnet: `tailscale status | grep bm-node` on this machine. Missing or offline: the VM is stopped, deleted or logged out. Ask the user to check the instance (`gcloud compute instances describe <instance> --zone=us-west1-b --configuration=bm-personal --format='value(status)'`, which the user runs). `TERMINATED` means stopped: the user starts it and updates `BM_VM_PUBLIC_IP` (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, "정지된 VM"); do not rebuild. Deleted or unusable means `bm-recover`.
+2. SSH: `ssh ubuntu@bm-node true`. Failing while the tailnet is fine: check the Tailscale policy `ssh` rule for `tag:bm-server` (docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md). After a rebuilt VM, "Host key verification failed" means the user must run `ssh-keygen -R bm-node` and accept the new key (see `bm-recover`).
 3. Container: `make status`. Not `(healthy)`: run `make logs` and quote the first error.
-4. Memory: `make status` prints the memory and swap use. A warning containing `no active swap` means the swap file is missing: the user reruns `make vm-bootstrap` (docs/runbooks/bootstrap.md). Sustained swap use or container restarts in `make logs` mean memory pressure on the 1 GB VM: report the numbers and point to docs/decisions/0002-vm-sizing.md; do not change anything.
+4. Memory: `make status` prints the memory and swap use. A warning containing `no active swap` means the swap file is missing: the user reruns `make vm-bootstrap` (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md). Sustained swap use or container restarts in `make logs` mean memory pressure on the 1 GB VM: report the numbers and point to docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md; do not change anything.
 5. Serve: `make status` ends with `tailscale serve status`; it must show `proxy http://127.0.0.1:8737`. If it dies with "tailscale serve is not configured", Serve is missing: the user reruns bootstrap (`bm-recover` explains the Serve reset).
 6. MCP: `make probe` (initialize and tools/list only; writes nothing) and read the failing step:
    - `initialize: request to <url> failed`: DNS or HTTPS; check MagicDNS and HTTPS certificates in the Tailscale admin console.
    - `initialize: HTTP 4xx`: Host header or path; propose comparing against a local container (`make local-up local-verify` starts a container and writes a test note, so the user decides).
    - `tools/list: missing tool`: the image changed; see `bm-upgrade`.
-   - `Funnel is on for this node` or `accepts connections on port N`: exposure problem; point the user to "Exposure audit" in docs/runbooks/operations.md. Do not try to fix it yourself.
+   - `Funnel is on for this node` or `accepts connections on port N`: exposure problem; point the user to "Exposure audit" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md. Do not try to fix it yourself.
    - `BM_VM_PUBLIC_IP must be ...`: the user must correct `.env`. After a stop and start the external IP changes, so the value may simply be stale.
    - Probe passes but agents cannot write: check data permissions (`ssh ubuntu@bm-node ls -ln /srv/basic-memory`, owner must be 1000) and disk space (`ssh ubuntu@bm-node df -h /srv`), then propose `make verify`, which writes and deletes a test note, for the user to approve.
    - The log line `initialized (no session id)` means the server sent no session header; `initialized (session abcd****)` is a masked real id. Never print a full session id.
-7. Report the failing layer, the evidence (command and output excerpt) and the proposed fix. If the incident was real, suggest a row in "Incident log" in docs/runbooks/operations.md.
+7. Report the failing layer, the evidence (command and output excerpt) and the proposed fix. If the incident was real, suggest a row in "Incident log" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md.
 ```
 
 `.agents/skills/bm-recover/SKILL.md`:
@@ -1829,17 +1830,17 @@ description: Rebuild the Basic Memory VM after it was deleted or became unusable
 Each of steps 3 to 6 changes cloud resources or data: ask the user and wait for an OK before every one of them, including the `make vm-bootstrap` in step 4. `.env` belongs to the user and lives in the main checkout: the user edits it, and you must not read it by any means (not with Read, `cat` or anything else). The user also runs every command that needs a terminal prompt (the Tailscale auth key, the restore `yes`) in their own terminal. Never ask for the auth key in chat, never put `TS_AUTHKEY=...` on a command line and never pipe `yes`. Every gcloud command is run by the user and carries `--configuration=bm-personal`.
 
 1. Find out whether the VM is really gone: `make status` fails. Ask the user to check the instance (`gcloud compute instances describe <instance> --zone=us-west1-b --configuration=bm-personal --format='value(status)'`).
-   - `TERMINATED` (stopped): do not rebuild; the data is on its disk. The user starts it (`gcloud compute instances start <instance> --zone=us-west1-b --configuration=bm-personal`). The external IP changes after a stop and start, so the user reads the new IP (docs/runbooks/gcp-vm.md, section 5) and updates `BM_VM_PUBLIC_IP` in `.env`. Then run `make status` and `make probe`, add an "Incident log" row if it was a real incident, and stop here.
+   - `TERMINATED` (stopped): do not rebuild; the data is on its disk. The user starts it (`gcloud compute instances start <instance> --zone=us-west1-b --configuration=bm-personal`). The external IP changes after a stop and start, so the user reads the new IP (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md, section 5) and updates `BM_VM_PUBLIC_IP` in `.env`. Then run `make status` and `make probe`, add an "Incident log" row if it was a real incident, and stop here.
    - Deleted, will not start, or the data is corrupt: continue with step 2.
    - Anything transient: use `bm-diagnose` instead.
 2. Choose the newest backup in the main checkout, not in your worktree: the main checkout is the parent directory of `git rev-parse --path-format=absolute --git-common-dir`. List `<main checkout>/backups/bm-*.tgz` with `ls -t` and take the first. Check that both `<file>.sha256` and `<file>.manifest` exist; `make restore` refuses an archive without either ("checksum file missing", "manifest missing"). If no backup qualifies in the main checkout, tell the user the notes cannot be restored and continue with an empty VM only if they agree. Never conclude "no backup" from inside a worktree.
-3. Ask first. The user creates a new VM following `docs/runbooks/gcp-vm.md` (keeping `default-allow-ssh` open to their own IP/32 for now) and removes the old `bm-node` machine in the Tailscale admin console so the new VM can take the name. If the old instance still exists, the user keeps it (stopped) under another name until step 6 is verified; never delete the old instance or its disk before the restore is verified. The user then sets the new public IP as `BM_VM_PUBLIC_IP` in `.env` (the user's file; you neither edit nor read it).
-4. Ask first. The user creates a new one-off auth key (`docs/runbooks/accounts.md`). Before bootstrapping, the user follows step 1 of `docs/runbooks/bootstrap.md` (old Tailscale node, `ssh-keygen -R bm-node` and `ssh-keygen -R <new-public-ip>`; the latter is harmless when no entry exists, and a stale host key for a reused public IP makes the bootstrap fail with "upload failed"). The user runs `make vm-bootstrap HOST=<new-public-ip>` in their own terminal and pastes the key at the hidden prompt, or runs `read -rs TS_AUTHKEY && export TS_AUTHKEY` first and `unset TS_AUTHKEY` afterwards. It is safe to repeat if it fails.
-5. Ask first. First Tailscale SSH to the new VM: ask the user to run an interactive `ssh ubuntu@bm-node true` and accept the new key. Only when that succeeds, ask the user to delete the firewall rule that opens port 22 (`gcloud compute firewall-rules delete default-allow-ssh --configuration=bm-personal`, docs/runbooks/bootstrap.md step 4).
+3. Ask first. The user creates a new VM following `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md` (keeping `default-allow-ssh` open to their own IP/32 for now) and removes the old `bm-node` machine in the Tailscale admin console so the new VM can take the name. If the old instance still exists, the user keeps it (stopped) under another name until step 6 is verified; never delete the old instance or its disk before the restore is verified. The user then sets the new public IP as `BM_VM_PUBLIC_IP` in `.env` (the user's file; you neither edit nor read it).
+4. Ask first. The user creates a new one-off auth key (`docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`). Before bootstrapping, the user follows step 1 of `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md` (old Tailscale node, `ssh-keygen -R bm-node` and `ssh-keygen -R <new-public-ip>`; the latter is harmless when no entry exists, and a stale host key for a reused public IP makes the bootstrap fail with "upload failed"). The user runs `make vm-bootstrap HOST=<new-public-ip>` in their own terminal and pastes the key at the hidden prompt, or runs `read -rs TS_AUTHKEY && export TS_AUTHKEY` first and `unset TS_AUTHKEY` afterwards. It is safe to repeat if it fails.
+5. Ask first. First Tailscale SSH to the new VM: ask the user to run an interactive `ssh ubuntu@bm-node true` and accept the new key. Only when that succeeds, ask the user to delete the firewall rule that opens port 22 (`gcloud compute firewall-rules delete default-allow-ssh --configuration=bm-personal`, docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md step 4).
 6. Ask first. Before deploying, run `make status`. If it lists a Basic Memory container, compare its image with `grep 'image:' compose.yaml`; when they differ, stop and ask the user (an unmerged upgrade may be live, see `bm-upgrade`). A fresh VM has no container yet, so skip the comparison. Run `make deploy` from your worktree only after `git diff main -- compose.yaml` prints nothing (your pin equals main's); if it prints anything, stop and ask the user. Then the user runs `make restore BACKUP=<absolute path of the file from step 2>` in their own terminal and types `yes`; the target runs verify at the end.
-7. Run `make status` and `make probe`. The firewall was created again, so ask the user to redo the "Exposure audit" in `docs/runbooks/operations.md` and add a row to its "점검 기록" table. Add a row to "Incident log" in the same file (date, cause, backup used, data loss window) and commit it through the `git-workflow` skill.
+7. Run `make status` and `make probe`. The firewall was created again, so ask the user to redo the "Exposure audit" in `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md` and add a row to its "점검 기록" table. Add a row to "Incident log" in the same file (date, cause, backup used, data loss window) and commit it through the `git-workflow` skill.
 
-If the Serve configuration is wrong afterwards, do not edit it by hand; ask the user first. When "Funnel is on for this node" appears, the user turns Funnel off (removes the `funnel` attribute in the Tailscale policy, see "Exposure audit" in `docs/runbooks/operations.md`) before anything else. Then the user runs `make vm-bootstrap HOST=bm-node` in their own terminal, because it prompts for the auth key. Assumption (confirm in plan 05): once the public port 22 is closed, use `HOST=bm-node` over Tailscale SSH. `make status` prints a different hint, `make vm-bootstrap HOST=<public-ip>` (scripts/status.sh), which needs the port 22 rule again; prefer `HOST=bm-node` and say why. Deleting `/srv/basic-memory.prev-*` is for the human only.
+If the Serve configuration is wrong afterwards, do not edit it by hand; ask the user first. When "Funnel is on for this node" appears, the user turns Funnel off (removes the `funnel` attribute in the Tailscale policy, see "Exposure audit" in `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`) before anything else. Then the user runs `make vm-bootstrap HOST=bm-node` in their own terminal, because it prompts for the auth key. Assumption (confirm in the vm-rollout plan): once the public port 22 is closed, use `HOST=bm-node` over Tailscale SSH. `make status` prints a different hint, `make vm-bootstrap HOST=<public-ip>` (scripts/status.sh), which needs the port 22 rule again; prefer `HOST=bm-node` and say why. Deleting `/srv/basic-memory.prev-*` is for the human only.
 ```
 
 `.agents/skills/bm-upgrade/SKILL.md`:
@@ -1863,7 +1864,7 @@ This changes what runs against real notes. Follow the steps in order. Ask the us
 6. Verify locally: `make check local-up local-verify`, then `make local-down`. If anything fails, stop and report; do not deploy.
 7. Ask the user to approve the rollout, and tell them: until this branch is reviewed and merged, the VM runs an image that main does not pin, so nobody may run `make deploy` or `make restore` from another checkout. Then run `make backup`. Record the absolute archive path from "backup saved: /…/backups/bm-<stamp>.tgz": it is the rollback point, it holds the data from before the upgrade, and it lives in the main checkout's `backups/`. Then run `make deploy`, `make verify` and `make status`.
 8. Roll back only after the user agrees, because notes written after step 7 are replaced (they stay in `/srv/basic-memory.prev-*` on the VM). Put the old `image:` line back in `compose.yaml`, then ask the user to run `make restore BACKUP=<absolute archive path from step 7>` in their own terminal and type `yes` at the prompt. Never pipe `yes` into it. Restore uploads this repo's `compose.yaml` together with the pre-upgrade data and then runs verify, so both the data and the image go back. Deleting `/srv/basic-memory.prev-*` is for the human only; never remove it.
-9. Commit `compose.yaml` on the branch from step 1 through the `git-workflow` skill: run `make check` and end the commit with the `Assisted-by`, `Plan` and `Task` trailers (`Plan: none` and `Task: none` when no plan applies). Use the message `chore: upgrade basic-memory to <version>`. If you rolled back in step 8, do not commit the new pin; record only the outcome. Record the outcome (Verified/Command) in the active plan's Progress log or in a new ADR under `docs/decisions/`. If the rollout failed, suggest a row for "Incident log" in `docs/runbooks/operations.md`. After committing, ask for the cross-vendor review and the merge right away: the VM keeps running the new image until main pins it.
+9. Commit `compose.yaml` on the branch from step 1 through the `git-workflow` skill: run `make check` and end the commit with the `Assisted-by`, `Plan` and `Task` trailers (`Plan: none` and `Task: none` when no plan applies). Use the message `chore: upgrade basic-memory to <version>`. If you rolled back in step 8, do not commit the new pin; record only the outcome. Record the outcome (Verified/Command) in the active plan's Progress log or in a new ADR under `docs/decisions/`. If the rollout failed, suggest a row for "Incident log" in `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`. After committing, ask for the cross-vendor review and the merge right away: the VM keeps running the new image until main pins it.
 ```
 
 - [ ] **Step 12: 테스트 통과와 잔여 용어 확인**
@@ -1871,10 +1872,10 @@ This changes what runs against real notes. Follow the steps in order. Ask the us
 Run: `make test`
 Expected: PASS. 섹션 테스트, 이름 변경 테스트, 옛 용어 테스트, gcloud 설정 플래그 테스트, 링크 테스트, docs 경로 테스트가 모두 통과한다. (총 개수는 Task 4의 테스트와 합쳐 Progress log에 기록한다.)
 
-Run: `grep -rniwE 'oci|oracle' README.md docs/ARCHITECTURE.md docs/runbooks docs/decisions/adr-2026-10-12-0002-vm-sizing.md .agents/skills/*/SKILL.md`
-Expected: 출력 없음(종료 코드 1). `docs/decisions/adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md`와 스펙·옛 계획 파일은 검사 대상이 아니다.
+Run: `grep -rniwE 'oci|oracle' README.md docs/ARCHITECTURE.md docs/runbooks docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md .agents/skills/*/SKILL.md`
+Expected: 출력 없음(종료 코드 1). `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md`와 스펙·옛 계획 파일은 검사 대상이 아니다.
 
-Run: `grep -rniE 'reclaim|reclamation|A1\.Flex' README.md docs/ARCHITECTURE.md docs/runbooks docs/decisions/adr-2026-10-12-0002-vm-sizing.md .agents/skills/*/SKILL.md`
+Run: `grep -rniE 'reclaim|reclamation|A1\.Flex' README.md docs/ARCHITECTURE.md docs/runbooks docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md .agents/skills/*/SKILL.md`
 Expected: 출력 없음(종료 코드 1).
 
 Run: `grep -rnE 'gcloud [a-z]' README.md docs/ARCHITECTURE.md docs/runbooks .agents/skills/*/SKILL.md | grep -v -e '--configuration=bm-personal' -e 'configurations create' -e 'configurations list'`
@@ -1885,28 +1886,28 @@ Expected: 출력 없음.
 Run: `make check` (PASS)
 ```bash
 git add README.md docs/ARCHITECTURE.md docs/runbooks docs/decisions .agents/skills/bm-recover .agents/skills/bm-diagnose .agents/skills/bm-upgrade tests/repo.bats
-git commit -m "docs: rewrite docs and skills for the GCP e2-micro host" --trailer "Assisted-by: <시작 단계에서 정한 신원>" --trailer "Plan: 04" --trailer "Task: 5"
+git commit -m "docs: rewrite docs and skills for the GCP e2-micro host" --trailer "Assisted-by: <시작 단계에서 정한 신원>" --trailer "Plan: hydaxf15" --trailer "Task: 5"
 ```
 
-참고: Task 6이 스크립트 메시지(옛 호스트 표현, `Idle reclamation` 안내, 스왑 경고)와 그 테스트를 고친다. 이 커밋 시점에도 스크립트가 가리키는 문서 경로(`rbk-2026-10-12-bootstrap.md`, `rbk-2026-10-12-operations.md`, `rbk-2026-10-12-accounts.md`)는 모두 그대로 있어 docs 경로 테스트가 통과한다. `scripts/status.sh`의 문구 `(docs/runbooks/rbk-2026-10-12-operations.md, Idle reclamation)`만 Task 6 전까지 없어진 섹션 이름을 언급한다.
+참고: Task 6이 스크립트 메시지(옛 호스트 표현, `Idle reclamation` 안내, 스왑 경고)와 그 테스트를 고친다. 이 커밋 시점에도 스크립트가 가리키는 문서 경로(`rbk-2026-10-12-ha5w72pm-bootstrap.md`, `rbk-2026-10-12-t79ex2ny-operations.md`, `rbk-2026-10-12-hqxjjqy8-accounts.md`)는 모두 그대로 있어 docs 경로 테스트가 통과한다. `scripts/status.sh`의 문구 `(docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Idle reclamation)`만 Task 6 전까지 없어진 섹션 이름을 언급한다.
 
 ---
 
 ### Task 6: GCP 전환 스크립트 변경 (스왑, status, 클라우드 중립 메시지)
 
 **Files:**
-- Modify: `scripts/remote/bootstrap.sh`, `scripts/status.sh`, `scripts/bootstrap-vm.sh`, `scripts/verify-vm.sh`, `Makefile`(`status` 도움말 한 줄), `.env.example`, `docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md`(§7.4, §9 각 한 곳), `tests/bootstrap.bats`, `tests/vm_ops.bats`, `tests/stubs/free`
+- Modify: `scripts/remote/bootstrap.sh`, `scripts/status.sh`, `scripts/bootstrap-vm.sh`, `scripts/verify-vm.sh`, `Makefile`(`status` 도움말 한 줄), `.env.example`, `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`(§7.4, §9 각 한 곳), `tests/bootstrap.bats`, `tests/vm_ops.bats`, `tests/stubs/free`
 - Create: `tests/stubs/swapon`, `tests/stubs/fallocate`, `tests/stubs/mkswap`, `tests/cloud_neutral.bats`
 - 건드리지 않는다: `tests/repo.bats`, `AGENTS.md`(Task 5와 컨트롤러 소유)
 
 **Interfaces:**
-- Consumes: Task 4와 Task 5가 plan/04에 들어간 상태(`docs/runbooks/rbk-2026-10-12-gcp-vm.md`가 있고 `rbk-2026-10-12-operations.md`에 "Idle reclamation" 제목이 없다), 스펙 §2(메모리 행), §7.4, §7.6, §7.7, §9
+- Consumes: Task 4와 Task 5가 `plan/hydaxf15-docs-skills`에 들어간 상태(`docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`가 있고 `rbk-2026-10-12-t79ex2ny-operations.md`에 "Idle reclamation" 제목이 없다), 스펙 §2(메모리 행), §7.4, §7.6, §7.7, §9
 - Produces:
   - `bootstrap.sh`의 `ensure_swap`. `main()`에서 `install_docker`보다 먼저 실행된다. 상수 `SWAP_SIZE_MB=1024`. 테스트용 재정의 `SWAP_FILE`(기본 `/swapfile`), 기존 `ETC_DIR`(fstab).
-  - `status.sh`의 출력 `memory used: N%`, `swap used: U/T MB`, 스왑이 없을 때의 경고 `WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/rbk-2026-10-12-bootstrap.md)`(Task 5의 문서가 `rerun 'make vm-bootstrap'`을 그대로 인용하므로 문구를 바꾸지 않는다).
-  - 스크립트 메시지에서 특정 클라우드 이름이 사라진다. 사람 안내는 `docs/runbooks/rbk-2026-10-12-gcp-vm.md`를 가리킨다.
+  - `status.sh`의 출력 `memory used: N%`, `swap used: U/T MB`, 스왑이 없을 때의 경고 `WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)`(Task 5의 문서가 `rerun 'make vm-bootstrap'`을 그대로 인용하므로 문구를 바꾸지 않는다).
+  - 스크립트 메시지에서 특정 클라우드 이름이 사라진다. 사람 안내는 `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`를 가리킨다.
 
-**먼저 알아둘 점:** 스펙 §9는 "`scripts/` 아래 모든 파일(주석 포함)에 `OCI`, `Oracle`, `GCP`, `gcloud`가 나오지 않는다"고 하지만, §7.6은 `verify-vm.sh`가 `rbk-2026-10-12-gcp-vm.md`를 가리키게 한다. 파일 이름 `docs/runbooks/rbk-2026-10-12-gcp-vm.md`는 `grep -w gcp`에 걸린다. 그래서 테스트는 이 경로 문자열 하나만 허용한다(Step 8). 스펙 §9에도 이 예외를 한 줄 적는다(Step 10).
+**먼저 알아둘 점:** 스펙 §9는 "`scripts/` 아래 모든 파일(주석 포함)에 `OCI`, `Oracle`, `GCP`, `gcloud`가 나오지 않는다"고 하지만, §7.6은 `verify-vm.sh`가 `rbk-2026-10-12-tcjs7m6x-gcp-vm.md`를 가리키게 한다. 파일 이름 `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`는 `grep -w gcp`에 걸린다. 그래서 테스트는 이 경로 문자열 하나만 허용한다(Step 8). 스펙 §9에도 이 예외를 한 줄 적는다(Step 10).
 
 - [ ] **Step 1: 스텁과 `bootstrap.bats` setup 먼저 준비 (동작 변화 없음)**
 
@@ -2154,7 +2155,7 @@ Expected: PASS. 스왑 테스트 8개를 포함해 기존 `bootstrap.bats`가 �
   run "$REPO_DIR/scripts/status.sh"
   assert_success
   assert_output --partial "swap used: 0/0 MB"
-  assert_output --partial "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/bootstrap.md)"
+  assert_output --partial "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"
   assert_output --partial "proxy http://127.0.0.1:8737"
 }
 
@@ -2201,12 +2202,12 @@ main() {
   log "memory used: ${used}%"
   log "swap used: ${swap_used}/${swap_total} MB"
   if ((swap_total == 0)); then
-    log "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/bootstrap.md)"
+    log "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"
   fi
 
   step "tailscale serve"
   remote "sudo -n tailscale serve status" \
-    || die "tailscale serve is not configured: rerun 'make vm-bootstrap HOST=<public-ip>' (docs/runbooks/bootstrap.md)"
+    || die "tailscale serve is not configured: rerun 'make vm-bootstrap HOST=<public-ip>' (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"
 }
 
 main "$@"
@@ -2236,7 +2237,7 @@ cloud_name_matches() {
 
 @test "the scan flags a provider name and ignores only the runbook path" {
   mkdir -p "$BATS_TEST_TMPDIR/sample"
-  printf '# see docs/runbooks/gcp-vm.md\n# use the OCI console\n# gcloud compute list\n' >"$BATS_TEST_TMPDIR/sample/a.sh"
+  printf '# see docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md\n# use the OCI console\n# gcloud compute list\n' >"$BATS_TEST_TMPDIR/sample/a.sh"
   run cloud_name_matches "$BATS_TEST_TMPDIR/sample"
   assert_success
   assert_output --partial "use the OCI console"
@@ -2268,29 +2269,29 @@ Expected: FAIL. `scripts name no cloud provider, comments included`만 실패한
 
 | 줄 | 현재 | 새 텍스트 |
 |---|---|---|
-| 43 | `    \|\| die "upload failed: check the public IP, your SSH key, and the OCI ingress rule for port 22"` | `    \|\| die "upload failed: check the public IP, your SSH key, and that a firewall rule allows port 22 from your IP (docs/runbooks/rbk-2026-10-12-gcp-vm.md)"` |
-| 50 | `      die "upload failed: check the public IP, your SSH key, and the OCI ingress rule for port 22"` | `      die "upload failed: check the public IP, your SSH key, and that a firewall rule allows port 22 from your IP (docs/runbooks/rbk-2026-10-12-gcp-vm.md)"` |
-| 65 | `  log "  2. only then delete the OCI ingress rule for port 22 (docs/runbooks/rbk-2026-10-12-bootstrap.md)"` | `  log "  2. only then delete the firewall rule that opens port 22 (docs/runbooks/rbk-2026-10-12-bootstrap.md)"` |
+| 43 | `    \|\| die "upload failed: check the public IP, your SSH key, and the OCI ingress rule for port 22"` | `    \|\| die "upload failed: check the public IP, your SSH key, and that a firewall rule allows port 22 from your IP (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md)"` |
+| 50 | `      die "upload failed: check the public IP, your SSH key, and the OCI ingress rule for port 22"` | `      die "upload failed: check the public IP, your SSH key, and that a firewall rule allows port 22 from your IP (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md)"` |
+| 65 | `  log "  2. only then delete the OCI ingress rule for port 22 (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"` | `  log "  2. only then delete the firewall rule that opens port 22 (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"` |
 
 `scripts/verify-vm.sh`:
 
 | 줄 | 현재 | 새 텍스트 |
 |---|---|---|
 | 4 | `# OCI ingress rules and the tailnet policy cannot be read from here; audit them by hand` | `# Firewall rules and the tailnet policy cannot be read from here; audit them by hand` |
-| 55 | `  hint="use the VM's public IP from the OCI console (Compute > Instance > Public IP)"` | `  hint="look up the VM's public IP as described in docs/runbooks/rbk-2026-10-12-gcp-vm.md"` |
+| 55 | `  hint="use the VM's public IP from the OCI console (Compute > Instance > Public IP)"` | `  hint="look up the VM's public IP as described in docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md"` |
 | 74 | `  # "No route to host" is how nc reports an ICMP reject (the OCI Ubuntu image's iptables uses icmp-host-prohibited).` | `  # "No route to host" is how nc reports an ICMP reject (a host firewall may reject with icmp-host-prohibited).` |
 | 87 | `      die "public IP $BM_VM_PUBLIC_IP accepts connections on port $probe: remove that OCI ingress rule"` | `      die "public IP $BM_VM_PUBLIC_IP accepts connections on port $probe: remove the firewall rule that allows it"` |
-| 114 | `  log "OK: automated VM checks passed; audit OCI ingress rules and the tailnet policy by hand (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit)"` | `  log "OK: automated VM checks passed; audit firewall rules and the tailnet policy by hand (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit)"` |
+| 114 | `  log "OK: automated VM checks passed; audit OCI ingress rules and the tailnet policy by hand (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"` | `  log "OK: automated VM checks passed; audit firewall rules and the tailnet policy by hand (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"` |
 
 테스트 문구를 맞춘다.
 - `tests/bootstrap.bats` 146번째 줄 근처: `assert_output --partial "only then delete the OCI ingress rule for port 22"` → `assert_output --partial "only then delete the firewall rule that opens port 22"`
-- `tests/vm_ops.bats` 163번째 줄 근처: `assert_output --partial "public IP from the OCI console"` → `assert_output --partial "docs/runbooks/rbk-2026-10-12-gcp-vm.md"`
+- `tests/vm_ops.bats` 163번째 줄 근처: `assert_output --partial "public IP from the OCI console"` → `assert_output --partial "docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md"`
 - `tests/vm_ops.bats` 199번째 줄의 주석: `# The OCI Ubuntu image's iptables rejects with icmp-host-prohibited, which nc reports as no route to host.` → `# A host firewall may reject with icmp-host-prohibited, which nc reports as no route to host.`
 
 `grep -rn "upload failed" tests/`와 `grep -rn "ingress" tests/`로 다른 단언이 없는지 확인한다(계획 작성 시점에는 없었다).
 
 Run: `make test`
-Expected: PASS. `cloud_neutral.bats` 3개를 포함해 전부 통과한다. `docs/runbooks/rbk-2026-10-12-gcp-vm.md`가 없으면 `tests/repo.bats`의 "every docs markdown path named in scripts…"가 실패한다. 이 Task는 Task 5 뒤에 실행하므로 있어야 한다.
+Expected: PASS. `cloud_neutral.bats` 3개를 포함해 전부 통과한다. `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`가 없으면 `tests/repo.bats`의 "every docs markdown path named in scripts…"가 실패한다. 이 Task는 Task 5 뒤에 실행하므로 있어야 한다.
 
 - [ ] **Step 10: Makefile 도움말, `.env.example`, 스펙**
 
@@ -2308,7 +2309,7 @@ status: ## Show VM containers, memory and swap use, and tailscale serve
 # The address usually changes after the VM is stopped and started: update it then
 ```
 
-`docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md` §7.4의 앞 두 항목
+`docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md` §7.4의 앞 두 항목
 ```markdown
 1. 공식 apt 저장소로 Docker Engine과 compose 플러그인을 설치하고, `ubuntu`를 docker 그룹에 추가한다.
 2. **스왑:** 활성 스왑이 없으면 `/swapfile`을 `SWAP_SIZE_MB`(1024) 크기로 만들고 0600 권한, `mkswap`, `swapon`을 거쳐 `/etc/fstab`에 한 번만 등록한다. 활성 스왑이 있으면 건너뛴다.
@@ -2321,20 +2322,20 @@ status: ## Show VM containers, memory and swap use, and tailscale serve
 
 같은 스펙 §9의 "클라우드 중립" 항목을 통째로 다음으로 바꾼다. 테스트 파일 이름이 `tests/repo.bats`에서 `tests/cloud_neutral.bats`로 바뀌고, 검사는 단어 단위이며, 허용하는 예외가 하나라는 점이 달라진다. Task 7은 같은 검사를 다시 추가하지 않는다.
 ```markdown
-- **클라우드 중립 (`tests/cloud_neutral.bats`):** `scripts/` 아래 모든 파일(주석 포함)에 `OCI`, `Oracle`, `GCP`, `gcloud`가 단어 단위로, 대소문자 구분 없이 나오지 않는다. 유일한 예외는 스크립트가 런북을 가리키는 경로 `docs/runbooks/gcp-vm.md`다.
+- **클라우드 중립 (`tests/cloud_neutral.bats`):** `scripts/` 아래 모든 파일(주석 포함)에 `OCI`, `Oracle`, `GCP`, `gcloud`가 단어 단위로, 대소문자 구분 없이 나오지 않는다. 유일한 예외는 스크립트가 런북을 가리키는 경로 `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`다.
 ```
 
 - [ ] **Step 11: Commit**
 
 Run: `make fmt && make check` (PASS. `scripts/remote/bootstrap.sh`와 `scripts/status.sh`의 커버리지가 80% 이상인지 확인한다.)
 ```bash
-git add scripts tests/bootstrap.bats tests/vm_ops.bats tests/cloud_neutral.bats tests/stubs Makefile .env.example docs/specs/2026-10-12-basic-memory-gcp-tailscale-design.md
-git commit -m "feat: add swap to bootstrap, report swap in status, drop cloud names from scripts" --trailer "Assisted-by: <시작 단계에서 정한 신원>" --trailer "Plan: 04" --trailer "Task: 6"
+git add scripts tests/bootstrap.bats tests/vm_ops.bats tests/cloud_neutral.bats tests/stubs Makefile .env.example docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
+git commit -m "feat: add swap to bootstrap, report swap in status, drop cloud names from scripts" --trailer "Assisted-by: <시작 단계에서 정한 신원>" --trailer "Plan: hydaxf15" --trailer "Task: 6"
 ```
 
 **위험과 메모:**
 - `ensure_swap`을 가장 먼저 두는 것은 스펙 §7.4 순서와 다르다. Step 10이 스펙을 맞춘다. 순서를 엄격히 지키려면 `ensure_docker_group` 다음으로 옮기고 `sets up swap before installing docker` 테스트를 지운다.
-- **Assumption (계획 05에서 확인):** 실제 VM에서는 `fallocate`가 ext4 루트에서 동작한다고 가정한다. 실패하면 `could not create` 메시지로 멈춘다.
+- **Assumption ([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 확인):** 실제 VM에서는 `fallocate`가 ext4 루트에서 동작한다고 가정한다. 실패하면 `could not create` 메시지로 멈춘다.
 - zram 같은 다른 활성 스왑이 있어도 건너뛴다. 의도한 동작이다.
 - `status.sh`의 awk는 `free`의 `available` 열(7번째 필드)을 쓴다. 이 열이 없는 아주 오래된 procps에서는 사용률이 100%로 나온다. Ubuntu 26.04에는 있다.
 - `status`는 스왑이 없어도 성공(종료 코드 0)한다. 스펙은 경고만 요구한다.
@@ -2349,7 +2350,7 @@ git commit -m "feat: add swap to bootstrap, report swap in status, drop cloud na
 - Test: `tests/repo.bats` (끝에 append)
 
 **Interfaces:**
-- Consumes: Task 4의 동작(Makefile과 `make backup`이 main 체크아웃의 `.env`·`backups/`를 씀), Task 5의 `docs/runbooks/rbk-2026-10-12-gcp-vm.md`, 새 스펙 경로
+- Consumes: Task 4의 동작(Makefile과 `make backup`이 main 체크아웃의 `.env`·`backups/`를 씀), Task 5의 `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`, 새 스펙 경로
 - Produces: 모든 에이전트가 처음 읽는 지침의 GCP 기준
 
 이 Task는 서브에이전트에게 맡기지 않는다. 사용자가 설계 3/4에서 3·4번째 줄 변경을 승인했고, C1 Safety 줄은 최종 리뷰 뒤 사용자가 고른 수정이다. M6 줄(키와 `yes`는 사용자 터미널에서만)은 최종 리뷰 권고이며, 계획 승인으로 함께 승인받는다.
@@ -2358,7 +2359,7 @@ git commit -m "feat: add swap to bootstrap, report swap in status, drop cloud na
 
 ```bash
 @test "AGENTS.md points at the GCP spec and states the GCP safety rules" {
-  run grep -F 'Read first: `docs/specs/2026-10-12-basic-memory-gcp-tailscale-design.md`' "$REPO_DIR/AGENTS.md"
+  run grep -F 'Read first: `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`' "$REPO_DIR/AGENTS.md"
   assert_success
   run grep -F 'GCP free-tier e2-micro VM' "$REPO_DIR/AGENTS.md"
   assert_success
@@ -2384,7 +2385,7 @@ Expected: 새 테스트가 FAIL한다(첫 grep, `docs/specs/2026-10-12-...`가 �
 
 ```markdown
 This repo deploys a Basic Memory MCP server on a GCP free-tier e2-micro VM that is reachable only inside a Tailscale tailnet.
-Read first: `docs/specs/2026-10-12-basic-memory-gcp-tailscale-design.md`, then `docs/ARCHITECTURE.md`.
+Read first: `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`, then `docs/ARCHITECTURE.md`.
 ```
 
 `## Safety`의 23번째 줄을 바꾸고, 24번째 줄 뒤에 세 줄을 더한다. 바뀐 `## Safety` 전체는 다음과 같다.
@@ -2415,7 +2416,7 @@ Expected: PASS. `AGENTS.md stays a short map (at most 100 lines)`도 PASS한다(
 
 ```bash
 git add AGENTS.md tests/repo.bats
-git commit -m "docs: point AGENTS.md at the GCP spec and add main-checkout and gcloud safety rules" --trailer "Assisted-by: <시작 단계에서 정한 신원>" --trailer "Plan: 04" --trailer "Task: 7"
+git commit -m "docs: point AGENTS.md at the GCP spec and add main-checkout and gcloud safety rules" --trailer "Assisted-by: <시작 단계에서 정한 신원>" --trailer "Plan: hydaxf15" --trailer "Task: 7"
 ```
 
 ---
@@ -2446,15 +2447,15 @@ Expected: 두 번 모두 컨테이너가 healthy가 되고 `OK: MCP round trip p
 - [ ] **Step 3: 클라우드 이름 점검**
 
 Run: `grep -rniwE 'oci|oracle' scripts AGENTS.md README.md docs/ARCHITECTURE.md docs/runbooks .agents/skills; echo "exit=$?"`
-Expected: `exit=1`(아무것도 나오지 않음). ADR 0001과 스펙은 OCI를 포기한 근거로 OCI를 언급하므로 검사 대상에서 뺀다.
+Expected: `exit=1`(아무것도 나오지 않음). [basic-memory-on-gcp-tailscale ADR](../decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md)과 스펙은 OCI를 포기한 근거로 OCI를 언급하므로 검사 대상에서 뺀다.
 
 - [ ] **Step 4: Progress log에 기록하고 커밋**
 
 이 파일 맨 아래 Progress log에 날짜, 명령, 결과(테스트 수, 커버리지 %)를 `Verified`로 추가한다.
 
 ```bash
-git add docs/plans/active/2026-10-07-04-docs-skills.md
-git commit -m "docs: record local verification after the GCP switch" --trailer "Assisted-by: <시작 단계에서 정한 신원>" --trailer "Plan: 04" --trailer "Task: 8"
+git add docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md
+git commit -m "docs: record local verification after the GCP switch" --trailer "Assisted-by: <시작 단계에서 정한 신원>" --trailer "Plan: hydaxf15" --trailer "Task: 8"
 ```
 
 ---
@@ -2465,24 +2466,24 @@ git commit -m "docs: record local verification after the GCP switch" --trailer "
 - [ ] Progress log에 결과(테스트 수, 커버리지 %, 특이사항)를 `Verified`로 기록하고, 이 계획 파일을 `completed/`로 옮긴다.
 
 ```bash
-git mv docs/plans/active/2026-10-07-04-docs-skills.md docs/plans/completed/
-git add docs/plans/completed/2026-10-07-04-docs-skills.md
-git commit -m "docs: complete plan 04" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 04" --trailer "Task: none"
+git mv docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md docs/plans/completed/
+git add docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md
+git commit -m "docs: complete the docs-skills plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: none"
 ```
 
-- [ ] 1차 리뷰(작성자와 다른 벤더, 읽기 전용): 작성 도구가 Claude Code면 `make review BRANCH=plan/04-docs-skills REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
-- [ ] 원문(`.review-out/`)을 `docs/reviews/rev-2026-10-12-plan-04-docs-skills.md`로 옮겨 적는다(`docs/reviews/README.md` 형식). 계획 내 최종 리뷰의 M10(Task 2 구현자가 아직 리뷰받지 않은 자기 커밋을 한 번 amend함)도 사람이 볼 수 있게 이 기록에 적는다.
+- [ ] 1차 리뷰(작성자와 다른 벤더, 읽기 전용): 작성 도구가 Claude Code면 `make review BRANCH=plan/hydaxf15-docs-skills REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
+- [ ] 원문(`.review-out/`)을 `docs/reviews/rev-2026-10-12-aqhzgwq1-docs-skills.md`로 옮겨 적는다(`docs/reviews/README.md` 형식). 계획 내 최종 리뷰의 M10(Task 2 구현자가 아직 리뷰받지 않은 자기 커밋을 한 번 amend함)도 사람이 볼 수 있게 이 기록에 적는다.
 
 ```bash
-git add docs/reviews/plan-04-docs-skills.md
-git commit -m "docs: record review of plan 04" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 04" --trailer "Task: review"
+git add docs/reviews/rev-2026-10-12-aqhzgwq1-docs-skills.md
+git commit -m "docs: record review of the docs-skills plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: hydaxf15" --trailer "Task: review"
 ```
 
 - [ ] 지적마다 재현하거나 근거를 인용해 검증하고, 받아들인 지적은 하나당 커밋 하나로 고친다(`--trailer "Review-Finding: R1-F<n>"`). 거절은 근거와 함께 기록한다.
-- [ ] 고친 것이 있으면 2차 리뷰: `make review BRANCH=plan/04-docs-skills REVIEWER=<같은 리뷰어> ROUND=2 REVIEW_BASE=<리뷰한 head>`. 2회차 뒤 남은 이견은 사람이 결정한다.
+- [ ] 고친 것이 있으면 2차 리뷰: `make review BRANCH=plan/hydaxf15-docs-skills REVIEWER=<같은 리뷰어> ROUND=2 REVIEW_BASE=<리뷰한 head>`. 2회차 뒤 남은 이견은 사람이 결정한다.
 - [ ] `git-workflow` 스킬의 "Prepare the merge"대로 `.review-out/merge-plan-04-docs-skills.txt`를 쓴다.
-- [ ] 사람에게 병합을 요청한다. 에이전트는 병합하지 않는다. 사람은 `main` 체크아웃에서 `git merge --no-ff plan/04-docs-skills -F <그 파일의 절대 경로>`를 실행한다.
-- [ ] 병합 뒤 worktree와 브랜치를 정리한다: `ls <경로>/backups`로 아카이브가 없는지 확인 → `git worktree remove <경로>` → `git branch -d plan/04-docs-skills`. 단계 A의 임시 worktree 두 개(`.claude/worktrees/agent-a5a0efb1c7ac22d6e`, `.claude/worktrees/agent-a2883e065d67ce206`)도 각각 `ls <경로>/backups`로 아카이브가 없는지 확인한 뒤 `git worktree remove <경로>`로 지운다. 단계 A의 임시 브랜치 네 개(`work/p04-t4-main-checkout`, `work/p04-t5-gcp-docs`, `worktree-agent-a5a0efb1c7ac22d6e`, `worktree-agent-a2883e065d67ce206`)는 cherry-pick으로 옮겨져 병합 표시가 없으므로 사람이 `git branch -D`로 지운다.
+- [ ] 사람에게 병합을 요청한다. 에이전트는 병합하지 않는다. 사람은 `main` 체크아웃에서 `git merge --no-ff plan/hydaxf15-docs-skills -F <그 파일의 절대 경로>`를 실행한다.
+- [ ] 병합 뒤 worktree와 브랜치를 정리한다: `ls <경로>/backups`로 아카이브가 없는지 확인 → `git worktree remove <경로>` → `git branch -d plan/hydaxf15-docs-skills`. 단계 A의 임시 worktree 두 개(`.claude/worktrees/agent-a5a0efb1c7ac22d6e`, `.claude/worktrees/agent-a2883e065d67ce206`)도 각각 `ls <경로>/backups`로 아카이브가 없는지 확인한 뒤 `git worktree remove <경로>`로 지운다. 단계 A의 임시 브랜치 네 개(`work/p04-t4-main-checkout`, `work/p04-t5-gcp-docs`, `worktree-agent-a5a0efb1c7ac22d6e`, `worktree-agent-a2883e065d67ce206`)는 cherry-pick으로 옮겨져 병합 표시가 없으므로 사람이 `git branch -D`로 지운다.
 
 ---
 
@@ -2491,10 +2492,10 @@ git commit -m "docs: record review of plan 04" --trailer "Assisted-by: <도구> 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
 | 2026-10-12 | Command | `git status --short && make check` (작업 트리 깨끗함, 54d6dcb 기준) |
-| 2026-10-12 | Verified | `make check`: 테스트 188개 전부 PASS, 라인 커버리지 97.89%. 커버리지 목록에 실행 스크립트 12개(`bootstrap-vm`, `remote/bootstrap`, `verify-mcp`, `verify-vm`, `deploy`, `status`, `logs`, `backup`, `restore`, `check-git`, `review`, `review-bash-guard`)와 `lib/common.sh`가 모두 나옴. 계획 작성 시 가정한 9개는 계획 02·03 이후 늘어난 수를 반영하지 못함 |
+| 2026-10-12 | Verified | `make check`: 테스트 188개 전부 PASS, 라인 커버리지 97.89%. 커버리지 목록에 실행 스크립트 12개(`bootstrap-vm`, `remote/bootstrap`, `verify-mcp`, `verify-vm`, `deploy`, `status`, `logs`, `backup`, `restore`, `check-git`, `review`, `review-bash-guard`)와 `lib/common.sh`가 모두 나옴. 계획 작성 시 가정한 9개는 [git-review-tooling](plan-2026-10-07-qq4h1djv-git-review-tooling.md)·[vm-scripts](plan-2026-10-07-dry1xr43-vm-scripts.md) 계획 이후 늘어난 수를 반영하지 못함 |
 | 2026-10-12 | Command | `make local-up local-verify local-down`을 두 번 따로 실행(make는 한 명령줄의 같은 타깃을 한 번만 실행하므로 나눠야 한다) |
 | 2026-10-12 | Verified | 두 번 모두 컨테이너가 healthy가 되고 `OK: MCP round trip passed`가 일반 요청과 `*.ts.net` Host 헤더 요청에서 각각 나옴(총 4회). 내렸다 다시 올린 뒤에도 같은 결과 |
-| 2026-10-12 | Open question | 계획의 원래 Step 2(`docker restart` + `sleep 20`)는 Make 타깃만 쓰는 규칙에 맞지 않아 down/up 주기로 바꿨다. 로컬 메모리 측정은 하지 않았다(VM 메모리는 계획 05에서 24시간 뒤 측정) |
+| 2026-10-12 | Open question | 계획의 원래 Step 2(`docker restart` + `sleep 20`)는 Make 타깃만 쓰는 규칙에 맞지 않아 down/up 주기로 바꿨다. 로컬 메모리 측정은 하지 않았다(VM 메모리는 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 24시간 뒤 측정) |
 | 2026-10-12 | Command | `git status --short && make check` (작업 트리 깨끗함, d310ebc 기준) |
 | 2026-10-12 | Verified | `make check`: 테스트 220개 전부 PASS(실패 0), 라인 커버리지 97.97%(최소 80%). 커버리지 목록에 실행 스크립트 12개와 `lib/common.sh`가 모두 나옴 |
 | 2026-10-12 | Command | `make local-up local-verify local-down`을 두 번 따로 실행하고 끝날 때마다 `basic-memory` 컨테이너가 없는지 확인. 실행 전 `docker ps`에 compose.yaml의 `basic-memory-server`가 없음을 확인 |
@@ -2503,5 +2504,5 @@ git commit -m "docs: record review of plan 04" --trailer "Assisted-by: <도구> 
 | 2026-10-12 | Verified | grep 결과 없음, `exit=1`. 클라우드 이름이 남아 있지 않음 |
 | 2026-10-12 | Verified | 계획 내 최종 리뷰(opus, f5ad88c..e240c57): Critical 0, Important 1(새 VM에서 배포 전 이미지 점검 불가), Minor 11. 수정 4커밋(d2907b2, 3884850, 006655d, 62cc7a9) 뒤 범위 재리뷰에서 모두 해결, 새 Critical·Important 없음 |
 | 2026-10-12 | Command | `make check` (62cc7a9) |
-| 2026-10-12 | Verified | 테스트 220개 전부 PASS, 라인 커버리지 97.97%. `scripts/check-git.sh main plan/04-docs-skills` OK |
+| 2026-10-12 | Verified | 테스트 220개 전부 PASS, 라인 커버리지 97.97%. `scripts/check-git.sh main plan/hydaxf15-docs-skills` OK |
 | 2026-10-12 | Open question | Task 4 임시 worktree(`.claude/worktrees/agent-a5a0efb1c7ac22d6e`)의 `backups/`에 RED 단계 테스트가 만든 가짜 아카이브(`bm-20261012T064944Z.tgz`, 200바이트)가 있다. 실제 VM 백업이 아니며, AGENTS.md 규칙에 따라 지우지 않고 사람이 정리할 때 판단한다 |

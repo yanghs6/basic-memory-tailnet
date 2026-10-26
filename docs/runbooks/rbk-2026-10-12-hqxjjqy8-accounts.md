@@ -1,5 +1,6 @@
 ---
 status: current
+id: hqxjjqy8
 reviewed: 2026-10-15
 ---
 
@@ -29,7 +30,7 @@ Expected: 첫 명령에서 회사 설정이 계속 `IS_ACTIVE=True`입니다. �
 
 - 이후 **모든 gcloud 명령에 `--configuration=bm-personal`을 붙입니다.** 회사 설정은 활성 상태로 둡니다.
 - 설정 활성화(`configurations activate`)와 `auth application-default …`는 실행하지 않습니다. 회사 설정과 인증 정보를 건드리지 않기 위해서입니다.
-- **Open question:** 외부 IPv4 요금($0.005/h, 2024-02-01부터)이 무료 등급에 포함되는지는 공식 문서에 없습니다. 배포 다음 날 [운영 런북](rbk-2026-10-12-operations.md)의 비용 점검으로 확인합니다.
+- **Open question:** 외부 IPv4 요금($0.005/h, 2024-02-01부터)이 무료 등급에 포함되는지는 공식 문서에 없습니다. 배포 다음 날 [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 비용 점검으로 확인합니다.
 
 ## 2. Tailscale 가입
 
@@ -94,11 +95,11 @@ Settings → **Keys** → **Generate auth key**:
 - Tags: `tag:agent-hub`
 - Expiration: 1일
 
-키는 어디에도 저장하지 말고, 사용자가 자기 터미널에서 `make vm-bootstrap`의 숨김 프롬프트에 붙여 넣습니다. 채팅에 붙여 넣거나 명령줄 인자로 넘기지 않습니다([부트스트랩 런북](rbk-2026-10-12-bootstrap.md)).
+키는 어디에도 저장하지 말고, 사용자가 자기 터미널에서 `make vm-bootstrap`의 숨김 프롬프트에 붙여 넣습니다. 채팅에 붙여 넣거나 명령줄 인자로 넘기지 않습니다([부트스트랩 런북](rbk-2026-10-12-ha5w72pm-bootstrap.md)).
 
 ## 6. GitHub
 
-저장소는 개인 계정 `yanghs6`의 공개 저장소 `basic-memory-tailnet`입니다. 에이전트는 따로 만든 머신 계정 `yanghs6-bot`으로 push하고 PR을 엽니다. 승인과 병합은 개인 계정으로만 합니다. 머신 계정 만들기, 토큰 등록, 저장소 설정은 [GitHub 런북](rbk-2026-10-14-github.md)에 있습니다.
+저장소는 개인 계정 `yanghs6`의 공개 저장소 `basic-memory-tailnet`입니다. 에이전트는 따로 만든 머신 계정 `yanghs6-bot`으로 push하고 PR을 엽니다. 승인과 병합은 개인 계정으로만 합니다. 머신 계정 만들기, 토큰 등록, 저장소 설정은 [GitHub 런북](rbk-2026-10-14-ppmby9v6-github.md)에 있습니다.
 
 ## 7. IAP 터널 권한 (`BM_ACCESS=ssh`)
 
@@ -106,4 +107,4 @@ Settings → **Keys** → **Generate auth key**:
 
 **Open question:** 최소 권한 조합은 아직 정하지 않았습니다.
 
-터널 설정은 [VM 런북](rbk-2026-10-12-gcp-vm.md) 8단계에 있습니다.
+터널 설정은 [VM 런북](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 8단계에 있습니다.

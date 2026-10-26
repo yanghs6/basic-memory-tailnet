@@ -34,11 +34,11 @@ print_next_steps() {
   log "Next steps:"
   if [[ "$1" == ssh ]]; then
     log "  1. make deploy verify status"
-    log "  2. make tunnel, then connect the agents (docs/runbooks/rbk-2026-10-12-operations.md)"
+    log "  2. make tunnel, then connect the agents (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md)"
     return 0
   fi
   log "  1. ssh $2@$TS_HOSTNAME true    # must succeed over Tailscale SSH"
-  log "  2. only then delete the firewall rule that opens port 22 (docs/runbooks/rbk-2026-10-12-bootstrap.md)"
+  log "  2. only then delete the firewall rule that opens port 22 (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"
   log "  3. make deploy verify status"
 }
 
@@ -52,9 +52,9 @@ main() {
     if [[ -n "$key" ]]; then
       log "using auth key $(mask "$key")"
     fi
-    upload_hint="check the public IP, your SSH key, and that a firewall rule allows port 22 from your IP (docs/runbooks/rbk-2026-10-12-gcp-vm.md)"
+    upload_hint="check the public IP, your SSH key, and that a firewall rule allows port 22 from your IP (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md)"
   else
-    upload_hint="check the ProxyCommand for $host in ~/.ssh/config, its login and the firewall rule for the tunnel range (docs/runbooks/rbk-2026-10-12-gcp-vm.md)"
+    upload_hint="check the ProxyCommand for $host in ~/.ssh/config, its login and the firewall rule for the tunnel range (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md)"
   fi
 
   step "upload bootstrap script to $user@$host"

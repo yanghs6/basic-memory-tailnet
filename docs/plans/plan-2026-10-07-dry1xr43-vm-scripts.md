@@ -1,9 +1,10 @@
 ---
 status: completed
-spec: docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md
+id: dry1xr43
+spec: docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md
 ---
 
-# 03 VM Scripts Implementation Plan
+# dry1xr43 VM Scripts Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -16,9 +17,9 @@ spec: docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md
 
 **Tech Stack:** Bash(macOS 3.2 호환), GNU Make, Docker Compose, Basic Memory 0.23.2, Tailscale(Serve, SSH), bats-core 1.14.0 + bats-support/assert, kcov, shellcheck 0.11.0, shfmt 3.12.0, jq, curl
 
-**Spec:** `docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md`
+**Spec:** `docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`
 
-**Sequence:** 계획 3/5. 전제: 계획 02 완료·병합(`make check` PASS, 테스트 67개). 다음 계획: `docs/plans/plan-2026-10-07-04-docs-skills.md`
+**Sequence:** 계획 3/5. 전제: [git-review-tooling 계획](plan-2026-10-07-qq4h1djv-git-review-tooling.md) 완료·병합(`make check` PASS, 테스트 67개). 다음 계획: `docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md`
 
 ## Global Constraints
 
@@ -48,9 +49,9 @@ spec: docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md
   - 코드, 주석, 스크립트 메시지, `AGENTS.md`, `SKILL.md`는 영어로 쓴다.
   - README, runbooks, ARCHITECTURE, ADR은 한국어로 쓴다.
   - 저장소 노트에는 `Verified` / `Command` / `Assumption` / `Open question` 표기를 쓴다.
-- Git (`docs/specs/spec-2026-10-07-git-review-policy.md`):
-  - 이 계획은 `plan/03-vm-scripts` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
-  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: 03`, `Task: N`을 단다. 커밋 명령의 `Assisted-by` 값은 시작 단계에서 정한 신원을 그대로 적는다(셸 변수는 명령 사이에 남지 않을 수 있다).
+- Git (`docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`):
+  - 이 계획은 `plan/dry1xr43-vm-scripts` 브랜치의 전용 worktree에서 진행한다. `main`에 직접 커밋하지 않고, force-push·히스토리 재작성·`git gc`를 하지 않는다.
+  - 커밋 형식은 `<type>: <description>`(feat, fix, refactor, docs, test, chore)이고, 메시지 끝에 트레일러 `Assisted-by: <도구> <모델>`, `Plan: dry1xr43`, `Task: N`을 단다. 커밋 명령의 `Assisted-by` 값은 시작 단계에서 정한 신원을 그대로 적는다(셸 변수는 명령 사이에 남지 않을 수 있다).
   - `Co-authored-by`와 `Signed-off-by`는 넣지 않는다(사용자 전역 설정과 저장소 정책).
   - 매 커밋 전에 `make check`를 실행한다.
 - 수명주기 작업은 Make 타깃으로만 한다. raw `docker compose`나 `ssh`는 실패 진단에만 쓰고, 그 이유를 기록한다.
@@ -62,7 +63,7 @@ spec: docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md
 3. **이미 설정된 VM에 부트스트랩 재실행:** 인증 키 없이 성공해야 하고, Docker와 Tailscale을 다시 설치하지 않아야 한다. → Task 1에서 테스트를 추가한다.
 4. **백업 중 실패:** 정지 명령의 응답이 끊기거나 스트림이 끊겨도 컨테이너는 반드시 다시 시작돼야 하고, 반쪽짜리 아카이브가 남으면 안 된다. → Task 3에서 정지 전에 `trap`을 등록하고 테스트를 추가한다.
 5. **복원 중 실패:** 압축 해제, manifest 대조, 교체, 기동 중 어느 단계에서 실패해도 이전 데이터와 이전 compose가 살아 있는 상태로 돌아와야 한다. → Task 3에서 임시 경로에 먼저 풀고, 실패 경로마다 롤백 테스트를 추가한다.
-6. **공개 노출 검증의 빈틈:** `BM_VM_PUBLIC_IP`가 없다고 검사를 건너뛰면 안 되고, Funnel이 켜진 상태도 잡아야 한다. OCI 인바운드 규칙과 tailnet 정책은 VM에서 읽을 수 없으므로 수동 점검(계획 04의 Exposure audit)으로 남긴다. → Task 2에서 테스트를 추가한다.
+6. **공개 노출 검증의 빈틈:** `BM_VM_PUBLIC_IP`가 없다고 검사를 건너뛰면 안 되고, Funnel이 켜진 상태도 잡아야 한다. OCI 인바운드 규칙과 tailnet 정책은 VM에서 읽을 수 없으므로 수동 점검([docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md)의 Exposure audit)으로 남긴다. → Task 2에서 테스트를 추가한다.
 
 ## File Structure
 
@@ -81,13 +82,13 @@ Makefile AGENTS.md                                                      Task 1~3
 
 - [ ] 이 계획을 진행할 에이전트 신원을 기록한다: `<도구> <모델 ID>` (예: `claude-code claude-opus-5-5`). 도구 값은 `claude-code`, `codex`, `antigravity`, `gemini-cli` 중 하나다. 커밋마다 이 값을 `Assisted-by:` 트레일러에 그대로 적는다.
 - [ ] 전용 worktree와 브랜치를 만든다. 한 계획 브랜치는 한 번에 한 worktree에서만 진행한다.
-  - Claude Code: `claude --worktree plan-03-vm-scripts`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/03-vm-scripts`
-  - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-03-vm-scripts -b plan/03-vm-scripts main` 후 그 디렉터리에서 작업
+  - Claude Code: `claude --worktree plan-03-vm-scripts`로 시작하거나 세션 안에서 worktree에 들어간 뒤 `git branch -m plan/dry1xr43-vm-scripts`
+  - 그 밖의 도구: `git worktree add ../027_agent_share_poc-wt/plan-03-vm-scripts -b plan/dry1xr43-vm-scripts main` 후 그 디렉터리에서 작업
 - [ ] 첫 커밋으로 이 계획 파일을 `backlog/`에서 `active/`로 옮긴다.
 
 ```bash
-git mv docs/plans/backlog/2026-10-07-03-vm-scripts.md docs/plans/active/
-git commit -m "docs: activate plan 03" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 03" --trailer "Task: none"
+git mv docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md docs/plans/active/
+git commit -m "docs: activate the vm-scripts plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: dry1xr43" --trailer "Task: none"
 ```
 
 ---
@@ -531,7 +532,7 @@ main() {
 
   log "Next steps:"
   log "  1. ssh $user@$TS_HOSTNAME true    # must succeed over Tailscale SSH"
-  log "  2. only then delete the OCI ingress rule for port 22 (docs/runbooks/bootstrap.md)"
+  log "  2. only then delete the OCI ingress rule for port 22 (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"
   log "  3. make deploy verify status"
 }
 
@@ -556,7 +557,7 @@ vm-bootstrap: ## First-time VM setup over public SSH (HOST=<public-ip>; asks for
 Run: `make check` (PASS)
 ```bash
 git add scripts/remote/bootstrap.sh scripts/bootstrap-vm.sh tests/stubs tests/fixtures/os-release tests/bootstrap.bats Makefile
-git commit -m "feat: add idempotent VM bootstrap over SSH with Tailscale join and serve" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 03" --trailer "Task: 1"
+git commit -m "feat: add idempotent VM bootstrap over SSH with Tailscale join and serve" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: dry1xr43" --trailer "Task: 1"
 ```
 
 
@@ -846,7 +847,7 @@ main "$@"
 # Verify the VM end to end: MCP round trip over the tailnet URL (read-only probe with --read-only),
 # loopback-only binding, tailnet-only Serve (no Funnel), and that the public IP refuses common ports.
 # OCI ingress rules and the tailnet policy cannot be read from here; audit them by hand
-# (docs/runbooks/operations.md, Exposure audit).
+# (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit).
 # Usage: verify-vm.sh [--read-only]
 set -euo pipefail
 
@@ -873,7 +874,7 @@ check_serve_tailnet_only() {
   step "check tailscale serve is tailnet only"
   serve="$(remote "sudo -n tailscale serve status")" || die "could not read tailscale serve status on $BM_VM_HOST"
   if grep -qi 'funnel on' <<<"$serve"; then
-    die "Tailscale Funnel is on: the unauthenticated endpoint is public; turn it off (docs/runbooks/operations.md, Exposure audit)"
+    die "Tailscale Funnel is on: the unauthenticated endpoint is public; turn it off (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"
   fi
   grep -q 'tailnet only' <<<"$serve" || die "unexpected tailscale serve status (expected '(tailnet only)'): $serve"
   log "OK: tailscale serve is tailnet only"
@@ -910,7 +911,7 @@ main() {
   check_loopback_binding "$port"
   check_serve_tailnet_only
   check_public_closed "$port"
-  log "OK: automated VM checks passed; audit OCI ingress rules and the tailnet policy by hand (docs/runbooks/operations.md, Exposure audit)"
+  log "OK: automated VM checks passed; audit OCI ingress rules and the tailnet policy by hand (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"
 }
 
 main "$@"
@@ -947,12 +948,12 @@ main() {
   [[ "$used" =~ ^[0-9]+$ ]] || die "unexpected memory reading from free -m: '$used'"
   log "memory used: ${used}%"
   if ((used < IDLE_MEMORY_PERCENT)); then
-    log "WARNING: memory below ${IDLE_MEMORY_PERCENT}%; with idle CPU and network OCI may reclaim this VM (docs/runbooks/operations.md, Idle reclamation)"
+    log "WARNING: memory below ${IDLE_MEMORY_PERCENT}%; with idle CPU and network OCI may reclaim this VM (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Idle reclamation)"
   fi
 
   step "tailscale serve"
   remote "sudo -n tailscale serve status" \
-    || die "tailscale serve is not configured: rerun 'make vm-bootstrap HOST=<public-ip>' (docs/runbooks/bootstrap.md)"
+    || die "tailscale serve is not configured: rerun 'make vm-bootstrap HOST=<public-ip>' (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"
 }
 
 main "$@"
@@ -1010,7 +1011,7 @@ logs: ## Show the last 200 lines of the VM container logs
 Run: `make check` (PASS)
 ```bash
 git add scripts/deploy.sh scripts/verify-vm.sh scripts/status.sh scripts/logs.sh tests/stubs tests/vm_ops.bats Makefile
-git commit -m "feat: add VM deploy, verify, status and logs targets" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 03" --trailer "Task: 2"
+git commit -m "feat: add VM deploy, verify, status and logs targets" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: dry1xr43" --trailer "Task: 2"
 ```
 
 
@@ -1416,7 +1417,7 @@ restore: ## Restore BACKUP=backups/bm-<stamp>.tgz to the VM (asks for yes), then
 Run: `make check` (PASS)
 ```bash
 git add scripts/backup.sh scripts/restore.sh tests/backup_restore.bats Makefile AGENTS.md
-git commit -m "feat: add VM backup and restore with checksum and confirmation" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 03" --trailer "Task: 3"
+git commit -m "feat: add VM backup and restore with checksum and confirmation" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: dry1xr43" --trailer "Task: 3"
 ```
 
 
@@ -1428,24 +1429,24 @@ git commit -m "feat: add VM backup and restore with checksum and confirmation" -
 - [ ] Progress log에 결과(테스트 수, 커버리지 %, 특이사항)를 `Verified`로 기록하고, 이 계획 파일을 `completed/`로 옮긴다.
 
 ```bash
-git mv docs/plans/active/2026-10-07-03-vm-scripts.md docs/plans/completed/
-git add docs/plans/completed/2026-10-07-03-vm-scripts.md
-git commit -m "docs: complete plan 03" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 03" --trailer "Task: none"
+git mv docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md docs/plans/completed/
+git add docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md
+git commit -m "docs: complete the vm-scripts plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: dry1xr43" --trailer "Task: none"
 ```
 
-- [ ] 1차 리뷰(작성자와 다른 벤더, 읽기 전용): 작성 도구가 Claude Code면 `make review BRANCH=plan/03-vm-scripts REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
-- [ ] 원문(`.review-out/`)을 `docs/reviews/rev-2026-10-08-plan-03-vm-scripts.md`로 옮겨 적는다(`docs/reviews/README.md` 형식).
+- [ ] 1차 리뷰(작성자와 다른 벤더, 읽기 전용): 작성 도구가 Claude Code면 `make review BRANCH=plan/dry1xr43-vm-scripts REVIEWER=codex`, 그 밖이면 `REVIEWER=claude`. 사용량이 드는 작업이므로 실행 전에 사용자에게 알린다.
+- [ ] 원문(`.review-out/`)을 `docs/reviews/rev-2026-10-08-ejeb10qw-vm-scripts.md`로 옮겨 적는다(`docs/reviews/README.md` 형식).
 
 ```bash
-git add docs/reviews/plan-03-vm-scripts.md
-git commit -m "docs: record review of plan 03" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: 03" --trailer "Task: review"
+git add docs/reviews/rev-2026-10-08-ejeb10qw-vm-scripts.md
+git commit -m "docs: record review of the vm-scripts plan" --trailer "Assisted-by: <도구> <모델 ID>" --trailer "Plan: dry1xr43" --trailer "Task: review"
 ```
 
 - [ ] 지적마다 재현하거나 근거를 인용해 검증하고, 받아들인 지적은 하나당 커밋 하나로 고친다(`--trailer "Review-Finding: R1-F<n>"`). 거절은 근거와 함께 기록한다.
-- [ ] 고친 것이 있으면 2차 리뷰: `make review BRANCH=plan/03-vm-scripts REVIEWER=<같은 리뷰어> ROUND=2 REVIEW_BASE=<리뷰한 head>`. 2회차 뒤 남은 이견은 사람이 결정한다.
+- [ ] 고친 것이 있으면 2차 리뷰: `make review BRANCH=plan/dry1xr43-vm-scripts REVIEWER=<같은 리뷰어> ROUND=2 REVIEW_BASE=<리뷰한 head>`. 2회차 뒤 남은 이견은 사람이 결정한다.
 - [ ] `git-workflow` 스킬의 "Prepare the merge"대로 `.review-out/merge-plan-03-vm-scripts.txt`를 쓴다.
-- [ ] 사람에게 병합을 요청한다. 에이전트는 병합하지 않는다. 사람은 `main` 체크아웃에서 `git merge --no-ff plan/03-vm-scripts -F <그 파일의 절대 경로>`를 실행한다.
-- [ ] 병합 뒤 worktree와 브랜치를 정리한다: `git worktree remove <경로>` → `git branch -d plan/03-vm-scripts`
+- [ ] 사람에게 병합을 요청한다. 에이전트는 병합하지 않는다. 사람은 `main` 체크아웃에서 `git merge --no-ff plan/dry1xr43-vm-scripts -F <그 파일의 절대 경로>`를 실행한다.
+- [ ] 병합 뒤 worktree와 브랜치를 정리한다: `git worktree remove <경로>` → `git branch -d plan/dry1xr43-vm-scripts`
 
 ---
 
@@ -1455,9 +1456,9 @@ git commit -m "docs: record review of plan 03" --trailer "Assisted-by: <도구> 
 |---|---|---|
 | 2026-10-07 | Verified | `tailscale up --auth-key=file:<path>` 지원 (tailscale.com/kb/1241) |
 | 2026-10-08 | Verified | `make check`: 테스트 172개 전부 PASS, 라인 커버리지 97.92%. 시작 기준은 98개였다(계획 작성 시 가정한 67개가 아님) |
-| 2026-10-08 | Verified | Subagent-driven 진행: Task 1 `6fc3ea3`, Task 2 `ce3efa2`, Task 3 `585eae2`. 사전 점검에서 결함 4·충돌 4를 판정해 반영(복원 시 VM `.env` 업로드와 롤백, 교체 실패 롤백 테스트, 인증 키 파일 trap, 계획 01에서 미룬 지적 a~e) |
+| 2026-10-08 | Verified | Subagent-driven 진행: Task 1 `6fc3ea3`, Task 2 `ce3efa2`, Task 3 `585eae2`. 사전 점검에서 결함 4·충돌 4를 판정해 반영(복원 시 VM `.env` 업로드와 롤백, 교체 실패 롤백 테스트, 인증 키 파일 trap, [local-foundation 계획](plan-2026-10-07-sqzn0teq-local-foundation.md)에서 미룬 지적 a~e) |
 | 2026-10-08 | Verified | 태스크 리뷰와 최종 리뷰(opus) 뒤 수정: `SDD-T1-F1~F4`, `SDD-T2-F1~F4`, `SDD-T3-F1~F5`. 실패 테스트가 실제 결함을 드러냄: `find` 실패 시 빈 manifest로 백업 성공, 심볼릭 링크 아카이브 복원, 롤백이 반쪽 compose.yaml로 덮어씀, 롤백이 컨테이너를 다시 만들지 않아 실패한 데이터를 계속 마운트 |
 | 2026-10-08 | Verified | 최종 리뷰가 1차 자료로 확인: sudo의 `VAR=val`(ALL 규칙), `docker compose up --wait --wait-timeout`, `tailscale status` 종료 코드, `serve status`의 `(tailnet only)`·`(Funnel on)`·`No serve config` 문자열 |
-| 2026-10-08 | Assumption | macOS `nc -G`가 연결 대기 시간을 제한한다. VM 로그인 셸은 bash다(manifest 명령의 pipefail). 실제 VM 확인 16항목은 계획 05 문서로 옮김 |
+| 2026-10-08 | Assumption | macOS `nc -G`가 연결 대기 시간을 제한한다. VM 로그인 셸은 bash다(manifest 명령의 pipefail). 실제 VM 확인 16항목은 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) 문서로 옮김 |
 | 2026-10-08 | Verified | 사용자 결정: VM 작업 중 사용자 확인이 필요한 것은 `vm-bootstrap`·`deploy`·`restore`뿐이다. `verify`·`backup`은 확인 없이 실행한다(`512c8ae`). 에이전트의 `AGENTS.md` 수정은 자동 권한 검사기가 막아서, 사용자가 선택한 뒤 컨트롤러가 반영했다 |
-| 2026-10-08 | Open question | 미룬 지적: `make status`가 Serve 설정 누락을 못 봄, 멈춘 노드를 tailnet 밖으로 보고, bootstrap 호스트명 고정, 런북 경로(계획 04에서 생성) 등. 목록은 리뷰 기록에 옮긴다 |
+| 2026-10-08 | Open question | 미룬 지적: `make status`가 Serve 설정 누락을 못 봄, 멈춘 노드를 tailnet 밖으로 보고, bootstrap 호스트명 고정, 런북 경로([docs-skills 계획](plan-2026-10-07-hydaxf15-docs-skills.md)에서 생성) 등. 목록은 리뷰 기록에 옮긴다 |

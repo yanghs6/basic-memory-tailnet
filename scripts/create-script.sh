@@ -3,7 +3,7 @@
 # scripts/remote/<name>.sh or scripts/lib/<name>.sh, and the test pair_test names. Script and remote names start with a
 # verb from the table under "## Verbs" in that skill. Writes nothing when either file already exists, and leaves
 # neither file when a write fails.
-# Prints both paths on stdout. Spec: docs/specs/spec-2026-10-15-script-test-layout.md, section 8.3.
+# Prints both paths on stdout. Spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md, section 8.3.
 # Usage: make new-script NAME=<name> [KIND=script|remote|lib]
 set -euo pipefail
 

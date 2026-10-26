@@ -31,7 +31,7 @@ Every agent adds shell code the same way: `make new-script` writes a script and 
 - The header comment says what the script does and its usage line: the command people run, `# Usage: make <target> ...` when a Make target runs it.
 - Make target names are what people type and do not change, so a target and its script may differ (`make logs` runs `scripts/show-logs.sh`). The Makefile is the map between them.
 
-Background: `docs/specs/spec-2026-10-15-script-test-layout.md`, sections 3, 4 and 6.
+Background: `docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md`, sections 3, 4 and 6.
 
 ## Verbs
 
@@ -72,7 +72,7 @@ Each library starts with a function index, one line per function. Read it before
 - Fake external commands live in `tests/stubs/<command>`, one executable per command. `setup_stubs <command>...` puts them first on PATH, and each logs its arguments to `$STUB_LOG`.
 - Recorded responses live in `tests/fixtures/<test name>/`, named after the pair test without `.bats` (for example `tests/fixtures/verify-mcp/`).
 - Use the helpers in `tests/helpers.bash` before you write your own, for example `setup_stubs`, `fake_cmd`, `use_vm_env`, `init_git_repo`, `assert_stub_called`, `refute_stub_called`, `assert_log_order`, `assert_same_file` and `refute_matches`. Each has a usage comment there.
-- Keep only tests that `docs/decisions/adr-2026-10-13-0004-test-scope.md` allows. Its decision 2 rules out a test that repeats another test, checks only wording or format, tests a stub or helper itself, repeats a constant or document text, or checks a usage message.
+- Keep only tests that `docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md` allows. Its decision 2 rules out a test that repeats another test, checks only wording or format, tests a stub or helper itself, repeats a constant or document text, or checks a usage message.
 - Cases that differ only in their input go in one test with a loop, named for everything the loop checks. Run each case in a subshell, `( ... ) || fail "<the case>"`, so no variable, PATH entry or file leaks into the next case; inside it chain the commands with `&&` and end with `|| exit 1`, because errexit is off there.
 - Test a library function's behavior once, in the library's `tests/lib-<topic>.bats`. A script test only shows that the script calls it; to show that several scripts call the same check, loop over the scripts in that lib test.
 - Assert a message only to tell which check stopped the script; never assert the wording of a hint.

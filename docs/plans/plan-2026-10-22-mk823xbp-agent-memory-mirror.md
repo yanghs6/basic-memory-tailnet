@@ -1,9 +1,10 @@
 ---
 status: backlog
-spec: docs/specs/spec-2026-10-22-agent-memory-mirror.md
+id: mk823xbp
+spec: docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md
 ---
 
-# 24 Agent Memory Mirror Implementation Plan
+# mk823xbp Agent Memory Mirror Implementation Plan
 
 > **For agentic workers:** Task를 순서대로 하나씩 구현한다. 도구가 서브에이전트를 지원하면 Task마다 새 서브에이전트와 리뷰를 쓰고, 아니면 한 세션에서 실행한다. VM이나 클라우드를 바꾸는 Step은 없다. Task 1의 서버 확인은 사용자가 `make tunnel`을 띄운 뒤 메인 세션에서 한다. 사용자 설정 파일(`~/.claude/settings.json`, `~/.codex/hooks.json`)은 Task 6에서 사용자 OK를 받은 뒤에만 바꾼다. Step은 체크박스(`- [ ]`)로 추적한다.
 
@@ -17,17 +18,17 @@ spec: docs/specs/spec-2026-10-22-agent-memory-mirror.md
 - `scripts/install-memory-hooks.sh`(`make memory-hooks`): 두 사용자 설정 파일에 SessionStart·Stop hook을 더하거나 뺀다. hook은 메인 체크아웃의 Make 타깃을 부르므로, 병합된 `main`의 코드와 메인 체크아웃의 `.env`로 돈다.
 - 에이전트의 조회 규칙은 코드가 아니라 사용자 전역 지침(`~/.agents/AGENTS.md`)에 둔다. 계획은 문구만 제안한다(스펙 §3.4, §3.8).
 
-**Spec:** `docs/specs/spec-2026-10-22-agent-memory-mirror.md` (§1 결정 8과 완료 조건, §2 Assumption, §3 전체, §4, §5). 2026-10-23 개정판 기준이다.
+**Spec:** `docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md` (§1 결정 8과 완료 조건, §2 Assumption, §3 전체, §4, §5). 2026-10-23 개정판 기준이다.
 
-**Sequence:** 계획 24. 다음을 모두 만족한 뒤 시작한다.
+**Sequence:** 다음을 모두 만족한 뒤 시작한다.
 - 스펙과 이 계획(`work/agent-memory-mirror`의 문서 PR)이 `main`에 병합됐다.
 - Task 번호는 스펙 §7(2026-10-23 개정)과 같다. 키 라이브러리(Task 2)와 동기화(Task 3)를 나눴고, Task 4는 색인이다.
-- 순서(2026-10-23, supervisor 세션이 전한 사용자 결정): 문서 PR 병합 → 문서 체계 개편 → 계획 25 코드 → 이 계획의 코드(Task 1~5). Task 6(두 Mac 설치)은 supervisor의 VM 작업 시간 신호를 기다린다.
-- 웹 커넥터 계획 25, 개선 백로그 계획 18~23과 나란히 갈 수 있다. 나중에 병합하는 쪽이 `git merge origin/main`으로 충돌을 푼다. 이 계획이 고치는 공유 파일과 같은 파일을 고치는 계획은 다음과 같다(2026-10-23 확인, 계획 본문의 파일 언급 기준).
-  - `Makefile`, `AGENTS.md`: 계획 19·20·21·22·25
-  - `scripts/lib/vm.sh`: 계획 20·21
-  - `docs/ARCHITECTURE.md`: 계획 20·25
-  - 운영 런북: 계획 21·25
+- 순서(2026-10-23, supervisor 세션이 전한 사용자 결정): 문서 PR 병합 → 문서 체계 개편 → [web-connector 계획](plan-2026-10-22-d3dpb00s-web-connector.md) 코드 → 이 계획의 코드(Task 1~5). Task 6(두 Mac 설치)은 supervisor의 VM 작업 시간 신호를 기다린다.
+- 웹 커넥터 [web-connector 계획](plan-2026-10-22-d3dpb00s-web-connector.md), 개선 백로그 [public-text-guard](plan-2026-10-22-v9whrbs6-public-text-guard.md)·[invariant-enforcement](plan-2026-10-22-m97w7hqe-invariant-enforcement.md)·[agent-sandbox](plan-2026-10-22-k3bd8k47-agent-sandbox.md)·[recovery-drill](plan-2026-10-22-zw0shxee-recovery-drill.md)·[agent-guidance](plan-2026-10-22-x4d2x4eq-agent-guidance.md)·[review-and-local-isolation](plan-2026-10-22-z064dkcv-review-and-local-isolation.md) 계획과 나란히 갈 수 있다. 나중에 병합하는 쪽이 `git merge origin/main`으로 충돌을 푼다. 이 계획이 고치는 공유 파일과 같은 파일을 고치는 계획은 다음과 같다(2026-10-23 확인, 계획 본문의 파일 언급 기준).
+  - `Makefile`, `AGENTS.md`: [invariant-enforcement](plan-2026-10-22-m97w7hqe-invariant-enforcement.md)·[agent-sandbox](plan-2026-10-22-k3bd8k47-agent-sandbox.md)·[recovery-drill](plan-2026-10-22-zw0shxee-recovery-drill.md)·[agent-guidance](plan-2026-10-22-x4d2x4eq-agent-guidance.md)·[web-connector](plan-2026-10-22-d3dpb00s-web-connector.md) 계획
+  - `scripts/lib/vm.sh`: [agent-sandbox](plan-2026-10-22-k3bd8k47-agent-sandbox.md)·[recovery-drill](plan-2026-10-22-zw0shxee-recovery-drill.md) 계획
+  - `docs/ARCHITECTURE.md`: [agent-sandbox](plan-2026-10-22-k3bd8k47-agent-sandbox.md)·[web-connector](plan-2026-10-22-d3dpb00s-web-connector.md) 계획
+  - 운영 런북: [recovery-drill](plan-2026-10-22-zw0shxee-recovery-drill.md)·[web-connector](plan-2026-10-22-d3dpb00s-web-connector.md) 계획
   - `scripts/lib/common.sh`, `README.md`, `.env.example`, `tests/stubs/curl`, `.agents/skills/script-authoring/SKILL.md`: 병합 직전에 `git diff origin/main`으로 다시 본다
 
 **Execution:**
@@ -76,13 +77,13 @@ spec: docs/specs/spec-2026-10-22-agent-memory-mirror.md
   - SessionStart: `make -s --no-print-directory -C '<main>' memory-index MEMORY_AGENT=claude-code`(Claude 설정), `... MEMORY_AGENT=codex`(Codex 설정)
   - UserPromptSubmit에는 아무것도 더하지 않는다(스펙 결정 8).
   - 정규식 `^make -s --no-print-directory -C .+ memory-(sync HOOK=1|index MEMORY_AGENT=(claude-code|codex))$`에 맞는 항목만 이 계획의 hook으로 본다.
-- `AGENTS.md`의 스크립트 규칙을 따른다: strict mode 머리, `common.sh` 계열 source, `die`, 이름 붙인 상수, macOS bash 3.2, `x="$(fn)" || exit 1`. 테스트를 먼저 쓰고, `make test`/`make check`로만 돌리고, ADR 0004의 범위를 지킨다. `tests/verify-mcp.bats`와 그 fixture는 고치지 않는다. 테스트 안에서 `export`하는 bats 파일은 shebang 다음 줄에서 SC2030·SC2031을 끈다(`script-authoring` Gotchas).
+- `AGENTS.md`의 스크립트 규칙을 따른다: strict mode 머리, `common.sh` 계열 source, `die`, 이름 붙인 상수, macOS bash 3.2, `x="$(fn)" || exit 1`. 테스트를 먼저 쓰고, `make test`/`make check`로만 돌리고, [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)의 범위를 지킨다. `tests/verify-mcp.bats`와 그 fixture는 고치지 않는다. 테스트 안에서 `export`하는 bats 파일은 shebang 다음 줄에서 SC2030·SC2031을 끈다(`script-authoring` Gotchas).
 - 기억 본문, 세션 id, 홈 폴더 절대 경로, VM 주소는 커밋·PR·로그에 쓰지 않는다. 스크립트는 기억 본문을 출력하지 않고, 테스트는 가짜 기억 파일만 쓴다.
 - 에이전트는 `.env`를 읽지 않는다. `BM_MEMORY_DEVICE`는 사용자가 메인 체크아웃 `.env`에 넣는다.
-- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: 24`, `Task: <N|review|none>`.
-- PR 두 개. 둘 다 머신 계정으로 push하고 초안으로 열며, 본문 마지막 문단은 `Assisted-by`와 `Plan: 24`다.
-  - 코드 PR(Task 1~5): 브랜치 `plan/24-agent-memory-mirror`, 제목 `feat: mirror Claude Code and Codex memory to Basic Memory with a session index`.
-  - 결과 PR(Task 6): 브랜치 `plan/24-agent-memory-rollout`, 제목 `docs: record the agent memory mirror rollout on both Macs`.
+- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: mk823xbp`, `Task: <N|review|none>`.
+- PR 두 개. 둘 다 머신 계정으로 push하고 초안으로 열며, 본문 마지막 문단은 `Assisted-by`와 `Plan: mk823xbp`다.
+  - 코드 PR(Task 1~5): 브랜치 `plan/mk823xbp-agent-memory-mirror`, 제목 `feat: mirror Claude Code and Codex memory to Basic Memory with a session index`.
+  - 결과 PR(Task 6): 브랜치 `plan/mk823xbp-agent-memory-rollout`, 제목 `docs: record the agent memory mirror rollout on both Macs`.
 
 ## Review Focus
 
@@ -108,14 +109,14 @@ spec: docs/specs/spec-2026-10-22-agent-memory-mirror.md
 | `Makefile` | `memory-sync`(3), `memory-index`(4), `memory-hooks`(5), export 줄(3) | 3, 4, 5 |
 | `.env.example` | `BM_MEMORY_DEVICE`, `BM_MEMORY_MCP_URL`, `BM_MEMORY_EXCLUDE` | 3 |
 | `.agents/skills/script-authoring/SKILL.md` | Libraries 목록(1, 2), 동사 `install`(5) | 1, 2, 5 |
-| `docs/ARCHITECTURE.md`, `docs/runbooks/rbk-2026-10-12-operations.md`, `README.md`, `AGENTS.md` | 구성 요소, 설치·해제 절차, 안내, OK 규칙 | 5 |
+| `docs/ARCHITECTURE.md`, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`, `README.md`, `AGENTS.md` | 구성 요소, 설치·해제 절차, 안내, OK 규칙 | 5 |
 | 이 계획(Progress log), 운영 런북(점검 기록) | 설치 결과 | 6 |
 
 ---
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/24-agent-memory-mirror` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/mk823xbp-agent-memory-mirror` 브랜치를 만든다(`git-workflow` 스킬의 Start).
 - [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: MCP client library and server checks
@@ -203,7 +204,7 @@ Expected: exit 0, 커버리지 80% 이상. 두 번째 명령은 아무것도 출
 스펙 §2의 소스 조사 결과를 실제 서버에서 확인하는 Step이다.
 
 1. frontmatter 합치기: 다음 인자로 `write_note`를 부른다.
-   - 본문: `---\nname: check\ndescription: plan 24\n---\nplan24 marker <stamp> 경로를 정했다`
+   - 본문: `---\nname: check\ndescription: the agent-memory-mirror plan\n---\nplan24 marker <stamp> 경로를 정했다`
    - `metadata: {mirror: true, device: "check", project: "plan24-check-<stamp>"}`, `note_type: "agent_memory"`, `overwrite: true`
    - 결과의 `action`과 `permalink`를 적는다. `read_note` 본문의 frontmatter에 `name`·`description`·`mirror`·`device`·`project`·`type: agent_memory`가 모두 있는지 본다.
 2. 색인 목록 호출: 쓴 노트가 색인될 때까지 몇 초 기다린다(쓰기는 백그라운드에서 반영된다). 그다음 Task 4가 보낼 인자로 `search_notes`를 부른다: 검색어 없음, `metadata_filters: {"project": "plan24-check-<stamp>", "mirror": true}`, `project: "main"`, `page_size: 50`, `output_format: "json"`.
@@ -228,8 +229,8 @@ Progress log에 1~5와 판단 결과를 `Verified`로 적는다. permalink와 �
 - [ ] **Step 7: 커밋**
 
 ```bash
-git add scripts/lib/mcp.sh tests/lib-mcp.bats scripts/verify-mcp.sh scripts/lib/common.sh scripts/lib/vm.sh .agents/skills/script-authoring/SKILL.md docs/plans/plan-2026-10-22-24-agent-memory-mirror.md
-git commit -m "refactor: move the MCP client of verify-mcp into scripts/lib/mcp.sh" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 24" --trailer "Task: 1"
+git add scripts/lib/mcp.sh tests/lib-mcp.bats scripts/verify-mcp.sh scripts/lib/common.sh scripts/lib/vm.sh .agents/skills/script-authoring/SKILL.md docs/plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md
+git commit -m "refactor: move the MCP client of verify-mcp into scripts/lib/mcp.sh" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: mk823xbp" --trailer "Task: 1"
 ```
 
 ### Task 2: Project key library
@@ -337,7 +338,7 @@ Expected: exit 0, 커버리지 80% 이상.
 
 ```bash
 git add scripts/lib/agent-memory.sh tests/lib-agent-memory.bats scripts/lib/common.sh scripts/open-tunnel.sh scripts/verify-vm.sh .agents/skills/script-authoring/SKILL.md
-git commit -m "feat: add the project key rules of the agent memory mirror" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 24" --trailer "Task: 2"
+git commit -m "feat: add the project key rules of the agent memory mirror" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: mk823xbp" --trailer "Task: 2"
 ```
 
 ### Task 3: Memory sync
@@ -593,7 +594,7 @@ Expected: `sync-agent-memory.bats`의 테스트가 `not implemented`로 실패�
 `.env.example` 끝에 붙인다:
 
 ```bash
-# Agent memory mirror (make memory-sync, memory-index, memory-hooks; docs/runbooks/rbk-2026-10-12-operations.md)
+# Agent memory mirror (make memory-sync, memory-index, memory-hooks; docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md)
 # This Mac's device key in the note paths agent-memory/<project>/<agent>/<device>/: lowercase letters, digits and -, e.g. mac-work
 BM_MEMORY_DEVICE=
 # MCP URL of the mirror; empty means http://127.0.0.1:BM_TUNNEL_MCP_PORT/mcp (make tunnel)
@@ -611,7 +612,7 @@ Expected: exit 0, 커버리지 80% 이상, `verify-mcp.bats`가 바뀐 스텁으
 
 ```bash
 git add scripts/sync-agent-memory.sh tests/sync-agent-memory.bats tests/stubs/curl Makefile .env.example
-git commit -m "feat: mirror Claude Code and Codex memory to Basic Memory (make memory-sync)" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 24" --trailer "Task: 3"
+git commit -m "feat: mirror Claude Code and Codex memory to Basic Memory (make memory-sync)" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: mk823xbp" --trailer "Task: 3"
 ```
 
 ### Task 4: Session index
@@ -769,14 +770,14 @@ Expected: exit 0, 커버리지 80% 이상.
 
 ```bash
 git add scripts/show-memory-index.sh tests/show-memory-index.bats tests/fixtures/show-memory-index Makefile
-git commit -m "feat: print a Basic Memory index of other Macs' memory at session start (make memory-index)" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 24" --trailer "Task: 4"
+git commit -m "feat: print a Basic Memory index of other Macs' memory at session start (make memory-index)" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: mk823xbp" --trailer "Task: 4"
 ```
 
 ### Task 5: Hook installer and docs
 
 **Files:**
 - Create: `scripts/install-memory-hooks.sh`, `tests/install-memory-hooks.bats` (`make new-script NAME=install-memory-hooks`)
-- Modify: `.agents/skills/script-authoring/SKILL.md`(Verbs), `Makefile:32` 과 새 타깃, `docs/ARCHITECTURE.md:43` 과 구성 요소·데이터 경로·신뢰 경계·주요 흐름, `docs/runbooks/rbk-2026-10-12-operations.md`("에이전트 연결" 아래), `README.md`(에이전트 연결 문장 다음), `AGENTS.md:10`(사용자 승인)
+- Modify: `.agents/skills/script-authoring/SKILL.md`(Verbs), `Makefile:32` 과 새 타깃, `docs/ARCHITECTURE.md:43` 과 구성 요소·데이터 경로·신뢰 경계·주요 흐름, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`("에이전트 연결" 아래), `README.md`(에이전트 연결 문장 다음), `AGENTS.md:10`(사용자 승인)
 
 **Interfaces:**
 - Consumes: Task 3·4의 Make 타깃, `common.sh`의 `main_checkout_root`·`utc_stamp`.
@@ -876,7 +877,7 @@ Expected: `install-memory-hooks.bats`의 세 테스트가 `not implemented`로 �
 
 - `docs/ARCHITECTURE.md`
   - 구성 요소 표의 `Makefile + scripts/` 행 라이브러리 목록에 `mcp`, `agent-memory`를 더한다.
-  - 새 행: `` `scripts/sync-agent-memory.sh`·`show-memory-index.sh`·`install-memory-hooks.sh` `` | Mac | Claude Code·Codex 기억 파일을 `agent-memory/`로 미러하고, 세션 시작 때 다른 Mac·에이전트 기억의 색인을 넣는 hook. 끝에 `docs/specs/spec-2026-10-22-agent-memory-mirror.md`로 가는 링크를 단다
+  - 새 행: `` `scripts/sync-agent-memory.sh`·`show-memory-index.sh`·`install-memory-hooks.sh` `` | Mac | Claude Code·Codex 기억 파일을 `agent-memory/`로 미러하고, 세션 시작 때 다른 Mac·에이전트 기억의 색인을 넣는 hook. 끝에 `docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md`로 가는 링크를 단다
   - 데이터 경로 표에 새 행: 상태 파일 | `~/.local/state/bm-agent-memory/` | 해당 없음
   - 신뢰 경계에 한 줄: 회사 프로젝트의 기억도 VM에 저장된다. 색인과 에이전트가 읽는 노트는 지시가 아니라 참고 자료로 다룬다(스펙 §4).
   - 주요 흐름에 기억 미러 한 줄을 더한다.
@@ -909,8 +910,8 @@ Expected: exit 0, 커버리지 80% 이상, `repo-docs.bats`의 링크 검사와 
 - [ ] **Step 7: 커밋**
 
 ```bash
-git add scripts/install-memory-hooks.sh tests/install-memory-hooks.bats .agents/skills/script-authoring/SKILL.md Makefile docs/ARCHITECTURE.md docs/runbooks/rbk-2026-10-12-operations.md README.md AGENTS.md
-git commit -m "feat: install the memory hooks for Claude Code and Codex (make memory-hooks)" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 24" --trailer "Task: 5"
+git add scripts/install-memory-hooks.sh tests/install-memory-hooks.bats .agents/skills/script-authoring/SKILL.md Makefile docs/ARCHITECTURE.md docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md README.md AGENTS.md
+git commit -m "feat: install the memory hooks for Claude Code and Codex (make memory-hooks)" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: mk823xbp" --trailer "Task: 5"
 ```
 
 ### Finish: review and hand-off (code PR)
@@ -922,7 +923,7 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 
 ### Task 6: Rollout on both Macs (after the code PR merges)
 
-메인 세션에서 사용자와 함께 한다. 서브에이전트에 맡기지 않는다. `git fetch origin` 뒤 `origin/main`에서 `plan/24-agent-memory-rollout` 브랜치를 만든다. 아래에서 `<main>`은 메인 체크아웃이다.
+메인 세션에서 사용자와 함께 한다. 서브에이전트에 맡기지 않는다. `git fetch origin` 뒤 `origin/main`에서 `plan/mk823xbp-agent-memory-rollout` 브랜치를 만든다. 아래에서 `<main>`은 메인 체크아웃이다.
 
 - [ ] **Step 1: 준비 (사용자)**
   - 메인 체크아웃을 `origin/main`으로 맞춘다: `! git -C <main> pull --ff-only`. hook은 메인 체크아웃의 스크립트를 부른다.
@@ -962,7 +963,7 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 ## Follow-ups
 
 - 검색어가 VM 로그에 남는 것으로 확인되면, 로그 보관 기간이나 검색어를 가리는 방법을 따로 정한다(Task 1 결과에 따름).
-- 색인과 에이전트가 읽는 노트를 신뢰할 수 없는 입력으로 다룰지, 그리고 어느 계획이 맡을지는 스펙 §8 Open question 3이다. 계획 20은 이를 범위 밖 후속 항목으로만 적었다(`plan-2026-10-22-20-agent-sandbox.md:212`).
+- 색인과 에이전트가 읽는 노트를 신뢰할 수 없는 입력으로 다룰지, 그리고 어느 계획이 맡을지는 스펙 §8 Open question 3이다. [agent-sandbox 계획](plan-2026-10-22-k3bd8k47-agent-sandbox.md)은 이를 범위 밖 후속 항목으로만 적었다(`plan-2026-10-22-k3bd8k47-agent-sandbox.md:212`).
 - `sync.log`는 보낼 것이 있을 때만 줄이 생겨서 회전하지 않는다. 커지면 정한다.
 - Antigravity·Gemini CLI의 기억과 hook은 범위 밖이다(스펙 §1).
 - 에이전트가 MCP를 잘 부르지 않으면(Task 6 Step 7), 대안 B(질문마다 질문 내용을 보내지 않는 로컬 알림 한 줄)를 따로 정한다.

@@ -21,17 +21,17 @@ Read-only: find the first failing layer and propose a fix. The user decides and 
 Work top-down and stop at the first layer that fails. Look up every error message in [references/failure-messages.md](references/failure-messages.md) before you propose a fix.
 
 1. Path to the VM.
-   - tailscale mode: `tailscale status | grep agent-hub` on this machine. Missing or offline means the VM is stopped, deleted or logged out: ask the user to check the instance state with the command in "정지된 VM" in docs/runbooks/rbk-2026-10-12-operations.md. When this machine itself shows `offline` with a coordination server warning, the network blocks Tailscale: run `make access-check` and report it.
-   - ssh mode: `make access-check` and `ssh ubuntu@agent-hub-iap true` (the alias is `BM_VM_HOST`). A failure points to the alias, its login or the firewall rule for the tunnel range: docs/runbooks/rbk-2026-10-12-gcp-vm.md, section 8. A stopped VM looks like a tunnel or IAP error here, so also ask the user to check the instance state with the command in "정지된 VM" in docs/runbooks/rbk-2026-10-12-operations.md.
+   - tailscale mode: `tailscale status | grep agent-hub` on this machine. Missing or offline means the VM is stopped, deleted or logged out: ask the user to check the instance state with the command in "정지된 VM" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md. When this machine itself shows `offline` with a coordination server warning, the network blocks Tailscale: run `make access-check` and report it.
+   - ssh mode: `make access-check` and `ssh ubuntu@agent-hub-iap true` (the alias is `BM_VM_HOST`). A failure points to the alias, its login or the firewall rule for the tunnel range: docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md, section 8. A stopped VM looks like a tunnel or IAP error here, so also ask the user to check the instance state with the command in "정지된 VM" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md.
    - `TERMINATED` (stopped): the user starts it and updates `BM_VM_PUBLIC_IP` (same section). Do not rebuild.
    - Deleted or unusable: use `bm-recover`.
-2. SSH (tailscale mode only; in ssh mode Layer 1 already ran the SSH check against the alias): `ssh ubuntu@agent-hub true`. Failing while the tailnet is fine: check the Tailscale policy `ssh` rule for `tag:agent-hub` (docs/runbooks/rbk-2026-10-12-accounts.md).
+2. SSH (tailscale mode only; in ssh mode Layer 1 already ran the SSH check against the alias): `ssh ubuntu@agent-hub true`. Failing while the tailnet is fine: check the Tailscale policy `ssh` rule for `tag:agent-hub` (docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md).
 3. Container: `make status`. Not `(healthy)`: run `make logs` and quote the first error.
 4. Memory: `make status` prints the memory and swap use.
 5. Serve: `make status` ends with `tailscale serve status`; it must show `proxy http://127.0.0.1:8737` (`BM_PORT`).
    In ssh mode there is no Serve: `make status` must show `tailscale: not installed or logged out`.
 6. MCP: `make probe` (initialize and tools/list only; writes nothing). Read the failing step.
-7. Report the failing layer, the evidence (command and output excerpt), the proposed fix and who runs it. If the incident was real, suggest a row in "Incident log" in docs/runbooks/rbk-2026-10-12-operations.md.
+7. Report the failing layer, the evidence (command and output excerpt), the proposed fix and who runs it. If the incident was real, suggest a row in "Incident log" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md.
 
 ## Gotchas
 

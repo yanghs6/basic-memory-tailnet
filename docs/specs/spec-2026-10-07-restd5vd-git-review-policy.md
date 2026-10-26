@@ -1,15 +1,16 @@
 ---
 status: approved
+id: restd5vd
 date: 2026-10-07
-amended-by: [docs/specs/spec-2026-10-13-github-pr-workflow.md, docs/specs/spec-2026-10-15-doc-system.md, docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md]
+amended-by: [docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md, docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md]
 ---
 
 # 에이전트 기반 Git·리뷰 정책 — 설계
 
-- 구현: 계획 01(`AGENTS.md`의 Git 섹션, `.claude/settings.json`의 attribution, `.gitignore`의 `.review-out/`), 계획 02(`docs/plans/plan-2026-10-07-02-git-review-tooling.md`), 모든 계획의 Global Constraints와 시작·마무리 절차
-- 부분 대체 (2026-10-13): 3절의 브랜치 기준점, 4절의 병합 트레일러, 5절의 리뷰 기록 위치, 6절 전체는 [GitHub PR 워크플로 스펙](spec-2026-10-13-github-pr-workflow.md)이 대체한다.
-- 관련 스펙: [Basic Memory on OCI + Tailscale](spec-2026-10-07-basic-memory-oci-tailscale.md)
-- 적용 시점: 계획 01을 시작할 때부터. 그 전에 `main`에 직접 커밋한 설계 문서들(정책 이전)은 예외다.
+- 구현: [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)(`AGENTS.md`의 Git 섹션, `.claude/settings.json`의 attribution, `.gitignore`의 `.review-out/`), [git-review-tooling 계획](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md)(`docs/plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md`), 모든 계획의 Global Constraints와 시작·마무리 절차
+- 부분 대체 (2026-10-13): 3절의 브랜치 기준점, 4절의 병합 트레일러, 5절의 리뷰 기록 위치, 6절 전체는 [GitHub PR 워크플로 스펙](spec-2026-10-13-pr762r68-github-pr-workflow.md)이 대체한다.
+- 관련 스펙: [Basic Memory on OCI + Tailscale](spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md)
+- 적용 시점: [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)을 시작할 때부터. 그 전에 `main`에 직접 커밋한 설계 문서들(정책 이전)은 예외다.
 
 ## 1. 목적과 범위
 
@@ -24,7 +25,7 @@ amended-by: [docs/specs/spec-2026-10-13-github-pr-workflow.md, docs/specs/spec-2
 - GitHub 원격, PR, CI, 브랜치 보호
 
 **완료 조건**
-1. 계획 01부터 모든 에이전트 커밋이 `plan/*` 또는 `work/*` 브랜치에 있고, 트레일러 규칙을 따른다.
+1. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)부터 모든 에이전트 커밋이 `plan/*` 또는 `work/*` 브랜치에 있고, 트레일러 규칙을 따른다.
 2. 각 계획 브랜치는 작성자와 다른 벤더의 리뷰어가 리뷰하고, 리뷰 기록이 `docs/reviews/`에 남은 뒤 사람이 `--no-ff`로 병합한다.
 3. 새 계획 02가 끝나면 `make check-git`과 `make review`가 동작하고, 테스트와 커버리지 기준을 통과한다.
 
@@ -52,7 +53,7 @@ amended-by: [docs/specs/spec-2026-10-13-github-pr-workflow.md, docs/specs/spec-2
   - `git gc`
   - 다른 에이전트의 브랜치·worktree 삭제
 - 이름은 작업 단위로 짓는다.
-  - 계획: `plan/<NN>-<slug>` (예: `plan/01-local-foundation`)
+  - 계획: `plan/<NN>-<slug>` (예: `plan/sqzn0teq-local-foundation`)
   - 그 밖의 작업: `work/<slug>`
 - 도구가 자동으로 만든 브랜치(`worktree-*`, `codex/*`, detached HEAD)는 리뷰 요청 전에 `git branch -m`으로 규칙에 맞게 바꾼다.
 
@@ -74,7 +75,7 @@ amended-by: [docs/specs/spec-2026-10-13-github-pr-workflow.md, docs/specs/spec-2
 feat: add verify-mcp read-only mode
 
 Assisted-by: claude-code claude-opus-5-5
-Plan: 01
+Plan: sqzn0teq
 Task: 3
 ```
 
@@ -85,7 +86,7 @@ Task: 3
 | `Task` | Task 번호, `review` 또는 `none` | 리뷰 기록 커밋은 `review` |
 | `Review-Finding` | `R<회차>-F<번호>` (교차 벤더 리뷰 기록, `docs/reviews/`) 또는 `SDD-T<태스크>-F<번호>` (계획 내 SDD 태스크 리뷰 수정) | 리뷰 지적을 고친 커밋에만 |
 
-`plan/01-local-foundation`의 커밋 20b7db2와 77951c3은 이 규칙 이전에 작성되어 SDD 지적(Task 1 I1, Task 3 I1)을 담고 있다.
+`plan/sqzn0teq-local-foundation`의 커밋 20b7db2와 77951c3은 이 규칙 이전에 작성되어 SDD 지적(Task 1 I1, Task 3 I1)을 담고 있다.
 
 - 에이전트는 `Co-authored-by`와 `Signed-off-by`를 넣지 않는다.
 - 조회: `git log --format='%h %s | %(trailers:key=Assisted-by,key=Plan,key=Task,valueonly,separator=%x2C )' main..<브랜치>`
@@ -104,13 +105,13 @@ Task: 3
 **읽기 전용 실행**
 - 리뷰는 detached worktree(`../027_agent_share_poc-wt/review-<slug>`)에서 한다. 리뷰어는 파일을 고치거나 커밋하지 않는다. 결과 원문은 스크립트가 `.review-out/`(git ignore)에 저장한다.
 - **변경 리뷰(버그):**
-  - Codex: `codex exec review -c 'sandbox_mode="read-only"' --base main` (기본 샌드박스는 workspace-write라서 읽기 전용을 강제한다. 계획 01 리뷰에서 확인)
-  - Claude: `claude -p --agent branch-reviewer --permission-mode plan "<git diff main...HEAD 변경 리뷰 프롬프트>"` (2026-10-08 계획 02 R1-F1로 `/code-review`에서 바꿈. 에이전트 없이 실행하면 Bash 가드 훅이 적용되지 않는다)
+  - Codex: `codex exec review -c 'sandbox_mode="read-only"' --base main` (기본 샌드박스는 workspace-write라서 읽기 전용을 강제한다. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md) 리뷰에서 확인)
+  - Claude: `claude -p --agent branch-reviewer --permission-mode plan "<git diff main...HEAD 변경 리뷰 프롬프트>"` (2026-10-08 [git-review-tooling 계획](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md) R1-F1로 `/code-review`에서 바꿈. 에이전트 없이 실행하면 Bash 가드 훅이 적용되지 않는다)
 - **계획 대조 리뷰(스펙·범위·증거):** Codex는 `--base`와 사용자 프롬프트를 함께 쓸 수 없으므로 따로 실행한다.
   - Codex: `codex exec -o <파일> "<체크리스트 프롬프트>"`
   - Claude: `claude -p --agent branch-reviewer`
 - `.claude/agents/branch-reviewer.md`: `tools: Read, Grep, Glob, Bash`, `disallowedTools: Write, Edit, NotebookEdit`, `permissionMode: plan`. Bash는 `git diff`·`git log`·`git show`만 허용한다.
-- 계획 02 이후에는 `make review BRANCH=<브랜치> REVIEWER=codex|claude`로 실행한다. 계획 01은 위 명령을 손으로 실행한다.
+- 계획 02 이후에는 `make review BRANCH=<브랜치> REVIEWER=codex|claude`로 실행한다. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)은 위 명령을 손으로 실행한다.
 
 **체크리스트** (`AGENTS.md`의 `## Code Review Rules`. Codex는 이 섹션을 자동으로 읽고, Claude는 `@AGENTS.md`로 읽는다)
 1. 계획의 Task가 모두 구현됐고, 각 검증 단계가 증거(명령과 결과)와 함께 통과했는가
@@ -151,13 +152,13 @@ Task: 3
 3. 사람이 직접 병합한다. 에이전트는 메시지 초안만 쓴다.
 
 ```
-git merge --no-ff plan/01-local-foundation
+git merge --no-ff plan/sqzn0teq-local-foundation
 
-Merge plan/01-local-foundation
+Merge plan/sqzn0teq-local-foundation
 
 Reviewed-by: yanghs6
 Review-Agent: codex <모델 ID>
-Review-Record: docs/reviews/plan-01-local-foundation.md
+Review-Record: docs/reviews/rev-2026-10-07-bwvfm8bx-local-foundation.md
 Reviewed-Head: <sha>
 ```
 
@@ -173,8 +174,8 @@ Reviewed-Head: <sha>
 
 | 시점 | 내용 |
 |---|---|
-| 지금 (writing-plans) | 계획 01~05의 Global Constraints에 3·4절 규칙을 넣고, 계획 끝 "마무리"를 5·6절 절차로 바꾼다. 계획 01은 `plan/01-local-foundation` 브랜치에서 시작하고, 리뷰는 수동 명령으로 한다. |
-| 계획 01 Task 4 | `AGENTS.md` 기본판에 짧은 `## Git` 섹션을 넣는다(브랜치, worktree, 트레일러, 금지 사항). |
+| 지금 (writing-plans) | 계획 01~05의 Global Constraints에 3·4절 규칙을 넣고, 계획 끝 "마무리"를 5·6절 절차로 바꾼다. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)은 `plan/sqzn0teq-local-foundation` 브랜치에서 시작하고, 리뷰는 수동 명령으로 한다. |
+| [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md) Task 4 | `AGENTS.md` 기본판에 짧은 `## Git` 섹션을 넣는다(브랜치, worktree, 트레일러, 금지 사항). |
 | **새 계획 02: Git & Review Tooling** | 아래 산출물. 기존 계획 02·03·04는 03·04·05로 번호를 바꾼다. |
 
 **새 계획 02 산출물**
@@ -193,7 +194,7 @@ Reviewed-Head: <sha>
   - `branch-review` (리뷰어용): 체크리스트, 심각도, 기록 형식, 읽기 전용 규칙
 - `AGENTS.md`: `## Code Review Rules`와 스킬 목록 추가
 - `docs/reviews/README.md`: 리뷰 기록 템플릿
-- `.claude/settings.json`: `make check-git` 허용 (`attribution.commit = ""`와 `.gitignore`의 `.review-out/`은 계획 01에서 먼저 넣는다)
+- `.claude/settings.json`: `make check-git` 허용 (`attribution.commit = ""`와 `.gitignore`의 `.review-out/`은 [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)에서 먼저 넣는다)
 
 **함께 조정할 문서**
 - Basic Memory 스펙 머리말의 계획 목록을 다섯 개로 갱신한다.
@@ -203,7 +204,7 @@ Reviewed-Head: <sha>
 
 | 위험 | 대응 |
 |---|---|
-| 에이전트가 정책을 모르고 `main`에서 작업 | `AGENTS.md`의 `## Git`(계획 01부터), 리뷰 체크리스트, `make check-git` |
+| 에이전트가 정책을 모르고 `main`에서 작업 | `AGENTS.md`의 `## Git`([local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)부터), 리뷰 체크리스트, `make check-git` |
 | 리뷰어가 파일을 수정 | detached worktree, Codex 읽기 전용 샌드박스, Claude `permissionMode: plan`과 쓰기 도구 차단 |
 | 리뷰 루프가 끝나지 않음 | 2회차 제한, 2차는 새 P0·P1만, 남은 이견은 사람이 결정 |
 | 리뷰어가 사소한 지적을 쏟아냄 | 변경이 만든 문제만, 등급별 병합 기준, P3는 선택 |

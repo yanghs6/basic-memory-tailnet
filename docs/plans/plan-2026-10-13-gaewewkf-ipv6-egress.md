@@ -1,11 +1,12 @@
 ---
 status: backlog
+id: gaewewkf
 spec: none
 ---
 
-# 07 IPv6 Egress Plan
+# gaewewkf IPv6 Egress Plan
 
-> 계획 05([완료된 계획](plan-2026-10-07-05-vm-rollout.md))가 머지된 뒤에 brainstorming → 스펙 → 계획 순서를 거쳐야 실행할 수 있습니다. 이 문서는 실행 계획이 아니라 조사 결과와 질문 목록입니다.
+> vm-rollout 계획([완료된 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md))이 머지된 뒤에 brainstorming → 스펙 → 계획 순서를 거쳐야 실행할 수 있습니다. 이 문서는 실행 계획이 아니라 조사 결과와 질문 목록입니다.
 
 **Goal:** 유료 외부 IPv4를 없애고, 무료인 외부 IPv6만으로 VM이 계속 동작하게 한다(Tailscale, apt, Docker, 이미지 업데이트, 모델 다운로드, 복구).
 
@@ -13,7 +14,7 @@ spec: none
 
 - 공식 가격표 https://cloud.google.com/vpc/network-pricing 원문: "Static and ephemeral IP addresses in use on standard VM instances $0.005 / 1 hour", 무료 등급은 "one hour per month per account". 월 약 $3.65입니다.
 - 같은 페이지 원문: "You are not charged for external IPv6 address ranges that are assigned to subnets or for external IPv6 addresses that are assigned to VM instances."
-- 2026-10-13 사용자 결정: 나중에 IPv6로 전환하고, 지금은 백로그에만 등록합니다. 근거와 조회 결과는 계획 05의 Progress log(항목 25 사전 조사, IPv4 Open question 행)에 있습니다.
+- 2026-10-13 사용자 결정: 나중에 IPv6로 전환하고, 지금은 백로그에만 등록합니다. 근거와 조회 결과는 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)의 Progress log(항목 25 사전 조사, IPv4 Open question 행)에 있습니다.
 
 ## 확인된 사실
 
@@ -40,12 +41,12 @@ spec: none
 5. `verify`/`probe`: IPv6 주소로 22·80·443·`BM_PORT` 차단을 어떻게 검사할 것인가? `BM_VM_PUBLIC_IP` 검증(IPv4 전용)을 IPv6로 확장하거나 대체할 때, IPv6가 없는 Mac에서는 검사를 건너뛸지 실패시킬지 정해야 합니다. 건너뛰면 노출 검증이 약해집니다.
 6. 부트스트랩과 `bm-recover`: 공인 IPv4 없이 첫 SSH를 어떻게 할 것인가? IPv6 SSH(Mac의 IPv6 필요), IAP TCP forwarding, 콘솔 직렬 포트 중 무엇인가? IAP를 쓰면 방화벽에 `35.235.240.0/20`(IPv6 VM은 `2600:2d00:1:7::/64`)을 열어야 하는데 "제로 공개 ingress" 불변식과 어떻게 양립시킬 것인가?
 7. IPv6 방화벽: 기본 규칙 구성은? Exposure audit(런북의 방화벽·tailnet 정책 수동 점검)에 IPv6 규칙 점검을 어떻게 넣을 것인가?
-8. 비용: NAT/레지스트리/IAP 옵션 중 어느 것이 실제로 0원인가? 계획 05 완료 조건 5(SKU별 청구 0)와 같은 방식으로 어떻게 검증할 것인가?
+8. 비용: NAT/레지스트리/IAP 옵션 중 어느 것이 실제로 0원인가? [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) 완료 조건 5(SKU별 청구 0)와 같은 방식으로 어떻게 검증할 것인가?
 9. 롤백: 전환 실패 시 외부 IPv4를 다시 붙이는 절차와, 그 사이 Tailscale 접속이 끊기지 않는지 확인하는 방법은?
 
 ## 영향 범위
 
-외부 IPv4를 전제하는 위치(2026-10-13 `grep` 결과, 이 브랜치 기준). 줄 번호는 그때 기준이고 이후 변경(계획 14가 문서에 단 front matter 포함)으로 밀렸으므로, 설계 때 다시 확인한다:
+외부 IPv4를 전제하는 위치(2026-10-13 `grep` 결과, 이 브랜치 기준). 줄 번호는 그때 기준이고 이후 변경([doc-rename-and-checks 계획](plan-2026-10-16-pqffvttt-doc-rename-and-checks.md)이 문서에 단 front matter 포함)으로 밀렸으므로, 설계 때 다시 확인한다:
 
 - `.env.example:10-12` (`BM_VM_PUBLIC_IP` 설명과 값)
 - `Makefile:13` (`export ... BM_VM_PUBLIC_IP`), `Makefile:69` (`vm-bootstrap`, `HOST=<public-ip>`)
@@ -53,12 +54,12 @@ spec: none
 - `scripts/bootstrap-vm.sh:2`, `:33` (`HOST=<public-ip>` usage), `:43`, `:50` (`upload failed` 안내)
 - `scripts/show-status.sh:34` (`make vm-bootstrap HOST=<public-ip>` 안내)
 - `tests/vm_ops.bats:7`, `:84-87`, `:112-116`, `:131`, `:142-168` (공인 IP 검증 테스트), `tests/bootstrap.bats:170-173`
-- `docs/runbooks/rbk-2026-10-12-gcp-vm.md:35` (ephemeral 외부 IPv4), `:91-107` (공인 IP 조회, 정지 후 IP 변경)
-- `docs/runbooks/rbk-2026-10-12-bootstrap.md:7`, `:16-17`, `:42`, `:45`, `:49`
-- `docs/runbooks/rbk-2026-10-12-operations.md:48`, `:64`, `:79-82`
-- `docs/runbooks/rbk-2026-10-12-accounts.md:23`, `docs/ARCHITECTURE.md:50`, `:57-58`, `:63`, `docs/decisions/adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md:29-30`
+- `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md:35` (ephemeral 외부 IPv4), `:91-107` (공인 IP 조회, 정지 후 IP 변경)
+- `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md:7`, `:16-17`, `:42`, `:45`, `:49`
+- `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:48`, `:64`, `:79-82`
+- `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md:23`, `docs/ARCHITECTURE.md:50`, `:57-58`, `:63`, `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md:29-30`
 - `.agents/skills/bm-diagnose/SKILL.md:22`, `.agents/skills/bm-recover/SKILL.md:11`, `:15-16`, `.agents/skills/bm-upgrade` (ghcr.io 이미지 pull 경로; 줄 번호는 설계 때 확인)
-- GCP 스펙 `docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md:22`, `:33`, `:37`, `:51`, `:55`, `:88`, `:96-97`, `:122`, `:136`, `:157`, `:173`, `:194-197`, `:216`, `:222-225`
+- GCP 스펙 `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md:22`, `:33`, `:37`, `:51`, `:55`, `:88`, `:96-97`, `:122`, `:136`, `:157`, `:173`, `:194-197`, `:216`, `:222-225`
 
 ## 완료 조건 (초안)
 

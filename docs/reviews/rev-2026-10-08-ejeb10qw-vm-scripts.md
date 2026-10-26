@@ -1,10 +1,11 @@
 ---
 status: final
+id: ejeb10qw
 ---
 
-# Review: plan/03-vm-scripts
+# Review: plan/dry1xr43-vm-scripts
 
-Cross-vendor review per `docs/specs/spec-2026-10-07-git-review-policy.md`, section 5. Author: claude-code (Claude Opus controller, Sonnet/Opus implementers). Reviewer: codex, run with `make review BRANCH=plan/03-vm-scripts REVIEWER=codex`.
+Cross-vendor review per `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5. Author: claude-code (Claude Opus controller, Sonnet/Opus implementers). Reviewer: codex, run with `make review BRANCH=plan/dry1xr43-vm-scripts REVIEWER=codex`.
 
 | Round | Reviewer | Base | Reviewed head | Verdict |
 |---|---|---|---|---|
@@ -26,8 +27,8 @@ Cross-vendor review per `docs/specs/spec-2026-10-07-git-review-policy.md`, secti
 
 - Verified: the codex change review ran with `sandbox: read-only`; both raw reports held real review content.
 - Codex could not run `make check` (no Docker in its sandbox). Test evidence comes from the author: 172 bats tests passing, 97.92% line coverage (plan Progress log).
-- All scripts are stub-tested only; 16 live-VM checks moved to plan 05's backlog file.
-- R1-F1 now treats only an empty error, "refused", "timed out", "no route to host", "unreachable" or "prohibited" as a closed port; any other `nc` error stops verify. Assumption: the OCI Ubuntu image rejects with `icmp-host-prohibited`, which `nc` reports as "No route to host" (6368680). Confirm the real `nc` wording on macOS during plan 05; a wording not on the list fails loudly, never silently.
+- All scripts are stub-tested only; 16 live-VM checks moved to the [vm-rollout plan](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)'s backlog file.
+- R1-F1 now treats only an empty error, "refused", "timed out", "no route to host", "unreachable" or "prohibited" as a closed port; any other `nc` error stops verify. Assumption: the OCI Ubuntu image rejects with `icmp-host-prohibited`, which `nc` reports as "No route to host" (6368680). Confirm the real `nc` wording on macOS during the [vm-rollout plan](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md); a wording not on the list fails loudly, never silently.
 - After the R1 fixes `make check` passed with 181 tests and 97.99% line coverage.
 - R2-F1 fix: backup.sh reserves `bm-<stamp>.tgz.partial` with an exclusive create (noclobber) and refuses a name whose final files already exist, both before the restart trap and the container stop; cleanup removes only this run's `.partial` files and the final files this run renamed. After the fix `make check` passed with 183 tests and 97.87% line coverage.
 - Policy section 5 allows two rounds. The user asked to continue after R2-F1 was fixed, so a third round was run on the R2-F1 fix alone (e73be4b..0fae78e).

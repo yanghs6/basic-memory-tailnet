@@ -154,11 +154,11 @@ configure_serve() {
     || die "tailscale serve for SilverBullet failed: rerun 'make vm-bootstrap' (it is safe to repeat)"
   serve_status="$(tailscale serve status)" || die "could not read tailscale serve status: rerun 'make vm-bootstrap'"
   if grep -qi 'funnel on' <<<"$serve_status"; then
-    die "Funnel is on for this node, which makes the unauthenticated endpoint public: turn it off (docs/runbooks/rbk-2026-10-12-operations.md, Exposure audit), then rerun 'make vm-bootstrap'"
+    die "Funnel is on for this node, which makes the unauthenticated endpoint public: turn it off (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit), then rerun 'make vm-bootstrap'"
   fi
   for port in "$BM_PORT" "$SB_PORT"; do
     grep -qE "proxy http://127\.0\.0\.1:${port}/?\$" <<<"$serve_status" \
-      || die "Serve is not active (expected a proxy to http://127.0.0.1:$port, got: $serve_status): enable MagicDNS and HTTPS certificates in the Tailscale admin console (docs/runbooks/rbk-2026-10-12-accounts.md), then rerun 'make vm-bootstrap'"
+      || die "Serve is not active (expected a proxy to http://127.0.0.1:$port, got: $serve_status): enable MagicDNS and HTTPS certificates in the Tailscale admin console (docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md), then rerun 'make vm-bootstrap'"
   done
   log "tailscale serve -> $bm_target (https 443) and $sb_target (https $SB_HTTPS_PORT), tailnet only"
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PreToolUse hook for the read-only branch-reviewer agent (.claude/agents/branch-reviewer.md): Bash may run only
-# git diff, git log or git show with plain arguments (docs/specs/spec-2026-10-07-git-review-policy.md, section 5).
+# git diff, git log or git show with plain arguments (docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md, section 5).
 # Contract (code.claude.com/docs/en/hooks): the hook input JSON arrives on stdin and the command is
 # .tool_input.command; exit 0 allows the call, exit 2 blocks it and shows stderr to the agent.
 # Any other exit code does NOT block, so every failure below is turned into exit 2 (fail closed).

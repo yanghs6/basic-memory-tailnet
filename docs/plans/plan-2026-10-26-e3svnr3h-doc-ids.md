@@ -1,9 +1,10 @@
 ---
 status: active
-spec: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md
+id: e3svnr3h
+spec: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
 ---
 
-# 26 Document IDs and Draft Board Implementation Plan
+# e3svnr3h Document IDs and Draft Board Implementation Plan
 
 > **For agentic workers:** Task를 순서대로 하나씩 구현한다. 도구가 서브에이전트를 지원하면 Task마다 새 서브에이전트와 리뷰를 쓰고, 아니면 한 세션에서 실행한다. VM이나 클라우드를 바꾸는 Step은 메인 세션에서 사용자와 함께, 단계마다 OK를 받고 한다. Step은 체크박스(`- [ ]`)로 추적한다.
 
@@ -11,12 +12,12 @@ spec: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md
 
 **Architecture:**
 - `scripts/lib/docs.sh`가 ID를 만들고 `make new-id`·`make new-doc ID=`가 쓴다. 문서 검사, 브랜치·트레일러 검사가 ID를 받는다.
-- 기존 문서는 일회용 이전 스크립트로 이름과 인용을 바꾸고, 대응표를 ADR 0009 부록에 남긴다.
+- 기존 문서는 일회용 이전 스크립트로 이름과 인용을 바꾸고, 대응표를 [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 부록에 남긴다.
 - 이력은 일회용 재작성 스크립트가 `main`을 커밋 순서대로 다시 만들어 경로·내용·메시지·SHA 인용을 바꾸고, 에이전트가 force-push한다(사용자 1회 허가).
 
-**Spec:** `docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md` (§3.1~§3.6, §5, §7). 결정: `docs/decisions/adr-2026-10-23-0009-doc-ids-and-draft-board.md`.
+**Spec:** `docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md` (§3.1~§3.6, §5, §7). 결정: `docs/decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md`.
 
-**Sequence:** 계획 26. 다음을 모두 만족한 뒤 시작한다.
+**Sequence:** 다음을 모두 만족한 뒤 시작한다.
 - 이 계획·스펙·ADR을 담은 docs PR이 병합됐다.
 - **Reported (2026-10-23, 감독 세션이 전달한 사용자 결정):** 이 개편이 모든 계획보다 먼저다. 다른 계획의 코드 작업은 이 계획의 코드 PR이 병합된 뒤 시작한다.
 - Task 2를 시작하기 전에 감독 세션이 다른 세션의 열린 PR과 브랜치를 정리한다(이름 변경과 충돌하므로).
@@ -25,13 +26,13 @@ spec: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md
 ## 배경
 
 - **Verified (2026-10-23, 읽기 전용 전수 조사):** 번호에 기대는 곳은 스펙 §2에 있다. 도구는 `scripts/lib/docs.sh:95-112`, `scripts/create-doc.sh:31-46`, 검사는 `tests/repo-docs.bats:9,88-98,120-132`, `scripts/check-git.sh:12`, `scripts/lib/git.sh:19`, `scripts/check-pr.sh:32-40`이다. 템플릿의 `{{number}}`는 `plan.md:6,17,23,39`, `adr.md:6`에 있다.
-- **Verified (2026-10-26):** `main`은 커밋 158개, merge 커밋 12개다. PR은 #1~#20이고, 머신 계정 코멘트 87개와 GitGuardian 코멘트 3개가 있다. 룰셋은 `bypass_actors`가 비어 있어 Enforcement를 꺼야 push할 수 있다(`docs/runbooks/rbk-2026-10-14-github.md` "긴급 변경").
+- **Verified (2026-10-26):** `main`은 커밋 158개, merge 커밋 12개다. PR은 #1~#20이고, 머신 계정 코멘트 87개와 GitGuardian 코멘트 3개가 있다. 룰셋은 `bypass_actors`가 비어 있어 Enforcement를 꺼야 push할 수 있다(`docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md` "긴급 변경").
 - 사용자 결정(스펙 §1): 고유 ID, 초안은 Basic Memory, 소급 적용, 가급적 이력 재작성, 에이전트가 force-push까지(이번 한 번, `AGENTS.md`는 고치지 않음), 만료 기본값 없음, 바꿀 수 있는 것은 모두 재작성.
 
 ## Global Constraints
 
 - 스크립트 규칙(`AGENTS.md` Invariants): `#!/usr/bin/env bash` 다음 줄 `set -euo pipefail`, `scripts/lib/` 라이브러리 source, 고칠 방법을 담은 `die`, macOS bash 3.2, `x="$(fn)"` 뒤 `|| exit 1`, 이름 붙인 상수.
-- 테스트를 먼저 쓴다. 범위는 `docs/decisions/adr-2026-10-13-0004-test-scope.md`를 따른다. 인터페이스가 바뀌어 기존 기대값을 고칠 때는 커밋 본문에 이유를 적는다.
+- 테스트를 먼저 쓴다. 범위는 `docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md`를 따른다. 인터페이스가 바뀌어 기존 기대값을 고칠 때는 커밋 본문에 이유를 적는다.
 - ID 알파벳은 `0123456789abcdefghjkmnpqrstvwxyz`, 길이 8이다. 정규식은 `[0-9a-hjkmnp-tv-z]{8}`이다.
 - 문서 이름은 `<코드>-<YYYY-MM-DD>-<ID>-<slug>.md`, front matter `id`는 필수이고 이름의 ID와 같다.
 - 이 계획의 브랜치는 `plan/26-doc-ids`, 모든 커밋의 트레일러는 `Plan: 26`이다. 이 계획 파일의 이름이 Task 2에서 바뀌어도 트레일러는 그대로 두고, Task 4의 재작성이 새 ID로 바꾼다.
@@ -59,7 +60,7 @@ spec: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md
 | `tests/repo-docs.bats` | 이름의 ID, front matter `id` 일치·유일, `id` 허용 키 | 1, 2 |
 | `docs/README.md` | 타입 표와 이름 규칙 | 2 |
 | `docs/**/*.md` 전부 | 이름 변경, `id` 추가, 인용 갱신 | 2 |
-| `docs/decisions/adr-2026-10-23-0009-doc-ids-and-draft-board.md` | 대응표 부록, `accepted` | 2 |
+| `docs/decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md` | 대응표 부록, `accepted` | 2 |
 | `tests/repo-cloud-neutral.bats`, 런북 경로를 쓰는 스크립트 | 새 런북 이름 | 2 |
 | `AGENTS.md`, `.agents/skills/{doc-authoring,git-workflow,branch-review,script-authoring}/…`, `.claude/agents/branch-reviewer.md`, `.github/pull_request_template.md`, `scripts/review-branch.sh` | 규칙, 초안 보드 흐름, ID 표기 | 3 |
 
@@ -109,7 +110,7 @@ spec: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md
 
 **Files:**
 - Modify: `docs/` 아래 모든 타입 문서(이름, front matter `id`, 본문 인용), `docs/README.md`(타입 표, 이름 규칙), `scripts/lib/docs.sh`(`DOC_TYPES_HEADER`), `tests/repo-docs.bats`, `tests/lib-docs.bats`, `tests/repo-cloud-neutral.bats:6,31`, 런북 경로를 쓰는 스크립트(`scripts/bootstrap-vm.sh:55,57`, `scripts/verify-vm.sh:111,113,134`, `scripts/lib/vm.sh:53`), 스킬·`AGENTS.md`·`README.md`·`docs/ARCHITECTURE.md`의 경로와 번호, `.github/workflows/*.yml` 주석, `tests/repo-config.bats:5`
-- Modify: ADR 0009(대응표 부록, `status: accepted`, `date`)
+- Modify: [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)(대응표 부록, `status: accepted`, `date`)
 
 **Interfaces:**
 - Consumes: Task 1의 `new_doc_id`(ID 할당), `DOC_ID_PATTERN`.
@@ -123,7 +124,7 @@ spec: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md
   - 번호 중복 검사(`:88-98`)와 번호 열 검사(`:78`)는 지운다. 이유를 커밋 본문에 적는다.
 - [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 이름 테스트가 문서 62개를 실패로 나열한다.
 - [ ] **Step 3: 이전 스크립트 작성과 실행(스크래치).**
-  - 문서마다 `new_doc_id`로 ID를 받아 대응표를 만든다. 이 계획, 스펙, ADR 0009도 포함한다.
+  - 문서마다 `new_doc_id`로 ID를 받아 대응표를 만든다. 이 계획, 스펙, [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)도 포함한다.
   - `git mv`로 이름을 바꾸고 front matter 첫 키 다음에 `id`를 넣는다. 리뷰 기록 slug의 `plan-NN-`는 뺀다.
   - 저장소 전체(문서, 스킬, `AGENTS.md`, `README.md`, 스크립트, 테스트, 워크플로)에서 다음을 바꾼다. 코드 블록 안도 포함한다.
     - 옛 경로(상대 링크, 백틱 경로, front matter 값)를 새 경로로 바꾼다.
@@ -132,12 +133,12 @@ spec: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md
   - 스크립트는 바꾼 곳 수와, 남은 숫자 후보(`계획 [0-9]`, `ADR [0-9]`, `plan/[0-9]`, `Plan: [0-9]`)의 목록을 출력한다.
 - [ ] **Step 4: 사람 확인.** 남은 후보 목록을 사용자와 함께 보고, 번호 인용이면 고치고 아니면 그대로 둔다. 목록과 처리를 Progress log에 적는다.
 - [ ] **Step 5: 대응표와 규칙.**
-  - ADR 0009 부록에 대응표를 적는다. 옛 이름은 경로·확장자 없이 날짜·번호·slug를 띄어 쓴다.
+  - [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 부록에 대응표를 적는다. 옛 이름은 경로·확장자 없이 날짜·번호·slug를 띄어 쓴다.
   - `docs/README.md`의 타입 표에서 `번호` 열을 지우고 이름 규칙 문단을 ID 기준으로 고친다. `DOC_TYPES_HEADER`를 맞춘다.
-  - ADR 0009를 `status: accepted`로 바꾼다.
+  - [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)을 `status: accepted`로 바꾼다.
 - [ ] **Step 6: 통과 확인.**
   - Run: `make check`. Expected: exit 0.
-  - Run: 남은 후보 grep(Step 3과 같은 패턴)과 옛 이름 grep. Expected: ADR 0009 부록과 Step 4에서 남기기로 한 곳 밖에서 0건. 결과를 Progress log에 `Verified`로 적는다.
+  - Run: 남은 후보 grep(Step 3과 같은 패턴)과 옛 이름 grep. Expected: [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 부록과 Step 4에서 남기기로 한 곳 밖에서 0건. 결과를 Progress log에 `Verified`로 적는다.
 - [ ] **Step 7: 커밋.** 이름 변경 커밋과 인용 갱신 커밋을 나눈다. 리뷰어가 `git log --follow`로 이름 변경을 볼 수 있게 하기 위해서다. 트레일러는 `Plan: 26`, `Task: 2`.
 
 ### Task 3: Rules, skills, templates and the draft board flow
@@ -176,7 +177,7 @@ spec: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md
 - [ ] **Step 1: 조건 확인.** 열린 PR 0개(`gh pr list --state open`), 감독 세션이 확인한 다른 세션의 브랜치·worktree 0개, 사용자가 정한 날짜. 하나라도 아니면 멈추고 사용자에게 알린다. 그대로 대응표로 끝낼지 사용자가 정한다.
 - [ ] **Step 2: clone 준비.** 세션 스크래치에 `git clone --mirror`를 두 개(`backup`, `work`) 만든다. `backup`은 끝까지 손대지 않는다.
 - [ ] **Step 3: 재작성 스크립트 작성(스크래치).**
-  - 입력: ADR 0009 대응표, Task 2의 치환 규칙, 시대별 번호 대응(계획 02~05의 번호를 바꾼 커밋을 찾아 그 전과 후의 대응).
+  - 입력: [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 대응표, Task 2의 치환 규칙, 시대별 번호 대응(계획 02~05의 번호를 바꾼 커밋을 찾아 그 전과 후의 대응).
   - `git rev-list --reverse --topo-order main`을 따라 커밋마다 다음을 한다.
     - 원래 tree를 `git ls-tree -r`로 읽어 경로를 바꾸고, 바뀐 blob만 변환해 `git hash-object -w`로 쓴다. 변환은 경로, 번호, `main` 안 앞선 커밋의 SHA다.
     - 모드와 심볼릭 링크를 유지해 `git mktree`로 새 tree를 만든다.
@@ -198,20 +199,27 @@ spec: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md
 ### Task 5: Reject the legacy forms and record the results (results PR)
 
 **Files:**
-- Modify: `scripts/lib/git.sh`(`LEGACY_PLAN_PATTERN` 제거), `scripts/check-git.sh`, `scripts/check-pr.sh`, 각 bats, 이 계획(Progress log, `status`), ADR 0009("이전 결과" 절)
+- Modify: `scripts/lib/git.sh`(`LEGACY_PLAN_PATTERN` 제거), `scripts/check-git.sh`, `scripts/check-pr.sh`, 각 bats, 이 계획(Progress log, `status`), [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)("이전 결과" 절)
 
 - [ ] **Step 1: 실패하는 테스트 작성.** `check-git.bats`·`check-pr.bats`·`lib-git.bats`의 옛 형식 사례(`plan/26-x`, `Plan: 26`)를 거부 사례로 옮긴다. 이유를 커밋 본문에 적는다.
 - [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 옮긴 사례만 실패한다.
 - [ ] **Step 3: 최소 구현.** 옛 형식 허용을 지운다.
 - [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0.
-- [ ] **Step 5: 기록.** ADR 0009에 "이전 결과" 절(재작성 여부, 검증 결과, 남은 것)을 더하고, 이 계획의 `status`를 `completed`로 바꾼다. 새 ID 형식의 work 브랜치에서 커밋·push하고 PR을 연다.
+- [ ] **Step 5: 기록.** [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)에 "이전 결과" 절(재작성 여부, 검증 결과, 남은 것)을 더하고, 이 계획의 `status`를 `completed`로 바꾼다. 새 ID 형식의 work 브랜치에서 커밋·push하고 PR을 연다.
 
 ## Follow-ups
 
 - 다른 저장소와 전역 지침에 초안 보드를 적용할지 정한다(스펙 §1 범위 밖).
-- 에이전트 기억 미러의 색인 hook이 초안 보드를 함께 보여 줄지 계획 24 담당 세션과 정한다. 그 계획이 helper를 만들면 `doc-authoring`의 프로젝트 키·기기 이름 명령을 helper로 바꾼다.
+- 에이전트 기억 미러의 색인 hook이 초안 보드를 함께 보여 줄지 [agent-memory-mirror 계획](plan-2026-10-22-mk823xbp-agent-memory-mirror.md) 담당 세션과 정한다. 그 계획이 helper를 만들면 `doc-authoring`의 프로젝트 키·기기 이름 명령을 helper로 바꾼다.
 
 ## Progress log
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
+| 2026-10-26 | Verified | Task 2 RED 1: `tests/repo-docs.bats`(이름의 ID, front matter `id`가 이름의 ID와 같음, ID 유일, 번호 중복 검사와 `번호` 열 검사 삭제), `tests/lib-docs.bats`(9열 타입 표, hex 문자만으로 된 ID를 `new_doc_id`가 건너뜀), `tests/create-doc.bats`(타입 표 열 위치)를 고친 뒤 `make test` → 7개 실패(lib-docs 3, create-doc 2, repo-docs 2). |
+| 2026-10-26 | Verified | Task 2 RED 2: `DOC_TYPES_HEADER`와 파서, `scripts/create-doc.sh`의 열 위치, `docs/README.md` 타입 표, `new_doc_id`의 hex 규칙을 고친 뒤 `make test` → 149개 중 1개 실패. 문서 검사가 타입 문서 65개를 모두 "name it …"으로 나열했다. |
+| 2026-10-26 | Command | Task 2 Step 3: 일회용 이전 스크립트(저장소 밖)를 dry run으로 확인한 뒤 적용했다. ID는 준비 단계에서 정한 65개와, 지워진 문서 3개에 `make new-id`로 받은 3개다. 68개 모두 영문자로 시작하고, hex 문자만으로 된 것이 없고, 실행 전 저장소에 없던 문자열이다. `git mv` 65개를 이름 변경 커밋(R100 65개)으로 먼저 커밋했다. |
+| 2026-10-26 | Verified | Task 2 바꾼 곳: front matter `id` 65줄. 경로 1,030곳(상대 링크 148, `docs/` 경로 436, 이름만 쓴 곳 63, front matter 38, 옛 세대 이름 326, 지워진 문서 이름 19). "계획 NN" 573, "ADR NNNN" 240, 목록·범위 57곳(계획 목록 53곳, ADR 목록 4곳), 영어 "plan NN" 60, `plan/NN-…` 143, `Plan: NN` 159, 계획 제목 26, ADR 제목 15, Sequence 줄 20. 링크 792개를 더했다. 이력의 옛 경로 63개(코드 접두어 없는 이름, `backlog`·`active`·`completed` 하위 폴더, `-design` 스펙, 번호를 바꾸기 전 이름)와 지워진 문서 3개(OCI 시절 ADR, OCI VM 런북, 넷으로 나뉘기 전 OCI 계획)를 대응표에 넣었다. |
+| 2026-10-26 | Verified | Task 2 Step 4: 손으로 15곳을 정리했다. OCI 시절 0001번 ADR을 지워진 OCI ADR로(6곳), GCP 전환 뒤의 0001번을 GCP ADR로(1곳), 브랜치 줄임말(1), 인용 문구(2), 영어 목록(1), 목록 옆의 맨 번호(1), 문장 다듬기(2), 가상의 번호 되돌리기(1)다. 남은 후보는 줄마다 이유를 붙여 분류했고, 사람 확인 대상 8줄(번호를 바꾼 커밋 `750c7c3` 전후로 뜻이 갈리는 git-review-policy 스펙 6줄, docs-skills 계획의 OCI→GCP 이름 변경 1줄, 가상의 번호 1줄)은 원문 그대로 두고 사용자 확인을 기다린다. |
+| 2026-10-26 | Verified | Task 2 새 검사: 추적하지 않는 임시 문서 둘(doc-ids 계획과 같은 ID, 이름과 다른 front matter `id`)을 두고 `make test` → "no two documents under docs/ share an id"가 두 파일을, 문서 검사가 "front matter id yyyyyyyy differs from the id zzzzzzzz in the file name"을 내며 실패. 임시 문서는 지웠다. |
+| 2026-10-26 | Verified | Task 2 Step 6: `make check` exit 0(테스트 149개, 라인 커버리지 93.64%). 남은 후보 `git grep -n -P`(줄 수, [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 부록 밖): "계획 + 숫자" 24, "ADR + 숫자" 19, "plan/ + 숫자" 56, "Plan: + 숫자" 26. 모두 Step 4에서 남기기로 한 줄이다(코드 리터럴과 테스트 고정값, doc-ids 문서의 옛 형식, 개수·분수·연도·외부 ADR, 옛 표기를 인용한 문장, 사람 확인 대상). 옛 이름(지금 세대, 옛 세대, 지워진 문서) grep은 부록 밖 0건이고, 상대 링크 965개와 `docs/` 경로 598개(이 기록 포함)가 모두 파일을 가리킨다. |

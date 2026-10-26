@@ -1,9 +1,10 @@
 ---
 status: completed
+id: g57mry4b
 spec: none
 ---
 
-# 06 Test Pruning Implementation Plan
+# g57mry4b Test Pruning Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -19,9 +20,9 @@ spec: none
 
 **Spec:** 별도 스펙 없음. 이 계획의 "판정 기준"과 Task별 목록이 2026-10-13 사용자에게 제시한 조정안이다. 사용자는 "테스트 조정을 진행하세요"로 진행을 지시했다. 아래 두 선택지는 사용자가 따로 고르지 않아 추천안을 적용했다.
 - Q1-B: 문서 정합성 검사 중 상대 링크 검사(`repo.bats` L233)만 남긴다.
-- Q2-A: ADR 0003 결정 7이 `tests/skills.bats`에 맡긴 스킬 규칙 검사는 모두 남긴다.
+- Q2-A: [skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md) 결정 7이 `tests/skills.bats`에 맡긴 스킬 규칙 검사는 모두 남긴다.
 
-**Sequence:** 계획 6. 전제: `main` 5561329. 계획 05(`plan/05-vm-rollout`)는 tests를 바꾸지 않으므로 병행할 수 있다.
+**Sequence:** 전제: `main` 5561329. [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)(`plan/qtvzskgx-vm-rollout`)은 tests를 바꾸지 않으므로 병행할 수 있다.
 
 ## 판정 기준
 
@@ -47,7 +48,7 @@ spec: none
 - 삭제한 테스트만 쓰던 헬퍼 함수, 파일 상수, `setup` 줄, 스텁 옵션은 함께 지운다. 아직 다른 곳에서 쓰는 것은 지우지 않는다. 지우기 전에 `grep -rn '<이름>' tests/`로 사용처를 확인한다.
 - `scripts/`, `Makefile`, `compose.yaml`, 스킬, AGENTS.md는 바꾸지 않는다. Task 5의 ADR과 이 계획 파일만 예외다.
 - `make check`(lint + 전체 테스트 + 커버리지 80% 이상, `scripts/` 아래 모든 실행 파일이 최소 한 테스트에서 실행됨)가 통과해야 한다.
-- 커밋 트레일러: `Assisted-by: claude-code claude-opus-5-5`, `Plan: 06`, `Task: <N|review|none>`. `Co-authored-by`, `Signed-off-by`는 쓰지 않는다.
+- 커밋 트레일러: `Assisted-by: claude-code claude-opus-5-5`, `Plan: g57mry4b`, `Task: <N|review|none>`. `Co-authored-by`, `Signed-off-by`는 쓰지 않는다.
 - 격리 worktree에 `.env`나 `backups/`를 만들거나 복사하지 않는다.
 
 ## Review Focus
@@ -56,7 +57,7 @@ spec: none
 2. **두 파일이 서로를 "남는 쪽"으로 지목해 동작이 어느 테스트에도 남지 않음.** → 아래 "교차 파일 생존 목록"에 남는 쪽을 고정했다. 최종 검증 에이전트가 목록 전체를 확인한다.
 3. **불변식(K1) 테스트가 지워짐.** → 최종 검증 에이전트가 K1 목록(Task 5 Step 4)이 남았는지 확인한다.
 4. **고아 헬퍼·상수·스텁 옵션이 남거나, 아직 쓰는 것을 지움.** → 각 Task 검증에서 grep으로 확인한다. `make lint`가 스텁과 `helpers.bash`의 문법 오류를 잡는다.
-5. **문서가 지워진 테스트를 계속 "검사됨"이라고 말함.** 예: `skill-authoring`의 "(tested)", ADR 0003 결정 7. → 최종 검증 에이전트가 문서에 나오는 테스트 이름과 "(tested)" 규칙을 대조한다.
+5. **문서가 지워진 테스트를 계속 "검사됨"이라고 말함.** 예: `skill-authoring`의 "(tested)", [skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md) 결정 7. → 최종 검증 에이전트가 문서에 나오는 테스트 이름과 "(tested)" 규칙을 대조한다.
 
 ## 교차 파일 생존 목록
 
@@ -78,7 +79,7 @@ tests/backup_restore.bats tests/common.bats tests/main_checkout.bats          Ta
 tests/vm_ops.bats tests/bootstrap.bats tests/stubs/{id,fallocate,mkswap,free}  Task 2
 tests/verify_mcp.bats tests/repo.bats tests/cloud_neutral.bats                Task 3
 tests/check_git.bats tests/review.bats tests/review_bash_guard.bats tests/skills.bats  Task 4
-docs/decisions/0004-test-scope.md, README.md(ADR 링크 한 줄), 이 계획 파일        Task 5 (컨트롤러)
+docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md, README.md(ADR 링크 한 줄), 이 계획 파일        Task 5 (컨트롤러)
 ```
 
 줄 번호(Lnn)는 `main` 5561329 기준으로, 각 `@test` 줄의 번호다. 작업할 때는 줄 번호가 아니라 테스트 이름으로 찾는다.
@@ -87,18 +88,18 @@ docs/decisions/0004-test-scope.md, README.md(ADR 링크 한 줄), 이 계획 파
 
 ### 시작: 브랜치와 worktree (컨트롤러)
 
-- [x] `git worktree add .claude/worktrees/plan-06-test-pruning -b plan/06-test-pruning main` (5561329)
+- [x] `git worktree add .claude/worktrees/plan-06-test-pruning -b plan/g57mry4b-test-pruning main` (5561329)
 - [x] 첫 커밋으로 이 계획 파일을 `docs/plans/active/`에 추가한다.
 
 ```bash
-git add docs/plans/active/2026-10-13-06-test-pruning.md
-git commit -m "docs: add plan 06 test pruning" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: 06" --trailer "Task: none"
+git add docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md
+git commit -m "docs: add the test-pruning plan" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: g57mry4b" --trailer "Task: none"
 ```
 
 ### 병렬 실행 방식 (컨트롤러)
 
 - Task 1~4는 파일이 겹치지 않으므로 구현 에이전트 4개를 동시에 띄운다. 각 에이전트는 Agent `isolation: "worktree"`로 실행한다.
-- 구현 에이전트는 먼저 `git switch -c plan/06-test-pruning-t<N> <계획 커밋 SHA>`를 실행한다.
+- 구현 에이전트는 먼저 `git switch -c plan/g57mry4b-test-pruning-t<N> <계획 커밋 SHA>`를 실행한다.
 - 구현 에이전트가 끝나면 그 Task 전용 **검증 에이전트**를 따로 띄운다. 검증 에이전트는 파일을 고치지 않는다.
   - 검증 에이전트는 커밋 diff를 이 계획과 대조한다.
   - 구현 에이전트의 worktree에서 `make -C <worktree> check`를 직접 실행한다.
@@ -162,7 +163,7 @@ Expected:
 
 ```bash
 git add tests/backup_restore.bats tests/common.bats tests/main_checkout.bats
-git commit -m "test: keep only essential backup, restore, common and main-checkout tests" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: 06" --trailer "Task: 1"
+git commit -m "test: keep only essential backup, restore, common and main-checkout tests" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: g57mry4b" --trailer "Task: 1"
 ```
 
 ### Task 2: vm_ops, bootstrap
@@ -216,7 +217,7 @@ Expected:
 
 ```bash
 git add tests/vm_ops.bats tests/bootstrap.bats tests/stubs/id tests/stubs/fallocate tests/stubs/mkswap tests/stubs/free
-git commit -m "test: keep only essential VM operation and bootstrap tests" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: 06" --trailer "Task: 2"
+git commit -m "test: keep only essential VM operation and bootstrap tests" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: g57mry4b" --trailer "Task: 2"
 ```
 
 ### Task 3: verify_mcp, repo, cloud_neutral
@@ -253,7 +254,7 @@ Expected:
 
 ```bash
 git add tests/verify_mcp.bats tests/repo.bats tests/cloud_neutral.bats
-git commit -m "test: keep only essential MCP verify, repo and cloud-neutral tests" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: 06" --trailer "Task: 3"
+git commit -m "test: keep only essential MCP verify, repo and cloud-neutral tests" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: g57mry4b" --trailer "Task: 3"
 ```
 
 ### Task 4: check_git, review, review_bash_guard, skills
@@ -279,7 +280,7 @@ git commit -m "test: keep only essential MCP verify, repo and cloud-neutral test
     - L78 `blocks quoting and escapes that the shell would strip into --output` → L84. 세 입력 문자열을 L84의 반복문에 넣는다. 실제 우회 사례(b61ddbf)다.
     - L120 `blocks commands other than git` → L101. `rm`, `make`, 빈 문자열을 L101의 반복문에 넣는다.
 - [x] **Step 4: `tests/skills.bats` (18 → 13)**
-  - 유지: L30, L44, L72, L88, L97, L105, L119, L125, L136, L142, L161, L173, L179. ADR 0003 결정 7과 `skill-authoring`의 "(tested)" 규칙을 지키므로 남긴다(Q2-A).
+  - 유지: L30, L44, L72, L88, L97, L105, L119, L125, L136, L142, L161, L173, L179. [skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md) 결정 7과 `skill-authoring`의 "(tested)" 규칙을 지키므로 남긴다(Q2-A).
   - 삭제: L23 `at least one repository skill exists`, L186 `the skill-authoring template starts with standard frontmatter`
   - 병합:
     - L53 `skill names are lowercase words joined by single hyphens, at most 64 characters` → L44. 이름은 `skill names match their directories, follow the name format and have descriptions`로 바꾼다.
@@ -303,13 +304,13 @@ Expected:
 
 ```bash
 git add tests/check_git.bats tests/review.bats tests/review_bash_guard.bats tests/skills.bats
-git commit -m "test: keep only essential git policy, review and skill tests" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: 06" --trailer "Task: 4"
+git commit -m "test: keep only essential git policy, review and skill tests" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: g57mry4b" --trailer "Task: 4"
 ```
 
 ### Task 5: 통합, ADR, 최종 검증 (컨트롤러)
 
 **Files:**
-- Create: `docs/decisions/adr-2026-10-13-0004-test-scope.md`
+- Create: `docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md`
 - Modify: 이 계획 파일(Progress log)
 
 - [x] **Step 1: cherry-pick**
@@ -322,16 +323,16 @@ make check
 
 Expected: 충돌 없음(파일이 겹치지 않음). 합계 `147`, `make check` 종료 코드 0.
 
-- [x] **Step 2: ADR 0004 작성 (한국어)**
+- [x] **Step 2: [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 작성 (한국어)**
   - 맥락: 237개 중 상당수가 문구·중복·변형 테스트였다.
   - 결정: "판정 기준"의 K1~K5만 새 테스트로 쓴다. 변형은 대표 테스트의 반복문으로 쓴다.
   - 결과: 147개로 줄었다. 커버리지는 Step 1에서 측정한 실제 값을 적는다. 잃은 kcov 측정 줄을 목록으로 적는다.
-  - 대체 범위: 대체된 OCI 스펙(`docs/specs/spec-2026-10-07-basic-memory-oci-tailscale.md`) §9의 "스크립트마다 명령·환경 변수 누락과 원격 단계 실패 테스트" 요구를 이 ADR이 대체한다. GCP 스펙 §9의 테스트 요구(스왑, `status`, 클라우드 중립)는 그대로 지켜진다.
+  - 대체 범위: 대체된 OCI 스펙(`docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md`) §9의 "스크립트마다 명령·환경 변수 누락과 원격 단계 실패 테스트" 요구를 이 ADR이 대체한다. GCP 스펙 §9의 테스트 요구(스왑, `status`, 클라우드 중립)는 그대로 지켜진다.
 - [x] **Step 3: Progress log에 `Verified`/`Command`로 기록하고 커밋**
 
 ```bash
-git add docs/decisions/0004-test-scope.md docs/plans/active/2026-10-13-06-test-pruning.md
-git commit -m "docs: record the test scope decision and plan 06 evidence" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: 06" --trailer "Task: 5"
+git add docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md
+git commit -m "docs: record the test scope decision and the test-pruning plan evidence" --trailer "Assisted-by: claude-code claude-opus-5-5" --trailer "Plan: g57mry4b" --trailer "Task: 5"
 make check-git
 ```
 
@@ -346,10 +347,10 @@ make check-git
     - `cloud_neutral.bats` L35, L41
   - 문서와 맞는다:
     - `skill-authoring`의 "(tested)" 규칙마다 검사하는 테스트가 남았다.
-    - ADR 0003 결정 7의 목록마다 검사하는 테스트가 남았다.
+    - [skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md) 결정 7의 목록마다 검사하는 테스트가 남았다.
     - `docs/`·README·AGENTS.md·스킬에 지운 테스트 이름이 남아 있지 않다. `docs/reviews/`와 `docs/plans/completed/`는 기록이므로 제외한다.
   - `scripts/`, `Makefile`, `compose.yaml`, 스킬, AGENTS.md가 바뀌지 않았다: `git diff --stat main...HEAD`
-  - `make check`와 `scripts/check-git.sh main plan/06-test-pruning`을 직접 실행한다.
+  - `make check`와 `scripts/check-git.sh main plan/g57mry4b-test-pruning`을 직접 실행한다.
 - [ ] **Step 5: 교차 벤더 리뷰와 머지 준비**
   - `git-workflow`의 `references/review-and-merge.md`를 따른다. Codex 리뷰는 비용이 들므로 사용자 승인 후 실행한다.
   - 머지는 사람이 `git merge --no-ff`로 한다.
@@ -361,7 +362,7 @@ make check-git
 | 2026-10-13 | Verified | 서브에이전트 4개가 테스트 237개를 판정 기준으로 분류(읽기 전용). 사용자가 "테스트 조정을 진행하세요"로 진행을 지시. Q1·Q2는 따로 고르지 않아 추천안(Q1-B, Q2-A)을 적용 |
 | 2026-10-13 | Command | `make check` (5693ff3, 기준선) |
 | 2026-10-13 | Verified | 테스트 237개 전부 PASS(not ok 0), 라인 커버리지 97.97% |
-| 2026-10-13 | Verified | Task 1~4를 sonnet 구현 에이전트 4개가 격리 worktree에서 병렬로 실행(브랜치 `plan/06-test-pruning-t1`~`t4`, 기준 5693ff3). Task마다 별도 검증 에이전트가 diff를 계획과 대조하고 `make check`를 직접 실행 |
+| 2026-10-13 | Verified | Task 1~4를 sonnet 구현 에이전트 4개가 격리 worktree에서 병렬로 실행(브랜치 `plan/g57mry4b-test-pruning-t1`~`t4`, 기준 5693ff3). Task마다 별도 검증 에이전트가 diff를 계획과 대조하고 `make check`를 직접 실행 |
 | 2026-10-13 | Verified | Task 1 e2159ab: 검증 PASS, 209 ok, 커버리지 97.83%(잃은 줄 `restore.sh:89`) |
 | 2026-10-13 | Verified | Task 2 88c4696: 검증 PASS지만, 병합한 L149의 "must be the VM's public IPv4" assertion이 빠진 것을 발견. 수정 1회차 7d8c19a로 복원, 재검증 PASS, 211 ok, 커버리지 97.25% |
 | 2026-10-13 | Verified | Task 3 3079854: 검증 PASS, 218 ok |
@@ -371,5 +372,5 @@ make check-git
 | 2026-10-13 | Verified | 최종 리뷰(opus): READY WITH FIXES. Important 1: 지운 "rejects an unknown reviewer" 테스트가 `review.sh`의 리뷰어 허용 목록(`*) usage ;;`)을 지키는 유일한 테스트였음(없으면 `check_independence`가 같은 벤더 거부를 조용히 건너뜀). Minor 6 |
 | 2026-10-13 | Command | 최종 리뷰 수정 적용 후 `make check` (400196e 위의 작업 트리) |
 | 2026-10-13 | Verified | exit 0, 테스트 148개 ok, not ok 0, 라인 커버리지 96.96%. 잃은 측정 줄 7개: `restore.sh:89`, `verify-mcp.sh:41`, `verify-vm.sh:97`, `bootstrap-vm.sh:49-50`, `remote/bootstrap.sh:100-101`(`review.sh:29,49`는 복원한 테스트로 다시 커버). 삭제 63개, 병합 26개(상태 스왑 사용량 테스트를 status 테스트에 병합) |
-| 2026-10-13 | Verified | 최종 수정(c02cc62) 재검증 에이전트: PASS. I1·M1·M2·M3·M4·M6과 C1 모두 반영, 새 결함 없음. 재검증 에이전트가 직접 실행한 `make check` exit 0(148 ok, not ok 0, 96.96%), `scripts/check-git.sh main plan/06-test-pruning` OK(8 commits). M5(747d2c7에 `Review-Finding: SDD-T2-F1` 트레일러 누락)는 이력 재작성 금지라 고치지 않고 리뷰 기록과 머지 메시지에 남긴다 |
+| 2026-10-13 | Verified | 최종 수정(c02cc62) 재검증 에이전트: PASS. I1·M1·M2·M3·M4·M6과 C1 모두 반영, 새 결함 없음. 재검증 에이전트가 직접 실행한 `make check` exit 0(148 ok, not ok 0, 96.96%), `scripts/check-git.sh main plan/g57mry4b-test-pruning` OK(8 commits). M5(747d2c7에 `Review-Finding: SDD-T2-F1` 트레일러 누락)는 이력 재작성 금지라 고치지 않고 리뷰 기록과 머지 메시지에 남긴다 |
 | 2026-10-13 | Verified | 사용자가 이번 한 번만 이력 재작성을 승인해, 747d2c7에 `Review-Finding: SDD-T2-F1` 트레일러를 더했다(Codex R1-F1, 최종 리뷰 M5). tree는 모두 그대로이고 메시지와 부모만 바뀌었다. 새 SHA: 747d2c7→ac9429c, 400196e→8a472a1, c02cc62→686ea6a, 3ecc423→fb54cdb, 75f2f57→8871863. 위 행의 옛 SHA는 이 대응표로 읽는다. 사용자가 실행한 스크립트는 다섯 쌍 모두 `git diff --quiet`로 tree가 같음을 확인한 뒤 브랜치를 옮겼고, 이후 `git diff --stat 75f2f57 HEAD`는 비어 있고 `make check-git` OK(10 commits) |

@@ -1,13 +1,14 @@
 ---
 status: accepted
+id: m4yy1sb7
 date: 2026-10-12
-amended-by: docs/decisions/adr-2026-10-22-0008-web-connector.md
+amended-by: docs/decisions/adr-2026-10-22-fcvznmdc-web-connector.md
 ---
 
-# ADR 0001: Basic Memory를 GCP 무료 e2-micro + Tailscale에 자체 호스팅
+# ADR m4yy1sb7: Basic Memory를 GCP 무료 e2-micro + Tailscale에 자체 호스팅
 
 - 2026-10-07의 OCI Always Free 결정을 대체합니다.
-- 출처: [설계 스펙](../specs/spec-2026-10-12-basic-memory-gcp-tailscale.md)
+- 출처: [설계 스펙](../specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)
 
 ## 맥락
 
@@ -24,7 +25,7 @@ amended-by: docs/decisions/adr-2026-10-22-0008-web-connector.md
 ## 결정
 
 - GCP 무료 등급의 `e2-micro`(us-west1-b, Ubuntu 26.04 LTS Minimal amd64, `pd-standard` 30GB, STANDARD 프로비저닝)에서 Docker로 Basic Memory를 실행하고, Tailscale Serve로 tailnet 안에만 노출합니다.
-- VM과 방화벽은 [런북](../runbooks/rbk-2026-10-12-gcp-vm.md)의 gcloud 명령으로 만듭니다(개인 gcloud 설정 `bm-personal`). 나머지는 이 저장소의 스크립트와 Make 타깃으로 처리합니다.
+- VM과 방화벽은 [런북](../runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md)의 gcloud 명령으로 만듭니다(개인 gcloud 설정 `bm-personal`). 나머지는 이 저장소의 스크립트와 Make 타깃으로 처리합니다.
 - 공인 SSH는 부트스트랩에만 쓰고 이후 Tailscale SSH로 전환하며, VPC 밖 소스를 허용하는 인바운드 규칙을 두지 않습니다.
 
 ## 대안
@@ -36,8 +37,8 @@ amended-by: docs/decisions/adr-2026-10-22-0008-web-connector.md
 
 ## 결과
 
-- RAM이 1GB로 고정이라 스왑 1GB를 부트스트랩이 만듭니다([ADR 0002](adr-2026-10-12-0002-vm-sizing.md)).
+- RAM이 1GB로 고정이라 스왑 1GB를 부트스트랩이 만듭니다([vm-sizing ADR](adr-2026-10-12-mdq5exsf-vm-sizing.md)).
 - 무료 리전이 미국뿐이라 한국에서는 지연이 큽니다.
 - 정지 후 시작하면 외부 IP가 바뀝니다. 런북이 IP 조회와 `.env` 갱신을 안내합니다.
-- **Open question:** 외부 IPv4 요금($0.005/h, 2024-02-01부터)이 무료 등급에 포함되는지는 공식 문서에 없습니다. 배포 다음 날 청구 보고서를 SKU별로 확인합니다([운영 런북](../runbooks/rbk-2026-10-12-operations.md)의 비용 점검).
+- **Open question:** 외부 IPv4 요금($0.005/h, 2024-02-01부터)이 무료 등급에 포함되는지는 공식 문서에 없습니다. 배포 다음 날 청구 보고서를 SKU별로 확인합니다([운영 런북](../runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 비용 점검).
 - Tailscale 계정이 단일 장애점이 됩니다. 대신 인증 없는 엔드포인트가 인터넷에 노출되지 않습니다.

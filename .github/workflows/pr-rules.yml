@@ -1,5 +1,5 @@
 # Branch name, commit trailers, and the PR title and body that become the squash commit
-# (docs/specs/spec-2026-10-13-github-pr-workflow.md, section 6). Runs again when the title or body is edited.
+# (docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, section 6). Runs again when the title or body is edited.
 name: pr-rules
 
 on:

@@ -1,9 +1,10 @@
 ---
 status: completed
-spec: docs/specs/spec-2026-10-14-silverbullet-web-ui.md
+id: n6xpm12e
+spec: docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md
 ---
 
-# 10 Web UI Local Implementation Plan
+# n6xpm12e Web UI Local Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Task 6 needs the user's browser login, so the controller runs it in the main session, not a subagent. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -18,9 +19,9 @@ spec: docs/specs/spec-2026-10-14-silverbullet-web-ui.md
 
 **Tech Stack:** bash 3.2 호환 셸, bats-core 1.14.0 + bats-assert(테스트 이미지 `bm-tools:local`), Docker Compose, SilverBullet `2.12.1-slim`(Space Lua, Space Style), Basic Memory 0.23.2, curl, jq, python3 + fontTools·brotli(Mac, `sb-fonts`만)
 
-**Spec:** `docs/specs/spec-2026-10-14-silverbullet-web-ui.md` (특히 §3, §7, §8, §10)
+**Spec:** `docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md` (특히 §3, §7, §8, §10)
 
-**Sequence:** 계획 10. 스펙과 이 계획을 담은 `work/web-ui`가 `main`에 병합된 뒤 시작한다. 계획 05(PR #2)는 `f0b4f9c`로 병합됐고, 이 계획의 줄 번호는 그 뒤의 `main` 기준이다. 계획 11은 이 계획이 병합된 뒤 시작한다.
+**Sequence:** 스펙과 이 계획을 담은 `work/web-ui`가 `main`에 병합된 뒤 시작한다. [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)(PR #2)은 `f0b4f9c`로 병합됐고, 이 계획의 줄 번호는 그 뒤의 `main` 기준이다. [web-ui-vm-rollout 계획](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)은 이 계획이 병합된 뒤 시작한다.
 
 ## Global Constraints
 
@@ -32,16 +33,16 @@ spec: docs/specs/spec-2026-10-14-silverbullet-web-ui.md
 - 에이전트는 `.env`를 읽거나 worktree로 복사하지 않는다. `SB_USER`는 사용자가 main 체크아웃 `.env`에 직접 적는다. 확인할 때는 값이 아니라 "설정됨"만 출력한다.
 - VM을 바꾸는 명령(`make deploy`, `make restore`, `make sb-fonts`(LOCAL 없이), `make vm-bootstrap`)은 이 계획에서 실행하지 않는다. VM 쪽 코드는 스텁 테스트로만 검증한다.
 - AGENTS.md: 스크립트는 `#!/usr/bin/env bash` 다음 줄에 `set -euo pipefail`을 두고, `scripts/lib/common.sh`를 source하고, 실패는 `die`로 알린다. macOS bash 3.2에서 돈다. 이름 붙인 상수를 쓴다. 코드·주석·스크립트 메시지는 영어, ADR·README·ARCHITECTURE·런북은 한국어다.
-- 테스트를 먼저 쓴다(RED 확인 후 GREEN). ADR 0004를 따른다: 대표 성공 경로 1개, 조용하거나 파괴적인 실패 경로, 불변식만 쓴다. 입력값만 다르면 반복문 하나로 묶는다. 기존 assertion을 지우거나 약하게 바꾸지 않는다. 동작이 바뀐 기대값만 고친다.
+- 테스트를 먼저 쓴다(RED 확인 후 GREEN). [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)을 따른다: 대표 성공 경로 1개, 조용하거나 파괴적인 실패 경로, 불변식만 쓴다. 입력값만 다르면 반복문 하나로 묶는다. 기존 assertion을 지우거나 약하게 바꾸지 않는다. 동작이 바뀐 기대값만 고친다.
 - 테스트는 `make test`/`make check`로만 돌린다. `docker run`으로 직접 돌리지 않는다.
-- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: 10`, `Task: <N|review|none>`. `Co-authored-by`, `Signed-off-by`, `Claude-Session`, 세션 링크, `Generated with`는 넣지 않는다.
-- PR 흐름(AGENTS.md Git): 머신 계정으로 push하고 초안 PR 하나를 연다. 제목은 `feat: add the SilverBullet web UI next to Basic Memory`, 본문 마지막 문단은 `Assisted-by`와 `Plan: 10`이다. VM의 외부·tailnet IP를 어디에도 쓰지 않는다.
+- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: n6xpm12e`, `Task: <N|review|none>`. `Co-authored-by`, `Signed-off-by`, `Claude-Session`, 세션 링크, `Generated with`는 넣지 않는다.
+- PR 흐름(AGENTS.md Git): 머신 계정으로 push하고 초안 PR 하나를 연다. 제목은 `feat: add the SilverBullet web UI next to Basic Memory`, 본문 마지막 문단은 `Assisted-by`와 `Plan: n6xpm12e`이다. VM의 외부·tailnet IP를 어디에도 쓰지 않는다.
 - 쓰기 대상: 아래 File Structure의 파일만 바꾼다.
 
 ## Review Focus
 
 1. **`SB_USER`에 make나 compose가 바꾸는 문자가 들어감.** 예: `$`, `#`, 공백, 따옴표, 콜론 없음. make가 `.env`를 그대로 읽으므로 `#` 뒤가 잘리고 `$x`가 사라져, 사용자가 생각한 것과 다른 비밀번호가 쓰인다. → Task 3 `verify_sb.bats`의 거부 반복문. 서버에 접속하기 전에 실패한다. 같은 헬퍼를 `deploy`·`restore`가 쓴다(Task 5).
-2. **이미 있는 VM `.env`의 권한이 664.** 계획 05가 배포한 파일이다. `umask 077`은 새 파일에만 적용되므로 `SB_USER`가 남에게 읽힌다. → Task 5의 배포 테스트가 644 파일을 미리 두고 600을 확인한다. 복원 테스트도 같다.
+2. **이미 있는 VM `.env`의 권한이 664.** [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)이 배포한 파일이다. `umask 077`은 새 파일에만 적용되므로 `SB_USER`가 남에게 읽힌다. → Task 5의 배포 테스트가 644 파일을 미리 두고 600을 확인한다. 복원 테스트도 같다.
 3. **`index.md`가 있는지 확인하는 원격 호출이 실패함.** 예: ssh 끊김. 이를 "없음"으로 읽으면 사용자가 고친 대시보드를 덮어쓴다. → Task 2 `sb_space.bats`가 그 호출만 실패시키고 `index.md`가 그대로인지 본다.
 4. **비밀번호가 틀려도 HTTP 200.** SilverBullet은 실패도 200 JSON `{"status":"error"}`로 답한다(`server/src/handlers/auth.rs:100-102`). 상태 코드만 보면 검증이 거짓으로 통과한다. → Task 3 실패 반복문의 `CURL_SB_AUTH_BODY` 사례.
 5. **세션 쿠키 값이나 비밀번호가 출력·명령 인자로 샘.** → Task 3 성공 테스트가 출력과 스텁 로그(curl 인자)에 비밀번호와 쿠키 토큰이 없는지, 비밀번호가 표준입력으로만 갔는지 확인한다.
@@ -60,8 +61,8 @@ tests/sb_fonts.bats (새 파일)                                                
 scripts/deploy.sh  scripts/restore.sh  scripts/lib/common.sh  tests/helpers.bash
 tests/vm_ops.bats  tests/backup_restore.bats                                                    Task 5
 silverbullet/agent-hub.md(확인 결과에 따라)  이 계획 파일(Progress log)  스펙 §3                  Task 6
-docs/decisions/0005-web-ui-silverbullet.md (새 파일)  docs/ARCHITECTURE.md  README.md  AGENTS.md
-docs/specs/2026-10-12-basic-memory-gcp-tailscale-design.md(한 줄)                                Task 7
+docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md (새 파일)  docs/ARCHITECTURE.md  README.md  AGENTS.md
+docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md(한 줄)                                Task 7
 ```
 
 ---
@@ -94,13 +95,13 @@ Expected: `127.0.0.1:3000`이나 `127.0.0.1:8737`을 쓰는 컨테이너가 없�
 
 ### 시작: 브랜치, worktree, 초안 PR (에이전트)
 
-- [ ] `git fetch origin` 후 `origin/main`에서 worktree와 `plan/10-web-ui-local` 브랜치를 만든다(git-workflow 스킬의 Start).
+- [ ] `git fetch origin` 후 `origin/main`에서 worktree와 `plan/n6xpm12e-web-ui-local` 브랜치를 만든다(git-workflow 스킬의 Start).
 - [ ] 첫 커밋으로 이 계획 파일을 `docs/plans/backlog/`에서 `docs/plans/active/`로 옮기고 push한다.
 
 ```bash
-git mv docs/plans/backlog/2026-10-14-10-web-ui-local.md docs/plans/active/2026-10-14-10-web-ui-local.md
-git commit -m "docs: start plan 10 web UI local" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 10" --trailer "Task: none"
-git push -u origin plan/10-web-ui-local
+git mv docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md
+git commit -m "docs: start the web-ui-local plan" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: n6xpm12e" --trailer "Task: none"
+git push -u origin plan/n6xpm12e-web-ui-local
 ```
 
 - [ ] `.github/pull_request_template.md` 형식으로 본문을 써서 초안 PR을 연다.
@@ -311,7 +312,7 @@ Expected:
 
 ```bash
 git add compose.yaml .env.example Makefile tests/repo.bats
-git commit -m "feat: run SilverBullet next to Basic Memory with a login and no shell" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 10" --trailer "Task: 1"
+git commit -m "feat: run SilverBullet next to Basic Memory with a login and no shell" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: n6xpm12e" --trailer "Task: 1"
 git push
 ```
 
@@ -1156,7 +1157,7 @@ Expected:
 
 ```bash
 git add silverbullet scripts/sb-space.sh scripts/lib/common.sh tests/stubs/sudo tests/sb_space.bats Makefile
-git commit -m "feat: write the SilverBullet space files before the containers start" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 10" --trailer "Task: 2"
+git commit -m "feat: write the SilverBullet space files before the containers start" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: n6xpm12e" --trailer "Task: 2"
 git push
 ```
 
@@ -1170,7 +1171,7 @@ git push
 - Consumes: Task 2의 `SB_FONTS_REL_DIR`
 - Produces:
   - `require_sb_user`(`common.sh`): `SB_USER`가 없거나 형식이 틀리면 값을 출력하지 않고 `die`한다. Task 5의 `deploy.sh`·`restore.sh`가 쓴다.
-  - `scripts/verify-sb.sh [--read-only] URL`: 통과하면 exit 0과 `OK: SilverBullet checks passed for <URL>`, `--read-only`는 `OK: SilverBullet answers and refuses requests without a login`. 계획 11의 `verify-vm.sh`가 `https://<host>.<domain>:8443`으로 부른다.
+  - `scripts/verify-sb.sh [--read-only] URL`: 통과하면 exit 0과 `OK: SilverBullet checks passed for <URL>`, `--read-only`는 `OK: SilverBullet answers and refuses requests without a login`. [web-ui-vm-rollout 계획](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)의 `verify-vm.sh`가 `https://<host>.<domain>:8443`으로 부른다.
   - curl 스텁의 SilverBullet 모드. 환경변수는 `CURL_SB_PING_STATUS`, `CURL_SB_FS_STATUS`, `CURL_SB_FONT_STATUS`, `CURL_SB_AUTH_STATUS`, `CURL_SB_SHELL_STATUS`, `CURL_SB_AUTH_BODY`, `CURL_SB_COOKIE`다. 로그인 표준입력은 `$STUB_LOG.stdin`에 쌓인다.
 
 - [ ] **Step 1: 실패하는 테스트 작성 (`tests/verify_sb.bats`)**
@@ -1482,7 +1483,7 @@ Expected:
 
 ```bash
 git add scripts/verify-sb.sh scripts/lib/common.sh tests/stubs/curl tests/verify_sb.bats Makefile
-git commit -m "feat: verify the SilverBullet login, cookie flags and disabled shell" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 10" --trailer "Task: 3"
+git commit -m "feat: verify the SilverBullet login, cookie flags and disabled shell" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: n6xpm12e" --trailer "Task: 3"
 git push
 ```
 
@@ -1656,7 +1657,7 @@ Expected:
 
 ```bash
 git add scripts/sb-fonts.sh tests/stubs/python3 tests/sb_fonts.bats Makefile
-git commit -m "feat: upload the D2Koding web fonts into the SilverBullet space" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 10" --trailer "Task: 4"
+git commit -m "feat: upload the D2Koding web fonts into the SilverBullet space" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: n6xpm12e" --trailer "Task: 4"
 git push
 ```
 
@@ -1670,7 +1671,7 @@ git push
 - Consumes: Task 2의 `scripts/sb-space.sh`(표준출력 `changed`|`unchanged`), `in_notes_dir`, `SB_GITIGNORE_PENDING`, Task 3의 `require_sb_user`
 - Produces:
   - `vm_env`가 다섯 줄을 출력한다: `BM_PORT`, `BM_KNOWLEDGE_DIR`, `BM_CONFIG_DIR`, `SB_PORT`, `SB_USER`. 호출자는 먼저 `require_sb_user`를 부른다.
-  - `use_vm_env`(테스트 헬퍼)가 `SB_USER=admin:test-password`와 `SB_PORT=3000`을 export한다. 계획 11의 VM 테스트도 이 값에 기댄다.
+  - `use_vm_env`(테스트 헬퍼)가 `SB_USER=admin:test-password`와 `SB_PORT=3000`을 export한다. [web-ui-vm-rollout 계획](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)의 VM 테스트도 이 값에 기댄다.
 
 - [ ] **Step 1: 실패하는 테스트 작성**
 
@@ -1884,7 +1885,7 @@ Expected: exit 0. 바꾼 테스트와 새 테스트가 모두 ok다. "deploy rep
 
 ```bash
 git add scripts/lib/common.sh scripts/deploy.sh scripts/restore.sh tests/helpers.bash tests/vm_ops.bats tests/backup_restore.bats
-git commit -m "feat: deploy and restore the SilverBullet login and space files to the VM" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 10" --trailer "Task: 5"
+git commit -m "feat: deploy and restore the SilverBullet login and space files to the VM" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: n6xpm12e" --trailer "Task: 5"
 git push
 ```
 
@@ -2022,7 +2023,7 @@ bash <scratchpad>/mcp-call.sh search_notes '{"query":"Agent Hub"}'
 
 - [ ] **Step 7: 기록과 정리**
 
-- 스펙 §3의 "Assumption (계획 10에서 확인)" 항목 중 확인한 것을 `Verified (계획 10, <날짜>)`로 바꾼다. 확인 명령이나 화면 결과를 한 줄씩 붙인다.
+- 스펙 §3의 "Assumption (web-ui-local 계획에서 확인)" 항목 중 확인한 것을 `Verified (web-ui-local 계획, <날짜>)`로 바꾼다. 확인 명령이나 화면 결과를 한 줄씩 붙인다.
 - 시드 노트와 `research/Newline Check`는 로컬 테스트 데이터다(`.local-data`, git 제외). 지울지는 사용자에게 묻는다.
 - scratchpad의 `mcp-call.sh`를 지운다.
 - 브라우저 탭은 에이전트가 연 것만 닫는다.
@@ -2030,8 +2031,8 @@ bash <scratchpad>/mcp-call.sh search_notes '{"query":"Agent Hub"}'
 - [ ] **Step 8: 커밋과 push**
 
 ```bash
-git add docs/plans/active/2026-10-14-10-web-ui-local.md docs/specs/2026-10-14-silverbullet-web-ui-design.md
-git commit -m "docs: record the local web UI checks of plan 10" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 10" --trailer "Task: 6"
+git add docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md
+git commit -m "docs: record the local web UI checks of the web-ui-local plan" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: n6xpm12e" --trailer "Task: 6"
 git push
 ```
 
@@ -2040,20 +2041,20 @@ git push
 ### Task 7: 문서
 
 **Files:**
-- Create: `docs/decisions/adr-2026-10-15-0005-web-ui-silverbullet.md`
-- Modify: `docs/ARCHITECTURE.md`, `README.md`, `AGENTS.md:10,22`(사용자 승인 필요), `docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md:158`
+- Create: `docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md`
+- Modify: `docs/ARCHITECTURE.md`, `README.md`, `AGENTS.md:10,22`(사용자 승인 필요), `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md:158`
 
 **Interfaces:**
 - Consumes: Task 6의 확인 결과(ADR 근거)
-- Produces: 계획 11이 VM 실측을 더할 ADR 0005의 "VM 측정" 절
+- Produces: [web-ui-vm-rollout 계획](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)이 VM 실측을 더할 [web-ui-silverbullet ADR](../decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md)의 "VM 측정" 절
 
-- [ ] **Step 1: ADR 0005 작성 (`docs/decisions/adr-2026-10-15-0005-web-ui-silverbullet.md`)**
+- [ ] **Step 1: [web-ui-silverbullet ADR](../decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md) 작성 (`docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md`)**
 
 ```markdown
-# ADR 0005: 웹 UI로 SilverBullet
+# ADR f7n75bpv: 웹 UI로 SilverBullet
 
 - 상태: Accepted (2026-10-14)
-- 설계: [SilverBullet 웹 UI 설계](../specs/2026-10-14-silverbullet-web-ui-design.md)
+- 설계: [SilverBullet 웹 UI 설계](../specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md)
 
 ## 맥락
 
@@ -2072,14 +2073,14 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 | 직접 만든 UI | 관계 타입까지 원하는 대로 표시 | 편집기·백링크·그래프를 새로 만들어야 하고, Basic Memory REST API가 프로세스 밖에 열려 있지 않음 |
 | SilverBullet 전체 이미지 | 헤드리스 Chrome 등 추가 기능 | 필요 없는 런타임 API와 메모리. slim으로 충분 |
 
-## 근거 (Verified, 2026-10-14 스파이크와 계획 10)
+## 근거 (Verified, 2026-10-14 스파이크와 web-ui-local 계획)
 
 - SilverBullet 서버는 1.7~10.6 MiB이고, 색인은 브라우저(IndexedDB)에서 합니다.
 - 위키링크, Linked Mentions, `Graph: Explore`, 트리, 목차가 내장 기능만으로 동작합니다.
 - 에이전트가 쓴 내용은 5초 안에 열린 페이지에 반영되고, SilverBullet에서 쓴 내용은 Basic Memory `search_notes`에 반영됩니다.
 - 새 페이지 frontmatter를 SilverBullet 훅이 미리 채우면 Basic Memory가 파일을 다시 쓰지 않습니다. 그래서 줄바꿈이 사라지지 않습니다(훅 전 2/2 손실, 훅 뒤 0/2).
 - 인증 없는 SilverBullet은 다른 사이트의 단순 POST로 셸을 실행하고 프록시를 엽니다. `SB_USER`와 `SB_SHELL_BACKEND=off`로 막습니다.
-- 계획 10의 로컬 확인 결과는 계획 10 파일(`docs/plans/completed/2026-10-14-10-web-ui-local.md`)의 Progress log에 있습니다.
+- web-ui-local 계획의 로컬 확인 결과는 web-ui-local 계획 파일(`docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md`)의 Progress log에 있습니다.
 
 ## 결과
 
@@ -2090,12 +2091,12 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 
 ## VM 측정
 
-계획 11에서 두 컨테이너를 함께 띄운 뒤의 메모리·스왑 사용량을 여기에 기록합니다. OOM이 나면 [ADR 0002](0002-vm-sizing.md)를 다시 판단합니다.
+web-ui-vm-rollout 계획에서 두 컨테이너를 함께 띄운 뒤의 메모리·스왑 사용량을 여기에 기록합니다. OOM이 나면 [vm-sizing ADR](adr-2026-10-12-mdq5exsf-vm-sizing.md)을 다시 판단합니다.
 ```
 
 - [ ] **Step 2: `docs/ARCHITECTURE.md`**
 
-토폴로지 코드 블록(`:5-15`)을 다음으로 바꾼다. 브라우저 경로(8443)는 계획 11에서 더한다.
+토폴로지 코드 블록(`:5-15`)을 다음으로 바꾼다. 브라우저 경로(8443)는 [web-ui-vm-rollout 계획](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)에서 더한다.
 
 ```
 [개인/회사 Mac] ── tailnet ──▶ https://agent-hub.<tailnet>.ts.net/mcp
@@ -2115,7 +2116,7 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 
 ```markdown
 | `compose.yaml` | Mac(로컬 검증)·VM | Basic Memory와 SilverBullet(웹 UI) 컨테이너 정의 (같은 파일) |
-| `silverbullet/` + `scripts/sb-space.sh`·`sb-fonts.sh`·`verify-sb.sh` | Mac → 노트 폴더 | SilverBullet 공간 파일(노트 `.gitignore`, 관리 페이지 `Library/agent-hub/agent-hub.md`, 대시보드 `index.md`)과 글꼴을 쓰고, 로그인·셸 꺼짐을 검사. [ADR 0005](decisions/0005-web-ui-silverbullet.md) |
+| `silverbullet/` + `scripts/sb-space.sh`·`sb-fonts.sh`·`verify-sb.sh` | Mac → 노트 폴더 | SilverBullet 공간 파일(노트 `.gitignore`, 관리 페이지 `Library/agent-hub/agent-hub.md`, 대시보드 `index.md`)과 글꼴을 쓰고, 로그인·셸 꺼짐을 검사. [web-ui-silverbullet ADR](decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md) |
 ```
 
 데이터 경로 표의 Markdown 노트 행(`:37`) 다음에 한 행을 더한다.
@@ -2140,7 +2141,7 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 마지막 줄(`:68`)을 다음으로 바꾼다.
 
 ```markdown
-관련 결정: [ADR 0001](decisions/0001-basic-memory-on-gcp-tailscale.md), [ADR 0002](decisions/0002-vm-sizing.md), [ADR 0005](decisions/0005-web-ui-silverbullet.md)
+관련 결정: [basic-memory-on-gcp-tailscale ADR](decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md), [vm-sizing ADR](decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md), [web-ui-silverbullet ADR](decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md)
 ```
 
 - [ ] **Step 3: `README.md`**
@@ -2148,7 +2149,7 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 결정 기록 줄(`:7`)을 다음으로 바꾼다.
 
 ```markdown
-- 결정 기록: [ADR 0001](docs/decisions/0001-basic-memory-on-gcp-tailscale.md), [ADR 0002](docs/decisions/0002-vm-sizing.md), [ADR 0005](docs/decisions/0005-web-ui-silverbullet.md)
+- 결정 기록: [basic-memory-on-gcp-tailscale ADR](docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md), [vm-sizing ADR](docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md), [web-ui-silverbullet ADR](docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md)
 ```
 
 사전 요구사항의 리뷰 줄(`:14`) 앞에 넣는다.
@@ -2190,10 +2191,10 @@ SilverBullet `2.12.1-slim` 컨테이너를 Basic Memory와 같은 compose 프로
 
 - [ ] **Step 5: GCP 설계 한 줄**
 
-`docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md:158`("유일한 비밀값은 Tailscale 인증 키다…") 다음 줄에 넣는다.
+`docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md:158`("유일한 비밀값은 Tailscale 인증 키다…") 다음 줄에 넣는다.
 
 ```markdown
-- 2026-10-14 갱신: [SilverBullet 웹 UI 설계](2026-10-14-silverbullet-web-ui-design.md)가 두 번째 비밀값 `SB_USER`를 더한다(§8.3).
+- 2026-10-14 갱신: [SilverBullet 웹 UI 설계](spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md)가 두 번째 비밀값 `SB_USER`를 더한다(§8.3).
 ```
 
 - [ ] **Step 6: 확인**
@@ -2207,10 +2208,10 @@ Expected: 출력 없음. 사용자가 AGENTS.md 변경을 승인하지 않았다
 - [ ] **Step 7: 커밋과 push**
 
 ```bash
-git add docs/decisions/0005-web-ui-silverbullet.md docs/ARCHITECTURE.md README.md docs/specs/2026-10-12-basic-memory-gcp-tailscale-design.md
-git commit -m "docs: describe the SilverBullet web UI and its second secret" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 10" --trailer "Task: 7"
+git add docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md docs/ARCHITECTURE.md README.md docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
+git commit -m "docs: describe the SilverBullet web UI and its second secret" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: n6xpm12e" --trailer "Task: 7"
 git add AGENTS.md
-git commit -m "docs: name SB_USER as the second secret in AGENTS.md" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 10" --trailer "Task: 7"
+git commit -m "docs: name SB_USER as the second secret in AGENTS.md" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: n6xpm12e" --trailer "Task: 7"
 git push
 ```
 
@@ -2224,12 +2225,12 @@ AGENTS.md는 사용자가 승인한 뒤에만 두 번째 커밋을 만든다.
 - [ ] 계획 파일을 `docs/plans/completed/`로 옮긴다. `make check`와 `make check-git`이 통과한 뒤 push한다.
 
 ```bash
-git mv docs/plans/active/2026-10-14-10-web-ui-local.md docs/plans/completed/2026-10-14-10-web-ui-local.md
-git commit -m "docs: complete plan 10" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 10" --trailer "Task: none"
+git mv docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md
+git commit -m "docs: complete the web-ui-local plan" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: n6xpm12e" --trailer "Task: none"
 git push
 ```
 
-- [ ] 다른 벤더의 읽기 전용 리뷰를 받는다: `make review BRANCH=plan/10-web-ui-local REVIEWER=<다른 벤더>`.
+- [ ] 다른 벤더의 읽기 전용 리뷰를 받는다: `make review BRANCH=plan/n6xpm12e-web-ui-local REVIEWER=<다른 벤더>`.
   - 사용량이 드는 작업이므로 실행 전에 사용자 승인을 받는다.
   - PR 코멘트 게시도 사용자 승인을 받은 뒤 한다.
   - 게시 전에 리포트에서 VM IP와 세션 id를 가린다.
@@ -2240,22 +2241,22 @@ git push
 ## Follow-ups (이 계획 밖)
 
 - SilverBullet 업스트림 이슈(관찰 카테고리를 누르면 `[]`가 됨): 문안은 브레인스토밍에서 준비했다. 게시는 사용자가 결정한다.
-- `bm-diagnose`·`bm-recover` 스킬에 SilverBullet 컨테이너를 다루는 문장이 필요한지 계획 11 뒤에 판단한다.
-- 계획 11: `verify`·`probe`의 SilverBullet·Serve 검사, Serve 8443, VM 배포.
+- `bm-diagnose`·`bm-recover` 스킬에 SilverBullet 컨테이너를 다루는 문장이 필요한지 [web-ui-vm-rollout 계획](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md) 뒤에 판단한다.
+- [web-ui-vm-rollout 계획](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md): `verify`·`probe`의 SilverBullet·Serve 검사, Serve 8443, VM 배포.
 
 ## Progress log
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
-| 2026-10-15 | Command | 시작: `plan/10-web-ui-local`을 `945fd57`에서 만들고 계획을 `active/`로 옮김(`a33dc52`). 초안 PR #5. 실행 방식은 사용자 결정대로 서브에이전트 구동, 의존성이 없는 태스크는 별도 worktree에서 병렬. |
+| 2026-10-15 | Command | 시작: `plan/n6xpm12e-web-ui-local`을 `945fd57`에서 만들고 계획을 `active/`로 옮김(`a33dc52`). 초안 PR #5. 실행 방식은 사용자 결정대로 서브에이전트 구동, 의존성이 없는 태스크는 별도 worktree에서 병렬. |
 | 2026-10-15 | Verified | 전제 2: 스파이크 컨테이너 `sb-spike` 삭제, `make local-down`, `.local-data` 삭제(사용자 승인). 전제 1: `SB_USER` 미설정. 원래 확인 명령 `make --eval`은 macOS GNU make 3.81에서 `unrecognized option`으로 실패해, 표준입력 makefile 방식으로 바꿈(값은 출력하지 않음). |
 | 2026-10-15 | Verified | 실행 전 점검 판정(`b4e6edc`). make 3.81은 `.SHELLFLAGS`를 무시함(실험: `x="$$(false)"; echo still-ran`이 still-ran 출력) → `local-up`에 `\|\| exit 1`. `SB_USER`는 여섯 타깃에만 타깃별 export(3.81에서 `review`에 보이지 않음 확인). `sb-space.sh` 2단계화(실행 중 Basic Memory가 재생성 전에 페이지를 색인하지 않도록). Task 7의 `AGENTS.md:9`→`:10`. Progress log는 컨트롤러만 쓰고, 실제 스택 단계는 계획 worktree에서 병합 뒤 순서대로 실행. |
 | 2026-10-15 | Verified | Task 1 `cc8d6b4`(병합 `8d380e1`): 2.12.1 릴리스 노트 확인, digest `sha256:7e24c16d…415c` 일치(amd64·arm64). `make check` 0 not ok / 164, 커버리지 96.62%. 태스크 리뷰 승인. Step 6(실제 스택)은 `SB_USER`가 없어 미실행. |
 | 2026-10-15 | Verified | Task 2 `b0c3857`: `make check` exit 0, 커버리지 96.66%, `sb-space.sh` 100%. `agent-hub.md`가 계획 원문과 바이트 단위로 같음(리뷰어 diff). 태스크 리뷰 승인. Step 9 미실행. |
 | 2026-10-15 | Verified | Task 3 `0ec6fc2` + `b6bb852`(`SDD-T3-F1`: 스크립트가 없어도 통과하던 `SB_USER` 거부 테스트에 메시지 확인 추가), Task 4 `767ba58`(Task 3과 병렬). 병합 `b091717`·`b4aa09d` 뒤 `make check` exit 0, 173 ok, 0 not ok, 커버리지 96.83%. 두 태스크 리뷰 승인. Task 3 Step 8, Task 4 Step 7 미실행. |
 | 2026-10-15 | Verified | Task 5 `f5a3191`: `make check` exit 0, 177 ok, 커버리지 96.89%. 태스크 리뷰(opus) 승인. |
-| 2026-10-15 | Verified | Task 7 `96dfaf5`(병합 `0e03725`): ADR 0005, ARCHITECTURE, README, GCP 설계 한 줄. `make check` exit 0, 177 ok. 태스크 리뷰 승인. Step 4(AGENTS.md)는 사용자 승인 대기. |
-| 2026-10-15 | Verified | 브랜치 전체 리뷰(opus, `945fd57..0e03725`): 수정 후 병합 가능. 고친 것: C1 `c6c1da9` 복원이 Basic Memory가 멈춘 동안 공간 파일을 씀(계획 10 이전 백업에는 무시 목록이 없음), I1 `fde8106` make가 `.env`의 `#`·`$`를 바꾼 `SB_USER`를 원문 줄과 비교해 거부하고 `local-up`도 검사, I2 `cc1d5c6` 재시작 정책 테스트를 서비스별로. 범위 재리뷰 통과. `make check` exit 0, 181 ok, 0 not ok, 커버리지 96.84%. `make check-git` OK. 미룬 것: M4(복원 롤백 `up`에 `--remove-orphans` 없음, 계획 11 또는 후속). |
+| 2026-10-15 | Verified | Task 7 `96dfaf5`(병합 `0e03725`): [web-ui-silverbullet ADR](../decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md), ARCHITECTURE, README, GCP 설계 한 줄. `make check` exit 0, 177 ok. 태스크 리뷰 승인. Step 4(AGENTS.md)는 사용자 승인 대기. |
+| 2026-10-15 | Verified | 브랜치 전체 리뷰(opus, `945fd57..0e03725`): 수정 후 병합 가능. 고친 것: C1 `c6c1da9` 복원이 Basic Memory가 멈춘 동안 공간 파일을 씀(web-ui-local 계획 이전 백업에는 무시 목록이 없음), I1 `fde8106` make가 `.env`의 `#`·`$`를 바꾼 `SB_USER`를 원문 줄과 비교해 거부하고 `local-up`도 검사, I2 `cc1d5c6` 재시작 정책 테스트를 서비스별로. 범위 재리뷰 통과. `make check` exit 0, 181 ok, 0 not ok, 커버리지 96.84%. `make check-git` OK. 미룬 것: M4(복원 롤백 `up`에 `--remove-orphans` 없음, [web-ui-vm-rollout 계획](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md) 또는 후속). |
 | 2026-10-15 | Verified | 사용자가 AGENTS.md 수정을 승인함 → `e00ed9a`(Task 7 Step 4). `make check` exit 0, 181 ok, 커버리지 96.84%. 옛 문구 grep 0건. 사용자가 main 체크아웃 `.env`에 `SB_USER`를 넣음. 값을 출력하지 않고 형식(한 줄, 콜론 하나, 허용 문자, 16자 이상)을 확인했고, 표준입력 makefile로 `require_sb_user`가 통과함(make가 값을 바꾸지 않음). |
 | 2026-10-15 | Verified | 미뤘던 실제 실행(병합된 브랜치에서 한 흐름으로). 첫 `make local-up`: `notes .gitignore changed` 1회, Basic Memory를 다시 만든 뒤 `wrote the dashboard index.md`, 두 컨테이너 healthy, 포트 `127.0.0.1:3000`·`127.0.0.1:8737`(Task 2 Step 9 첫 번째). curl `/.ping` 200, `/.fs/index.md` 401, `/.instance` **200**(Task 1 Step 6, 예상 401과 다름). 두 번째 `make local-up`: `changed` 0회, Basic Memory 가동 시간이 이어짐(Task 2 Step 9 두 번째). `make local-verify`: MCP 왕복 2회, 로그인과 쿠키, 셸 꺼짐, 글꼴 경고, `OK: SilverBullet checks passed`(Task 3 Step 8). 두 TTF 확인 뒤 `make sb-fonts LOCAL=1`이 woff2 두 개를 씀, 다시 `local-verify`에서 글꼴 경고 0(Task 4 Step 7). 모든 로그에 비밀번호 0회. |
 | 2026-10-15 | Verified | `/.instance`는 2.12.1-slim에서 로그인 없이 200과 인스턴스 id·버전을 돌려줌. healthcheck는 인증 예외 목록에 있는 `/.ping`을 그대로 쓰고, 틀린 주석과 스펙 근거만 고침(`ea7d696`). |
@@ -2263,7 +2264,7 @@ git push
 | 2026-10-15 | Verified | Task 6 Step 3: 계획의 `fetch("/.fs/…", PUT)`은 service worker 뒤에서 405(`allow: GET,HEAD`)를 받음. 사용자 허용 뒤 `client.space.writePage`로 시드 노트 셋을 씀(되읽기 같음, Basic Memory `search_notes`에 나옴). |
 | 2026-10-15 | Verified | Task 6 Step 4(`sb.localhost:3000`): 트리 왼쪽, 목차 오른쪽이 열린 채 시작. 대시보드 일곱 절(최근 노트 셋, 폴더 `projects (1)`·`research (1)`·`tools (1)`, 결정·위험·질문 각 2, `#sample (3)`, Maintenance 링크가 `Library/Std/Pages/Maintenance`를 엶). 테마 어둡게 `#0d1117`·카테고리 `rgb(210,153,34)`, 밝게 `#ffffff`·`rgb(154,103,0)`. 글꼴 `400 loaded, 700 loaded \| "D2Koding Space", …`. 정보 줄 `Updated … · 28 words · ~1 min read · 1 backlinks · memory://main/tools/basic-memory`가 노트에만 있고 `index`·`Library` 페이지에는 없음. `tools/Basic Memory`의 Linked Mentions에 `Agent Hub`. Cmd-K는 포커스가 `Page` 입력칸, Esc로 트리 복귀. Cmd-Shift-F는 포커스가 `Text in notes`, `memory`로 제목·관찰·관계·문단이 나오고 문단을 고르면 10번째 줄로 이동. `tailne`도 Reindex 없이 문단을 찾음. 검색어는 왼쪽 칸 입력칸에 남아 트리를 거름(SilverBullet 내장 동작, 지우면 복귀). `Copy memory:// Link` → `Copied memory://main/projects/agent-hub`. `Navigate: Random Note` 18회는 노트 셋으로만 이동. `Graph: Explore`는 `Agent Hub`과 두 노트를 `mention`으로 그림. |
 | 2026-10-15 | Verified | Task 6 Step 5: `research/Newline Check`를 URL로 열자 템플릿 frontmatter가 미리 들어감. `first line`, Enter, 3초 뒤 `second line`, 10초 뒤 편집기와 `client.space.readPage`, Basic Memory `read_note`가 모두 기대한 7줄과 같음(frontmatter 재작성 없음, 줄바꿈 보존). 페이지 `fetch("/.fs/…")` GET은 앱 HTML을 돌려줘서 쓰지 않음. 무시 목록: `search_notes` 기본 검색은 비슷한 노트 4건을 점수로 돌려주지만 `search_type: "text"`는 `agentHub` 0건, `list_directory`에는 노트 4개만 있음(`index`·`Library/`·`Repositories/` 없음). |
-| 2026-10-15 | Verified | Task 6 Step 7: 스펙 §3의 계획 10 Assumption 넷을 Verified로 바꾸고, 위 발견(캐시가 남은 origin, `/.fs` fetch, `search_notes` 기본 검색, 문단 색인, 공유 입력칸)을 적음. README의 Reindex 안내를 "문단이 안 나오면"으로, ADR 0005 근거에 계획 10 로컬 결과를, 계획 11 Task의 `search_notes` 확인에 `search_type: "text"`를 더함. |
+| 2026-10-15 | Verified | Task 6 Step 7: 스펙 §3의 web-ui-local 계획 Assumption 넷을 Verified로 바꾸고, 위 발견(캐시가 남은 origin, `/.fs` fetch, `search_notes` 기본 검색, 문단 색인, 공유 입력칸)을 적음. README의 Reindex 안내를 "문단이 안 나오면"으로, [web-ui-silverbullet ADR](../decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md) 근거에 web-ui-local 계획 로컬 결과를, [web-ui-vm-rollout 계획](plan-2026-10-14-a88datfz-web-ui-vm-rollout.md) Task의 `search_notes` 확인에 `search_type: "text"`를 더함. |
 | 2026-10-15 | Verified | 보충(범위 리뷰 지적). Task 2 Step 9의 `.local-data` 목록은 에이전트에게 읽기가 막혀 있음. 대신 로그인한 클라이언트의 `/.fs/` 목록에 `Library/agent-hub/agent-hub.md`·`index.md`가 있었음. `.gitignore.pending`이 없다는 것은 레시피의 `rm -f … && sb-space.sh … unchanged` 연쇄가 exit 0으로 끝난 것으로 판단함(SilverBullet은 숨김 파일을 나열하지 않음). Task 6 Step 5의 `search_notes "Agent Hub"`는 `projects/Agent Hub`를 첫 결과(score 1.23)로 돌려줌. |
 | 2026-10-15 | Verified | Task 6 Step 7 정리: scratchpad의 `mcp-call.sh`를 지우고, 에이전트가 연 탭 둘을 닫음. 시드 노트 셋과 `research/Newline Check`(로컬 `.local-data`, git 제외)를 지울지는 사용자 결정을 기다림. |
 | 2026-10-15 | Verified | 마무리: 최종 리뷰 이후 커밋(`9409cb9..bfa3347`)의 범위 리뷰는 Spec ✅, 승인, P3 3건. `376fe12`(SDD-T6-F1·F2), `6df6709`(SDD-T6-F3)로 고쳤고 재리뷰에서 모두 반영 확인, 새 지적 0. `make check` exit 0, 181 ok, 0 not ok, 커버리지 96.84%. `make check-git` OK. 계획을 `completed/`로 옮김. 남은 일: PR #5 CI, Codex 리뷰(사용자 확인 뒤). |

@@ -1,9 +1,10 @@
 ---
 status: backlog
+id: k3bd8k47
 spec: none
 ---
 
-# 20 Agent Sandbox and Permissions Implementation Plan
+# k3bd8k47 Agent Sandbox and Permissions Implementation Plan
 
 > 2026-10-22 에이전트 개발 시스템 평가(저장소 밖 기록)에서 나온 백로그 초안입니다. 모든 에이전트 세션의 실행 방식(셸 sandbox, 권한 규칙, 역할 분리)을 바꾸므로, 실행 전에 사용자 승인을 받고 brainstorming → 스펙 → 계획 순서를 거쳐야 합니다. 아래 Task는 후보이고, 설계 질문의 답에 따라 바뀝니다.
 
@@ -18,9 +19,9 @@ spec: none
 
 **Spec:** none. 모든 세션의 동작을 바꾸는 설계라 활성화 전에 스펙(`make new-doc TYPE=spec SLUG=agent-sandbox`)을 먼저 쓴다. 승인되면 front matter의 `spec:`과 이 줄을 그 경로로 바꾼다.
 
-**Sequence:** 계획 20. 다음을 모두 만족한 뒤 시작한다.
+**Sequence:** 다음을 모두 만족한 뒤 시작한다.
 - 사용자가 이 백로그를 승인하고, 아래 설계 질문에 답한 스펙이 `approved`다.
-- 계획 18(`docs/plans/plan-2026-10-22-18-public-text-guard.md`, 게시 전 공개 텍스트 검사)과는 독립이다. 리뷰어 보고서를 공개 PR에 올리는 간접 외부 출력은 계획 18이 맡고, Task 5의 표는 그 결과를 반영한다.
+- [public-text-guard 계획](plan-2026-10-22-v9whrbs6-public-text-guard.md)(`docs/plans/plan-2026-10-22-v9whrbs6-public-text-guard.md`, 게시 전 공개 텍스트 검사)과는 독립이다. 리뷰어 보고서를 공개 PR에 올리는 간접 외부 출력은 public-text-guard 계획이 맡고, Task 5의 표는 그 결과를 반영한다.
 
 ## 배경
 
@@ -75,7 +76,7 @@ spec: none
 - VM이나 클라우드에 닿는 Step은 메인 세션에서 사용자와 함께 한다. 바꾸는 명령(`make deploy`, `restore`, `vm-bootstrap`, `sb-fonts`, gcloud 생성·삭제)은 이 계획에서 실행하지 않는다. ask 규칙은 프롬프트가 뜨는 것만 확인하고 거절한다.
 - `gcloud`는 `--configuration=bm-personal`로만 쓴다(`AGENTS.md:26`).
 - 스크립트는 macOS bash 3.2에서 돌아야 하고, bats 테스트를 먼저 쓴다(`AGENTS.md:16,18`). 테스트를 약하게 고쳐 통과시키지 않는다.
-- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: 20`, `Task: <N|review|none>`.
+- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: k3bd8k47`, `Task: <N|review|none>`.
 
 ## Review Focus
 
@@ -99,7 +100,7 @@ spec: none
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/20-agent-sandbox` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/k3bd8k47-agent-sandbox` 브랜치를 만든다(`git-workflow` 스킬의 Start).
 - [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: Sandbox spike
@@ -123,7 +124,7 @@ spec: none
 Run: 위 명령
 Expected: 명령마다 sandbox 안 성공·실패, 오류 첫 줄, 필요한 제외 항목이 Progress log에 `Verified`로 남는다.
 
-커밋: `docs: record the sandbox spike`, 트레일러 `Plan: 20`, `Task: 1`.
+커밋: `docs: record the sandbox spike`, 트레일러 `Plan: k3bd8k47`, `Task: 1`.
 
 ### Task 2: Committed sandbox and permission rules
 
@@ -145,7 +146,7 @@ Expected: 명령마다 sandbox 안 성공·실패, 오류 첫 줄, 필요한 제
 - [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 테스트가 `.sandbox`가 null이라 실패한다.
 - [ ] **Step 3: 최소 구현:** `.claude/settings.json`에 위 키를 넣는다.
 - [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0, 커버리지 80% 이상. 새 세션을 Manual 모드로 열어 `make deploy`에 "Bash command" 프롬프트가 뜨는 것을 확인하고 거절한다.
-- [ ] **Step 5: 커밋:** `feat: enable the Claude Code sandbox and ask before VM commands`, 트레일러 `Plan: 20`, `Task: 2`.
+- [ ] **Step 5: 커밋:** `feat: enable the Claude Code sandbox and ask before VM commands`, 트레일러 `Plan: k3bd8k47`, `Task: 2`.
 
 ### Task 3: Release-notes reader without credentials
 
@@ -163,7 +164,7 @@ Expected: 명령마다 sandbox 안 성공·실패, 오류 첫 줄, 필요한 제
 - [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 독자 정의 파일이 없어 새 테스트가 실패한다.
 - [ ] **Step 3: 최소 구현:** 독자 정의를 쓰고 3단계와 체크리스트를 고친다.
 - [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋:** `feat: read Basic Memory release notes in a role without credentials`, 트레일러 `Plan: 20`, `Task: 3`.
+- [ ] **Step 5: 커밋:** `feat: read Basic Memory release notes in a role without credentials`, 트레일러 `Plan: k3bd8k47`, `Task: 3`.
 
 ### Task 4: Restore confirmation from the terminal
 
@@ -177,7 +178,7 @@ Expected: 명령마다 sandbox 안 성공·실패, 오류 첫 줄, 필요한 제
 - [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 지금 코드는 파이프의 `yes`를 받아 복원을 진행하므로 새 사례가 실패한다.
 - [ ] **Step 3: 최소 구현:** `confirm`의 `read`를 `/dev/tty`로 돌리고, 열기 실패를 `die`로 바꾼다(bash 3.2 문법).
 - [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋:** `fix: read the restore confirmation from the terminal, not stdin`, 트레일러 `Plan: 20`, `Task: 4`.
+- [ ] **Step 5: 커밋:** `fix: read the restore confirmation from the terminal, not stdin`, 트레일러 `Plan: k3bd8k47`, `Task: 4`.
 
 ### Task 5: Trifecta ADR
 
@@ -192,11 +193,11 @@ Expected: 명령마다 sandbox 안 성공·실패, 오류 첫 줄, 필요한 제
   - sandbox 밖에서 도는 도구: Read, WebFetch, 훅, 로컬 MCP
   - 문자열 매칭 우회(`sh -c`, `git -C . push`, 스크립트 직접 호출)와 `restore`의 pty 우회
   - bypass 모드에서는 allow가 무효이고 ask·deny만 남는다
-  - 리뷰어 보고서의 공개 게시(계획 18)
+  - 리뷰어 보고서의 공개 게시([public-text-guard 계획](plan-2026-10-22-v9whrbs6-public-text-guard.md))
 
 - [ ] **Step 1:** 새 테스트는 없다. `tests/repo-docs.bats`가 이름, front matter, 링크를 검사한다. ADR의 "확인 방법" 줄에 Task 2·3·4의 테스트 이름을 적는다.
 - [ ] **Step 2:** Run: `make check` / Expected: exit 0.
-- [ ] **Step 3: 커밋:** `docs: record the agent trifecta decision`, 트레일러 `Plan: 20`, `Task: 5`.
+- [ ] **Step 3: 커밋:** `docs: record the agent trifecta decision`, 트레일러 `Plan: k3bd8k47`, `Task: 5`.
 
 ### Finish: review and hand-off
 

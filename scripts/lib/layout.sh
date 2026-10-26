@@ -3,7 +3,7 @@
 # script name starts with (the table under "## Verbs" in the script-authoring skill), the folder of each kind of script
 # and the pair test of each script.
 # Sources common.sh.
-# Must stay compatible with macOS bash 3.2. Spec: docs/specs/spec-2026-10-15-script-test-layout.md, sections 4 and 6.
+# Must stay compatible with macOS bash 3.2. Spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md, sections 4 and 6.
 #   script_verbs SKILL_FILE -> the first cell of every row of the table under "## Verbs", one per line
 #   script_dir KIND -> the folder of a KIND of script: scripts, scripts/remote or scripts/lib
 #   pair_test PATH -> the test file of scripts/<name>.sh, scripts/remote/<name>.sh or scripts/lib/<name>.sh

@@ -3,7 +3,7 @@ load helpers
 
 CLOUD_NAMES='oci|oracle|gcp|gcloud'
 # The runbook's file name is the one allowed mention: scripts point to it instead of naming a provider.
-ALLOWED_RUNBOOK='docs/runbooks/rbk-2026-10-12-gcp-vm\.md'
+ALLOWED_RUNBOOK='docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm\.md'
 
 # cloud_scan DIR: fail with the lines under DIR that name a cloud provider (whole word, any case), comments included.
 # It scans a copy of DIR without the allowed runbook path, so the lines it prints name files under
@@ -28,7 +28,7 @@ cloud_scan() {
 @test "the scan flags a provider name, and scripts and skills name none in their contents, comments included, or in their file names" {
   local sample="$BATS_TEST_TMPDIR/sample" names="$BATS_TEST_TMPDIR/names" dir
   mkdir -p "$sample"
-  printf '# see docs/runbooks/rbk-2026-10-12-gcp-vm.md\n# use the OCI console\n# gcloud compute list\n' >"$sample/a.sh"
+  printf '# see docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md\n# use the OCI console\n# gcloud compute list\n' >"$sample/a.sh"
   # The first case checks the scan itself: it flags both names and skips only the runbook path.
   run cloud_scan "$sample"
   assert_failure

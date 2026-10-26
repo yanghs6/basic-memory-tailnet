@@ -1,13 +1,14 @@
 ---
 status: approved
+id: tn23wwmd
 date: 2026-10-22
 ---
 
 # claude.ai 웹 커넥터 (OAuth 게이트웨이 + 아웃바운드 터널) — 설계
 
-- 구현 계획: `docs/plans/`의 계획 25 하나에 배포까지 담는다(18~23은 개선 백로그, 24는 에이전트 기억 미러가 쓴다). Task 1~3은 코드·테스트·문서이고 VM에서는 아무것도 실행하지 않는다(코드 PR). Task 4는 코드 PR이 병합된 뒤 사용자와 함께 VM에 켜고 claude.ai에서 확인한다(결과 PR).
-- 대체 범위: [GCP 설계](spec-2026-10-12-basic-memory-gcp-tailscale.md) 완료 조건 2(`:38-41`)의 "공개 노출이 없다"와 [접속 방식 설계](spec-2026-10-15-access-modes.md) §9의 "공인 인터넷 인그레스 0"(`:278`)을 §3.6의 규칙으로 바꾼다. 접속 방식(`BM_ACCESS`) 자체는 바꾸지 않는다. 결정은 [ADR 0008](../decisions/adr-2026-10-22-0008-web-connector.md)에 남긴다.
-- 출처: [2026-10-16 조사](../research/rsch-2026-10-22-web-connector-exposure.md)(4개 주제, 공식 문서 기준), 2026-10-22 시제품 측정(FastMCP 4.1.3, VM의 Basic Memory 0.23.2), 같은 날 사용자 결정.
+- 구현 계획: `docs/plans/`의 [web-connector 계획](../plans/plan-2026-10-22-d3dpb00s-web-connector.md) 하나에 배포까지 담는다(18~23은 개선 백로그, 24는 에이전트 기억 미러가 쓴다). Task 1~3은 코드·테스트·문서이고 VM에서는 아무것도 실행하지 않는다(코드 PR). Task 4는 코드 PR이 병합된 뒤 사용자와 함께 VM에 켜고 claude.ai에서 확인한다(결과 PR).
+- 대체 범위: [GCP 설계](spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md) 완료 조건 2(`:38-41`)의 "공개 노출이 없다"와 [접속 방식 설계](spec-2026-10-15-jr59pvyf-access-modes.md) §9의 "공인 인터넷 인그레스 0"(`:278`)을 §3.6의 규칙으로 바꾼다. 접속 방식(`BM_ACCESS`) 자체는 바꾸지 않는다. 결정은 [web-connector ADR](../decisions/adr-2026-10-22-fcvznmdc-web-connector.md)에 남긴다.
+- 출처: [2026-10-16 조사](../research/rsch-2026-10-22-ayedpfen-web-connector-exposure.md)(4개 주제, 공식 문서 기준), 2026-10-22 시제품 측정(FastMCP 4.1.3, VM의 Basic Memory 0.23.2), 같은 날 사용자 결정.
 
 ## 1. 목적과 범위
 
@@ -30,11 +31,11 @@ Basic Memory를 claude.ai(웹, 그리고 같은 계정의 Desktop·모바일 커
 
 **완료 조건**
 1. `make check`가 통과하고, §5의 새 구조 테스트가 웹 경로의 불변식(포트 미게시, 네트워크 격리, 헤더 미전달, 도구 허용 목록, 의존성 해시)을 강제한다.
-2. `BM_WEB`이 없거나 `off`면 모든 Make 타깃의 동작이 계획 25 직전과 같고, 기존 bats 테스트는 고치지 않고 통과한다. 웹 서비스는 로컬과 VM 어디에서도 뜨지 않는다.
+2. `BM_WEB`이 없거나 `off`면 모든 Make 타깃의 동작이 [web-connector 계획](../plans/plan-2026-10-22-d3dpb00s-web-connector.md) 직전과 같고, 기존 bats 테스트는 고치지 않고 통과한다. 웹 서비스는 로컬과 VM 어디에서도 뜨지 않는다.
 3. `BM_WEB=on`에서 `make local-up local-verify`가 게이트웨이를 띄우고, 토큰 없는 요청의 `401`·`resource_metadata`, 보호 리소스 메타데이터, 인가 서버 메타데이터(S256, CIMD), 벤더가 아닌 redirect URI의 등록 거절을 확인한다. 게이트웨이 동작 테스트(§5.1)도 통과한다: 소유자가 아니면 도구 0개와 호출 거절, 막은 도구 세 개는 소유자에게도 없음, 백엔드가 `Authorization`을 받지 않음.
 4. Task 4에서 VM에 켠 뒤 `make verify`가 공개 URL 검사(§5.2)를 통과하고, GCP 방화벽에서 VPC 밖 소스를 허용하는 규칙은 지금과 같다(`allow-iap-ssh` 하나).
 5. claude.ai에 커넥터를 등록하고 소유자 GitHub 계정으로 연결한 뒤, 테스트 노트를 쓰고 읽고 수정한다. 도구 목록에 `delete_note`·`create_memory_project`·`delete_project`가 없다. 테스트 노트는 `make tunnel`을 거친 Claude Code로 지운다.
-6. 켠 뒤 24시간 동안 OOM이 없고 기존 두 컨테이너가 healthy이며, `make status`의 메모리·스왑과 프록시 경유 도구 호출 지연을 계획 25 Progress log에 남긴다.
+6. 켠 뒤 24시간 동안 OOM이 없고 기존 두 컨테이너가 healthy이며, `make status`의 메모리·스왑과 프록시 경유 도구 호출 지연을 [web-connector 계획](../plans/plan-2026-10-22-d3dpb00s-web-connector.md) Progress log에 남긴다.
 
 ## 2. 근거가 된 사실 (2026-10-22, `main` 7a3748d)
 
@@ -76,7 +77,7 @@ Basic Memory와 FastMCP (2026-10-22, 이 Mac):
 - **Verified:** `make local-up`은 `up -d --wait`(`Makefile:62`), 배포는 `up -d --wait --wait-timeout 360`(`scripts/deploy-stack.sh:42`)이라 지금은 모든 서비스를 띄운다. compose에 `profiles:`는 없다.
 - **Verified:** VM `.env`는 `vm_env`(`scripts/lib/vm.sh:155-161`)가 출력한 값을 ssh 표준입력으로 받아 권한 600으로 쓴다(`scripts/deploy-stack.sh:30-33`).
 - **Verified:** `verify-vm.sh`는 공인 IP의 22·80·443·8443·8737·3000이 닫혔는지 본다(`:18`, `:209`). `verify-mcp.sh`의 `rpc`는 HTTP 200이 아니면 실패한다(`:81-98`).
-- **Verified (`make status`, 2026-10-22):** memory used 41%(total − available 기준, `scripts/show-status.sh:11-15`), swap 511/1023 MB. [ADR 0002](../decisions/adr-2026-10-12-0002-vm-sizing.md)는 24시간 유휴 때 swap 508/1023을 기록했고, 스왑이 절반 이상 머물거나 OOM이 나면 다시 정한다고 적었다.
+- **Verified (`make status`, 2026-10-22):** memory used 41%(total − available 기준, `scripts/show-status.sh:11-15`), swap 511/1023 MB. [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)은 24시간 유휴 때 swap 508/1023을 기록했고, 스왑이 절반 이상 머물거나 OOM이 나면 다시 정한다고 적었다.
 - **Assumption:** 게이트웨이와 `cloudflared`가 amd64 VM에서 쓰는 메모리는 arm64 측정과 비슷하다. Task 4에서 잰다.
 - **Assumption:** VM 안에서는 게이트웨이와 Basic Memory가 같은 호스트라, 요청마다 세션을 새로 여는 비용이 수십 ms 수준이다. Task 4에서 잰다.
 - **Assumption:** Cloudflare named Tunnel은 streamable HTTP 응답을 버퍼링하지 않는다. Anthropic 문서가 로컬 서버를 공개할 때 Cloudflare Tunnel을 예로 든다([Claude docs: testing](https://www.claude.com/docs/connectors/building/testing)). Task 4에서 확인한다.
@@ -89,7 +90,7 @@ Basic Memory와 FastMCP (2026-10-22, 이 Mac):
 |---|---|---|---|
 | **Cloudflare named Tunnel** | 변경 없음 | 없음(게이트웨이가 담당) | 고름. 표준 443, 아웃바운드만 필요, 비용은 도메인뿐 |
 | Tailscale Funnel | 변경 없음 | 없음 | ssh 모드 VM은 Tailscale이 꺼져 있다. 한 VM 두 모드 금지와 Funnel 금지 검사 세 곳을 풀어야 한다 |
-| 공인 IPv4 443 + Caddy | 443 개방 | 없음 | 방화벽을 연다. 인터넷 스캔을 1GB VM이 직접 받는다. 계획 07(IPv6)과 충돌한다 |
+| 공인 IPv4 443 + Caddy | 443 개방 | 없음 | 방화벽을 연다. 인터넷 스캔을 1GB VM이 직접 받는다. [ipv6-egress 계획](../plans/plan-2026-10-13-gaewewkf-ipv6-egress.md)(IPv6)과 충돌한다 |
 | GCP LB + IAP | LB | Google 신원 | 월 약 $18이다. 벤더 서버가 통과하지 못한다 |
 
 | 인증 계층 | 고른 이유 / 버린 이유 |
@@ -130,12 +131,12 @@ flowchart TB
 
 - `.env`의 `BM_WEB`이 `on`일 때만 켠다. 비어 있거나 `off`면 꺼짐이다. 다른 값이면 원격 접속 전에 실패한다(`access_mode`와 같은 방식). `BM_ACCESS`와 독립이라 두 접속 방식 모두에서 쓸 수 있다.
 - compose에서 `gateway`는 `profiles: [web]`, `cloudflared`는 `profiles: [tunnel]`에 둔다. 프로필은 `docker compose`의 `--profile` 인자가 아니라 `COMPOSE_PROFILES`로 켠다. VM에서는 `vm_env`가 VM `.env`에 `COMPOSE_PROFILES=web,tunnel`을 쓰고, 로컬에서는 Make가 `local-*` 타깃에 `COMPOSE_PROFILES=web`을 넘긴다. 그래서 로컬에서는 `cloudflared` 없이 게이트웨이만 뜬다.
-  - **내 결정:** 기존 compose 명령 문자열을 그대로 둔다. `tests/repo-make.bats:69`가 `docker compose -f compose.yaml up -d --wait`를 정확히 검사하고, 개선 백로그의 계획 19도 `local-down`·`local-logs` 명령을 고정하려 한다. 복원(`scripts/restore-notes.sh`)도 같은 `.env`를 쓰므로, 복원하는 동안 게이트웨이도 함께 멈췄다가 뜬다.
+  - **내 결정:** 기존 compose 명령 문자열을 그대로 둔다. `tests/repo-make.bats:69`가 `docker compose -f compose.yaml up -d --wait`를 정확히 검사하고, 개선 백로그의 [invariant-enforcement 계획](../plans/plan-2026-10-22-m97w7hqe-invariant-enforcement.md)도 `local-down`·`local-logs` 명령을 고정하려 한다. 복원(`scripts/restore-notes.sh`)도 같은 `.env`를 쓰므로, 복원하는 동안 게이트웨이도 함께 멈췄다가 뜬다.
 - 웹 서비스의 환경변수는 `${VAR:-}`로 읽고 `${VAR:?}`를 쓰지 않는다. compose는 꺼진 프로필의 서비스까지 변수를 치환하므로, `:?`를 쓰면 `BM_WEB=off`인 설치에서도 모든 compose 명령이 실패한다. 값 확인은 배포 전의 스크립트와 게이트웨이 시작 시점에 한다.
   - **Verified (2026-10-22, Docker Compose v5.0.2, 임시 compose 파일로 `config --services`):** 프로젝트 디렉터리 `.env`의 `COMPOSE_PROFILES=web,tunnel`이 두 프로필을 켠다. 환경변수 `COMPOSE_PROFILES=web`은 `.env` 값보다 앞서 `web`만 켠다. 꺼진 프로필 서비스의 `${VAR:?}`도 값이 없으면 `required variable ... is missing a value`로 실패한다.
 - `BM_WEB=on`이면 배포와 복원이 `gateway/`의 런타임 파일을 VM 앱 디렉터리(`/opt/basic-memory/gateway/`)에 올린다. 지금 두 스크립트는 `compose.yaml`과 `.env`만 올린다(`scripts/deploy-stack.sh:26-33`, `scripts/restore-notes.sh:143-145`). 복원도 올려야 웹으로 배포한 적 없는 VM에 `BM_WEB=on` 백업을 복원할 때 게이트웨이가 뜬다.
 - `BM_WEB=off`로 배포하면 VM에 남아 있는 웹 서비스를 멈추고 지운다.
-- 공개 호스트명과 그 호스트명이 풀리는 IP는 스크립트가 출력하지 않는다. 출력을 Progress log나 PR에 붙이면 저장소 공개 문서에 남기 때문이다(개선 백로그 계획 18의 공개 텍스트 검사는 호스트명을 잡지 못한다).
+- 공개 호스트명과 그 호스트명이 풀리는 IP는 스크립트가 출력하지 않는다. 출력을 Progress log나 PR에 붙이면 저장소 공개 문서에 남기 때문이다(개선 백로그 [public-text-guard 계획](../plans/plan-2026-10-22-v9whrbs6-public-text-guard.md)의 공개 텍스트 검사는 호스트명을 잡지 못한다).
 - `.env` 값(이름은 제안이고 계획에서 확정한다):
 
 | 변수 | 비밀값 | 내용 |
@@ -194,9 +195,9 @@ flowchart TB
   - 비밀값 교체
   - 게이트웨이 저장소 비우기(§3.4)
   - 차단 절차(§4)
-- `docs/runbooks/rbk-2026-10-12-operations.md`의 Exposure audit(`:117-135`): Cloudflare 공개 호스트명이 하나뿐인지, GitHub OAuth App의 콜백, claude.ai 커넥터 목록, 게이트웨이 저장소 크기와 등록 수를 점검 항목에 더한다.
+- `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`의 Exposure audit(`:117-135`): Cloudflare 공개 호스트명이 하나뿐인지, GitHub OAuth App의 콜백, claude.ai 커넥터 목록, 게이트웨이 저장소 크기와 등록 수를 점검 항목에 더한다.
 - `.agents/skills/bm-upgrade/SKILL.md`: 업그레이드 뒤 `tools/list`와 게이트웨이 허용 목록을 비교하고, 게이트웨이를 거쳐 Basic Memory에 닿는지 확인하는 단계.
-- [ADR 0008](../decisions/adr-2026-10-22-0008-web-connector.md)을 코드 PR에서 `accepted`로 바꾼다.
+- [web-connector ADR](../decisions/adr-2026-10-22-fcvznmdc-web-connector.md)을 코드 PR에서 `accepted`로 바꾼다.
 
 ## 4. 보안
 
@@ -233,7 +234,7 @@ flowchart TB
   1. 다른 사용자는 도구 목록이 비고 호출이 거절된다.
   2. 소유자에게도 `delete_note`·`create_memory_project`·`delete_project`가 없고, 이름으로 직접 불러도 거절된다.
   3. 백엔드가 받은 요청에 `Authorization`이 없다.
-  - **내 결정:** `make check`의 테스트 이미지에는 Python을 넣지 않는다. 이 테스트는 게이트웨이 런타임 컨테이너 안에서 `make local-verify`(`BM_WEB=on`)가 돌리고, 계획 25의 각 Task 검증에 포함한다. CI는 바꾸지 않는다.
+  - **내 결정:** `make check`의 테스트 이미지에는 Python을 넣지 않는다. 이 테스트는 게이트웨이 런타임 컨테이너 안에서 `make local-verify`(`BM_WEB=on`)가 돌리고, [web-connector 계획](../plans/plan-2026-10-22-d3dpb00s-web-connector.md)의 각 Task 검증에 포함한다. CI는 바꾸지 않는다.
 - 다음은 기존 `lib-vm.bats`·`deploy-stack.bats` 방식의 스텁 테스트로 확인한다: `BM_WEB` 값 검사(잘못된 값이면 ssh·curl 전에 실패), `vm_env`의 새 변수(`on`이면 `COMPOSE_PROFILES=web,tunnel`), 배포의 처리(`on`이면 `gateway/` 파일을 올리고, `off`면 남은 웹 컨테이너를 지움). 비밀값이 출력에 없는지도 `deploy-stack.bats:10`처럼 검사한다.
 - `BM_WEB`이 없을 때 기존 테스트가 고치지 않고 통과한다(완료 조건 2).
 
@@ -256,29 +257,29 @@ flowchart TB
 
 | 위험 | 대응 |
 |---|---|
-| 1GB VM 메모리 부족(스왑이 이미 절반, ADR 0002의 재결정 기준) | Task 4에서 24시간 관찰한다(완료 조건 6). OOM이나 스왑 포화가 오면 `BM_WEB=off`로 끄고, VM 메모리를 쓰지 않는 Cloudflare 쪽 인증(Access Managed OAuth 또는 Worker)으로 다시 설계한다 |
+| 1GB VM 메모리 부족(스왑이 이미 절반, [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)의 재결정 기준) | Task 4에서 24시간 관찰한다(완료 조건 6). OOM이나 스왑 포화가 오면 `BM_WEB=off`로 끄고, VM 메모리를 쓰지 않는 Cloudflare 쪽 인증(Access Managed OAuth 또는 Worker)으로 다시 설계한다 |
 | 게이트웨이 설정 실수로 인한 우회 | §5.1 구조 테스트, `verify`의 공개 URL 검사, Exposure audit 항목 추가 |
 | 프롬프트 인젝션으로 노트 변경(Research 모드는 승인 없음) | `delete_note`와 프로젝트 단위 도구 차단, 클라이언트 승인 안내, 웹을 켜기 전 백업. 되돌리기는 `make restore` |
 | Basic Memory 업그레이드가 도구를 바꾸거나 Host 검사를 켬(업스트림 PR #1697, 미릴리스) | 허용 목록이라 새 도구는 열리지 않는다. `bm-upgrade`에 허용 목록 비교와 게이트웨이 경유 확인 단계를 넣는다 |
 | 첫 기동 때 PyPI에 닿지 못함 | 기존 Basic Memory·SilverBullet에는 영향이 없다. 볼륨에 설치된 뒤에는 재사용한다 |
 | Cloudflare WAF·봇 차단이 Anthropic 대역을 막음 | 런북에 Bot Fight Mode 확인과 `160.79.104.0/21` 예외를 적고, Task 4에서 확인한다 |
-| 계획 07(IPv6 전용)에서 `cloudflared`가 동작하지 않음 | 계획 07의 확인 항목으로 넘긴다. claude.ai 쪽은 Cloudflare edge가 IPv4를 받으므로 VM이 IPv6 전용이어도 된다(Assumption) |
+| [ipv6-egress 계획](../plans/plan-2026-10-13-gaewewkf-ipv6-egress.md)(IPv6 전용)에서 `cloudflared`가 동작하지 않음 | ipv6-egress 계획의 확인 항목으로 넘긴다. claude.ai 쪽은 Cloudflare edge가 IPv4를 받으므로 VM이 IPv6 전용이어도 된다(Assumption) |
 | 프록시 경유 지연 | §3.4의 500 ms 기준으로 Task 4에서 잰다 |
 
 ## 7. 계획 분할
 
 | 계획 | 범위 | 시작 조건 |
 |---|---|---|
-| 25 web-connector | Task 1: 게이트웨이(`gateway/`)와 compose 서비스, 구조 테스트, 로컬 확인. Task 2: `BM_WEB` 설정과 배포·`status`·`verify`. Task 3: 규칙과 문서(AGENTS.md, ARCHITECTURE, README, 새 런북, Exposure audit, `bm-upgrade`, ADR 0008 accepted). Task 4: VM 적용과 claude.ai 확인(사용자와 함께, 단계마다 OK, 결과 PR) | 이 스펙의 승인. Task 4는 코드 PR 병합과 §8의 사용자 준비물 |
+| 25 web-connector | Task 1: 게이트웨이(`gateway/`)와 compose 서비스, 구조 테스트, 로컬 확인. Task 2: `BM_WEB` 설정과 배포·`status`·`verify`. Task 3: 규칙과 문서(AGENTS.md, ARCHITECTURE, README, 새 런북, Exposure audit, `bm-upgrade`, [web-connector ADR](../decisions/adr-2026-10-22-fcvznmdc-web-connector.md) accepted). Task 4: VM 적용과 claude.ai 확인(사용자와 함께, 단계마다 OK, 결과 PR) | 이 스펙의 승인. Task 4는 코드 PR 병합과 §8의 사용자 준비물 |
 
-다른 작업과의 순서(2026-10-22, 개선 백로그의 계획 18~23과 에이전트 기억 미러의 계획 24 기준):
+다른 작업과의 순서(2026-10-22, 개선 백로그의 [public-text-guard](../plans/plan-2026-10-22-v9whrbs6-public-text-guard.md)·[invariant-enforcement](../plans/plan-2026-10-22-m97w7hqe-invariant-enforcement.md)·[agent-sandbox](../plans/plan-2026-10-22-k3bd8k47-agent-sandbox.md)·[recovery-drill](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md)·[agent-guidance](../plans/plan-2026-10-22-x4d2x4eq-agent-guidance.md)·[review-and-local-isolation](../plans/plan-2026-10-22-z064dkcv-review-and-local-isolation.md) 계획과 에이전트 기억 미러의 [agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md) 기준):
 
-- **Reported (2026-10-23, 감독 세션이 전달한 사용자 결정):** 문서 체계 개편(계획 25의 Pending Requirements)이 모든 계획보다 먼저다. 이 계획의 코드(Task 1~3)는 개편이 병합된 뒤, 에이전트 기억 미러의 코드보다 먼저 한다.
-- 계획 18·22·23과는 나란히 진행한다. 겹치는 곳은 `Makefile`, `AGENTS.md`, `tests/repo-make.bats`의 몇 줄이다. 나중에 병합하는 쪽이 `git merge origin/main`으로 맞춘다.
-- `scripts/restore-notes.sh`는 계획 20의 Task 4(`confirm`이 `/dev/tty`에서만 `yes`를 읽음)와 계획 21의 Task 3(`present`·`absent`가 아닌 답에서 멈춤)도 고친다. 이 계획의 Task 2는 `require_web_settings`와 `upload_gateway_files` 호출 두 줄만 더하므로, 나중에 병합하는 쪽이 맞춘다.
-- 계획 19의 Task 4와 계획 20은 이 계획의 코드 PR이 병합된 뒤에 쓴다. 두 계획은 `AGENTS.md:13` 불변식과 신뢰 경계를 다시 적는데, 이 계획이 그 문장을 바꾸기 때문이다.
-- VM을 바꾸는 Task는 한 번에 하나만 한다. **Reported (2026-10-23, 같은 경로):** 순서는 계획 21 Task 4 → 이 계획 Task 4 → 에이전트 기억 미러의 VM Task → 계획 07이고, 감독 세션이 시작을 알린다.
-- ADR 번호 0008은 이 스펙이 먼저 쓴다. 계획 18·19·20도 실행 중에 ADR을 만들므로, 병합 때 번호가 겹치면 나중 쪽이 `git mv`로 바꾼다.
+- **Reported (2026-10-23, 감독 세션이 전달한 사용자 결정):** 문서 체계 개편([web-connector 계획](../plans/plan-2026-10-22-d3dpb00s-web-connector.md)의 Pending Requirements)이 모든 계획보다 먼저다. 이 계획의 코드(Task 1~3)는 개편이 병합된 뒤, 에이전트 기억 미러의 코드보다 먼저 한다.
+- [public-text-guard](../plans/plan-2026-10-22-v9whrbs6-public-text-guard.md)·[agent-guidance](../plans/plan-2026-10-22-x4d2x4eq-agent-guidance.md)·[review-and-local-isolation](../plans/plan-2026-10-22-z064dkcv-review-and-local-isolation.md) 계획과는 나란히 진행한다. 겹치는 곳은 `Makefile`, `AGENTS.md`, `tests/repo-make.bats`의 몇 줄이다. 나중에 병합하는 쪽이 `git merge origin/main`으로 맞춘다.
+- `scripts/restore-notes.sh`는 [agent-sandbox 계획](../plans/plan-2026-10-22-k3bd8k47-agent-sandbox.md)의 Task 4(`confirm`이 `/dev/tty`에서만 `yes`를 읽음)와 [recovery-drill 계획](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md)의 Task 3(`present`·`absent`가 아닌 답에서 멈춤)도 고친다. 이 계획의 Task 2는 `require_web_settings`와 `upload_gateway_files` 호출 두 줄만 더하므로, 나중에 병합하는 쪽이 맞춘다.
+- [invariant-enforcement 계획](../plans/plan-2026-10-22-m97w7hqe-invariant-enforcement.md)의 Task 4와 [agent-sandbox 계획](../plans/plan-2026-10-22-k3bd8k47-agent-sandbox.md)은 이 계획의 코드 PR이 병합된 뒤에 쓴다. 두 계획은 `AGENTS.md:13` 불변식과 신뢰 경계를 다시 적는데, 이 계획이 그 문장을 바꾸기 때문이다.
+- VM을 바꾸는 Task는 한 번에 하나만 한다. **Reported (2026-10-23, 같은 경로):** 순서는 [recovery-drill 계획](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md) Task 4 → 이 계획 Task 4 → 에이전트 기억 미러의 VM Task → [ipv6-egress 계획](../plans/plan-2026-10-13-gaewewkf-ipv6-egress.md)이고, 감독 세션이 시작을 알린다.
+- ADR 번호 0008은 이 스펙이 먼저 쓴다. [public-text-guard](../plans/plan-2026-10-22-v9whrbs6-public-text-guard.md)·[invariant-enforcement](../plans/plan-2026-10-22-m97w7hqe-invariant-enforcement.md)·[agent-sandbox](../plans/plan-2026-10-22-k3bd8k47-agent-sandbox.md) 계획도 실행 중에 ADR을 만들므로, 병합 때 번호가 겹치면 나중 쪽이 `git mv`로 바꾼다.
 
 ## 8. Open questions
 

@@ -1,11 +1,12 @@
 ---
 status: current
+id: tcjs7m6x
 reviewed: 2026-10-16
 ---
 
 # VM 만들기 (gcloud)
 
-이 런북의 명령은 사용자가 자기 터미널에서 실행합니다. 에이전트는 VM, 방화벽, 클라우드 자원을 바꾸는 명령을 사용자의 OK 없이 실행하지 않습니다. 이 Mac의 활성 gcloud 설정은 회사 계정일 수 있으므로, **모든 gcloud 명령에 `--configuration=bm-personal`을 붙입니다**([accounts 1단계](rbk-2026-10-12-accounts.md)).
+이 런북의 명령은 사용자가 자기 터미널에서 실행합니다. 에이전트는 VM, 방화벽, 클라우드 자원을 바꾸는 명령을 사용자의 OK 없이 실행하지 않습니다. 이 Mac의 활성 gcloud 설정은 회사 계정일 수 있으므로, **모든 gcloud 명령에 `--configuration=bm-personal`을 붙입니다**([accounts 1단계](rbk-2026-10-12-hqxjjqy8-accounts.md)).
 
 ## 0. 변수와 설정 확인
 
@@ -16,11 +17,11 @@ gcloud config list --configuration=bm-personal
 env | grep '^CLOUDSDK_'   # 아무것도 출력되지 않아야 합니다
 ```
 
-Expected: `account`가 개인 계정이고 `project`가 이 저장소 전용 프로젝트입니다. 회사 계정이나 회사 프로젝트가 보이면 **여기서 멈추고** [accounts 1단계](rbk-2026-10-12-accounts.md)를 다시 합니다. `env | grep '^CLOUDSDK_'`가 무언가 출력하면(`CLOUDSDK_CORE_PROJECT`, `CLOUDSDK_CORE_ACCOUNT` 등) 먼저 그 셸에서 해당 변수를 `unset`합니다.
+Expected: `account`가 개인 계정이고 `project`가 이 저장소 전용 프로젝트입니다. 회사 계정이나 회사 프로젝트가 보이면 **여기서 멈추고** [accounts 1단계](rbk-2026-10-12-hqxjjqy8-accounts.md)를 다시 합니다. `env | grep '^CLOUDSDK_'`가 무언가 출력하면(`CLOUDSDK_CORE_PROJECT`, `CLOUDSDK_CORE_ACCOUNT` 등) 먼저 그 셸에서 해당 변수를 `unset`합니다.
 
 **Assumption:** gcloud 속성 우선순위(플래그 > 환경 변수 > 설정)에 따라 환경 변수가 `--configuration=bm-personal`의 값을 덮어씁니다.
 
-인스턴스 이름은 바꿀 수 없으므로, 재구축이면 새 VM은 반드시 다른 `INSTANCE` 이름으로 만들고 옛 VM은 정지해 둡니다(옛 VM은 복원이 검증된 뒤에 지웁니다). 두 대의 e2-micro나 부트 디스크 두 개가 함께 있는 동안에는 무료 등급을 넘을 수 있습니다(무료 등급은 비선점형 e2-micro 1대의 월 사용 시간과 표준 영구 디스크 30GB-월이며, 정지된 VM의 디스크도 포함됩니다). 그러니 복원이 검증된 뒤 옛 VM과 디스크를 서둘러 지우고 [비용 점검](rbk-2026-10-12-operations.md#비용-점검)으로 청구를 확인합니다.
+인스턴스 이름은 바꿀 수 없으므로, 재구축이면 새 VM은 반드시 다른 `INSTANCE` 이름으로 만들고 옛 VM은 정지해 둡니다(옛 VM은 복원이 검증된 뒤에 지웁니다). 두 대의 e2-micro나 부트 디스크 두 개가 함께 있는 동안에는 무료 등급을 넘을 수 있습니다(무료 등급은 비선점형 e2-micro 1대의 월 사용 시간과 표준 영구 디스크 30GB-월이며, 정지된 VM의 디스크도 포함됩니다). 그러니 복원이 검증된 뒤 옛 VM과 디스크를 서둘러 지우고 [비용 점검](rbk-2026-10-12-t79ex2ny-operations.md#비용-점검)으로 청구를 확인합니다.
 
 ## 1. SSH 키
 
@@ -61,15 +62,15 @@ gcloud compute instances create "$INSTANCE" --configuration=bm-personal \
 
 Expected: 인스턴스가 `RUNNING`으로 만들어지고 `EXTERNAL_IP`가 한 줄 보입니다.
 
-**Assumption:** 게스트 에이전트의 `ssh-keys` 메타데이터 처리에는 서비스 계정이 필요 없으므로 `--no-service-account --no-scopes`로 VM 안에서 메타데이터 서버 토큰을 받을 수 없게 합니다. 이미 있는 `agent-hub-01`은 기본 서비스 계정을 유지하며, 계획 05가 이를 기록합니다.
+**Assumption:** 게스트 에이전트의 `ssh-keys` 메타데이터 처리에는 서비스 계정이 필요 없으므로 `--no-service-account --no-scopes`로 VM 안에서 메타데이터 서버 토큰을 받을 수 없게 합니다. 이미 있는 `agent-hub-01`은 기본 서비스 계정을 유지하며, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)이 이를 기록합니다.
 
-**Verified (2026-10-13, 계획 05 Step 4):** 26.04 Minimal에 `ss`(iproute2 6.19)와 `free`(procps-ng 4.0.4)가 기본으로 있고, 메타데이터 키로 만든 `ubuntu`에게 암호 없는 sudo가 있습니다(`/etc/sudoers.d/google_sudoers`). `gpg`는 없지만 부트스트랩은 쓰지 않습니다.
+**Verified (2026-10-13, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Step 4):** 26.04 Minimal에 `ss`(iproute2 6.19)와 `free`(procps-ng 4.0.4)가 기본으로 있고, 메타데이터 키로 만든 `ubuntu`에게 암호 없는 sudo가 있습니다(`/etc/sudoers.d/google_sudoers`). `gpg`는 없지만 부트스트랩은 쓰지 않습니다.
 
 ## 3. 방화벽 정리
 
 **Verified (docs.cloud.google.com/firewall/docs/firewalls):** `default` 네트워크에는 `default-allow-ssh`(tcp:22), `default-allow-rdp`(tcp:3389), `default-allow-icmp`가 `0.0.0.0/0`으로, `default-allow-internal`이 `10.128.0.0/9`로 미리 들어 있습니다. 규칙이 없으면 인바운드는 모두 차단됩니다.
 
-접속 방식에 따라 22번 규칙이 다릅니다(`.env`의 `BM_ACCESS`, [부트스트랩 런북](rbk-2026-10-12-bootstrap.md)).
+접속 방식에 따라 22번 규칙이 다릅니다(`.env`의 `BM_ACCESS`, [부트스트랩 런북](rbk-2026-10-12-ha5w72pm-bootstrap.md)).
 
 - `tailscale`: 아래처럼 `default-allow-ssh`를 내 IP/32로 좁혀 부트스트랩에 쓰고, Tailscale SSH를 확인한 뒤 지웁니다.
 - `ssh`: 공인 SSH가 필요 없습니다. rdp·icmp와 함께 `default-allow-ssh`도 지우고(`ssh` 모드 단계, 사용자 OK 후), 8단계의 `allow-iap-ssh`를 만듭니다.
@@ -91,9 +92,9 @@ gcloud compute firewall-rules create default-allow-ssh --configuration=bm-person
 ```
 
 - `default-allow-internal`은 VPC 내부 전용이라 둡니다. 8737과 443은 열지 않습니다.
-- `default-allow-ssh`는 [부트스트랩](rbk-2026-10-12-bootstrap.md)에서 Tailscale SSH를 확인한 **뒤에** 지웁니다.
+- `default-allow-ssh`는 [부트스트랩](rbk-2026-10-12-ha5w72pm-bootstrap.md)에서 Tailscale SSH를 확인한 **뒤에** 지웁니다.
 - 다른 네트워크에서 부트스트랩하면 내 IP가 바뀌므로 위 `update` 명령을 다시 실행합니다.
-- 이 명령들은 [운영 런북](rbk-2026-10-12-operations.md)의 Exposure audit 기준(VPC 밖 소스를 허용하는 인바운드 규칙 0개)을 만족시키기 위한 것입니다. 마지막 확인은 거기서 합니다.
+- 이 명령들은 [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit 기준(VPC 밖 소스를 허용하는 인바운드 규칙 0개)을 만족시키기 위한 것입니다. 마지막 확인은 거기서 합니다.
 
 ## 4. 생성 결과 확인
 
@@ -115,11 +116,11 @@ Expected:
 gcloud compute instances describe "$INSTANCE" --zone="$ZONE" --configuration=bm-personal --format='value(networkInterfaces[0].accessConfigs[0].natIP)'
 ```
 
-이 값을 main 체크아웃 `.env`의 `BM_VM_PUBLIC_IP`에 적습니다(사용자가 직접 편집). 그다음 [부트스트랩](rbk-2026-10-12-bootstrap.md)으로 넘어갑니다.
+이 값을 main 체크아웃 `.env`의 `BM_VM_PUBLIC_IP`에 적습니다(사용자가 직접 편집). 그다음 [부트스트랩](rbk-2026-10-12-ha5w72pm-bootstrap.md)으로 넘어갑니다.
 
 **Verified (2026-10-12, 실제 프로젝트):** 정지 후 시작하면 ephemeral 외부 IP가 바뀝니다.
 
-**Verified (2026-10-13, 계획 05 Step 13):** 게스트 OS 재부팅(`sudo reboot`)으로는 바뀌지 않습니다.
+**Verified (2026-10-13, [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Step 13):** 게스트 OS 재부팅(`sudo reboot`)으로는 바뀌지 않습니다.
 
 ```bash
 gcloud compute instances stop "$INSTANCE" --zone="$ZONE" --configuration=bm-personal
@@ -128,7 +129,7 @@ gcloud compute instances describe "$INSTANCE" --zone="$ZONE" --configuration=bm-
 ```
 
 - 정지된 VM의 `status`는 `TERMINATED`입니다. 시작한 뒤에는 위 IP 조회 명령으로 새 IP를 읽어 `.env`의 `BM_VM_PUBLIC_IP`를 바꿉니다. `verify`가 옛 IP로 검사하지 않게 하려면 이 값을 반드시 맞춰 둡니다.
-- 정지된 VM은 지우거나 다시 만들지 않고 시작합니다. 디스크의 데이터가 그대로 있습니다([운영 런북](rbk-2026-10-12-operations.md)).
+- 정지된 VM은 지우거나 다시 만들지 않고 시작합니다. 디스크의 데이터가 그대로 있습니다([운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)).
 
 ## 6. Spot으로 잘못 만든 경우
 
@@ -163,7 +164,7 @@ gcloud compute instances start "$INSTANCE" --zone="$ZONE" --configuration=bm-per
 
 ## 7. 재구축할 때의 정리
 
-VM을 다시 만드는 경우 옛 인스턴스와 디스크는 **복원이 검증되기 전에는 지우지 않습니다**. 복원 검증 뒤에 지울 때는 사용자가 직접 인스턴스 삭제 명령을 실행합니다(`--configuration=bm-personal`을 붙이고 `--zone`을 확인). 옛 VM과 디스크가 남아 있는 동안은 무료 등급을 넘을 수 있으므로(정지된 VM의 디스크도 30GB-월에 포함) 지체하지 말고 지운 뒤 [비용 점검](rbk-2026-10-12-operations.md#비용-점검)으로 청구를 확인합니다. 전체 순서는 [운영 런북](rbk-2026-10-12-operations.md)의 "VM 재구축 순서"에 있습니다.
+VM을 다시 만드는 경우 옛 인스턴스와 디스크는 **복원이 검증되기 전에는 지우지 않습니다**. 복원 검증 뒤에 지울 때는 사용자가 직접 인스턴스 삭제 명령을 실행합니다(`--configuration=bm-personal`을 붙이고 `--zone`을 확인). 옛 VM과 디스크가 남아 있는 동안은 무료 등급을 넘을 수 있으므로(정지된 VM의 디스크도 30GB-월에 포함) 지체하지 말고 지운 뒤 [비용 점검](rbk-2026-10-12-t79ex2ny-operations.md#비용-점검)으로 청구를 확인합니다. 전체 순서는 [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 "VM 재구축 순서"에 있습니다.
 
 ## 8. IAP로 접속하기 (`BM_ACCESS=ssh`)
 
@@ -175,7 +176,7 @@ VM을 다시 만드는 경우 옛 인스턴스와 디스크는 **복원이 검�
    gcloud compute firewall-rules create allow-iap-ssh --configuration=bm-personal --network=default --direction=INGRESS --allow=tcp:22 --source-ranges=35.235.240.0/20
    ```
 
-2. 권한. 프로젝트 소유자는 이미 가집니다. 다른 사람에게는 [accounts 7단계](rbk-2026-10-12-accounts.md)를 따릅니다.
+2. 권한. 프로젝트 소유자는 이미 가집니다. 다른 사람에게는 [accounts 7단계](rbk-2026-10-12-hqxjjqy8-accounts.md)를 따릅니다.
 3. `~/.ssh/config` (macOS·Linux·WSL). `HostName`은 인스턴스 이름입니다. 인스턴스 이름이 바뀌면(VM 재구축) `HostName`도 바꿔야 합니다. 안 바꾸면 별칭이 옛 VM을 가리킵니다.
 
    ```
@@ -188,7 +189,7 @@ VM을 다시 만드는 경우 옛 인스턴스와 디스크는 **복원이 검�
    **Assumption (검증하지 않음):** Windows(PowerShell, OpenSSH)는 `%USERPROFILE%\.ssh\config`에 같은 블록을 넣고 `ProxyCommand`의 `gcloud`를 `gcloud.cmd`로 바꿉니다.
 4. 첫 접속은 대화형으로 해서 호스트 키를 수락합니다: `ssh ubuntu@agent-hub-iap true`. 그다음 `.env`에 `BM_ACCESS=ssh`, `BM_VM_HOST=agent-hub-iap`를 넣고 `make access-check`가 `ssh ubuntu@agent-hub-iap: ok`를 출력하는지 봅니다.
 5. 터널이 API나 권한 오류로 열리지 않으면 IAP API를 켭니다(사용자 OK 후).
-   - **Verified (2026-10-15, 계획 12 Task 8):** 이 프로젝트는 IAP API를 켜지 않은 채 터널이 열렸습니다.
+   - **Verified (2026-10-15, [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8):** 이 프로젝트는 IAP API를 켜지 않은 채 터널이 열렸습니다.
 
    ```bash
    gcloud services enable iap.googleapis.com --configuration=bm-personal
@@ -200,4 +201,4 @@ VM을 다시 만드는 경우 옛 인스턴스와 디스크는 **복원이 검�
 
 IAP 터널은 대량 전송용이 아니고, 한 시간 동안 활동이 없으면 끊깁니다. `make tunnel`은 30초마다 keepalive를 보내고, 끊기면 종료하므로 다시 실행합니다.
 
-**Reported (2026-10-16, 계획 12 Task 8):** 70분 동안 MCP를 쓰지 않아도 터널은 끊기지 않았습니다.
+**Reported (2026-10-16, [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8):** 70분 동안 MCP를 쓰지 않아도 터널은 끊기지 않았습니다.

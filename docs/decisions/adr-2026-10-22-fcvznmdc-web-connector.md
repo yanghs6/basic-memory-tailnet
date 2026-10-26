@@ -1,12 +1,13 @@
 ---
 status: proposed
+id: fcvznmdc
 date: 2026-10-22
 ---
 
-# ADR 0008: claude.ai 웹 커넥터는 아웃바운드 터널 뒤의 OAuth 게이트웨이로만 연다
+# ADR fcvznmdc: claude.ai 웹 커넥터는 아웃바운드 터널 뒤의 OAuth 게이트웨이로만 연다
 
-- 설계: [웹 커넥터 설계](../specs/spec-2026-10-22-web-connector.md)
-- 대체 범위: [ADR 0001](adr-2026-10-12-0001-basic-memory-on-gcp-tailscale.md)과 [ADR 0006](adr-2026-10-15-0006-access-modes.md)이 전제한 "VM에 공개 인그레스 0"을 결정 2의 규칙으로 바꾼다. 두 ADR의 다른 결정은 그대로다.
+- 설계: [웹 커넥터 설계](../specs/spec-2026-10-22-tn23wwmd-web-connector.md)
+- 대체 범위: [basic-memory-on-gcp-tailscale ADR](adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md)과 [access-modes ADR](adr-2026-10-15-cz8c26gp-access-modes.md)이 전제한 "VM에 공개 인그레스 0"을 결정 2의 규칙으로 바꾼다. 두 ADR의 다른 결정은 그대로다.
 
 ## 맥락과 문제
 
@@ -18,7 +19,7 @@ date: 2026-10-22
 
 1. 불변식 유지 + Basic Memory Cloud(월 $15/seat): 운영 부담이 없다. 노트가 VM을 떠나고, 이 저장소의 자체 호스팅을 대체한다.
 2. Tailscale Funnel + 게이트웨이: 추가 비용이 없다. ssh 모드 VM은 Tailscale이 꺼져 있고, 한 VM 두 모드 금지와 Funnel 금지를 함께 풀어야 한다.
-3. VM 공인 IPv4 443 + Caddy + 게이트웨이: 구성이 단순하다. 방화벽을 열어 인터넷 스캔을 1GB VM이 직접 받는다. 벤더가 IPv4로만 호출해서 계획 07(IPv6 전용)과 충돌한다.
+3. VM 공인 IPv4 443 + Caddy + 게이트웨이: 구성이 단순하다. 방화벽을 열어 인터넷 스캔을 1GB VM이 직접 받는다. 벤더가 IPv4로만 호출해서 [ipv6-egress 계획](../plans/plan-2026-10-13-gaewewkf-ipv6-egress.md)(IPv6 전용)과 충돌한다.
 4. Cloudflare named Tunnel + Cloudflare Access Managed OAuth: VM 메모리를 거의 쓰지 않는다. origin이 Access JWT를 검증해야 하는데 Basic Memory는 못 하고, 도구 필터가 없다.
 5. Cloudflare named Tunnel + FastMCP 게이트웨이: CIMD·DCR·S256·RFC 9207을 광고하고(2026-10-22 시제품), 소유자 확인과 도구 허용 목록을 한 곳에서 강제한다. 대신 게이트웨이 코드, 비밀값 세 개, 약 105 MiB 메모리(arm64 측정)를 치른다.
 

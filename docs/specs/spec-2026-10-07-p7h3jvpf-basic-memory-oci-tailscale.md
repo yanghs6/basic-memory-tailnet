@@ -1,18 +1,19 @@
 ---
 status: superseded
+id: p7h3jvpf
 date: 2026-10-12
-superseded-by: docs/specs/spec-2026-10-12-basic-memory-gcp-tailscale.md
+superseded-by: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 ---
 
 # Basic Memory on OCI Always Free + Tailscale — 설계
 
-- [GCP 설계](spec-2026-10-12-basic-memory-gcp-tailscale.md)가 이 문서를 대체했다. 호스팅을 OCI에서 GCP로 옮겼다. 이 문서는 완료된 계획 01~03의 기준으로만 남긴다.
-- 이전 상태: 승인됨 (2026-10-07). 구현 계획은 순서대로 5개다. 진행 중인 계획은 `docs/plans/active/`, 대기 중인 계획은 `docs/plans/backlog/`에 있다. 모든 계획은 [git·리뷰 정책](spec-2026-10-07-git-review-policy.md)을 따른다.
-  1. `plan-2026-10-07-01-local-foundation.md`: 도구 체인, compose, 로컬 MCP 검증, AGENTS.md 기본판(Git 섹션 포함)
-  2. `plan-2026-10-07-02-git-review-tooling.md`: `make check-git`, `make review`, 리뷰어 에이전트, git·리뷰 스킬
-  3. `plan-2026-10-07-03-vm-scripts.md`: 부트스트랩, 배포·검증·상태·로그, 백업·복원
-  4. `plan-2026-10-07-04-docs-skills.md`: 운영 스킬, README, 아키텍처, 런북, ADR, 로컬 전체 검증
-  5. `plan-2026-10-07-05-vm-rollout.md`: 실제 VM 배포(사용자와 함께)
+- [GCP 설계](spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)가 이 문서를 대체했다. 호스팅을 OCI에서 GCP로 옮겼다. 이 문서는 완료된 [local-foundation](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)·[git-review-tooling](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md)·[vm-scripts](../plans/plan-2026-10-07-dry1xr43-vm-scripts.md) 계획의 기준으로만 남긴다.
+- 이전 상태: 승인됨 (2026-10-07). 구현 계획은 순서대로 5개다. 진행 중인 계획은 `docs/plans/active/`, 대기 중인 계획은 `docs/plans/backlog/`에 있다. 모든 계획은 [git·리뷰 정책](spec-2026-10-07-restd5vd-git-review-policy.md)을 따른다.
+  1. `plan-2026-10-07-sqzn0teq-local-foundation.md`: 도구 체인, compose, 로컬 MCP 검증, AGENTS.md 기본판(Git 섹션 포함)
+  2. `plan-2026-10-07-qq4h1djv-git-review-tooling.md`: `make check-git`, `make review`, 리뷰어 에이전트, git·리뷰 스킬
+  3. `plan-2026-10-07-dry1xr43-vm-scripts.md`: 부트스트랩, 배포·검증·상태·로그, 백업·복원
+  4. `plan-2026-10-07-hydaxf15-docs-skills.md`: 운영 스킬, README, 아키텍처, 런북, ADR, 로컬 전체 검증
+  5. `plan-2026-10-07-qtvzskgx-vm-rollout.md`: 실제 VM 배포(사용자와 함께)
 - 범위: 첫 목표 `OCI Always Free + Tailscale + Basic Memory`
 - 출처: ChatGPT 대화 "에이전트 기억 공유 제안"의 마지막 단계와, 2026-10-07에 공식 문서로 다시 검증한 사실
 
@@ -108,10 +109,10 @@ tests/fixtures/                  녹화한 MCP 응답(SSE, JSON), os-release
 tests/scripts.bats               스크립트 단위 테스트
 tests/repo.bats                  구조 테스트
 docs/ARCHITECTURE.md             토폴로지, 데이터 경로, 신뢰 경계
-docs/runbooks/accounts.md  oci-vm.md  bootstrap.md  operations.md
+docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md  rbk-2026-10-12-vebvx40g-oci-vm.md  rbk-2026-10-12-ha5w72pm-bootstrap.md  rbk-2026-10-12-t79ex2ny-operations.md
 docs/specs/                      이 문서
 docs/plans/active/  docs/plans/completed/   진행·결정 로그가 포함된 실행 계획
-docs/decisions/                  ADR (예: 0001-basic-memory-on-oci.md, 0002-vm-sizing.md)
+docs/decisions/                  ADR (예: 0001-basic-memory-on-oci.md, adr-2026-10-12-mdq5exsf-vm-sizing.md)
 ```
 
 **에이전트 지침 규칙**
@@ -131,7 +132,7 @@ docs/decisions/                  ADR (예: 0001-basic-memory-on-oci.md, 0002-vm-
 | 스킬 | 사용 시점 | 절차 |
 |---|---|---|
 | `bm-upgrade` | Basic Memory 버전을 올릴 때 | 릴리스 노트에서 DB·설정 마이그레이션 확인 → 새 digest 조회 → `compose.yaml` 수정 → `make check local-up local-verify` → 사용자 확인 → `make backup`(롤백 지점) → `make deploy verify` → 롤백은 이전 `image:` 줄 + `make restore BACKUP=<롤백 지점>`(이미지와 데이터를 함께 되돌림. 이후 쓴 노트는 사라진다는 점을 먼저 알림) |
-| `bm-recover` | VM이 회수·손상됐을 때 | OCI VM 런북(`oci-vm.md`, 계획 04에서 GCP VM 런북으로 바뀜)대로 VM 재생성(사용자 작업) → `make vm-bootstrap` → 사용자 확인 → `make deploy restore BACKUP=<파일>` (restore가 끝에 verify를 실행) |
+| `bm-recover` | VM이 회수·손상됐을 때 | OCI VM 런북(`rbk-2026-10-12-vebvx40g-oci-vm.md`, [docs-skills 계획](../plans/plan-2026-10-07-hydaxf15-docs-skills.md)에서 GCP VM 런북으로 바뀜)대로 VM 재생성(사용자 작업) → `make vm-bootstrap` → 사용자 확인 → `make deploy restore BACKUP=<파일>` (restore가 끝에 verify를 실행) |
 | `bm-diagnose` | 연결·MCP 문제가 있을 때 | 읽기 전용: `tailscale status`, `make status`, `make logs`, `make probe`만 실행해 원인을 좁힘. 노트를 쓰거나 무언가를 시작하는 명령(`make verify`, `make local-up` 등)은 사용자에게 제안만 함 |
 
 ## 6. Make 타깃
@@ -219,7 +220,7 @@ curl과 jq로 MCP streamable HTTP를 직접 검증한다.
 - VM용 `verify`와 `probe`(`verify-vm.sh [--read-only]`)는 tailnet HTTPS URL로 실행하고, 이어서 다음을 확인한다.
   - 원격 `ss -lnt`로 8737이 `127.0.0.1`에만 열려 있다.
   - `tailscale serve status`가 `tailnet only`이고 `Funnel on`이 아니다.
-    - **Assumption:** 출력 문구는 계획 05에서 실제 VM으로 확인한다.
+    - **Assumption:** 출력 문구는 [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)에서 실제 VM으로 확인한다.
   - `BM_VM_PUBLIC_IP`(필수)의 22·80·443·8737이 Mac에서 연결되지 않는다.
 - OCI 인바운드 규칙과 tailnet 정책은 VM에서 읽을 수 없으므로 운영 런북의 Exposure audit으로 수동 점검한다.
 
@@ -250,18 +251,18 @@ SQLite 파일이 쓰는 도중에 복사되지 않도록 잠시 정지한다. �
 
 ## 8. 운영 흐름 (런북)
 
-1. **`rbk-2026-10-12-accounts.md` (사용자):**
+1. **`rbk-2026-10-12-hqxjjqy8-accounts.md` (사용자):**
    - OCI 가입. 홈 리전은 변경할 수 없다. 서울(`ap-seoul-1`)과 춘천(`ap-chuncheon-1`)이 후보이며, A1 용량 부족 가능성을 안내한다.
    - Tailscale 가입 → MagicDNS와 HTTPS 인증서 켜기 → 정책에 `funnel` 속성이 있으면 제거(기본은 없음) → `tag:bm-server`와 Tailscale SSH 규칙 정의 → 사전 승인된 1회용 태그 인증 키 발급
-2. **`oci-vm.md` (사용자, 콘솔):**
+2. **`rbk-2026-10-12-vebvx40g-oci-vm.md` (사용자, 콘솔):**
    - `VM.Standard.A1.Flex`, 표준 Canonical Ubuntu 24.04(Minimal 아님), 1 OCPU / 4GB, 부트 볼륨 50GB, SSH 공개키 등록
-   - 4GB는 잠정값이고 ADR 0002로 확정한다. 로컬 실측(컨테이너 449 MiB)으로 보면 6GB에서는 메모리 사용률이 20% 미만이 될 가능성이 커서 4GB로 낮췄다.
+   - 4GB는 잠정값이고 [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)로 확정한다. 로컬 실측(컨테이너 449 MiB)으로 보면 6GB에서는 메모리 사용률이 20% 미만이 될 가능성이 커서 4GB로 낮췄다.
    - Security List에는 본인 IP의 22번 포트만 임시로 연다.
-3. **`rbk-2026-10-12-bootstrap.md`:**
+3. **`rbk-2026-10-12-ha5w72pm-bootstrap.md`:**
    - `make vm-bootstrap HOST=<공인IP>` → `ssh ubuntu@bm-node true` 확인 → 콘솔에서 22번 규칙 삭제 → `make deploy verify status`
    - `make verify`로 공인 IP의 22·80·443·8737 차단과 Serve tailnet 전용을 확인하고, Exposure audit(OCI 인바운드 규칙 0개, 정책에 `funnel` 없음)을 수동으로 마친다.
    - 비상 경로는 OCI 시리얼 콘솔이다.
-4. **`rbk-2026-10-12-operations.md`:**
+4. **`rbk-2026-10-12-t79ex2ny-operations.md`:**
    - 배포: `make deploy verify`
    - 점검: `make status`
    - 백업: `make backup` (중요 작업 전 + 주 1회 권장)
@@ -296,7 +297,7 @@ SQLite 파일이 쓰는 도중에 복사되지 않도록 잠시 정지한다. �
   - 실패 메시지에는 고치는 방법을 포함한다.
 - **커버리지:** kcov로 `scripts/` 라인 커버리지 80% 이상이어야 하고, `scripts/` 아래 모든 실행 스크립트가 최소 한 테스트에서 실행돼야 한다.
   - **Verified (2026-10-07 spike):** kcov 컨테이너는 bats가 실행하거나 source한 스크립트의 라인 커버리지를 수집한다.
-- **통합 (로컬, 실제 컨테이너):** `make local-up local-verify`. Host 헤더 시나리오를 포함한다. 이 단계에서 컨테이너 메모리 사용량을 측정해 VM 메모리 크기를 ADR 0002로 확정한다. 기준은 평소 사용률이 20% 이상이 되는 크기다.
+- **통합 (로컬, 실제 컨테이너):** `make local-up local-verify`. Host 헤더 시나리오를 포함한다. 이 단계에서 컨테이너 메모리 사용량을 측정해 VM 메모리 크기를 [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)로 확정한다. 기준은 평소 사용률이 20% 이상이 되는 크기다.
 - **E2E (VM, 수동):** `make deploy verify status`와 외부 노출 점검을 실행하고, 결과를 `docs/plans/` 진행 로그에 `Verified` / `Command` 표기로 기록한다. 계정이 필요하므로 CI로 자동화하지 않는다.
 
 ## 10. 위험과 대응

@@ -2,7 +2,7 @@
 # Create a document from the template of its type (the table under "## 문서 타입" in docs/README.md). The name is
 # <code>-<YYYY-MM-DD>-<id>-<slug>.md for every type; the id is the one passed in, else a random id that no file name
 # under docs/ on any local or remote-tracking branch or in the working tree uses, so run git fetch origin first.
-# Prints the new path on stdout. Spec: docs/specs/spec-2026-10-23-doc-ids-and-draft-board.md, section 3.
+# Prints the new path on stdout. Spec: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md, section 3.
 # Usage: make new-doc TYPE=<type> SLUG=<slug> [ID=<id>]
 set -euo pipefail
 
@@ -24,7 +24,7 @@ main() {
   require_cmd git
   root="$(git rev-parse --show-toplevel)" || die "run make new-doc inside a checkout of this repo"
   row="$(doc_type_row "$root/$REGISTRY_REL_PATH" "$type")" || exit 1
-  IFS=$'\t' read -r _ code _ location _ _ new template <<<"$row"
+  IFS=$'\t' read -r _ code location _ _ new template <<<"$row"
   [[ "$new" == "$NEW_DOCS_ALLOWED" ]] \
     || die "'$type' documents are no longer created (column 새 문서 in $REGISTRY_REL_PATH)"
   [[ -f "$root/$template" ]] || die "missing template $template for '$type' ($REGISTRY_REL_PATH)"

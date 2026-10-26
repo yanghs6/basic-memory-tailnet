@@ -1,9 +1,10 @@
 ---
 status: accepted
+id: m0xvj6rr
 date: 2026-10-13
 ---
 
-# ADR 0003: 스킬 구조와 작성 규칙
+# ADR m0xvj6rr: 스킬 구조와 작성 규칙
 
 ## 맥락
 
@@ -69,7 +70,7 @@ date: 2026-10-13
      - 고아 파일, 한 단계 참조
      - `.agents/skills`와 `.claude/skills` 링크 양방향
      - AGENTS.md·README 목록
-   - 기존 키 검사가 밑줄이 든 키(`when_to_use`)를 놓치던 결함(계획 02에서 생김)도 이번에 고쳤습니다.
+   - 기존 키 검사가 밑줄이 든 키(`when_to_use`)를 놓치던 결함([git-review-tooling 계획](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md)에서 생김)도 이번에 고쳤습니다.
 
 ## 하지 않은 것
 
@@ -80,7 +81,7 @@ date: 2026-10-13
 | `metadata.version`, lifecycle, owner | 스킬 6개에 사용자 1명이라 아직 필요가 없습니다. 스킬이 늘거나 공동 소유가 생기면 다시 봅니다. |
 | 트리거 평가 자동화(`claude -p` 반복 실행) | 실행할 때마다 모델 비용이 듭니다. 대신 `skill-authoring`의 "Test the skill" 절차(기준선과 변경 후 비교)를 씁니다. |
 | `git-workflow`, `branch-review` 이름에 접두사 붙이기 | 지금은 개인 스킬과 이름이 겹치지 않습니다(**Command:** `ls ~/.claude/skills ~/.agents/skills`). 이름을 바꾸면 스크립트, 테스트, 문서를 함께 고쳐야 합니다. 새 스킬부터 충돌을 확인합니다. |
-| `bm-recover` 마지막 문단 분리 | `plan/05-vm-rollout`이 같은 문단을 고치고 있어 바이트 단위로 그대로 두었습니다. 계획 05가 병합된 뒤 Gotchas로 나눌 수 있습니다. |
+| `bm-recover` 마지막 문단 분리 | `plan/qtvzskgx-vm-rollout`이 같은 문단을 고치고 있어 바이트 단위로 그대로 두었습니다. [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)이 병합된 뒤 Gotchas로 나눌 수 있습니다. |
 
 ## 검증
 

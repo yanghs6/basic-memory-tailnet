@@ -1,29 +1,30 @@
 ---
 status: completed
-spec: docs/specs/spec-2026-10-14-silverbullet-web-ui.md
+id: a88datfz
+spec: docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md
 ---
 
-# 11 Web UI VM Rollout Implementation Plan
+# a88datfz Web UI VM Rollout Implementation Plan
 
 > **For agentic workers:** Tasks 1-3 change code and docs only: use superpowers:subagent-driven-development or superpowers:executing-plans. Task 4 changes the VM: run it in the main session with the user (superpowers:executing-plans), never in a subagent, and get the user's OK before each VM-changing step. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** `make verify`·`make probe`가 SilverBullet과 Serve 8443을 검사하게 하고, 부트스트랩이 Serve 8443을 설정하게 한 뒤, 사용자와 함께 실제 VM(`agent-hub-01`)에 배포해 스펙 §1 완료 조건 2·3·4·6을 증거와 함께 충족한다.
 
 **Architecture:**
-- `scripts/verify-vm.sh`가 계획 10의 `verify-sb.sh`를 `https://agent-hub.<tailnet>.ts.net:8443`으로 부른다(`probe`는 `--read-only`).
+- `scripts/verify-vm.sh`가 [web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md)의 `verify-sb.sh`를 `https://agent-hub.<tailnet>.ts.net:8443`으로 부른다(`probe`는 `--read-only`).
 - 3000번 포트의 루프백 바인딩을 검사하고, 공인 IP 점검 포트에 8443과 3000을 더한다.
 - Serve 검사는 `tailscale serve status --json`을 Mac에서 jq로 읽어 포트별 대상과 포트별 Funnel을 본다.
 - `scripts/remote/bootstrap.sh`는 `tailscale serve --bg --https=8443`을 더하고 두 대상이 보이는지 확인한다. VM에는 jq가 없다.
-- 기존 VM에는 `make vm-bootstrap HOST=agent-hub`를 다시 실행해 적용한다(스펙 §3, 계획 05 Step 14에서 키 없이 재실행됨을 확인함).
+- 기존 VM에는 `make vm-bootstrap HOST=agent-hub`를 다시 실행해 적용한다(스펙 §3, [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) Step 14에서 키 없이 재실행됨을 확인함).
 
-**Tech Stack:** bash 3.2 호환 셸, bats-core + bats-assert, jq(Mac), Tailscale Serve(`serve status --json`, `--https=8443`), GCP e2-micro(Ubuntu 26.04 Minimal amd64), 계획 10의 스크립트
+**Tech Stack:** bash 3.2 호환 셸, bats-core + bats-assert, jq(Mac), Tailscale Serve(`serve status --json`, `--https=8443`), GCP e2-micro(Ubuntu 26.04 Minimal amd64), [web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md)의 스크립트
 
-**Spec:** `docs/specs/spec-2026-10-14-silverbullet-web-ui.md` (특히 §1, §3, §7.6, §7.7, §9)
+**Spec:** `docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md` (특히 §1, §3, §7.6, §7.7, §9)
 
-**Sequence:** 계획 11. 다음 전제를 모두 만족한 뒤 시작한다.
-- 계획 10이 `main`에 병합됐다.
-- 계획 05(PR #2)가 `main`에 병합됐다. 운영 런북과 ADR 0002를 같이 고친다.
-- main 체크아웃 `.env`에 `SB_USER`가 있다(계획 10 전제 1).
+**Sequence:** 다음 전제를 모두 만족한 뒤 시작한다.
+- [web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md)이 `main`에 병합됐다.
+- [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)(PR #2)이 `main`에 병합됐다. 운영 런북과 [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)을 같이 고친다.
+- main 체크아웃 `.env`에 `SB_USER`가 있다([web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md) 전제 1).
 
 ## Global Constraints
 
@@ -33,11 +34,11 @@ spec: docs/specs/spec-2026-10-14-silverbullet-web-ui.md
 - VM의 외부·tailnet IP, tailnet 이름, 프로젝트 id를 커밋·PR·코멘트·문서 어디에도 쓰지 않는다. `<공인 IP>`, `<tailnet>`, `<프로젝트>`로 가린다.
 - `SB_USER`와 세션 쿠키는 출력하지 않는다. 브라우저 로그인은 사용자가 직접 한다. 에이전트는 `.env`를 읽지 않는다.
 - Serve 매핑: 443 → `http://127.0.0.1:${BM_PORT}`(8737), 8443 → `http://127.0.0.1:${SB_PORT}`(3000), 두 포트 모두 Funnel off. GCP 방화벽은 바꾸지 않는다.
-- AGENTS.md 스크립트 규칙(머리, `common.sh`, `die`, bash 3.2, 상수), 테스트 먼저(RED → GREEN), ADR 0004. 기존 assertion을 약하게 바꾸지 않는다. 동작이 바뀐 기대값(점검 포트 목록, nc 호출 수)만 고친다.
+- AGENTS.md 스크립트 규칙(머리, `common.sh`, `die`, bash 3.2, 상수), 테스트 먼저(RED → GREEN), [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md). 기존 assertion을 약하게 바꾸지 않는다. 동작이 바뀐 기대값(점검 포트 목록, nc 호출 수)만 고친다.
 - 테스트는 `make test`/`make check`로만 돌린다.
-- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: 11`, `Task: <N|review|none>`. `Co-authored-by`, `Signed-off-by`, `Claude-Session`, 세션 링크, `Generated with`는 넣지 않는다.
-- PR 흐름: 머신 계정으로 push하고 초안 PR 하나를 연다. 제목은 `feat: serve the SilverBullet web UI on the tailnet and verify it`, 본문 마지막 문단은 `Assisted-by`와 `Plan: 11`이다.
-- 결과는 이 계획의 Progress log와 ADR 0005에 `Verified` / `Command` / `Assumption` / `Open question`으로 기록한다.
+- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: a88datfz`, `Task: <N|review|none>`. `Co-authored-by`, `Signed-off-by`, `Claude-Session`, 세션 링크, `Generated with`는 넣지 않는다.
+- PR 흐름: 머신 계정으로 push하고 초안 PR 하나를 연다. 제목은 `feat: serve the SilverBullet web UI on the tailnet and verify it`, 본문 마지막 문단은 `Assisted-by`와 `Plan: a88datfz`이다.
+- 결과는 이 계획의 Progress log와 [web-ui-silverbullet ADR](../decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md)에 `Verified` / `Command` / `Assumption` / `Open question`으로 기록한다.
 
 ## Review Focus
 
@@ -64,15 +65,15 @@ spec: docs/specs/spec-2026-10-14-silverbullet-web-ui.md
 ### 시작: 브랜치, worktree, 초안 PR (에이전트)
 
 - [ ] 전제 세 가지를 확인한다.
-  - `gh pr view <계획 10 PR 번호> --json state`와 `gh pr view 2 --json state`가 모두 `MERGED`다.
-  - `SB_USER`는 계획 10 전제 1의 `sb-user-check`로 확인한다.
-- [ ] `git fetch origin` 후 `origin/main`에서 worktree와 `plan/11-web-ui-vm-rollout` 브랜치를 만든다(git-workflow 스킬의 Start).
+  - `gh pr view <web-ui-local 계획 PR 번호> --json state`와 `gh pr view 2 --json state`가 모두 `MERGED`다.
+  - `SB_USER`는 [web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md) 전제 1의 `sb-user-check`로 확인한다.
+- [ ] `git fetch origin` 후 `origin/main`에서 worktree와 `plan/a88datfz-web-ui-vm-rollout` 브랜치를 만든다(git-workflow 스킬의 Start).
 - [ ] 첫 커밋으로 이 계획 파일을 `active/`로 옮기고 push한 뒤 초안 PR을 연다.
 
 ```bash
-git mv docs/plans/backlog/2026-10-14-11-web-ui-vm-rollout.md docs/plans/active/2026-10-14-11-web-ui-vm-rollout.md
-git commit -m "docs: start plan 11 web UI VM rollout" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 11" --trailer "Task: none"
-git push -u origin plan/11-web-ui-vm-rollout
+git mv docs/plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md docs/plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md
+git commit -m "docs: start the web-ui-vm-rollout plan" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: a88datfz" --trailer "Task: none"
+git push -u origin plan/a88datfz-web-ui-vm-rollout
 gh pr create --draft --base main --title "feat: serve the SilverBullet web UI on the tailnet and verify it" --body-file "$TMPDIR/pr-11.md"
 ```
 
@@ -85,7 +86,7 @@ gh pr create --draft --base main --title "feat: serve the SilverBullet web UI on
 - Test: `tests/vm_ops.bats`(setup, verify·probe 테스트)
 
 **Interfaces:**
-- Consumes: 계획 10의 `scripts/verify-sb.sh [--read-only] URL`, curl 스텁의 `CURL_SB_COOKIE`, `use_vm_env`의 `SB_USER`·`SB_PORT`
+- Consumes: [web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md)의 `scripts/verify-sb.sh [--read-only] URL`, curl 스텁의 `CURL_SB_COOKIE`, `use_vm_env`의 `SB_USER`·`SB_PORT`
 - Produces:
   - `verify-vm.sh`의 상수 `SB_HTTPS_PORT=8443`, `PUBLIC_PROBE_PORTS="22 80 443 8443"`
   - 함수 `serve_proxy CONFIG_JSON PORT`: https PORT의 `/` 프록시 대상을 출력한다(끝 `/` 제거, 없으면 빈 값).
@@ -246,7 +247,7 @@ esac
 # loopback-only binding of both ports, tailnet-only Serve that sends 443 to Basic Memory and 8443 to SilverBullet
 # (no Funnel on either), and that the public IP refuses common ports. With --read-only it writes no notes and does
 # not log in. Firewall rules and the tailnet policy cannot be read from here; audit them by hand
-# (docs/runbooks/operations.md, Exposure audit).
+# (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit).
 # Usage: verify-vm.sh [--read-only]
 set -euo pipefail
 
@@ -276,7 +277,7 @@ check_serve() {
   funnel="$(jq -r '[(.AllowFunnel // {})[] | select(. == true)] | length' <<<"$serve")" \
     || die "unexpected tailscale serve status (not JSON): $serve"
   ((funnel == 0)) \
-    || die "Funnel is on for this node: the unauthenticated endpoint is public; turn it off (docs/runbooks/operations.md, Exposure audit)"
+    || die "Funnel is on for this node: the unauthenticated endpoint is public; turn it off (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"
   for pair in "443 $bm_port" "$SB_HTTPS_PORT $sb_port"; do
     read -r https_port local_port <<<"$pair"
     target="$(serve_proxy "$serve" "$https_port")" || die "unexpected tailscale serve status (not JSON): $serve"
@@ -331,7 +332,7 @@ main() {
   check_loopback_binding "$sb_port"
   check_serve "$port" "$sb_port"
   check_public_closed "$port" "$sb_port"
-  log "OK: automated VM checks passed; audit firewall rules and the tailnet policy by hand (docs/runbooks/operations.md, Exposure audit)"
+  log "OK: automated VM checks passed; audit firewall rules and the tailnet policy by hand (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"
 }
 ```
 
@@ -357,7 +358,7 @@ Expected:
 
 ```bash
 git add scripts/verify-vm.sh tests/stubs/tailscale tests/vm_ops.bats Makefile
-git commit -m "feat: verify the SilverBullet login and each Serve port on the VM" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 11" --trailer "Task: 1"
+git commit -m "feat: verify the SilverBullet login and each Serve port on the VM" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: a88datfz" --trailer "Task: 1"
 git push
 ```
 
@@ -424,11 +425,11 @@ configure_serve() {
     || die "tailscale serve for SilverBullet failed: rerun 'make vm-bootstrap' (it is safe to repeat)"
   serve_status="$(tailscale serve status)" || die "could not read tailscale serve status: rerun 'make vm-bootstrap'"
   if grep -qi 'funnel on' <<<"$serve_status"; then
-    die "Funnel is on for this node, which makes the unauthenticated endpoint public: turn it off (docs/runbooks/operations.md, Exposure audit), then rerun 'make vm-bootstrap'"
+    die "Funnel is on for this node, which makes the unauthenticated endpoint public: turn it off (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit), then rerun 'make vm-bootstrap'"
   fi
   for port in "$BM_PORT" "$SB_PORT"; do
     grep -qE "proxy http://127\.0\.0\.1:${port}/?\$" <<<"$serve_status" \
-      || die "Serve is not active (expected a proxy to http://127.0.0.1:$port, got: $serve_status): enable MagicDNS and HTTPS certificates in the Tailscale admin console (docs/runbooks/accounts.md), then rerun 'make vm-bootstrap'"
+      || die "Serve is not active (expected a proxy to http://127.0.0.1:$port, got: $serve_status): enable MagicDNS and HTTPS certificates in the Tailscale admin console (docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md), then rerun 'make vm-bootstrap'"
   done
   log "tailscale serve -> $bm_target (https 443) and $sb_target (https $SB_HTTPS_PORT), tailnet only"
 }
@@ -449,19 +450,19 @@ Expected: exit 0. `bootstrap.bats` 전체가 ok이고, `repo.bats`의 "no script
 
 ```bash
 git add scripts/remote/bootstrap.sh scripts/bootstrap-vm.sh tests/bootstrap.bats
-git commit -m "feat: serve SilverBullet on https port 8443 of the tailnet name" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 11" --trailer "Task: 2"
+git commit -m "feat: serve SilverBullet on https port 8443 of the tailnet name" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: a88datfz" --trailer "Task: 2"
 git push
 ```
 
 ### Task 3: 운영 문서
 
 **Files:**
-- Modify: `docs/runbooks/rbk-2026-10-12-operations.md`, `docs/runbooks/rbk-2026-10-12-bootstrap.md:29-35`, `docs/ARCHITECTURE.md`(토폴로지 첫 줄들, Serve 행, 자동 검증 범위, 검증 흐름), `README.md:39`
+- Modify: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`, `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md:29-35`, `docs/ARCHITECTURE.md`(토폴로지 첫 줄들, Serve 행, 자동 검증 범위, 검증 흐름), `README.md:39`
 
 **Interfaces:**
 - Consumes: Task 1·2의 출력 문구(`OK: SilverBullet checks passed`, `refuses ports 22 80 443 8443 8737 3000`)
 
-- [ ] **Step 1: `docs/runbooks/rbk-2026-10-12-operations.md`**
+- [ ] **Step 1: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`**
 
 "일상 명령" 표의 배포 행 다음에 한 행을 넣는다.
 
@@ -495,15 +496,15 @@ Exposure audit 첫 문단의 자동 검사 목록을 바꾼다.
 `make verify`/`make probe`는 VM 쪽에서 확인할 수 있는 것만 자동으로 검사합니다: 8737·3000의 `127.0.0.1` 바인딩, Serve가 tailnet 전용이고 443→Basic Memory·8443→SilverBullet인지(두 포트 모두 Funnel off), 공인 IP의 22·80·443·8443·8737·3000 차단. 나머지 두 가지는 VM에서 읽을 수 없으므로, 배포 직후와 방화벽·정책을 바꾼 뒤(VM 재구축 포함)에 손으로 점검하고 결과를 Incident log 아래 "점검 기록"에 남깁니다.
 ```
 
-Funnel 문단의 마지막 문장(계획 05가 고친 `serve reset` 문장) 뒤에 한 문장을 더한다.
+Funnel 문단의 마지막 문장([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)이 고친 `serve reset` 문장) 뒤에 한 문장을 더한다.
 
 ```markdown
 `serve reset`은 443과 8443 설정을 모두 지우므로, 그 뒤 `make vm-bootstrap HOST=agent-hub`로 두 포트를 다시 설정합니다.
 ```
 
-- [ ] **Step 2: `docs/runbooks/rbk-2026-10-12-bootstrap.md:29-35`와 `README.md:39`**
+- [ ] **Step 2: `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md:29-35`와 `README.md:39`**
 
-`rbk-2026-10-12-bootstrap.md:29`의 `make deploy verify status`를 `make deploy sb-fonts verify status`로 바꾼다(`sb-fonts`는 Mac의 TTF가 필요하다. README 사전 요구사항 참고). `:33`과 `:35`를 바꾼다.
+`rbk-2026-10-12-ha5w72pm-bootstrap.md:29`의 `make deploy verify status`를 `make deploy sb-fonts verify status`로 바꾼다(`sb-fonts`는 Mac의 TTF가 필요하다. README 사전 요구사항 참고). `:33`과 `:35`를 바꾼다.
 
 ```markdown
 - [ ] `make verify`가 `OK: MCP round trip passed`, `OK: SilverBullet checks passed`, `listens on 127.0.0.1 only`(8737과 3000), `tailscale serve is tailnet only`, `refuses ports 22 80 443 8443 8737 3000`을 모두 출력한다.
@@ -517,7 +518,7 @@ Funnel 문단의 마지막 문장(계획 05가 고친 `serve reset` 문장) 뒤�
 
 - [ ] **Step 3: `docs/ARCHITECTURE.md`**
 
-토폴로지 첫 세 줄(계획 10이 쓴 블록의 `[개인/회사 Mac]`부터 `▼`까지)을 다음으로 바꾼다.
+토폴로지 첫 세 줄([web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md)이 쓴 블록의 `[개인/회사 Mac]`부터 `▼`까지)을 다음으로 바꾼다.
 
 ```
 [개인/회사 Mac] ── tailnet ──▶ https://agent-hub.<tailnet>.ts.net/mcp        에이전트 (MCP)
@@ -551,18 +552,18 @@ Expected: 출력 없음. 완료된 계획 문서(`docs/plans/completed/`)에 남
 - [ ] **Step 5: 커밋과 push**
 
 ```bash
-git add docs/runbooks/operations.md docs/runbooks/bootstrap.md docs/ARCHITECTURE.md README.md
-git commit -m "docs: add the web UI to the runbooks and the architecture" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 11" --trailer "Task: 3"
+git add docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md docs/ARCHITECTURE.md README.md
+git commit -m "docs: add the web UI to the runbooks and the architecture" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: a88datfz" --trailer "Task: 3"
 git push
 ```
 
 ### Task 4: VM 반영 (사용자와 함께, 단계마다 OK)
 
 **Files:**
-- Modify: `docs/decisions/adr-2026-10-15-0005-web-ui-silverbullet.md`("VM 측정" 절), 스펙 §3(해소한 Assumption), 이 계획 파일(Progress log)
+- Modify: `docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md`("VM 측정" 절), 스펙 §3(해소한 Assumption), 이 계획 파일(Progress log)
 
 **Interfaces:**
-- Consumes: 계획 10·11의 모든 Make 타깃, 런북
+- Consumes: [web-ui-local](plan-2026-10-14-n6xpm12e-web-ui-local.md)·web-ui-vm-rollout 계획의 모든 Make 타깃, 런북
 - Produces: 스펙 §1 완료 조건 2·3·4·6의 증거
 
 이 Task는 VM을 바꾼다. **각 단계 전에 사용자 OK를 받는다.** 사람은 VM 대상 타깃을 main 체크아웃에서 실행해도 된다(운영 런북).
@@ -653,29 +654,29 @@ ssh ubuntu@agent-hub 'docker stats --no-stream --format "{{.Name}} {{.MemUsage}}
 Expected:
 - 다음을 기록한다: 두 컨테이너의 메모리, 전체 메모리·스왑 사용량, OOM 줄(`none`).
 - 브라우저 확인(Step 8)을 한 뒤 한 번 더 잰다.
-- OOM이 있거나 스왑이 크게 늘면 ADR 0002를 다시 판단할지 사용자와 정한다.
+- OOM이 있거나 스왑이 크게 늘면 [vm-sizing ADR](../decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)을 다시 판단할지 사용자와 정한다.
 
 - [ ] **Step 8: 브라우저 확인 (사용자, 완료 조건 3·4)**
 
-사용자가 Mac 브라우저에서 `https://agent-hub.<tailnet>.ts.net:8443`을 열어 로그인한다. 에이전트는 계획 10 Task 6 Step 4·5의 목록으로 함께 확인한다.
+사용자가 Mac 브라우저에서 `https://agent-hub.<tailnet>.ts.net:8443`을 열어 로그인한다. 에이전트는 [web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md) Task 6 Step 4·5의 목록으로 함께 확인한다.
 - 3단 레이아웃, 대시보드, 글꼴 Regular·Bold, `Graph: Explore`
 - 새 페이지 줄바꿈
-- `search_notes`에 SilverBullet 전용 페이지가 나오지 않음. `search_notes`는 tailnet URL의 MCP로 부른다(계획 10 Task 6의 일회용 스크립트에서 `URL`만 `https://agent-hub.<tailnet>.ts.net/mcp`로 바꿈). 기본 검색은 글자가 맞지 않는 노트도 돌려주므로 `{"query":"agentHub","search_type":"text"}`(0건)와 `list_directory`(노트만 있음)로 본다(계획 10 Progress log).
-- 브라우저의 `fetch("/.fs/…")`는 service worker 뒤에서 파일을 읽고 쓰지 못한다(계획 10). 확인용 읽기는 `client.space.readPage`나 Basic Memory `read_note`로 한다.
+- `search_notes`에 SilverBullet 전용 페이지가 나오지 않음. `search_notes`는 tailnet URL의 MCP로 부른다([web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md) Task 6의 일회용 스크립트에서 `URL`만 `https://agent-hub.<tailnet>.ts.net/mcp`로 바꿈). 기본 검색은 글자가 맞지 않는 노트도 돌려주므로 `{"query":"agentHub","search_type":"text"}`(0건)와 `list_directory`(노트만 있음)로 본다(web-ui-local 계획 Progress log).
+- 브라우저의 `fetch("/.fs/…")`는 service worker 뒤에서 파일을 읽고 쓰지 못한다([web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md)). 확인용 읽기는 `client.space.readPage`나 Basic Memory `read_note`로 한다.
 
 VM에는 시드 노트를 넣지 않고 실제 노트로 확인한다. 줄바꿈 확인용 페이지(`research/Newline Check`)는 확인 뒤 지울지 사용자에게 묻는다.
 
 - [ ] **Step 9: 기록**
 
-- ADR 0005의 "VM 측정" 절에 Step 4·5·7의 수치를 `Verified`(명령 포함)로 적는다: 배포 시간, 두 컨테이너 메모리, 전체 메모리·스왑, OOM 여부.
-- 스펙 §3의 "Assumption (계획 11에서 확인)" 중 확인한 것을 `Verified (계획 11, <날짜>)`로 바꾼다.
+- [web-ui-silverbullet ADR](../decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md)의 "VM 측정" 절에 Step 4·5·7의 수치를 `Verified`(명령 포함)로 적는다: 배포 시간, 두 컨테이너 메모리, 전체 메모리·스왑, OOM 여부.
+- 스펙 §3의 "Assumption (web-ui-vm-rollout 계획에서 확인)" 중 확인한 것을 `Verified (web-ui-vm-rollout 계획, <날짜>)`로 바꾼다.
 - Progress log에 Step 1~8의 증거를 적는다.
 
 - [ ] **Step 10: 커밋과 push**
 
 ```bash
-git add docs/decisions/0005-web-ui-silverbullet.md docs/specs/2026-10-14-silverbullet-web-ui-design.md docs/plans/active/2026-10-14-11-web-ui-vm-rollout.md
-git commit -m "docs: record the web UI rollout on the VM" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 11" --trailer "Task: 4"
+git add docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md docs/plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md
+git commit -m "docs: record the web UI rollout on the VM" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: a88datfz" --trailer "Task: 4"
 git push
 ```
 
@@ -688,7 +689,7 @@ git push
 ### 마무리: 리뷰, 넘기기 (git-workflow 스킬의 Review and merge)
 
 - [ ] Progress log에 그날 `make check`의 테스트 수와 커버리지 %를 `Verified`로 적고, 계획 파일을 `docs/plans/completed/`로 옮겨 커밋·push한다(`Task: none`).
-- [ ] 다른 벤더의 읽기 전용 리뷰(`make review BRANCH=plan/11-web-ui-vm-rollout REVIEWER=<다른 벤더>`)는 사용자 승인 후 실행한다. PR 코멘트 게시도 승인 후 한다. 게시 전에 VM IP와 tailnet 이름, 세션 id를 가린다.
+- [ ] 다른 벤더의 읽기 전용 리뷰(`make review BRANCH=plan/a88datfz-web-ui-vm-rollout REVIEWER=<다른 벤더>`)는 사용자 승인 후 실행한다. PR 코멘트 게시도 승인 후 한다. 게시 전에 VM IP와 tailnet 이름, 세션 id를 가린다.
 - [ ] 지적을 검증하고 하나당 커밋 하나로 고친다. 2회차까지만 돈다.
 - [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
 - [ ] 병합 뒤 Clean up 절로 worktree를 정리한다(`backups/`·`.env` 확인 먼저).
@@ -703,7 +704,7 @@ git push
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
-| 2026-10-15 | Command | 시작: `plan/11-web-ui-vm-rollout`을 `3b87fa5`(계획 10 병합)에서 만들고 계획을 `active/`로 옮김(`cc56468`). 초안 PR #6. 실행은 사용자 결정대로 네이티브(executing-plans). 전제: PR #5·#2 `MERGED`, `SB_USER` 형식은 계획 10에서 확인. |
+| 2026-10-15 | Command | 시작: `plan/a88datfz-web-ui-vm-rollout`을 `3b87fa5`([web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md) 병합)에서 만들고 계획을 `active/`로 옮김(`cc56468`). 초안 PR #6. 실행은 사용자 결정대로 네이티브(executing-plans). 전제: PR #5·#2 `MERGED`, `SB_USER` 형식은 web-ui-local 계획에서 확인. |
 | 2026-10-15 | Verified | 사전 점검 판정: `make verify`가 SilverBullet에 로그인하는데 Makefile은 `SB_USER`를 여섯 타깃에만 넘김 → `verify`를 `SB_USER`·`SB_ENV_FILE` 타깃별 export에 더하고 `probe`는 뺌(테스트 `make verify hands SB_USER and the env file path to the VM check; make probe hands neither`, 스펙 §8.3 일곱 타깃). README 기준 줄은 `:39`가 아니라 `:51`. |
 | 2026-10-15 | Verified | Task 1 `1982d2f`: RED `make test` exit 2(계획의 4개 + 위 테스트 1개 not ok), GREEN `make check` exit 0, 183 ok, 0 not ok, 커버리지 96.87%(`verify-vm.sh` 97.06%). |
 | 2026-10-15 | Verified | Task 2 `5334b7f`: RED 2개(8443 `serve` 호출 없음, `TS_STUB_SERVE_8443=` 사례가 성공), GREEN `make check` exit 0, 183 ok, 96.88%(`bootstrap.sh` 97.96%). "no script enables Tailscale Funnel" 통과. |
@@ -714,8 +715,8 @@ git push
 | 2026-10-15 | Verified | Step 4(사용자 OK): `make deploy` exit 0, 91초. `the notes .gitignore changed`, Basic Memory 재생성부터 healthy까지 54초(이미지 캐시), 공간 파일과 페이지 쓰기 오류 없음(항목 4), SilverBullet healthy(항목 5), `deployed. Next: make verify`. 로그에 `SB_USER=` 0회. |
 | 2026-10-15 | Verified | Step 5(`sb-fonts`는 사용자 OK): `make sb-fonts` exit 0(woff2 둘). `make verify` exit 0: MCP 왕복, SilverBullet 로그인 거부·로그인과 쿠키(`Secure`, 항목 3)·셸 꺼짐, `SilverBullet checks passed for https://agent-hub.<tailnet>.ts.net:8443`, 8737·3000 루프백, `tailscale serve is tailnet only: 443 -> 127.0.0.1:8737, 8443 -> 127.0.0.1:3000`, `refuses ports 22 80 443 8443 8737 3000`, 글꼴 경고 없음. `make status`: 둘 다 healthy, 메모리 73%, 스왑 228 MB. |
 | 2026-10-15 | Verified | Step 6(읽기 전용 raw `ssh`·`docker exec`, 이유: 스펙 §3 격리 가정 확인): SilverBullet 컨테이너에서 `127.0.0.1:8737`, 네트워크 게이트웨이 `:8737`, `basic-memory-server:8000` 모두 `000`(항목 6). |
-| 2026-10-15 | Verified | Step 7(읽기 전용): 배포 직후 SilverBullet 26.85 MiB, Basic Memory 252.4 MiB, 메모리 594/952 MB, 스왑 109 MB. 브라우저 확인 뒤 6.6 MiB, 390.3 MiB, 695/952 MB, 스왑 402 MB. `dmesg` OOM 없음(항목 7). ADR 0005 "VM 측정"에 기록. |
-| 2026-10-15 | Verified | Step 8(사용자 로그인, 에이전트가 연 탭): VM에는 아직 실제 노트가 없어 대시보드는 일곱 절 모두 빈 상태. 첫 화면은 `sb-sync-error`(콘솔 `Request timed out after 2000ms`), `/.config`와 D2Koding woff2 둘이 503, 글꼴 `400 error, 700 error`. 원인은 tailnet 왕복 306ms(직접 연결)에서 새 TLS 연결이 2초를 넘은 것(`curl /.ping` 2.60초, 이후 0.58~0.83초). 새로고침 뒤 오류 없음, 글꼴 `400 loaded, 700 loaded`. 트리 왼쪽, 목차 오른쪽, 테마 `#0d1117`, `Graph: Explore` 동작. `research/Newline Check`(URL로 열어 템플릿 frontmatter 확인)에 두 줄 → 편집기, `client.space.readPage`, VM MCP `read_note`가 모두 기대한 7줄. `search_notes` `agentHub`(`search_type: text`) 0건, `list_directory`는 `research/Newline Check`만. 런북에 첫 접속 새로고침 안내 한 줄, 스펙 §3 계획 11 Assumption을 Verified로. |
-| 2026-10-15 | Verified | Step 8 보충(최종 리뷰 M9): VM에는 실제 노트가 없어 Linked Mentions, 정보 줄, `memory://` 복사, 노트 검색 결과는 볼 대상이 없었음. 왼쪽 칸 Cmd-K·Cmd-Shift-F 패널, 라이트 테마, Maintenance 링크는 계획 10 Task 6에서 같은 관리 페이지(`Library/agent-hub/agent-hub.md`, VM 사본도 같은 파일)로 로컬 확인함. VM에서는 다시 보지 않음. 사용자 결정(A): `research/Newline Check`를 VM에서 지움(VM MCP `delete_note` true, `list_directory` 결과 0개). |
+| 2026-10-15 | Verified | Step 7(읽기 전용): 배포 직후 SilverBullet 26.85 MiB, Basic Memory 252.4 MiB, 메모리 594/952 MB, 스왑 109 MB. 브라우저 확인 뒤 6.6 MiB, 390.3 MiB, 695/952 MB, 스왑 402 MB. `dmesg` OOM 없음(항목 7). [web-ui-silverbullet ADR](../decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md) "VM 측정"에 기록. |
+| 2026-10-15 | Verified | Step 8(사용자 로그인, 에이전트가 연 탭): VM에는 아직 실제 노트가 없어 대시보드는 일곱 절 모두 빈 상태. 첫 화면은 `sb-sync-error`(콘솔 `Request timed out after 2000ms`), `/.config`와 D2Koding woff2 둘이 503, 글꼴 `400 error, 700 error`. 원인은 tailnet 왕복 306ms(직접 연결)에서 새 TLS 연결이 2초를 넘은 것(`curl /.ping` 2.60초, 이후 0.58~0.83초). 새로고침 뒤 오류 없음, 글꼴 `400 loaded, 700 loaded`. 트리 왼쪽, 목차 오른쪽, 테마 `#0d1117`, `Graph: Explore` 동작. `research/Newline Check`(URL로 열어 템플릿 frontmatter 확인)에 두 줄 → 편집기, `client.space.readPage`, VM MCP `read_note`가 모두 기대한 7줄. `search_notes` `agentHub`(`search_type: text`) 0건, `list_directory`는 `research/Newline Check`만. 런북에 첫 접속 새로고침 안내 한 줄, 스펙 §3 web-ui-vm-rollout 계획 Assumption을 Verified로. |
+| 2026-10-15 | Verified | Step 8 보충(최종 리뷰 M9): VM에는 실제 노트가 없어 Linked Mentions, 정보 줄, `memory://` 복사, 노트 검색 결과는 볼 대상이 없었음. 왼쪽 칸 Cmd-K·Cmd-Shift-F 패널, 라이트 테마, Maintenance 링크는 [web-ui-local 계획](plan-2026-10-14-n6xpm12e-web-ui-local.md) Task 6에서 같은 관리 페이지(`Library/agent-hub/agent-hub.md`, VM 사본도 같은 파일)로 로컬 확인함. VM에서는 다시 보지 않음. 사용자 결정(A): `research/Newline Check`를 VM에서 지움(VM MCP `delete_note` true, `list_directory` 결과 0개). |
 | 2026-10-15 | Verified | 마무리: 최종 리뷰(opus, `3b87fa5..114716c`) 병합 가능, Critical 0, Important 0, Minor 9. 기록 정확성 두 건을 고침(`1b71d4b` 메모리 수치는 상주 메모리이고 부하 분담은 Assumption, `5ef2294` Step 8 보충). 나머지 Minor 7건은 미룸(PR 본문에 목록). `make check` exit 0, 183 ok, 0 not ok, 커버리지 96.88%. `make check-git` OK. 계획을 `completed/`로 옮김. 남은 일: PR #6 CI, Codex 리뷰. |
 | 2026-10-15 | Verified | PR #6 CI(`a9ece5c`): `check` pass(1m4s), `pr-rules` pass, GitGuardian pass(`gh pr checks 6`). Codex R1(`gpt-6.1-sol`, base `origin/main`, head `a9ece5c`): diff 리뷰는 결함 없음, plan 리뷰는 mergeable. 두 리포트를 PR #6에 게시함. |

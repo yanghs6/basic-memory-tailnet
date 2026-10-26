@@ -5,7 +5,7 @@ description: Git workflow for agent work in this repo, from the first file chang
 
 # Agent git workflow
 
-Policy: docs/specs/spec-2026-10-13-github-pr-workflow.md (pull requests, review, merge) on top of docs/specs/spec-2026-10-07-git-review-policy.md (branches, worktrees, trailers). Never commit or push to `main`, force-push, rebase or rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree. Never approve or merge a pull request.
+Policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md (pull requests, review, merge) on top of docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md (branches, worktrees, trailers). Never commit or push to `main`, force-push, rebase or rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree. Never approve or merge a pull request.
 
 ## Start
 

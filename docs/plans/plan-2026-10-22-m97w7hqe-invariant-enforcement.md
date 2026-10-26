@@ -1,9 +1,10 @@
 ---
 status: backlog
-spec: docs/specs/spec-2026-10-15-script-test-layout.md
+id: m97w7hqe
+spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 ---
 
-# 19 Invariant Enforcement Implementation Plan
+# m97w7hqe Invariant Enforcement Implementation Plan
 
 > 2026-10-22 에이전트 개발 시스템 평가(저장소 밖 기록)에서 나온 백로그 초안입니다. 실행하려면 먼저 사용자 승인이 필요합니다. 설계가 큰 항목은 아니어서 brainstorming과 새 스펙 없이 이 계획으로 시작할 수 있지만, 배경의 Open question 두 개(Task 2의 표지 이름, Task 4의 목록 위치)를 먼저 정합니다. Task 4의 `AGENTS.md` 수정은 그 Task를 시작할 때 따로 OK를 받습니다.
 
@@ -13,14 +14,14 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 
 **Architecture:**
 - 새 검사는 지금 자리에 더한다. 저장소 전체 규칙은 `tests/repo-*.bats`(Task 1, 3), PR 단위 규칙은 `pr-rules` 잡의 새 단계와 새 스크립트 `scripts/check-tests.sh`(Task 2)다. 새 잡은 만들지 않는다. 잡을 더하면 ruleset의 필수 검사 목록을 GitHub에서 바꿔야 한다.
-- 기존 검사를 넓힐 수 있으면 넓힌다(shebang은 strict mode 검사에, Makefile·Dockerfile 이미지는 compose digest 검사에). 입력만 다른 경우는 반복문 하나로 쓴다(ADR 0004 결정 3).
-- 지금 동작을 고정하는 테스트는 쓰자마자 통과한다. 그래서 실패 확인은 계획 17 Task 11처럼 커밋하지 않는 심은 위반으로 한다(`docs/plans/plan-2026-10-21-17-test-cleanup.md:447-454`).
+- 기존 검사를 넓힐 수 있으면 넓힌다(shebang은 strict mode 검사에, Makefile·Dockerfile 이미지는 compose digest 검사에). 입력만 다른 경우는 반복문 하나로 쓴다([test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 3).
+- 지금 동작을 고정하는 테스트는 쓰자마자 통과한다. 그래서 실패 확인은 [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md) Task 11처럼 커밋하지 않는 심은 위반으로 한다(`docs/plans/plan-2026-10-21-hf9kadp3-test-cleanup.md:447-454`).
 
-**Spec:** `docs/specs/spec-2026-10-15-script-test-layout.md` (§6 테스트 배치와 이름, §9 검사). Task 2는 `docs/specs/spec-2026-10-13-github-pr-workflow.md` §6(CI의 `pr-rules` 내용)을 고친다. 테스트 허용 범위는 [ADR 0004](../decisions/adr-2026-10-13-0004-test-scope.md) 결정 1~3과 [ADR 0007](../decisions/adr-2026-10-16-0007-structure-checks.md) 결정 2·3이다.
+**Spec:** `docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md` (§6 테스트 배치와 이름, §9 검사). Task 2는 `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md` §6(CI의 `pr-rules` 내용)을 고친다. 테스트 허용 범위는 [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 1~3과 [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md) 결정 2·3이다.
 
-**Sequence:** 계획 19. 다음을 모두 만족한 뒤 시작한다.
+**Sequence:** 다음을 모두 만족한 뒤 시작한다.
 - 사용자가 이 계획과 Open question 1·2를 승인했다. 앞선 계획에 기대지 않는다.
-- 계획 18(public text guard)도 `.github/workflows/pr-rules.yml`과 아마 `scripts/check-pr.sh`를 고친다. 둘 중 늦게 병합되는 쪽이 `git merge origin/main`으로 단계 목록과 `check-pr.sh` 충돌을 푼다. 계획 18이 먼저 병합되면 Task 4 목록의 VM IP·세션 링크 행을 그 결과대로 적는다.
+- [public-text-guard 계획](plan-2026-10-22-v9whrbs6-public-text-guard.md)(public text guard)도 `.github/workflows/pr-rules.yml`과 아마 `scripts/check-pr.sh`를 고친다. 둘 중 늦게 병합되는 쪽이 `git merge origin/main`으로 단계 목록과 `check-pr.sh` 충돌을 푼다. public-text-guard 계획이 먼저 병합되면 Task 4 목록의 VM IP·세션 링크 행을 그 결과대로 적는다.
 
 ## 배경
 
@@ -34,10 +35,10 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
   - `-L`은 `scripts/lib/vm.sh:103-104`의 `-L "$(forward_spec …)"` 두 곳뿐이다.
   - `Makefile:25-26`과 `tools/Dockerfile:2,4`는 digest로 고정돼 있다. `Makefile:27`의 `TOOLS_IMAGE := bm-tools:local`은 `Makefile:38`이 직접 빌드한다.
 - **Verified (2026-10-22):** 평가가 제안한 "모든 `-L`" 검사를 그대로 쓰면 `scripts/remote/provision-vm.sh:96,119`의 `curl -fsSL`도 걸린다. 검사는 ssh에 한정한다(Task 3).
-- **Verified (2026-10-22):** ADR 0004 대체 범위(`docs/decisions/adr-2026-10-13-0004-test-scope.md:59`)는 "모든 Make 타깃이 help에 나옴" 검사를 `##`·`.PHONY` 검사(`tests/repo-make.bats:26`)로 바꿨다. 그래서 `help` 테스트는 대표 한 줄만 본다.
-- **Verified (2026-10-22):** 레이아웃 스펙 §1 사용자 결정 2(강제 수준 B: 위치·이름·짝 파일만)는 구조 검사의 범위다. Task 3의 shebang, digest, `-L` 검사는 그 결정이 아니라 ADR 0004 결정 1의 "AGENTS.md 불변식: 127.0.0.1 바인딩, digest 고정, 스크립트 머리 규칙"에 기댄다. source 검사는 §9 항목 3(라이브러리의 `common.sh`)을 최상위 스크립트로 넓힌 것이다.
+- **Verified (2026-10-22):** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 대체 범위(`docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md:59`)는 "모든 Make 타깃이 help에 나옴" 검사를 `##`·`.PHONY` 검사(`tests/repo-make.bats:26`)로 바꿨다. 그래서 `help` 테스트는 대표 한 줄만 본다.
+- **Verified (2026-10-22):** 레이아웃 스펙 §1 사용자 결정 2(강제 수준 B: 위치·이름·짝 파일만)는 구조 검사의 범위다. Task 3의 shebang, digest, `-L` 검사는 그 결정이 아니라 [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 1의 "AGENTS.md 불변식: 127.0.0.1 바인딩, digest 고정, 스크립트 머리 규칙"에 기댄다. source 검사는 §9 항목 3(라이브러리의 `common.sh`)을 최상위 스크립트로 넓힌 것이다.
 - **Verified (2026-10-22):** `AGENTS.md`는 9,841바이트이고 한도는 24,000바이트다(`tests/repo-config.bats:6`, `:135-140`). 평가가 적은 `:118`은 PR #10 뒤 `:135`로 밀렸다.
-- **Assumption:** 평가의 B2-M 표로 다시 세면 Task 3 뒤 행 5·6·7·8이 E가 되어 14/31(45%), 계획 18의 두 행(VM IP, 세션 링크)까지 더하면 16/31(52%)이다. 평가 보고서의 "약 17/31"과 한 행 차이가 난다. Task 2는 행 2(테스트 약화 금지)를 N에서 P로만 올린다.
+- **Assumption:** 평가의 B2-M 표로 다시 세면 Task 3 뒤 행 5·6·7·8이 E가 되어 14/31(45%), [public-text-guard 계획](plan-2026-10-22-v9whrbs6-public-text-guard.md)의 두 행(VM IP, 세션 링크)까지 더하면 16/31(52%)이다. 평가 보고서의 "약 17/31"과 한 행 차이가 난다. Task 2는 행 2(테스트 약화 금지)를 N에서 P로만 올린다.
 - **Open question 1:** Task 2의 표지. 추천은 `Tests-Removed: <이유>` 하나로 `@test` 감소와 새 `skip`을 모두 덮는 것이다. 기존 트레일러(`Assisted-by`, `Review-Finding`)와 같은 꼴이고, PR 본문 트레일러 문단에 있으면 squash 커밋에 남아 `main` 이력에서 이유를 찾을 수 있다. 대안은 `Tests-Skipped`를 따로 두는 것이다. 구분은 되지만 표지가 둘이 된다.
 - **Open question 2:** Task 4의 prose-only 목록 위치.
   - A(추천): 새 ADR에 두고 `AGENTS.md` 제목 아래 한 줄로 가리킨다. 네 도구가 매 세션 읽는 `AGENTS.md`를 짧게 두고, 검사가 생겨 목록이 바뀌어도 `AGENTS.md`를 고칠 필요가 없다. 크기 한도 때문은 아니다(9,841/24,000바이트).
@@ -45,13 +46,13 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 
 ## Global Constraints
 
-- ADR 0004 결정 1: 새 테스트는 AGENTS.md 불변식, 데이터 안전, 스크립트·Make 진입점의 대표 성공 경로 1개, 조용히 넘어갈 실패 경로, 머지 절차가 기대는 Git 정책 가운데 하나를 지킨다. 결정 2: 중복, 문구·형식만 보는 테스트, 스텁·도우미 자체, 상수 되풀이, usage 문구 테스트는 쓰지 않는다.
-- ADR 0007 결정 2: 섹션 이름, 문장, 레이블, 언어를 확인하는 테스트는 쓰지 않는다(Task 4에 새 테스트가 없는 이유). 결정 3: 실패 메시지는 파일, 어긋난 값, 허용 값, 고칠 곳을 함께 출력한다.
+- [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 1: 새 테스트는 AGENTS.md 불변식, 데이터 안전, 스크립트·Make 진입점의 대표 성공 경로 1개, 조용히 넘어갈 실패 경로, 머지 절차가 기대는 Git 정책 가운데 하나를 지킨다. 결정 2: 중복, 문구·형식만 보는 테스트, 스텁·도우미 자체, 상수 되풀이, usage 문구 테스트는 쓰지 않는다.
+- [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md) 결정 2: 섹션 이름, 문장, 레이블, 언어를 확인하는 테스트는 쓰지 않는다(Task 4에 새 테스트가 없는 이유). 결정 3: 실패 메시지는 파일, 어긋난 값, 허용 값, 고칠 곳을 함께 출력한다.
 - 레이아웃 스펙 §6: 저장소 전체 규칙은 `tests/repo-<topic>.bats`에 둔다. 새 스크립트는 `make new-script`로 만들고 짝 테스트 `tests/<name>.bats`를 둔다.
 - 워크플로: `tests/repo-github.bats:9-25`(표현식은 `env:`로만 넘김, 여러 줄 `run:` 금지, 읽기 권한만, 잡 이름 없음)와 `:27-44`(ruleset 필수 검사 = 워크플로 잡 id). 새 단계는 기존 `pr-rules` 잡 안에 둔다.
 - `AGENTS.md` 수정은 사용자 OK가 필요하고, 크기는 24,000바이트 이하로 둔다.
 - 테스트는 `make test`나 `make check`로만 돌린다. 실제 트리에서 `make fmt`를 테스트용으로 돌리지 않는다.
-- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: 19`, `Task: <N|review|none>`.
+- 커밋 트레일러: `Assisted-by: <tool> <model>`, `Plan: m97w7hqe`, `Task: <N|review|none>`.
 
 ## Review Focus
 
@@ -69,7 +70,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 | `tests/check-tests.bats` (새 파일) | 위 스크립트의 짝 테스트 | 2 |
 | `scripts/lib/git.sh`, `scripts/check-pr.sh`, `tests/lib-git.bats`, `tests/check-pr.bats` | PR 본문 트레일러 파싱을 라이브러리로 옮김 | 2 |
 | `.github/workflows/pr-rules.yml` | 새 단계 "Test count and skips" | 2 |
-| 새 ADR, `docs/specs/spec-2026-10-13-github-pr-workflow.md`(`amended-by`), `.agents/skills/git-workflow/SKILL.md`, `docs/ARCHITECTURE.md` | 결정 기록과 동반 문서 | 2 |
+| 새 ADR, `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md`(`amended-by`), `.agents/skills/git-workflow/SKILL.md`, `docs/ARCHITECTURE.md` | 결정 기록과 동반 문서 | 2 |
 | `tests/repo-scripts.bats` | shebang, 최상위 스크립트 source, ssh `-L` | 3 |
 | `tests/repo-config.bats` | compose·Makefile·Dockerfile 이미지 digest | 3 |
 | `AGENTS.md`, 새 ADR 또는 `AGENTS.md` 절 | 제목의 과장 수정, prose-only 목록 | 4 |
@@ -78,7 +79,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/19-invariant-enforcement` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/m97w7hqe-invariant-enforcement` 브랜치를 만든다(`git-workflow` 스킬의 Start).
 - [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: Make target tests
@@ -87,7 +88,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - Modify: `tests/repo-make.bats` (새 테스트 두 개를 `:88` 뒤에)
 
 - [ ] **Step 1: 테스트 작성.** `linked_worktree_with_makefile`(`:6-9`), `make_in`(`:21-24`), `setup_stubs docker`를 쓴다. 이미지 이름 같은 기대값은 `Makefile`에서 읽는다(상수 되풀이 금지).
-  - "make help prints each target with its ## description": `make_in "$LINKED_WT" help`가 성공하고, 출력에 `check` 줄과 `Makefile`의 `check:` 줄에서 읽은 설명이 있다. 타깃 전체를 세지 않는다(배경의 ADR 0004 대체 범위).
+  - "make help prints each target with its ## description": `make_in "$LINKED_WT" help`가 성공하고, 출력에 `check` 줄과 `Makefile`의 `check:` 줄에서 읽은 설명이 있다. 타깃 전체를 세지 않는다(배경의 [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 대체 범위).
   - "make fmt, test, local-down and local-logs run their docker command in the checkout they run from": 경우마다 하위 셸에서 fixture를 새로 만들고 `make_in` 뒤 stub log를 본다.
     - `fmt`: fixture에 추적되지 않은 `probe.sh`를 둔다. 한 줄에 `-v <LINKED_WT>:/repo`, `SHFMT_IMAGE` 값, `-w probe.sh`가 있다. docker는 stub이고 마운트는 fixture라서 실제 트리는 바뀌지 않는다.
     - `test`: `docker build -q -t <TOOLS_IMAGE> tools`가 `<TOOLS_IMAGE> bats tests`보다 먼저다(`assert_log_order`).
@@ -99,7 +100,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - [ ] **Step 4: 통과 확인.**
   Run: `make check`
   Expected: exit 0, ok 141, not ok 0, 커버리지 80% 이상
-- [ ] **Step 5: 커밋.** `git commit -m "test: run the help, fmt, test, local-down and local-logs targets" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 19" --trailer "Task: 1"`
+- [ ] **Step 5: 커밋.** `git commit -m "test: run the help, fmt, test, local-down and local-logs targets" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 1"`
 
 ### Task 2: Test integrity guard
 
@@ -108,7 +109,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - Create: ADR (`make new-doc TYPE=adr SLUG=test-integrity-guard`)
 - Modify: `scripts/lib/git.sh` (`scripts/check-pr.sh:15-19`의 `trailer_values`와 `:46-50`의 squash 메시지 트레일러 파싱을 옮겨 받음, 함수 색인 갱신), `scripts/check-pr.sh`, `tests/lib-git.bats`(옮긴 파싱 경우), `tests/check-pr.bats:12`
 - Modify: `.github/workflows/pr-rules.yml` (`:27-31` 뒤에 단계 하나)
-- Modify: `docs/specs/spec-2026-10-13-github-pr-workflow.md` (front matter `amended-by`만), `.agents/skills/git-workflow/SKILL.md:32`, `docs/ARCHITECTURE.md:53`
+- Modify: `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md` (front matter `amended-by`만), `.agents/skills/git-workflow/SKILL.md:32`, `docs/ARCHITECTURE.md:53`
 
 **Interfaces:**
 - Produces: `scripts/check-tests.sh BASE`(env `PR_TITLE`, `PR_BODY`). 통과하면 exit 0과 `OK:` 한 줄, 위반이면 `report_problems`로 목록과 exit 1. `scripts/lib/git.sh`의 PR 본문 트레일러 파서(이름은 구현 때 정함)와 `trailer_values KEY TRAILERS`.
@@ -132,10 +133,10 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - [ ] **Step 4: 통과 확인.**
   Run: `make check`
   Expected: exit 0, not ok 0, 커버리지 80% 이상(`scripts/check-tests.sh`도 실행됨)
-  Run: `PR_TITLE='test: probe' PR_BODY="$(printf 'Assisted-by: <tool> <model>\nPlan: 19\n')" scripts/check-tests.sh origin/main` (값은 실제 도구로)
+  Run: `PR_TITLE='test: probe' PR_BODY="$(printf 'Assisted-by: <tool> <model>\nPlan: m97w7hqe\n')" scripts/check-tests.sh origin/main` (값은 실제 도구로)
   Expected: exit 0, `OK:` 줄에 늘어난 수
   push 뒤: 이 PR에서 `pr-rules`가 새 단계와 함께 통과한다.
-- [ ] **Step 5: 커밋.** `git commit -m "ci: fail pull requests that remove or skip tests without a Tests-Removed reason" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 19" --trailer "Task: 2"`. 파서 이동을 따로 커밋하면 `refactor:`로 같은 트레일러를 단다.
+- [ ] **Step 5: 커밋.** `git commit -m "ci: fail pull requests that remove or skip tests without a Tests-Removed reason" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 2"`. 파서 이동을 따로 커밋하면 `refactor:`로 같은 트레일러를 단다.
 
 ### Task 3: Static invariant checks
 
@@ -159,7 +160,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - [ ] **Step 4: 통과 확인.**
   Run: `make check`
   Expected: exit 0, ok 143(Task 2의 테스트 수 별도), not ok 0, 커버리지 80% 이상
-- [ ] **Step 5: 커밋.** `git commit -m "test: check shebangs, script sources, ssh forwards and tool image digests" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 19" --trailer "Task: 3"`
+- [ ] **Step 5: 커밋.** `git commit -m "test: check shebangs, script sources, ssh forwards and tool image digests" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 3"`
 
 ### Task 4: AGENTS.md heading and prose-only invariants
 
@@ -175,19 +176,19 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - [ ] **Step 3: prose-only 목록.** 그날 트리를 기준으로 한 행씩 확인해 적는다. 시작 목록(`AGENTS.md` 행: 이유):
   - `:9` 커밋마다 `make check`: CI가 PR head에서 같은 명령을 돌린다. 커밋마다 막으려면 도구별 hook이 필요하다.
   - `:12` 테스트 약화 금지: Task 2는 삭제와 `skip`만 본다. 약해진 단언은 리뷰가 본다.
-  - `:13` 공개 인그레스 0, ssh 모드의 방화벽 규칙, VM당 한 모드: VM·클라우드 상태라서 `make verify`/`make probe`와 `docs/runbooks/rbk-2026-10-12-operations.md`의 노출 점검이 본다. `make check`는 볼 수 없다.
+  - `:13` 공개 인그레스 0, ssh 모드의 방화벽 규칙, VM당 한 모드: VM·클라우드 상태라서 `make verify`/`make probe`와 `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`의 노출 점검이 본다. `make check`는 볼 수 없다.
   - `:14` 릴리스 노트를 읽은 뒤에만 고정 변경, `bm-upgrade`로만 업그레이드: 산출물이 남지 않는 절차다.
   - `:15` `die`와 고칠 방법이 있는 메시지, `:16` 빈 배열 전개와 `|| exit 1`, `:17` 이름 붙인 상수와 비밀값 비출력: 판단이 필요하거나 grep으로 정할 수 없다. 비밀값은 기존 경로만 동작 테스트가 있다.
   - `:18` 테스트 먼저: 순서는 이력에만 있다. Progress log와 리뷰가 본다.
   - `:21-27` Safety의 실행 규칙: 저장소 산출물이 아니라 에이전트의 행동이다.
-  - `:28` VM IP, `:35` 세션 링크: 계획 18의 결과대로 적는다.
+  - `:28` VM IP, `:35` 세션 링크: [public-text-guard 계획](plan-2026-10-22-v9whrbs6-public-text-guard.md)의 결과대로 적는다.
   - `:32` `main` 밖의 force-push·rebase, `git gc`, 다른 브랜치 삭제: ruleset은 `main`만 지킨다.
   - `:33` `Review-Finding` 형식: Follow-ups.
-  - `:39-40` 레이블과 언어: ADR 0007 결정 2가 검사를 금지한다.
-- [ ] **Step 4: 통과 확인.** 새 테스트는 없다(ADR 0007 결정 2).
+  - `:39-40` 레이블과 언어: [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md) 결정 2가 검사를 금지한다.
+- [ ] **Step 4: 통과 확인.** 새 테스트는 없다([structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md) 결정 2).
   Run: `make check`
   Expected: exit 0. 문서 검사(링크, docs 경로, front matter)와 `AGENTS.md` 크기 검사가 통과한다. `wc -c AGENTS.md`가 24,000 이하다.
-- [ ] **Step 5: 커밋.** `git commit -m "docs: say which invariants checks enforce and list the prose-only ones" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 19" --trailer "Task: 4"`
+- [ ] **Step 5: 커밋.** `git commit -m "docs: say which invariants checks enforce and list the prose-only ones" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 4"`
 
 ### Finish: review and hand-off
 
@@ -201,7 +202,7 @@ spec: docs/specs/spec-2026-10-15-script-test-layout.md
 - `AGENTS.md:33`의 `Review-Finding`/`SDD-T…` 형식: `check-git.sh`가 값이 있을 때 형식을 보면 싸게 E가 된다. 다만 **Verified (2026-10-22):** 이력의 값에 `SDD-final-I1` 같은 것이 있어 `SDD-T<task>-F<n>`과 맞지 않으므로 형식부터 정해야 한다.
 - 지우고 같은 수를 더하는 PR, 약해진 단언: 이름 기준 비교나 변이 검사는 비용이 커서 미룬다.
 - `COVERAGE_MIN`(`Makefile:28`)이나 `tools/coverage.sh`를 낮추는 변경: 무결성의 다른 경로이지만 이 계획 밖이다.
-- 공개 텍스트(IP, tailnet 이름, 세션 링크, 도구 서명 줄): 계획 18.
+- 공개 텍스트(IP, tailnet 이름, 세션 링크, 도구 서명 줄): [public-text-guard 계획](plan-2026-10-22-v9whrbs6-public-text-guard.md).
 - `check-pr.sh`와 `check-tests.sh`를 로컬에서 부르는 Make 타깃: 지금은 usage 줄에만 있다.
 
 ## Progress log
