@@ -1,5 +1,5 @@
 ---
-status: backlog
+status: active
 id: zw0shxee
 spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 ---
@@ -48,6 +48,8 @@ spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
   - B: 다음 실제 업그레이드 때까지 Task 4를 미룬다. 계획은 Task 4만 남긴 채 열어 둔다.
   - C: 이미지는 그대로 두고 설정만 바꾼 배포를 되돌린다. `image:` 롤백은 시험하지 못한다.
   - **Assumption:** 2026-10-22 기준 `compose.yaml:14`의 0.23.2보다 새 릴리스가 있는지는 확인하지 않았다. 새 릴리스가 없으면 A는 쓸 수 없고 B가 된다.
+  - **Verified (2026-10-26):** `gh release list -R basicmachines-co/basic-memory`에 v0.24.0과 v0.24.1(2026-10-23, Latest)이 있다. A를 쓸 수 있다.
+- **결정 (2026-10-26):** 사용자가 이 계획을 승인하고 Open question 1은 A(Task 3에서 E1을 고침), Open question 2는 A(시험할 때의 최신 릴리스로 올렸다가 되돌림)를 골랐다.
 
 ## Global Constraints
 
