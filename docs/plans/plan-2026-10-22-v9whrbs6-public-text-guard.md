@@ -46,8 +46,8 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 
 | 후보 패턴 | 걸리는 곳 | 계획의 처리 |
 |---|---|---|
-| IPv4, 허용 집합은 브리프 안(loopback, `0.0.0.0`, 문서용 대역, IAP 대역)만 | RFC 1918 대역 CIDR 26곳(문서 10개, GCP VPC 내부 대역). `tests/verify-vm.bats:64-66`에 일부러 넣은 사설·link-local·범위 밖 입력 6개. `docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md:56,182`의 옥텟 범위 밖 숫자 2개. 스펙 54행의 tailnet 대역 표기 1개. [ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md)의 메타데이터 서버 주소 1개 | 허용 집합에 RFC 1918, link-local, 대역 표기(네트워크 주소/접두사)를 더한다. 옥텟이 0~255인 것만 주소로 본다. 그러면 0곳 |
-| 같은 조건 | 공개 주소 8개. `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md:285,286,307`(제3자 서버 주소와 공개 DNS 리졸버), `docs/plans/plan-2026-10-13-gaewewkf-ipv6-egress.md:21-22`(공개 DNS 리졸버) | 완료된 기록이므로 고치지 않고 예외 목록에 넣는다(Open question 1) |
+| IPv4, 허용 집합은 브리프 안(loopback, `0.0.0.0`, 문서용 대역, IAP 대역)만 | RFC 1918 대역 CIDR 26곳(문서 10개, GCP VPC 내부 대역). `tests/verify-vm.bats:64-66`에 일부러 넣은 사설·link-local·범위 밖 입력 6개. `docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md:56,183`의 옥텟 범위 밖 숫자 2개. 스펙 54행의 tailnet 대역 표기 1개. [ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md)의 메타데이터 서버 주소 1개 | 허용 집합에 RFC 1918, link-local, 대역 표기(네트워크 주소/접두사)를 더한다. 옥텟이 0~255인 것만 주소로 본다. 그러면 0곳 |
+| 같은 조건 | 공개 주소 8개. `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md:285,287,308`(제3자 서버 주소와 공개 DNS 리졸버), `docs/plans/plan-2026-10-13-gaewewkf-ipv6-egress.md:21-22`(공개 DNS 리졸버) | 완료된 기록이므로 고치지 않고 예외 목록에 넣는다(Open question 1) |
 | 자리표시자가 아닌 `*.ts.net` | 84곳 모두 자리표시자다. `example` 31곳, `<…>`·`*`·`{…}` 36곳, `tail1234` 15곳(파일 9개), `host.tailnet` 2곳 | 자리표시자 규칙: `example`, `<`, `*`, `{`가 들어 있거나, 라벨이 `tail1234`·`tailnet`인 이름 |
 | 문자열 `claude.ai/code/session` | 규칙을 설명하는 문장 3곳(스펙 125행, `scripts/check-pr.sh:13`, `tests/check-pr.bats:90`) | id가 붙은 링크(`session_` 뒤에 영숫자)와 줄 첫머리의 `Claude-Session:`로 좁힌다. 걸리는 곳은 `tests/check-pr.bats:90`의 가짜 id 1곳뿐 |
 | 문자열 `Generated with` | 규칙과 인용 문장이 있는 파일 7개 | `Generated with`로 시작하는 줄로 좁힌다(앞에는 공백, 목록·인용 기호, 이모지만 올 수 있다). 0곳 |
