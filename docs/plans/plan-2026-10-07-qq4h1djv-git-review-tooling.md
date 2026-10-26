@@ -928,7 +928,7 @@ ln -s ../../.agents/skills/branch-review .claude/skills/branch-review
 `````markdown
 # Review records
 
-One file per reviewed branch: `docs/reviews/<branch-slug>.md`, for example `rev-2026-10-08-tscgvpsz-git-review-tooling.md`. The author agent writes it from the raw reviewer output in `.review-out/` and commits it with `Task: review`. Policy: `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5.
+One file per reviewed branch: `docs/reviews/<branch-slug>.md`, for example `plan-02 git-review-tooling` (the old name, written as in the doc-ids-and-draft-board ADR appendix). The author agent writes it from the raw reviewer output in `.review-out/` and commits it with `Task: review`. Policy: `docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md`, section 5.
 
 ## Template
 

@@ -282,53 +282,53 @@ cut -f1 "$S/rename-map.tsv" | sed 's#.*/##' > "$S/old-names.txt"
 git grep -lIF -f "$S/old-names.txt" | xargs perl "$S/rewrite-doc-refs.pl" "$S/rename-map.tsv"
 ```
 
-2026-10-16에 `main` `4cedf49`에서 만든 표다. 시작할 때 다시 만들고 같은지 본다.
+2026-10-16에 `main` `4cedf49`에서 만든 표다. 시작할 때 다시 만들고 같은지 본다. 왼쪽 열은 옛 이름이고, [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 부록처럼 경로와 확장자 없이 날짜·번호·slug를 띄어 적었다.
 
 ```text
-docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md	docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md
-docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md	docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md
-docs/decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md	docs/decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md
-docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md	docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md
-docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md	docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md
-docs/decisions/adr-2026-10-15-cz8c26gp-access-modes.md	docs/decisions/adr-2026-10-15-cz8c26gp-access-modes.md
-docs/plans/plan-2026-10-13-gaewewkf-ipv6-egress.md	docs/plans/plan-2026-10-13-gaewewkf-ipv6-egress.md
-docs/plans/plan-2026-10-07-sqzn0teq-local-foundation.md	docs/plans/plan-2026-10-07-sqzn0teq-local-foundation.md
-docs/plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md	docs/plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md
-docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md	docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md
-docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md	docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md
-docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md	docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md
-docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md	docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md
-docs/plans/plan-2026-10-13-k93wjt1a-github-switch.md	docs/plans/plan-2026-10-13-k93wjt1a-github-switch.md
-docs/plans/plan-2026-10-13-znbc3ase-review-posting.md	docs/plans/plan-2026-10-13-znbc3ase-review-posting.md
-docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md	docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md
-docs/plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md	docs/plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md
-docs/plans/plan-2026-10-15-ctv444ep-access-modes.md	docs/plans/plan-2026-10-15-ctv444ep-access-modes.md
-docs/plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md	docs/plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md
-docs/research/rsch-2026-10-13-djx2fzm5-agent-oss-git-strategies.md	docs/research/rsch-2026-10-13-djx2fzm5-agent-oss-git-strategies.md
-docs/research/rsch-2026-10-15-f20fshxg-agent-repo-conventions.md	docs/research/rsch-2026-10-15-f20fshxg-agent-repo-conventions.md
-docs/reviews/rev-2026-10-07-bwvfm8bx-local-foundation.md	docs/reviews/rev-2026-10-07-bwvfm8bx-local-foundation.md
-docs/reviews/rev-2026-10-08-tscgvpsz-git-review-tooling.md	docs/reviews/rev-2026-10-08-tscgvpsz-git-review-tooling.md
-docs/reviews/rev-2026-10-08-ejeb10qw-vm-scripts.md	docs/reviews/rev-2026-10-08-ejeb10qw-vm-scripts.md
-docs/reviews/rev-2026-10-12-aqhzgwq1-docs-skills.md	docs/reviews/rev-2026-10-12-aqhzgwq1-docs-skills.md
-docs/reviews/rev-2026-10-13-g6358b35-test-pruning.md	docs/reviews/rev-2026-10-13-g6358b35-test-pruning.md
-docs/reviews/rev-2026-10-13-agxyktrn-work-backup-skip-model-cache.md	docs/reviews/rev-2026-10-13-agxyktrn-work-backup-skip-model-cache.md
-docs/reviews/rev-2026-10-12-qyfzj5ht-work-rename-agent-hub.md	docs/reviews/rev-2026-10-12-qyfzj5ht-work-rename-agent-hub.md
-docs/reviews/rev-2026-10-13-ycht90mr-work-skill-best-practices.md	docs/reviews/rev-2026-10-13-ycht90mr-work-skill-best-practices.md
-docs/reviews/rev-2026-10-13-af5vkb8q-work-slow-start-health.md	docs/reviews/rev-2026-10-13-af5vkb8q-work-slow-start-health.md
-docs/reviews/rev-2026-10-13-aqjax47t-work-workflow-alignment.md	docs/reviews/rev-2026-10-13-aqjax47t-work-workflow-alignment.md
-docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md	docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md
-docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md	docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md
-docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md	docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md
-docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md	docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md
-docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md	docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md
-docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md	docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md
-docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md	docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md
-docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md	docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
-docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md	docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
-docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md	docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md
-docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md	docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md
-docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md	docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md
-docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md	docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
+0001 basic-memory-on-gcp-tailscale	docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md
+0002 vm-sizing	docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md
+0003 skill-structure	docs/decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md
+0004 test-scope	docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md
+0005 web-ui-silverbullet	docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md
+0006 access-modes	docs/decisions/adr-2026-10-15-cz8c26gp-access-modes.md
+2026-10-13 07 ipv6-egress	docs/plans/plan-2026-10-13-gaewewkf-ipv6-egress.md
+2026-10-07 01 local-foundation	docs/plans/plan-2026-10-07-sqzn0teq-local-foundation.md
+2026-10-07 02 git-review-tooling	docs/plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md
+2026-10-07 03 vm-scripts	docs/plans/plan-2026-10-07-dry1xr43-vm-scripts.md
+2026-10-07 04 docs-skills	docs/plans/plan-2026-10-07-hydaxf15-docs-skills.md
+2026-10-07 05 vm-rollout	docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md
+2026-10-13 06 test-pruning	docs/plans/plan-2026-10-13-g57mry4b-test-pruning.md
+2026-10-13 08 github-switch	docs/plans/plan-2026-10-13-k93wjt1a-github-switch.md
+2026-10-13 09 review-posting	docs/plans/plan-2026-10-13-znbc3ase-review-posting.md
+2026-10-14 10 web-ui-local	docs/plans/plan-2026-10-14-n6xpm12e-web-ui-local.md
+2026-10-14 11 web-ui-vm-rollout	docs/plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md
+2026-10-15 12 access-modes	docs/plans/plan-2026-10-15-ctv444ep-access-modes.md
+2026-10-16 13 doc-system-foundation	docs/plans/plan-2026-10-16-wyz3h870-doc-system-foundation.md
+2026-10-13 agent-oss-git-strategies	docs/research/rsch-2026-10-13-djx2fzm5-agent-oss-git-strategies.md
+2026-10-15 agent-repo-conventions	docs/research/rsch-2026-10-15-f20fshxg-agent-repo-conventions.md
+plan-01 local-foundation	docs/reviews/rev-2026-10-07-bwvfm8bx-local-foundation.md
+plan-02 git-review-tooling	docs/reviews/rev-2026-10-08-tscgvpsz-git-review-tooling.md
+plan-03 vm-scripts	docs/reviews/rev-2026-10-08-ejeb10qw-vm-scripts.md
+plan-04 docs-skills	docs/reviews/rev-2026-10-12-aqhzgwq1-docs-skills.md
+plan-06 test-pruning	docs/reviews/rev-2026-10-13-g6358b35-test-pruning.md
+work-backup-skip-model-cache	docs/reviews/rev-2026-10-13-agxyktrn-work-backup-skip-model-cache.md
+work-rename-agent-hub	docs/reviews/rev-2026-10-12-qyfzj5ht-work-rename-agent-hub.md
+work-skill-best-practices	docs/reviews/rev-2026-10-13-ycht90mr-work-skill-best-practices.md
+work-slow-start-health	docs/reviews/rev-2026-10-13-af5vkb8q-work-slow-start-health.md
+work-workflow-alignment	docs/reviews/rev-2026-10-13-aqjax47t-work-workflow-alignment.md
+accounts	docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md
+bootstrap	docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md
+gcp-vm	docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md
+github	docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md
+operations	docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md
+2026-10-07 basic-memory-oci-tailscale-design	docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md
+2026-10-07 git-review-policy-design	docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md
+2026-10-12 basic-memory-gcp-tailscale-design	docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
+2026-10-13 github-pr-workflow-design	docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
+2026-10-14 silverbullet-web-ui-design	docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md
+2026-10-15 access-modes-design	docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md
+2026-10-15 doc-system-design	docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md
+2026-10-15 script-test-layout-design	docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 ```
 
 - [x] **Step 4: 남은 경로 고치기**

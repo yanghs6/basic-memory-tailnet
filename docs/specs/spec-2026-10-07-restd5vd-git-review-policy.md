@@ -27,7 +27,7 @@ amended-by: [docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, docs/spe
 **완료 조건**
 1. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)부터 모든 에이전트 커밋이 `plan/*` 또는 `work/*` 브랜치에 있고, 트레일러 규칙을 따른다.
 2. 각 계획 브랜치는 작성자와 다른 벤더의 리뷰어가 리뷰하고, 리뷰 기록이 `docs/reviews/`에 남은 뒤 사람이 `--no-ff`로 병합한다.
-3. 새 계획 02가 끝나면 `make check-git`과 `make review`가 동작하고, 테스트와 커버리지 기준을 통과한다.
+3. 새 [git-review-tooling 계획](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md)이 끝나면 `make check-git`과 `make review`가 동작하고, 테스트와 커버리지 기준을 통과한다.
 
 ## 2. 근거가 된 사실 (2026-10-07)
 
@@ -111,7 +111,7 @@ Task: 3
   - Codex: `codex exec -o <파일> "<체크리스트 프롬프트>"`
   - Claude: `claude -p --agent branch-reviewer`
 - `.claude/agents/branch-reviewer.md`: `tools: Read, Grep, Glob, Bash`, `disallowedTools: Write, Edit, NotebookEdit`, `permissionMode: plan`. Bash는 `git diff`·`git log`·`git show`만 허용한다.
-- 계획 02 이후에는 `make review BRANCH=<브랜치> REVIEWER=codex|claude`로 실행한다. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)은 위 명령을 손으로 실행한다.
+- git-review-tooling 계획 이후에는 `make review BRANCH=<브랜치> REVIEWER=codex|claude`로 실행한다. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)은 위 명령을 손으로 실행한다.
 
 **체크리스트** (`AGENTS.md`의 `## Code Review Rules`. Codex는 이 섹션을 자동으로 읽고, Claude는 `@AGENTS.md`로 읽는다)
 1. 계획의 Task가 모두 구현됐고, 각 검증 단계가 증거(명령과 결과)와 함께 통과했는가
@@ -119,7 +119,7 @@ Task: 3
 3. `make check`가 통과하는가
 4. 보안: 비밀값, `.env`, 공개 노출, 인증 없는 엔드포인트
 5. `AGENTS.md`가 요구하는 문서가 갱신됐는가
-6. 모든 커밋에 트레일러가 있는가(계획 02 이후 `make check-git`)
+6. 모든 커밋에 트레일러가 있는가(git-review-tooling 계획 이후 `make check-git`)
 
 이 변경이 새로 만든 문제만 지적하고, 추측성 지적과 취향 문제는 줄인다.
 
@@ -174,11 +174,11 @@ Reviewed-Head: <sha>
 
 | 시점 | 내용 |
 |---|---|
-| 지금 (writing-plans) | 계획 01~05의 Global Constraints에 3·4절 규칙을 넣고, 계획 끝 "마무리"를 5·6절 절차로 바꾼다. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)은 `plan/sqzn0teq-local-foundation` 브랜치에서 시작하고, 리뷰는 수동 명령으로 한다. |
+| 지금 (writing-plans) | local-foundation·git-review-tooling·vm-scripts·docs-skills·vm-rollout 계획의 Global Constraints에 3·4절 규칙을 넣고, 계획 끝 "마무리"를 5·6절 절차로 바꾼다. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)은 `plan/sqzn0teq-local-foundation` 브랜치에서 시작하고, 리뷰는 수동 명령으로 한다. |
 | [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md) Task 4 | `AGENTS.md` 기본판에 짧은 `## Git` 섹션을 넣는다(브랜치, worktree, 트레일러, 금지 사항). |
-| **새 계획 02: Git & Review Tooling** | 아래 산출물. 기존 계획 02·03·04는 03·04·05로 번호를 바꾼다. |
+| **새 git-review-tooling 계획** | 아래 산출물. 기존 vm-scripts·docs-skills·vm-rollout 계획은 번호를 02·03·04에서 03·04·05로 바꾼다. |
 
-**새 계획 02 산출물**
+**새 git-review-tooling 계획 산출물**
 - `scripts/check-git.sh` + `make check-git`
   - `main..HEAD` 커밋마다 `Assisted-by`·`Plan`·`Task`가 있는지
   - `Co-authored-by`·`Signed-off-by`가 없는지
