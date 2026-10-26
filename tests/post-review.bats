@@ -5,11 +5,11 @@ setup() {
   setup_stubs gh
   export REVIEW_OUT_DIR="$BATS_TEST_TMPDIR/out"
   POST="$REPO_DIR/scripts/post-review.sh"
-  PREFIX="$REVIEW_OUT_DIR/plan-09-review-posting-r1-codex"
+  PREFIX="$REVIEW_OUT_DIR/plan-n3q8d5vb-review-posting-r1-codex"
   write_reports
 }
 
-# write_reports: the three files make review writes for round 1 of plan/09-review-posting by codex, and nothing else in
+# write_reports: the three files make review writes for round 1 of plan/n3q8d5vb-review-posting by codex, and nothing else in
 # REVIEW_OUT_DIR.
 write_reports() {
   rm -rf "$REVIEW_OUT_DIR" && mkdir -p "$REVIEW_OUT_DIR" \
@@ -19,7 +19,7 @@ write_reports() {
 }
 
 @test "posts the change and plan reviews as two PR comments headed by round, reviewer, model and the reviewed SHAs" {
-  REVIEW_MODEL=gpt-6.1-sol run "$POST" 12 plan/09-review-posting codex
+  REVIEW_MODEL=gpt-6.1-sol run "$POST" 12 plan/n3q8d5vb-review-posting codex
   assert_success
   run grep -c '^gh pr comment 12 --body-file ' "$STUB_LOG"
   assert_output 2
@@ -44,7 +44,7 @@ write_reports() {
         missing) rm "$PREFIX-plan.md" || exit 1 ;;
         "too long") head -c 70000 /dev/zero | tr '\0' x >"$PREFIX-plan.md" || exit 1 ;;
       esac
-      run "$POST" 12 plan/09-review-posting codex
+      run "$POST" 12 plan/n3q8d5vb-review-posting codex
       assert_failure && assert_output --partial "$message" && refute_stub_called '^gh '
     ) || fail "post-review did not stop before gh with a plan report that is $problem"
   done

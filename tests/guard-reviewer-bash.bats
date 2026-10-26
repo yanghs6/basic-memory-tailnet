@@ -29,7 +29,7 @@ assert_blocked() {
     "git diff --stat main...HEAD -- scripts/review.sh" \
     "git log" \
     "git log --oneline main..HEAD" \
-    "git log --format=fuller review-base/plan-02-x-r2..HEAD" \
+    "git log --format=fuller review-base/plan-k7m2x9qa-x-r2..HEAD" \
     "git log --author=agent@example.com -n 3" \
     "git diff -U5 HEAD^ HEAD -- a,b+c" \
     "git show HEAD:AGENTS.md" \

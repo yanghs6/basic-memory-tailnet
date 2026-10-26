@@ -154,6 +154,7 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다.
 | 날짜 | 원인 | 사용한 백업 | 데이터 손실 구간 | 비고 |
 |---|---|---|---|---|
 | 2026-10-15 | 장애 아님: 접속 방식을 `tailscale`에서 `ssh`로 바꿈([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8) | 사용 안 함(롤백 지점 `bm-20261015T090644Z.tgz`) | 없음 | VM의 Tailscale은 로그아웃만 함(패키지 유지), admin console의 `agent-hub` 기기 삭제. 2026-10-16 `make verify` 통과 |
+| 2026-10-26 | 장애 아님: 사용자가 Ruleset `main`의 Enforcement를 껐다가 다시 켬. [doc-ids 계획](../plans/plan-2026-10-26-e3svnr3h-doc-ids.md) Task 4의 일회성 이력 재작성 | 사용 안 함(재작성 전 `main` a1d77be의 mirror 백업 사본을 저장소 밖에 둠) | 없음 | `git push --force-with-lease`로 `main`을 829e77a로 바꾼 뒤 Enforcement를 다시 켰다. 공개 규칙 API에 규칙 5개(deletion, non_fast_forward, required_linear_history, pull_request, required_status_checks)가 보인다. [GitHub 런북](rbk-2026-10-14-ppmby9v6-github.md) 6절 4단계의 기록이다 |
 
 ### 점검 기록 (Exposure audit)
 
