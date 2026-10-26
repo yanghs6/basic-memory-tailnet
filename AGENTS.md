@@ -2,7 +2,7 @@
 
 This repo deploys a Basic Memory MCP server on a GCP free-tier e2-micro VM that is reachable through one access mode per VM (`BM_ACCESS`): inside a Tailscale tailnet, or through an SSH tunnel (GCP IAP).
 Read first: `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`, then `docs/ARCHITECTURE.md`. For the access modes, read `docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md`.
-Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, completed or dropped.
+Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, completed or dropped. `main` shows `active` only after a plan's pull request merges, so a pushed `origin/plan/<ID>-*` branch means that plan is already in progress (`git-workflow`, Start).
 
 ## Commands
 - `make help` lists every target. Do lifecycle work through Make targets only; use raw `docker compose` or `ssh` only to diagnose a failing target, and record why.

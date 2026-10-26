@@ -16,7 +16,7 @@ Policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md (pull requests
    - Codex CLI, Gemini CLI, Antigravity: they can write only inside the directory they were started in. From any directory of this repo, create the worktree next to the main checkout:
      `git -C "$(git rev-parse --path-format=absolute --git-common-dir)/.." worktree add --no-track -b plan/<ID>-<slug> ../027_agent_share_poc-wt/<slug> origin/main`
      Then end this session and start the tool again inside that directory (`codex -C <dir>`, `cd <dir> && gemini`, or open the folder in Antigravity); `git worktree list` shows its absolute path. If Gemini CLI asks whether to trust the folder, trust it: with folder trust on (off by default), an untrusted folder ignores `.gemini/settings.json`, so Gemini CLI would not read `AGENTS.md`.
-3. For a plan, make the first commit change the plan's front matter `status` from `backlog` to `active` (`doc-authoring`).
+3. For a plan, first check that nobody runs it already. `main` keeps a plan at `backlog` until its pull request merges, so the in-progress signal is the pushed branch: after `git fetch origin`, `git branch -r --list 'origin/plan/<ID>-*'` must print nothing. If it prints a branch, the plan is in progress on another machine or tool: stop and tell the human. Then make the first commit change the plan's front matter `status` from `backlog` to `active` (`doc-authoring`) and push it at once (Publish, step 1), so others see the branch.
 4. For work that belongs to no plan (an upgrade, a fix, a doc change), use a `work/<slug>` branch and write `Plan: none` and `Task: none` in every commit.
 
 ## Commit
