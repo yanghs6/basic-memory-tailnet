@@ -1,0 +1,4 @@
+# must-fail input of tests/check-public-text.bats; obviously fake session ids
+https://claude.ai/code/session_0fake0fake0fake0fake
+  Claude-Session: 0fake-session
+HTTPS://Claude.AI/code/session_0FAKE0FAKE0FAKE0FAKE

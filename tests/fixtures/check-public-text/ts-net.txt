@@ -1,0 +1,3 @@
+# must-fail input of tests/check-public-text.bats; an obviously fake tailnet name
+agent-hub.tailfake0.ts.net
+agent-hub.counterexample0.ts.net
