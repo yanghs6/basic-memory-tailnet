@@ -1,5 +1,5 @@
 ---
-status: backlog
+status: active
 id: v9whrbs6
 spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 ---
@@ -231,3 +231,4 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
+| 2026-10-26 | Verified | 사용자가 계획을 승인하고 Open question 1~3을 모두 A로 정했다(예외 파일, `make secret-scan`, GitGuardian 대시보드). Task 1에 더할 규칙: 대역 표기는 네트워크 주소일 때만 허용하고, CGNAT 낱개 주소는 파일에 쓰지 않는다(테스트는 실행 중에 만든다). 이 규칙으로 [web-connector 계획](plan-2026-10-22-d3dpb00s-web-connector.md):106과 맞춘다. |
