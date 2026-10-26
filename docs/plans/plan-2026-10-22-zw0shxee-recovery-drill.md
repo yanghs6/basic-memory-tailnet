@@ -87,30 +87,30 @@ spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/zw0shxee-recovery-drill` 브랜치를 만든다(`git-workflow` 스킬의 Start).
-- [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
+- [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/zw0shxee-recovery-drill` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: Incident log follow-up column and past incidents
 
 **Files:**
 - Modify: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:152-156`
 
-- [ ] **Step 1: 테스트 없음.** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2. Step 4의 명령으로 확인한다.
-- [ ] **Step 2: 열과 정의**
+- [x] **Step 1: 테스트 없음.** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2. Step 4의 명령으로 확인한다.
+- [x] **Step 2: 열과 정의**
   - 머리 행 끝에 `후속 조치` 열을 더한다. 2026-10-15 행에는 끝에 `해당 없음(장애 아님)` 칸만 붙인다.
   - `## Incident log` 바로 아래에 정의 한 줄을 둔다. 장애는 실제 VM에서 서비스, 접속 경로, 복구 경로를 해친 계획에 없던 사건이고, 실패한 검증·시험도 포함한다. 원인을 확인하지 못했으면 원인 칸을 `Assumption:`으로 시작한다. 후속 조치 칸에는 커밋·PR·계획을 적고, 없으면 `없음`과 이유를 적는다.
   - **Assumption:** 이 정의는 평가의 D10 판정 기준을 옮긴 것이다. 사용자가 다르게 정하면 그에 따른다.
-- [ ] **Step 3: 행 추가.** 날짜순으로 넣고, 출처 줄은 비고 칸에 적는다.
+- [x] **Step 3: 행 추가.** 날짜순으로 넣고, 출처 줄은 비고 칸에 적는다.
   - 2026-10-13, 콜드 스타트 `unhealthy`([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:289`, `:292`). 백업: 사용 안 함. 손실: 없음. 후속: `56d3ab4`(`start_period: 300s`, `HEALTH_TIMEOUT_SECONDS` 360초), `tests/repo-config.bats:63`. 늘어나는 콜드 스타트는 vm-rollout 계획 Follow-ups에 남아 있다.
   - 2026-10-13, 모든 백업이 복원 거부됨(`:308`, `:310`). 백업: `bm-20261013T050026Z.tgz`(거부됨). 손실: 없음(VM에 손대기 전에 거부). 후속: `a5781a4`(모델 캐시 제외), `tests/restore-notes.bats:48`. 같은 날 2회차 복원이 통과했다.
   - 2026-10-13, 접속 경로: 사무실 네트워크가 HTTPS `controlplane.tailscale.com`만 막음(`:285-287`). 백업: 사용 안 함. 손실: 없음. 후속: 사용자가 IT에 허용을 요청했고, [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md)에서 VM을 `ssh` 모드로 옮겼다(`ef67732`, PR #12).
   - 2026-10-21, 배포 직후 첫 `make verify`가 `tools/list`에서 `curl: (28)`로 끝남([script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `:498-500`). 원인 칸은 `Assumption:`(재색인)으로 시작한다. 백업: 사용 안 함. 손실: 없음. 비고: 2분 뒤 `make probe`·`make verify` 통과. 후속: Task 2의 실패 목록 행. 원인 확인은 Follow-ups로 남긴다.
-- [ ] **Step 4: 확인**
+- [x] **Step 4: 확인**
 
 Run: `make check`; `awk '/^## Incident log/,/^### 점검 기록/' docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md | grep '^|' | awk -F'|' '{ print NF - 2 }' | sort -u`; `awk '/^## Incident log/,/^### 점검 기록/' docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md | grep -nE '([0-9]{1,3}\.){3}[0-9]{1,3}'`
 Expected: `make check`는 exit 0이다. 두 번째 명령은 `6` 한 줄만 출력한다(모든 행이 여섯 칸). 세 번째 명령은 아무것도 출력하지 않는다(grep exit 1).
 
-- [ ] **Step 5: 커밋.** `docs: give the Incident log a follow-up column and the past incidents`, 트레일러 `Plan: zw0shxee`, `Task: 1`.
+- [x] **Step 5: 커밋.** `docs: give the Incident log a follow-up column and the past incidents`, 트레일러 `Plan: zw0shxee`, `Task: 1`.
 
 ### Task 2: bm-diagnose curl timeout entry
 
@@ -217,3 +217,7 @@ Expected: `make check`는 exit 0이고, 두 번째 명령은 아무것도 출력
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
+| 2026-10-26 | Verified | 사용자가 계획을 승인하고 Open question 1·2에 A·A를 골랐다(배경 끝의 결정). worktree `.claude/worktrees/recovery-drill`, 브랜치 `plan/zw0shxee-recovery-drill`을 `origin/main`(`ad6f8f3`)에서 만들었다. |
+| 2026-10-26 | Verified | Task 1: 운영 런북 Incident log에 `후속 조치` 열, 장애 정의 한 줄, 2026-10-13 3건과 2026-10-21 1건을 더했다. 기존 행 2개(2026-10-15, 2026-10-26)에는 끝에 `해당 없음(장애 아님)` 칸만 붙였다. 2026-10-26 행은 계획을 쓴 뒤 생긴 행이다. 근거 줄은 계획 Step 3과 한 줄씩 다른 곳이 있어(vm-rollout `:291`, `:309-311`) 실제 줄을 적었다. |
+| 2026-10-26 | Command | Task 1 Step 4: `make check` → exit 0. 칸 수 명령 → `6` 한 줄. IPv4 grep → 출력 없음(exit 1). |
+| 2026-10-26 | Verified | Task 1 리뷰(서브에이전트, 읽기 전용): P0·P1·P2 없음. P3 두 건을 반영했다. 원인 칸의 "모든 백업"을 "모델 캐시가 생긴 뒤 만든 백업"으로 좁혔고, ssh 모드 이전의 코드 PR #8을 함께 적었다. |
