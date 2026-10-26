@@ -6,7 +6,7 @@ setup() {
   GOOD_BODY="Summary of the change.
 
 Assisted-by: claude-code claude-opus-5-5
-Plan: 08"
+Plan: h8j3m5rx"
 }
 
 @test "passes a conventional title and a body ending in the trailers, also with CRLF line ends, a horizontal rule above them or only the trailers" {
@@ -17,9 +17,9 @@ Plan: 08"
 ---
 
 Assisted-by: claude-code claude-opus-5-5
-Plan: 08"
+Plan: h8j3m5rx"
   trailers_only_body="Assisted-by: claude-code claude-opus-5-5
-Plan: 08"
+Plan: h8j3m5rx"
   for body in "$GOOD_BODY" "$crlf_body" "$rule_body" "$trailers_only_body"; do
     PR_TITLE="feat: add the pull request rules" PR_BODY="$body" run "$CHECK"
     assert_success
@@ -27,16 +27,16 @@ Plan: 08"
   done
 }
 
-@test "accepts Plan as an id, a legacy number or none, and rejects ids outside the alphabet or length" {
+@test "accepts Plan as an id or none, and rejects the two-digit number and ids outside the alphabet or length" {
   local value
-  for value in k7m2x9qa 26 none; do
+  for value in k7m2x9qa none; do
     PR_TITLE="feat: x" PR_BODY="Summary.
 
 Assisted-by: claude-code claude-opus-5-5
 Plan: $value" run "$CHECK"
     assert_success
   done
-  for value in K7M2X9QA k7m2x9q k7m2x9qai k7m2x9qi; do
+  for value in 26 K7M2X9QA k7m2x9q k7m2x9qai k7m2x9qi; do
     PR_TITLE="feat: x" PR_BODY="Summary.
 
 Assisted-by: claude-code claude-opus-5-5
@@ -73,7 +73,7 @@ Plan: $value" run "$CHECK"
     "text after the trailers|missing trailer 'Assisted-by:|missing trailer 'Plan:" \
     "a rule and text after the trailers|missing trailer 'Assisted-by:|missing trailer 'Plan:" \
     "malformed values|trailer 'Assisted-by: Claude' must be|trailer 'Plan: 8' must be" \
-    "a second Plan line|trailer 'Plan: 08,09' must be" \
+    "a second Plan line|trailer 'Plan: h8j3m5rx,n3q8d5vb' must be" \
     "forbidden trailers and a session link|must not carry 'Co-authored-by'|must not carry 'Signed-off-by'|must not carry a Claude Code session link"; do
     IFS='|' read -r input problems <<<"$case"
     (
@@ -100,7 +100,7 @@ Plan: 8"
           ;;
         "a second Plan line")
           body="$GOOD_BODY
-Plan: 09"
+Plan: n3q8d5vb"
           ;;
         "forbidden trailers and a session link")
           body="$GOOD_BODY
