@@ -10,7 +10,7 @@ Policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md (pull requests
 ## Start
 
 1. Your identity is the literal trailer value `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model id>`, for example `Assisted-by: codex gpt-6.1-sol`. Write it out in every commit command: your shell may not keep exported variables between commands, and an empty trailer can only be repaired by rewriting history.
-2. Run `git fetch origin` (it needs the network; if your sandbox blocks it, ask the human to run it), then work in your own worktree on your own branch from `origin/main`: one agent per worktree, one worktree per branch, never the main checkout.
+2. Run `git fetch origin` (it needs the network; if your sandbox blocks it, ask the human to run it), then work in your own worktree on your own branch from `origin/main`: one agent per worktree, one worktree per branch, never the main checkout. For a plan, <ID> and <slug> are the plan file's id and slug (`plan-<date>-<ID>-<slug>.md`).
    - Claude Code: start with `claude --worktree <slug>` (it creates `.claude/worktrees/<slug>` from `origin/main`), then `git branch -m plan/<ID>-<slug>` or `git branch -m work/slug`.
    - Codex app: the app already runs you in a detached worktree under `$CODEX_HOME/worktrees`; run `git switch -c plan/<ID>-<slug> --no-track origin/main` (or `work/slug`) there.
    - Codex CLI, Gemini CLI, Antigravity: they can write only inside the directory they were started in. From any directory of this repo, create the worktree next to the main checkout:

@@ -6,12 +6,12 @@
 
 | 타입 | 코드 | 위치 | 상태 값 | 필수 키 | 새 문서 | 성격 | 언어 | 템플릿 |
 |---|---|---|---|---|---|---|---|---|
-| spec | spec | `docs/specs/` | draft, approved, superseded | status, date | 허용 | 기록 | 한국어 | `.agents/skills/doc-authoring/assets/spec.md` |
-| plan | plan | `docs/plans/` | backlog, active, completed, dropped | status, spec | 허용 | 진행 중엔 갱신, 끝나면 기록 | 제목 영어, 본문 한국어 | `.agents/skills/doc-authoring/assets/plan.md` |
-| adr | adr | `docs/decisions/` | proposed, accepted, superseded, deprecated | status, date | 허용 | 기록 | 한국어 | `.agents/skills/doc-authoring/assets/adr.md` |
-| runbook | rbk | `docs/runbooks/` | current, retired | status, reviewed | 허용 | 계속 고침 | 한국어 | `.agents/skills/doc-authoring/assets/runbook.md` |
-| research | rsch | `docs/research/` | snapshot | status | 허용 | 기록(고정) | 한국어 | `.agents/skills/doc-authoring/assets/research.md` |
-| review | rev | `docs/reviews/` | final | status | 금지 | 동결 | 영어 | 없음 |
+| spec | spec | `docs/specs/` | draft, approved, superseded | status, id, date | 허용 | 기록 | 한국어 | `.agents/skills/doc-authoring/assets/spec.md` |
+| plan | plan | `docs/plans/` | backlog, active, completed, dropped | status, id, spec | 허용 | 진행 중엔 갱신, 끝나면 기록 | 제목 영어, 본문 한국어 | `.agents/skills/doc-authoring/assets/plan.md` |
+| adr | adr | `docs/decisions/` | proposed, accepted, superseded, deprecated | status, id, date | 허용 | 기록 | 한국어 | `.agents/skills/doc-authoring/assets/adr.md` |
+| runbook | rbk | `docs/runbooks/` | current, retired | status, id, reviewed | 허용 | 계속 고침 | 한국어 | `.agents/skills/doc-authoring/assets/runbook.md` |
+| research | rsch | `docs/research/` | snapshot | status, id | 허용 | 기록(고정) | 한국어 | `.agents/skills/doc-authoring/assets/research.md` |
+| review | rev | `docs/reviews/` | final | status, id | 금지 | 동결 | 영어 | 없음 |
 
 - 모든 타입의 문서는 무작위 ID를 가진다(파일 이름과 front matter `id`). `make new-doc`은 모든 로컬·원격 추적 브랜치와 작업 트리의 문서 이름에 없는 ID를 고른다. 그래서 먼저 `git fetch origin`을 한다. `make new-id`는 ID 하나만 출력한다.
 - `새 문서`: `금지`인 타입은 `make new-doc`이 만들지 않는다. 기존 파일은 그대로 둔다. 리뷰 기록은 [review-posting 계획](plans/plan-2026-10-13-znbc3ase-review-posting.md)부터 PR 댓글이다.

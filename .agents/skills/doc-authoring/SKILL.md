@@ -39,7 +39,7 @@ Before approval, a spec, plan or ADR is a draft note on the Basic Memory draft b
   |---|---|
   | `draft` | `true` |
   | `project` | the project key |
-  | `id`, `type`, `slug` | what the repo document will get |
+  | `id`, `doc_type`, `slug` | what the repo document will get. Basic Memory overwrites a `type` key with `note`, so the document type goes in `doc_type`. |
   | `status` | `drafting`, `review`, `approved` or `dropped` |
   | `owner` | `<device>/<agent>`, for example `mac-work/claude-code` |
   | `branch` | the linked branch, empty if none |
@@ -53,7 +53,7 @@ Flow:
 2. `make new-id` prints the id. `write_note` creates the draft without `overwrite`; its result's `action` must be `created`. If it is `conflict` (error `NOTE_ALREADY_EXISTS`, with `isError` false, so it is easy to miss), another draft already holds that path: do not overwrite it, pick a new id or slug and tell the user. Start the body from the type's template.
 3. The user reads it in SilverBullet; approval is given in the conversation.
 4. After approval run `make new-doc TYPE=<type> SLUG=<slug> ID=<same id>`, move the body in, run `make check`, commit, push and open the draft PR. Then set `status: approved`, `repo_path` and `pr` on the note. From then on the repo document is the source of truth.
-5. A change to an existing document made outside a plan execution branch goes up as a note with `type: change`, `areas` and a summary of the change.
+5. A change to an existing document made outside a plan execution branch goes up as a note with `doc_type: change`, `areas` and a summary of the change.
 
 Write rules:
 

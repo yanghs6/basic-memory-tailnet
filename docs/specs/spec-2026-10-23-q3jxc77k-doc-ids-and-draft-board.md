@@ -111,7 +111,7 @@ Basic Memory:
 |---|---|
 | `draft` | `true` (목록 조회용) |
 | `project` | 프로젝트 키 |
-| `id`, `type`, `slug` | 저장소 문서가 받을 값과 같다 |
+| `id`, `doc_type`, `slug` | 저장소 문서가 받을 값과 같다 |
 | `status` | `drafting`, `review`, `approved`, `dropped` |
 | `owner` | `<기기>/<에이전트>` (예: `mac-work/claude-code`). 기기 이름은 기억 미러의 기기 이름을 쓴다 |
 | `branch` | 연결된 브랜치. 없으면 빈 값 |
@@ -119,12 +119,13 @@ Basic Memory:
 | `updated` | ISO 날짜. 고칠 때마다 바꾼다 |
 | `repo_path`, `pr` | 승인 뒤 저장소 경로와 PR 번호 |
 
+- **Verified (2026-10-26):** Basic Memory는 front matter의 `type`을 자기 노트 종류로 쓰고 `note`로 덮어쓴다(라이브 확인에서 `type: spec`으로 보낸 노트가 `type: note`로 저장됨). 그래서 문서 종류는 `doc_type`에 적는다. 다른 보드 키는 그대로 남았다.
 - **흐름:**
   1. 스펙·계획·ADR을 쓰거나 기존 문서를 크게 바꾸기 전에, `search_notes(metadata_filters={"project": <키>, "draft": true})`로 보드를 보고 `areas`와 slug가 겹치는 초안이 있으면 사용자에게 알린다.
   2. `make new-id`로 ID를 받고, `write_note`(overwrite 없이)로 초안 노트를 만든다. 본문은 그 타입의 템플릿에서 시작한다.
   3. 사용자는 SilverBullet에서 읽는다. 승인은 지금처럼 대화로 한다.
   4. 승인되면 `make new-doc TYPE=… SLUG=… ID=<같은 ID>`로 저장소 문서를 만들고 본문을 옮긴 뒤 `make check`, 커밋, push, draft PR을 연다. 노트에 `status: approved`, `repo_path`, `pr`을 적는다. 이후의 정본은 저장소 문서다.
-  5. 진행 중인 기존 문서 변경(계획 실행 브랜치 밖에서 하는 수정)은 `type: change`, `areas`, 바꿀 내용 요약을 담은 노트로 올린다.
+  5. 진행 중인 기존 문서 변경(계획 실행 브랜치 밖에서 하는 수정)은 `doc_type: change`, `areas`, 바꿀 내용 요약을 담은 노트로 올린다.
 - **쓰기 규칙:**
   - 초안 하나는 주인(`owner`)만 쓴다. 다른 에이전트는 읽기만 하고, 겹침은 사용자에게 알린다.
   - 주인은 고치기 전에 `read_note`로 다시 읽는다. 사용자가 SilverBullet에서 고쳤을 수 있으므로, 그 내용을 합친 뒤 `overwrite`로 쓴다.

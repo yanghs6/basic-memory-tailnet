@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Print one random document id that no file name under docs/ uses on any local or remote-tracking branch or in the
-# working tree, so run git fetch origin first. Use it to name a plan branch before its document exists.
+# working tree, so run git fetch origin first. Use it for a draft on the Basic Memory draft board (doc-authoring); a plan branch takes its plan file's id.
 # Usage: make new-id
 set -euo pipefail
 

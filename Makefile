@@ -84,8 +84,8 @@ check-git: ## Check the git policy for the current branch against origin/main (n
 new-doc: ## Create a document from its template: TYPE=<type> SLUG=<slug> [ID=<id>] (types and rules: docs/README.md)
 	scripts/create-doc.sh "$(TYPE)" "$(SLUG)" "$(ID)"
 
-new-id: ## Print one unused document id, e.g. to name a plan branch (run git fetch origin first)
-	scripts/create-id.sh
+new-id: ## Print one unused document id, e.g. for a draft on the Basic Memory draft board (run git fetch origin first)
+	@scripts/create-id.sh
 
 new-script: ## Create a script and its pair test from the templates: NAME=<name> [KIND=script|remote|lib] (rules: the script-authoring skill)
 	scripts/create-script.sh "$(NAME)" "$(KIND)"
