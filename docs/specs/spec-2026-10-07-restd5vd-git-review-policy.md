@@ -1,7 +1,7 @@
 ---
 status: approved
 date: 2026-10-07
-amended-by: [docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md]
+amended-by: [docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md, docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md]
 ---
 
 # 에이전트 기반 Git·리뷰 정책 — 설계

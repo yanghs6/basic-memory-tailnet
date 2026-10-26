@@ -18,33 +18,9 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 
 **Sequence:** 다음을 모두 만족한 뒤 시작한다.
 - 이 계획·스펙·ADR을 담은 docs PR이 병합됐다.
-- **Reported (2026-10-23, 감독 세션이 전달한 사용자 결정):** 아래 Pending Requirements의 문서 체계 개편이 모든 계획보다 먼저다. Task 1~3(코드 PR)은 그 개편 PR이 병합된 뒤 시작하고, 에이전트 기억 미러의 코드보다 먼저 한다. 개편이 이 계획의 파일 이름, 브랜치 이름(`plan/d3dpb00s-web-connector`), 트레일러(`Plan: d3dpb00s`)를 새 규칙으로 바꾼다.
+- **Reported (2026-10-23, 감독 세션이 전달한 사용자 결정):** [문서 고유 ID와 초안 보드 설계](../specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md)의 문서 체계 개편이 모든 계획보다 먼저다. Task 1~3(코드 PR)은 그 개편 PR이 병합된 뒤 시작하고, 에이전트 기억 미러의 코드보다 먼저 한다. 개편이 이 계획의 파일 이름, 브랜치 이름(`plan/d3dpb00s-web-connector`), 트레일러(`Plan: d3dpb00s`)를 새 규칙으로 바꾼다.
 - Task 1~3은 개선 백로그의 [public-text-guard](plan-2026-10-22-v9whrbs6-public-text-guard.md)·[agent-guidance](plan-2026-10-22-x4d2x4eq-agent-guidance.md)·[review-and-local-isolation](plan-2026-10-22-z064dkcv-review-and-local-isolation.md) 계획과 나란히 진행할 수 있다. 나중에 병합하는 쪽이 `git merge origin/main`으로 맞춘다.
 - Task 4는 코드 PR이 병합되고, 스펙 §8의 사용자 준비물(도메인, GitHub 계정과 숫자 id)이 있고, 감독 세션이 시작을 알릴 때 한다. **Reported (2026-10-23, 같은 경로):** VM 작업은 한 번에 하나씩, [recovery-drill 계획](plan-2026-10-22-zw0shxee-recovery-drill.md) Task 4 → 이 계획 Task 4 → 에이전트 기억 미러의 VM Task → [ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md) 순서로 한다.
-
-## Pending Requirements
-
-2026-10-22~23 웹 커넥터 세션에서 사용자가 정한 문서 체계 개편 요구사항이다. 사용자는 2026-10-23에 개편을 잠시 보류하며 이 계획을 처리하는 에이전트가 알도록 여기에 남기게 했고, 같은 날 개편을 모든 계획보다 먼저 하기로 정했다(Sequence). 개편의 스펙이 생기면 이 절은 그 문서로 옮긴다. 근거 조사는 [다중 에이전트 초안 공유 조사](../research/rsch-2026-10-23-fak5h16f-multi-agent-draft-sharing.md)다.
-
-- **Reported (2026-10-22, 이 세션):** 문제는 다른 에이전트가 쓰는 스펙·계획 초안을 서로 보지 못하는 것이다. 기억 미러 스펙이 커밋 전 본문에만 "계획 24"를 적어 두었고, `make new-doc`이 24를 다시 내줘서 이 계획을 손으로 25로 바꿨다. 겹치는 파일은 다른 worktree 폴더를 직접 열어 보고서야 알았다.
-- 사용자 결정:
-  1. 범위: 같은 Mac의 worktree끼리가 아니라 다른 기기(회사 Mac, 개인 Mac)와 다른 벤더(Codex 등)의 에이전트까지 서로 보여야 한다.
-  2. 공유 방식(조사 보고서의 B+F): 승인 전 초안 본문은 Basic Memory에 두고 그것을 유일한 정본으로 한다. 사용자는 SilverBullet에서 읽는다. 승인되면 저장소 문서로 옮긴다. 번호나 ID 충돌은 저장소 쪽(`make new-doc`, `pr-rules` CI)에서 막는다.
-  3. 이름 규칙 변경: 순번 대신 uuid나 nanoid 같은 고유 키로 문서를 구분한다.
-  4. 소급 적용: 기존 문서(2026-10-23 기준 스펙 9, 계획 24, ADR 8, 런북 5, 조사 4)의 체계와 이름까지 새 규칙으로 바꾼다. 기존 인용과 이력이 끊겨도 된다.
-  5. 이력 재작성: 이번 개편에 한해 한 번 승인했다.
-- **Verified (2026-10-22):** 이 Mac의 Codex CLI는 `~/.codex/config.toml`의 `basic-memory`(`http://127.0.0.1:18737/mcp`)로 Basic Memory에 닿는다. `make tunnel`이 떠 있어야 한다. Codex 클라우드는 이 터널에 닿지 못하므로, 클라우드에는 승인돼 push된 계획만 맡긴다.
-- 에이전트 제안(사용자 미결정):
-  - ID 형식은 소문자·숫자 8자 nanoid(i·l·o·u 제외)다. 파일 이름(`plan-<날짜>-<id>-<slug>.md`), front matter `id`, 브랜치(`plan/<id>-<slug>`), `Plan:` 트레일러에 쓴다. ID는 초안을 만들 때 부여하므로 승인 때 번호를 붙이는 단계는 필요 없어진다.
-  - Basic Memory 초안 경로는 `agent-drafts/<프로젝트 키>/<종류>-<slug>`다. 프로젝트 키는 `origin` 주소에서 만든 `<owner>-<repo>`(예: `yanghs6-basic-memory-tailnet`)다. 에이전트 기억 미러 설계도 같은 규칙을 쓸 예정이다(2026-10-23 기준 그 설계는 아직 저장소에 없다). frontmatter는 `type`, `status`(`drafting`, `review`, `approved`, `dropped`), `owner`(기기·에이전트), `branch`, `areas`, `updated`, `expires`다. `write_note`가 같은 경로를 덮어쓰지 않으므로 처음 쓴 쪽이 그 slug를 차지한다.
-  - 기존 문서를 고치는 진행 중 작업(예: `amended-by` 추가, 불변식 문장 수정)도 보드에 올린다.
-- **Open question 1 (이력 재작성):** 실제로 재작성할지, 이력은 두고 옛 번호와 새 ID를 잇는 대응표로 대신할지. 에이전트는 대응표를 추천했다.
-  - 공개 저장소라 병합된 PR #1~#19의 커밋은 PR 참조로 남는다.
-  - 문서가 증거로 인용한 SHA 약 213개가 끊긴다.
-  - main 룰셋의 `non_fast_forward`를 사용자가 잠시 꺼야 한다.
-- **Open question 2 (기억 미러와의 관계):** 에이전트는 다음을 추천했다.
-  - 초안 보드 규칙(경로, 프로젝트 키, frontmatter, 터널이 꺼졌을 때의 동작)은 기억 미러 스펙에 절로 합친다.
-  - 문서 ID 체계와 기존 문서 이름 변경은 저장소 전체에 영향을 주므로 별도 작업으로 먼저 한다.
 
 ## 배경
 
