@@ -9,7 +9,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/git.sh
 . "$SCRIPT_DIR/lib/git.sh"
 
-readonly BRANCH_PATTERN='^(plan/[0-9]{2}-[a-z0-9-]+|work/[a-z0-9-]+)$'
 readonly GIT_CONFIG_KEY_MISSING=1
 readonly POLICY_HINT="see AGENTS.md, Git; ask the human before rewriting history"
 
@@ -31,11 +30,11 @@ check_worktree_config() {
 check_branch() {
   local base="$1" branch="$2"
   if [[ -z "$branch" ]]; then
-    add_problem "detached HEAD: create a branch first (git switch -c plan/NN-slug or work/slug)"
+    add_problem "detached HEAD: create a branch first (git switch -c plan/<id>-slug or work/slug)"
   elif [[ "$branch" == "$base" ]]; then
     add_problem "on $base: agents never commit to $base; move the work with git switch -c work/<slug>"
   elif [[ ! "$branch" =~ $BRANCH_PATTERN ]]; then
-    add_problem "branch '$branch' must look like plan/NN-slug or work/slug: git branch -m <new-name>"
+    add_problem "branch '$branch' must look like plan/<id>-slug or work/slug: git branch -m <new-name>"
   fi
 }
 
@@ -54,7 +53,7 @@ check_commit() {
   local sha="$1" where key
   where="$(git log -1 --format='%h "%s"' "$sha")" || exit 1
   check_trailer "$where" "$sha" Assisted-by "$ASSISTED_BY_PATTERN" "<claude-code|codex|antigravity|gemini-cli> <model>"
-  check_trailer "$where" "$sha" Plan "$PLAN_PATTERN" "<NN|none>"
+  check_trailer "$where" "$sha" Plan "$PLAN_PATTERN" "<id|none>"
   check_trailer "$where" "$sha" Task "$TASK_PATTERN" "<N|review|none>"
   for key in $FORBIDDEN_TRAILERS; do
     if [[ -n "$(trailer "$sha" "$key")" ]]; then

@@ -16,7 +16,12 @@ readonly _BM_LIB_GIT=1
 . "${BASH_SOURCE[0]%/*}/common.sh"
 
 readonly ASSISTED_BY_PATTERN='^(claude-code|codex|antigravity|gemini-cli) [^ ]+$'
-readonly PLAN_PATTERN='^([0-9]{2}|none)$'
+# Plan ids are 8 characters (DOC_ID_PATTERN in docs.sh). The legacy pattern keeps the two-digit plan numbers valid until
+# task 5 of the doc-ids plan deletes it; PLAN_PATTERN and BRANCH_PATTERN build on it, so that is the one place to edit.
+readonly PLAN_ID_PATTERN='[0-9a-hjkmnp-tv-z]{8}'
+readonly LEGACY_PLAN_PATTERN='[0-9]{2}'
+readonly PLAN_PATTERN="^(${PLAN_ID_PATTERN}|${LEGACY_PLAN_PATTERN}|none)\$"
+readonly BRANCH_PATTERN="^(plan/(${PLAN_ID_PATTERN}|${LEGACY_PLAN_PATTERN})-[a-z0-9-]+|work/[a-z0-9-]+)\$"
 readonly TASK_PATTERN='^([0-9]+|review|none)$'
 readonly FORBIDDEN_TRAILERS="Co-authored-by Signed-off-by"
 

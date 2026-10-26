@@ -10,7 +10,7 @@ You review; you never fix. Do not edit, create or delete files, commit, or switc
 ## Scope
 
 - Changes: `git diff <base>...HEAD`; commits: `git log <base>..HEAD`.
-- The plan: the file in `docs/plans/` named by the commits' `Plan` trailer.
+- The plan: the file in `docs/plans/` named by the commits' `Plan` trailer (the document id in its file name).
 - Round 2: only commits after the previously reviewed head. Confirm earlier findings are closed and report only new P0/P1.
 
 ## Checklist (AGENTS.md, Code Review Rules)

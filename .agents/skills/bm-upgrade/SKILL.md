@@ -30,7 +30,7 @@ Copy this into your reply and tick each item:
 
 ## Steps
 
-1. Set up first, through the `git-workflow` skill: create your own worktree and a `work/<slug>` branch (or `plan/<NN>-<slug>` if a plan covers this) before touching any file.
+1. Set up first, through the `git-workflow` skill: create your own worktree and a `work/<slug>` branch (or `plan/<ID>-<slug>` if a plan covers this) before touching any file.
 2. Current pin: `grep 'image:' compose.yaml`. Keep this line for rollback.
 3. Pick the target release on https://github.com/basicmachines-co/basic-memory/releases. Read the notes between the current and target versions for changes to: the `mcp` CLI flags (`--transport streamable-http --path /mcp`), `BASIC_MEMORY_*` env vars, data paths (`/app/data`, `/home/appuser/.basic-memory`), and the tools `write_note`, `read_note`, `search_notes`, `delete_note`. Flag any database, index or config migration: once the new version touches the data, the old image must not run on it again. Summarize all of this for the user.
 4. Resolve the multi-arch digest (image tags have no `v` prefix) and confirm both architectures are included:

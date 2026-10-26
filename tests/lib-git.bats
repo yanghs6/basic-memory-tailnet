@@ -18,6 +18,22 @@ setup() {
   assert_output "$(printf 'git policy violations:\n  - first\n  - second')"
 }
 
+@test "PLAN_PATTERN and BRANCH_PATTERN accept ids and the legacy forms, and reject other lengths, capitals and i, l, o, u" {
+  local value
+  for value in k7m2x9qa 26 none; do
+    [[ "$value" =~ $PLAN_PATTERN ]] || fail "Plan: $value must be accepted"
+  done
+  for value in K7M2X9QA k7m2x9q k7m2x9qai k7m2x9qi k7m2x9ql k7m2x9qo k7m2x9qu 2 026; do
+    [[ ! "$value" =~ $PLAN_PATTERN ]] || fail "Plan: $value must be rejected"
+  done
+  for value in plan/k7m2x9qa-x plan/26-x work/anything-x; do
+    [[ "$value" =~ $BRANCH_PATTERN ]] || fail "branch $value must be accepted"
+  done
+  for value in plan/K7M2X9QA-x plan/k7m2x9q-x plan/k7m2x9qai-x plan/k7m2x9qi-x feature/x; do
+    [[ ! "$value" =~ $BRANCH_PATTERN ]] || fail "branch $value must be rejected"
+  done
+}
+
 @test "review_report_prefix puts slug, round and reviewer in REVIEW_OUT_DIR, else in the main checkout's .review-out" {
   make_worktree_fixture
   cd "$LINKED_WT"

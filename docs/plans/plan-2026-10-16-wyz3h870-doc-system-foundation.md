@@ -1,5 +1,6 @@
 ---
 status: completed
+id: wyz3h870
 spec: docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md
 ---
 

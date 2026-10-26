@@ -1,5 +1,6 @@
 ---
 status: snapshot
+id: fak5h16f
 ---
 
 # 여러 기기·여러 벤더의 에이전트가 진행 중인 스펙·계획 초안과 번호를 어떻게 공유하고 충돌을 피하나
@@ -16,7 +17,7 @@ status: snapshot
 
 **Verified (단일 소규모 프로젝트 사례):** 2026년의 병렬 에이전트 저장소에서도 같은 일이 되풀이됐다. kamp-us/phoenix에서는 동시에 돈 두 에이전트 레인이 각자 "다음 빈 번호"를 계산했다. 둘 다 **ADR 0198**을 만들었고 두 PR 모두 CI를 통과했다. 검증기가 자기 체크아웃 트리 안의 중복만 보기 때문이다([kamp-us/phoenix#3779](https://github.com/kamp-us/phoenix/issues/3779)). copper-mcp에서는 main의 식별자 여섯 개가 각각 서로 무관한 기록 두 개를 가리키게 됐다([copper-mcp#83](https://github.com/seunghyukchoe/copper-mcp/issues/83)). unsorry에서는 두 PR이 따로 ADR-059를 골라 **약 40초 간격으로 머지됐다**([unsorry ADR-061](https://unsorry.agentics.org.nz/docs/adrs/ADR-061-Unique-ADR-Numbering-Gate.html)). laurigates/claude-plugins의 검사 스크립트는 이 문제를 "ADR 번호는 브랜치 시점에 골라지지만 머지 시점에야 확정된다"는 한 문장으로 요약한다([check-adr-numbers.sh](https://github.com/laurigates/claude-plugins/blob/main/blueprint-plugin/skills/blueprint-adr-validate/scripts/check-adr-numbers.sh)).
 
-**Reported (사용자 제공 사실과 관찰):** 이 저장소의 `make new-doc`는 로컬·원격 추적 브랜치와 현재 worktree 파일까지 보므로 adr-tools보다 범위가 넓다. 그래도 다른 worktree에서 커밋하지 않은 초안과 다른 머신에서 push하지 않은 작업은 보지 못한다. 2026-10-22의 충돌은 이 틈에서 났다. 한 에이전트가 커밋하지 않은 스펙 본문에 "plan 24"라고만 적어 두었고, 다른 에이전트의 `make new-doc`가 24를 다시 내주었다. 이 worktree의 `docs/plans/`에도 `plan-2026-10-22-23-...` 다음 파일이 `plan-2026-10-22-d3dpb00s-web-connector.md`다.
+**Reported (사용자 제공 사실과 관찰):** 이 저장소의 `make new-doc`는 로컬·원격 추적 브랜치와 현재 worktree 파일까지 보므로 adr-tools보다 범위가 넓다. 그래도 다른 worktree에서 커밋하지 않은 초안과 다른 머신에서 push하지 않은 작업은 보지 못한다. 2026-10-22의 충돌은 이 틈에서 났다. 한 에이전트가 커밋하지 않은 스펙 본문에 "plan 24"라고만 적어 두었고, 다른 에이전트의 `make new-doc`가 24를 다시 내주었다. 이 worktree의 `docs/plans/`에도 `plan-2026-10-22-23-...` 다음 파일이 `2026-10-22 25 web-connector`다(옛 이름, [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 부록의 표기).
 
 **Assumption:** 이 사고는 도구 버그가 아니라 구조 문제다. 예약이 어떤 공유 매체에도 기록되지 않았다. 본문에 적은 번호는 어떤 할당기도 읽을 수 없으므로, 할당기가 보는 범위를 Spec Kit처럼 원격 브랜치까지 넓혀도 막지 못한다. 원격 추적 브랜치는 마지막 fetch 시점의 사본이어서, 할당 직전에 fetch하지 않으면 이미 push된 예약도 놓친다. 또 Spec Kit #975가 보여 주듯 에이전트 지시문에 넣은 규칙은 우회된다. 가드는 할당기와 CI에 두어야 한다.
 
@@ -52,7 +53,7 @@ status: snapshot
 
 ## 5. 이 저장소에서는 번호 문제와 초안 공유 문제를 분리해야 한다
 
-**Reported (사용자 제공 사실과 저장소 관찰):** 이 저장소는 공개 저장소다. 에이전트 하나가 worktree 하나를 쓰고, `work/`·`plan/` 브랜치에서 작업하며, 기계 계정이 draft PR을 열고, 사람이 squash merge한다. AGENTS.md는 plan 번호를 브랜치 이름 `plan/<NN>-<slug>`와 모든 커밋의 트레일러 `Plan: <NN|none>`에 쓰게 한다(`AGENTS.md:31`, `AGENTS.md:33`). 문서 파일 이름에는 이미 날짜와 slug가 들어 있다. 스펙은 `spec-2026-10-22-tn23wwmd-web-connector.md`처럼 번호가 없고, 계획은 `plan-2026-10-22-d3dpb00s-web-connector.md`, ADR은 `adr-2026-10-22-fcvznmdc-web-connector.md`처럼 날짜와 slug 사이에 번호가 낀다(이 worktree의 `docs/` 목록). Basic Memory는 1 GB VM에 있고 SSH 터널이 열려 있을 때만 닿는다. 사용자 메모리에는 Claude Code와 Codex가 터널 주소로 연결되어 있다고 기록되어 있다. 그런데 이 보고서를 쓰는 세션에서는 `basic-memory` MCP 연결이 ECONNREFUSED로 실패했다.
+**Reported (사용자 제공 사실과 저장소 관찰):** 이 저장소는 공개 저장소다. 에이전트 하나가 worktree 하나를 쓰고, `work/`·`plan/` 브랜치에서 작업하며, 기계 계정이 draft PR을 열고, 사람이 squash merge한다. AGENTS.md는 plan 번호를 브랜치 이름 `plan/<NN>-<slug>`와 모든 커밋의 트레일러 `Plan: <NN|none>`에 쓰게 한다(`AGENTS.md:31`, `AGENTS.md:33`). 문서 파일 이름에는 이미 날짜와 slug가 들어 있다. 스펙은 `2026-10-22 web-connector`처럼 번호가 없고, 계획은 `2026-10-22 25 web-connector`, ADR은 `2026-10-22 0008 web-connector`처럼 날짜와 slug 사이에 번호가 낀다(이 worktree의 `docs/` 목록, 옛 이름은 doc-ids-and-draft-board ADR 부록의 표기). Basic Memory는 1 GB VM에 있고 SSH 터널이 열려 있을 때만 닿는다. 사용자 메모리에는 Claude Code와 Codex가 터널 주소로 연결되어 있다고 기록되어 있다. 그런데 이 보고서를 쓰는 세션에서는 `basic-memory` MCP 연결이 ECONNREFUSED로 실패했다.
 
 **Assumption (번호):** 첫째, 모든 머신·벤더·클라우드 실행 환경이 반드시 지나는 지점은 GitHub PR 하나뿐이다. 그러므로 중복 번호 가드는 에이전트 지시문이 아니라 `pr-rules` CI에 두어야 하고, origin/main뿐 아니라 열린 PR들도 검사해야 한다. 이 저장소는 plan 번호가 브랜치 이름에 들어 있어서, 열린 PR의 head 브랜치 이름만 훑어도 다른 PR들이 가진 plan 번호가 보인다. kamp-us가 막혔던 지점이 여기서는 쉽게 풀린다. ADR은 열린 PR이 추가한 파일 목록과 front matter를 함께 봐야 laurigates의 실수를 피한다(Actions 기본 토큰으로 열린 PR을 조회할 수 있는지는 확인하지 않았다). 둘째, 번호는 첫 커밋부터 트레일러와 브랜치 이름에 필요하다. 그래서 IETF식 "머지 때 부여"는 맞지 않고 "승인 때 부여"가 맞다. 승인 전 계획 초안은 스펙처럼 번호 없이 `plan-YYYY-MM-DD-<slug>`로 부른다(Kubernetes `draft-YYYYMMDD`, Node `XXX-` 선례). 사용자가 승인하면 `make new-doc`가 할당 직전에 fetch(또는 `git ls-remote`)와 열린 PR 조회를 하고 번호를 끼워 넣는다. 그 즉시 브랜치를 push하고 draft PR을 연다. 이렇게 하면 PR을 여는 순간이 곧 예약이 되고, 남는 틈은 할당에서 push까지의 몇 분뿐이다. 그 틈에서 생긴 충돌도 CI가 잡는다. 룰셋이 이미 최신 base를 요구하는지는 확인하지 않았다. 셋째, 같은 Mac의 worktree끼리는 Backlog.md처럼 `git worktree list`로 형제 worktree의 커밋하지 않은 문서까지 훑으면 2026-10-22 유형의 충돌 대부분을 막는다. 다만 본문에 적은 예약은 어떤 할당기도 읽지 못하므로, 초안에서 다른 계획을 번호가 아니라 slug로 부른다는 규칙이 함께 있어야 한다. 넷째, 번호 자체는 유지할 가치가 있다. 사용자와 에이전트가 "plan 25", "ADR 0008"로 소통하고 메모리에도 그렇게 남는다. unsorry의 결론처럼 번호를 바꾸기보다 지키는 편이 싸다.
 

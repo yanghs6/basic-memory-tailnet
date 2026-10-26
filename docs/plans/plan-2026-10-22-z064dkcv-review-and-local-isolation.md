@@ -1,5 +1,6 @@
 ---
 status: backlog
+id: z064dkcv
 spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 ---
 

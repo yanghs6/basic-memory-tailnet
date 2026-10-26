@@ -1,5 +1,6 @@
 ---
 status: approved
+id: jr59pvyf
 date: 2026-10-15
 amended-by: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 ---

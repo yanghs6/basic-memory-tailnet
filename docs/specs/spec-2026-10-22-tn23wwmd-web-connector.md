@@ -1,12 +1,13 @@
 ---
 status: approved
+id: tn23wwmd
 date: 2026-10-22
 ---
 
 # claude.ai 웹 커넥터 (OAuth 게이트웨이 + 아웃바운드 터널) — 설계
 
 - 구현 계획: `docs/plans/`의 [web-connector 계획](../plans/plan-2026-10-22-d3dpb00s-web-connector.md) 하나에 배포까지 담는다(18~23은 개선 백로그, 24는 에이전트 기억 미러가 쓴다). Task 1~3은 코드·테스트·문서이고 VM에서는 아무것도 실행하지 않는다(코드 PR). Task 4는 코드 PR이 병합된 뒤 사용자와 함께 VM에 켜고 claude.ai에서 확인한다(결과 PR).
-- 대체 범위: [GCP 설계](spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md) 완료 조건 2(`:38-41`)의 "공개 노출이 없다"와 [접속 방식 설계](spec-2026-10-15-jr59pvyf-access-modes.md) §9의 "공인 인터넷 인그레스 0"(`:278`)을 §3.6의 규칙으로 바꾼다. 접속 방식(`BM_ACCESS`) 자체는 바꾸지 않는다. 결정은 [web-connector ADR](../decisions/adr-2026-10-22-fcvznmdc-web-connector.md)에 남긴다.
+- 대체 범위: [GCP 설계](spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md) 완료 조건 2(`:39-42`)의 "공개 노출이 없다"와 [접속 방식 설계](spec-2026-10-15-jr59pvyf-access-modes.md) §9의 "공인 인터넷 인그레스 0"(`:279`)을 §3.6의 규칙으로 바꾼다. 접속 방식(`BM_ACCESS`) 자체는 바꾸지 않는다. 결정은 [web-connector ADR](../decisions/adr-2026-10-22-fcvznmdc-web-connector.md)에 남긴다.
 - 출처: [2026-10-16 조사](../research/rsch-2026-10-22-ayedpfen-web-connector-exposure.md)(4개 주제, 공식 문서 기준), 2026-10-22 시제품 측정(FastMCP 4.1.3, VM의 Basic Memory 0.23.2), 같은 날 사용자 결정.
 
 ## 1. 목적과 범위
@@ -194,7 +195,7 @@ flowchart TB
   - 비밀값 교체
   - 게이트웨이 저장소 비우기(§3.4)
   - 차단 절차(§4)
-- `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`의 Exposure audit(`:117-135`): Cloudflare 공개 호스트명이 하나뿐인지, GitHub OAuth App의 콜백, claude.ai 커넥터 목록, 게이트웨이 저장소 크기와 등록 수를 점검 항목에 더한다.
+- `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`의 Exposure audit(`:118-136`): Cloudflare 공개 호스트명이 하나뿐인지, GitHub OAuth App의 콜백, claude.ai 커넥터 목록, 게이트웨이 저장소 크기와 등록 수를 점검 항목에 더한다.
 - `.agents/skills/bm-upgrade/SKILL.md`: 업그레이드 뒤 `tools/list`와 게이트웨이 허용 목록을 비교하고, 게이트웨이를 거쳐 Basic Memory에 닿는지 확인하는 단계.
 - [web-connector ADR](../decisions/adr-2026-10-22-fcvznmdc-web-connector.md)을 코드 PR에서 `accepted`로 바꾼다.
 

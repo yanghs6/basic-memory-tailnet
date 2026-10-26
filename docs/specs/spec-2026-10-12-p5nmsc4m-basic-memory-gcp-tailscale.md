@@ -1,5 +1,6 @@
 ---
 status: approved
+id: p5nmsc4m
 date: 2026-10-12
 amended-by: [docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md, docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md, docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md, docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md]
 ---

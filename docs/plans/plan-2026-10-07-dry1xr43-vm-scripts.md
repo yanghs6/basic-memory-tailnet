@@ -1,5 +1,6 @@
 ---
 status: completed
+id: dry1xr43
 spec: docs/specs/spec-2026-10-07-p7h3jvpf-basic-memory-oci-tailscale.md
 ---
 

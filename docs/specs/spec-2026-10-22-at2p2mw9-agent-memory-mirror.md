@@ -1,5 +1,6 @@
 ---
 status: approved
+id: at2p2mw9
 date: 2026-10-23
 ---
 
@@ -381,7 +382,7 @@ agent-memory/
    - `<`·`>`를 지워 태그처럼 보이지 않게 한다.
    - Codex 기억 생성 에이전트에는 넣지 않는다(§3.4).
 
-   이런 노트를 신뢰할 수 없는 입력으로 다룰지, 그리고 누가 그것을 정할지는 아직 주인이 없다. [agent-sandbox 계획](../plans/plan-2026-10-22-k3bd8k47-agent-sandbox.md)(agent sandbox)은 이 문제를 범위 밖 후속 항목으로만 적었다(`plan-2026-10-22-k3bd8k47-agent-sandbox.md:212`). 그래서 §8 Open question 3으로 둔다.
+   이런 노트를 신뢰할 수 없는 입력으로 다룰지, 그리고 누가 그것을 정할지는 아직 주인이 없다. [agent-sandbox 계획](../plans/plan-2026-10-22-k3bd8k47-agent-sandbox.md)(agent sandbox)은 이 문제를 범위 밖 후속 항목으로만 적었다(`plan-2026-10-22-k3bd8k47-agent-sandbox.md:213`). 그래서 §8 Open question 3으로 둔다.
 
 ## 5. 테스트와 검증
 

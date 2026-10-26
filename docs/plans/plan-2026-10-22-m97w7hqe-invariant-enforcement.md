@@ -1,5 +1,6 @@
 ---
 status: backlog
+id: m97w7hqe
 spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 ---
 
@@ -14,7 +15,7 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 **Architecture:**
 - 새 검사는 지금 자리에 더한다. 저장소 전체 규칙은 `tests/repo-*.bats`(Task 1, 3), PR 단위 규칙은 `pr-rules` 잡의 새 단계와 새 스크립트 `scripts/check-tests.sh`(Task 2)다. 새 잡은 만들지 않는다. 잡을 더하면 ruleset의 필수 검사 목록을 GitHub에서 바꿔야 한다.
 - 기존 검사를 넓힐 수 있으면 넓힌다(shebang은 strict mode 검사에, Makefile·Dockerfile 이미지는 compose digest 검사에). 입력만 다른 경우는 반복문 하나로 쓴다([test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 3).
-- 지금 동작을 고정하는 테스트는 쓰자마자 통과한다. 그래서 실패 확인은 [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md) Task 11처럼 커밋하지 않는 심은 위반으로 한다(`docs/plans/plan-2026-10-21-hf9kadp3-test-cleanup.md:447-454`).
+- 지금 동작을 고정하는 테스트는 쓰자마자 통과한다. 그래서 실패 확인은 [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md) Task 11처럼 커밋하지 않는 심은 위반으로 한다(`docs/plans/plan-2026-10-21-hf9kadp3-test-cleanup.md:448-455`).
 
 **Spec:** `docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md` (§6 테스트 배치와 이름, §9 검사). Task 2는 `docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md` §6(CI의 `pr-rules` 내용)을 고친다. 테스트 허용 범위는 [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 1~3과 [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md) 결정 2·3이다.
 
@@ -34,7 +35,7 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
   - `-L`은 `scripts/lib/vm.sh:103-104`의 `-L "$(forward_spec …)"` 두 곳뿐이다.
   - `Makefile:25-26`과 `tools/Dockerfile:2,4`는 digest로 고정돼 있다. `Makefile:27`의 `TOOLS_IMAGE := bm-tools:local`은 `Makefile:38`이 직접 빌드한다.
 - **Verified (2026-10-22):** 평가가 제안한 "모든 `-L`" 검사를 그대로 쓰면 `scripts/remote/provision-vm.sh:96,119`의 `curl -fsSL`도 걸린다. 검사는 ssh에 한정한다(Task 3).
-- **Verified (2026-10-22):** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 대체 범위(`docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md:59`)는 "모든 Make 타깃이 help에 나옴" 검사를 `##`·`.PHONY` 검사(`tests/repo-make.bats:26`)로 바꿨다. 그래서 `help` 테스트는 대표 한 줄만 본다.
+- **Verified (2026-10-22):** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 대체 범위(`docs/decisions/adr-2026-10-13-a878ypj5-test-scope.md:60`)는 "모든 Make 타깃이 help에 나옴" 검사를 `##`·`.PHONY` 검사(`tests/repo-make.bats:26`)로 바꿨다. 그래서 `help` 테스트는 대표 한 줄만 본다.
 - **Verified (2026-10-22):** 레이아웃 스펙 §1 사용자 결정 2(강제 수준 B: 위치·이름·짝 파일만)는 구조 검사의 범위다. Task 3의 shebang, digest, `-L` 검사는 그 결정이 아니라 [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 1의 "AGENTS.md 불변식: 127.0.0.1 바인딩, digest 고정, 스크립트 머리 규칙"에 기댄다. source 검사는 §9 항목 3(라이브러리의 `common.sh`)을 최상위 스크립트로 넓힌 것이다.
 - **Verified (2026-10-22):** `AGENTS.md`는 9,841바이트이고 한도는 24,000바이트다(`tests/repo-config.bats:6`, `:135-140`). 평가가 적은 `:118`은 PR #10 뒤 `:135`로 밀렸다.
 - **Assumption:** 평가의 B2-M 표로 다시 세면 Task 3 뒤 행 5·6·7·8이 E가 되어 14/31(45%), [public-text-guard 계획](plan-2026-10-22-v9whrbs6-public-text-guard.md)의 두 행(VM IP, 세션 링크)까지 더하면 16/31(52%)이다. 평가 보고서의 "약 17/31"과 한 행 차이가 난다. Task 2는 행 2(테스트 약화 금지)를 N에서 P로만 올린다.

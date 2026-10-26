@@ -1,5 +1,6 @@
 ---
 status: final
+id: qyfzj5ht
 ---
 
 # Review: work/rename-agent-hub

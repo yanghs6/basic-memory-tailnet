@@ -1,5 +1,6 @@
 ---
 status: approved
+id: sgpbx1gq
 date: 2026-10-16
 amended-by: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
 ---

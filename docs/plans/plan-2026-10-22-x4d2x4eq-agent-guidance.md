@@ -1,5 +1,6 @@
 ---
 status: backlog
+id: x4d2x4eq
 spec: none
 ---
 
@@ -26,19 +27,19 @@ spec: none
 - **Reported (2026-10-22 평가):** D8. `AGENTS.md`에 스펙과 테스트의 충돌, 범위 불명확, 계속 실패하는 검사에서 멈추고 묻는 출구가 없다. ask-first 목록은 "이 저장소의 PR이 아닌 곳에 게시"와 일반 삭제를 다루지 않고, 다른 벤더 채점자는 이 때문에 D8을 1로 매겼다. 리뷰 깊이도 위험에 따라 나뉘지 않는다(문서만 바꾼 #17과 VM 배포가 있던 #15가 같은 Codex 한 번).
 - **Verified (2026-10-22):** 평가가 짚은 줄은 지금(`57993a3`)도 같다. VM 타깃 확인은 `AGENTS.md:10`, `:23`, 삭제 금지는 `:24`, `:32`, 테스트 약화 금지는 `:12`에 출구 없이 있다. 76줄, 9,841 B이고 상한은 24,000 B다(`tests/repo-config.bats:6`, `:135-140`).
 - **Reported (2026-10-22 평가):** D11. 항상 로드되는 Claude 쪽 지침은 13,477 B로 baseline보다 26% 늘었다. 그래서 `AGENTS.md`에 더하는 문장은 작게 둔다.
-- **Verified (2026-10-22):** D2. [doc-body-backfill 계획](plan-2026-10-16-hyajr3k3-doc-body-backfill.md)의 `:194`, `:195`(Task 2, 3)는 SHA와 설명만 있고, 첫 `make check`는 `:199`다. 템플릿의 Task Step(`.agents/skills/doc-authoring/assets/plan.md:53-73`)에는 Progress log가 없고 Finish(`:77`)에만 있다. 그런데 승인된 문서 체계 설계 6.3절(`docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md:228`)은 이미 "Task마다 `make check` 결과와 핵심 명령 결과"를 요구한다. 새 정책이 아니라 스펙을 템플릿으로 옮기는 일이다.
+- **Verified (2026-10-22):** D2. [doc-body-backfill 계획](plan-2026-10-16-hyajr3k3-doc-body-backfill.md)의 `:195`, `:196`(Task 2, 3)는 SHA와 설명만 있고, 첫 `make check`는 `:200`다. 템플릿의 Task Step(`.agents/skills/doc-authoring/assets/plan.md:53-73`)에는 Progress log가 없고 Finish(`:77`)에만 있다. 그런데 승인된 문서 체계 설계 6.3절(`docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md:229`)은 이미 "Task마다 `make check` 결과와 핵심 명령 결과"를 요구한다. 새 정책이 아니라 스펙을 템플릿으로 옮기는 일이다.
 - **Verified (2026-10-22):** D9. 대상이 없는 후속 항목이 남아 있다. 평가가 짚은 여섯 곳의 지금 상태:
 
 | 위치 | 항목 | 지금 상태 |
 |---|---|---|
-| [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:251` | vm-bootstrap 힌트를 `HOST=agent-hub`로 | 조건(항목 29)은 `:299`에서 Verified. 힌트는 `scripts/show-status.sh:31`에 그대로이고, `Makefile:99`는 ssh 모드 별칭만 더했다 |
-| [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:252` | [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md) 이월 항목을 `work/vm-scripts-hardening`으로 | **Command:** `git branch -a --list '*hardening*'` → 빈 출력. 브랜치가 생긴 적이 없다 |
-| [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:256` | 백업 정지 시간 문구 | `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:33`의 "몇 초" 그대로 |
-| [skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md) `:83` | `bm-recover` 마지막 문단 분리 | `.agents/skills/bm-recover/SKILL.md:55` 그대로, Gotchas 절 없음 |
-| [script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `:470` | 최종 리뷰 M4 | `scripts/restore-notes.sh:118-122` 그대로 |
-| [script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `:471` | curl 시간 초과 카탈로그 행 | `.agents/skills/bm-diagnose/references/failure-messages.md`에 `curl: (28)` 없음 |
+| [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:252` | vm-bootstrap 힌트를 `HOST=agent-hub`로 | 조건(항목 29)은 `:300`에서 Verified. 힌트는 `scripts/show-status.sh:31`에 그대로이고, `Makefile:99`는 ssh 모드 별칭만 더했다 |
+| [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:253` | [vm-scripts 계획](plan-2026-10-07-dry1xr43-vm-scripts.md) 이월 항목을 `work/vm-scripts-hardening`으로 | **Command:** `git branch -a --list '*hardening*'` → 빈 출력. 브랜치가 생긴 적이 없다 |
+| [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:257` | 백업 정지 시간 문구 | `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:34`의 "몇 초" 그대로 |
+| [skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md) `:84` | `bm-recover` 마지막 문단 분리 | `.agents/skills/bm-recover/SKILL.md:55` 그대로, Gotchas 절 없음 |
+| [script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `:471` | 최종 리뷰 M4 | `scripts/restore-notes.sh:118-122` 그대로 |
+| [script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `:472` | curl 시간 초과 카탈로그 행 | `.agents/skills/bm-diagnose/references/failure-messages.md`에 `curl: (28)` 없음 |
 
-- **Verified (2026-10-22):** 평가 목록 밖에도 같은 상태가 있다. [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)의 Follow-ups 9개 가운데 계획 번호를 단 것은 `:255`([ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md)) 하나이고 `:254`는 해소됐다. `:250`, `:253`, `:257`, `:258`과 [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md)의 `:469-474`에도 대상이 없다. [doc-body-backfill 계획](plan-2026-10-16-hyajr3k3-doc-body-backfill.md) `:187`은 "script-cleanup·test-cleanup 계획"을 대상으로 적어 좋은 예다.
+- **Verified (2026-10-22):** 평가 목록 밖에도 같은 상태가 있다. [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md)의 Follow-ups 9개 가운데 계획 번호를 단 것은 `:256`([ipv6-egress 계획](plan-2026-10-13-gaewewkf-ipv6-egress.md)) 하나이고 `:255`는 해소됐다. `:251`, `:254`, `:258`, `:259`과 [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md)의 `:470-475`에도 대상이 없다. [doc-body-backfill 계획](plan-2026-10-16-hyajr3k3-doc-body-backfill.md) `:188`은 "script-cleanup·test-cleanup 계획"을 대상으로 적어 좋은 예다.
 - **Verified (2026-10-22):** 링크 검사는 인라인 코드 안의 Markdown 링크도 읽는다. `tests/helpers.bash:76-78`의 `outside_code`는 펜스 블록만 빼고, `tests/repo-docs.bats:43-45`가 남은 모든 링크 대상을 꺼낸다. 템플릿이나 스킬에 예시 링크를 인라인으로 쓰면 `make check`가 실패한다.
 - **Verified (2026-10-22):** Codex는 `AGENTS.md`의 Code Review Rules를 읽고(`scripts/review-branch.sh:125-131`), Claude 리뷰어는 `branch-review` 스킬과 같은 절을 함께 따른다(`.claude/agents/branch-reviewer.md:15`). 그래서 위험 등급 규칙의 정본은 `AGENTS.md` 한 곳이고, 스킬은 체크리스트에 한 줄로 따라 적는다.
 
@@ -72,7 +73,7 @@ spec: none
 | `AGENTS.md` | `## Stop and ask` 절(5행 뒤), Safety 한 줄(23행 뒤), Code Review Rules 7번(63행 뒤) | 1, 4 |
 | `.agents/skills/doc-authoring/assets/plan.md` | Task별 Progress log Step, Follow-ups 대상 표기 | 2 |
 | `.agents/skills/doc-authoring/SKILL.md` | Labels and evidence 절의 두 규칙(42행 뒤) | 2 |
-| `docs/plans/` 아래 Follow-ups가 있는 계획, `docs/decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md:83` | 항목 끝에 대상 덧붙이기 | 3 |
+| `docs/plans/` 아래 Follow-ups가 있는 계획, `docs/decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md:84` | 항목 끝에 대상 덧붙이기 | 3 |
 | `.agents/skills/branch-review/SKILL.md` | Checklist 7번(23행 뒤) | 4 |
 
 ---
@@ -165,7 +166,7 @@ Expected: S1은 RED/GREEN 명령과 결과 한 행을 그 커밋에 넣는다고
 ### Task 3: One-time target pass over open follow-ups
 
 **Files:**
-- Modify: `docs/plans/` 아래 Follow-ups 항목이 있는 계획(2026-10-22 기준 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:250-258`, 10, 11, 12, 13, 14, 15, 16 `:468-471`, 17 `:468-474`, 그리고 그때까지 main에 들어온 backlog 계획), `docs/decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md:83`
+- Modify: `docs/plans/` 아래 Follow-ups 항목이 있는 계획(2026-10-22 기준 [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:251-259`, web-ui-local·web-ui-vm-rollout·access-modes·doc-system-foundation·doc-rename-and-checks·doc-body-backfill 계획, [script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `:469-472`, [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md) `:469-475`, 그리고 그때까지 main에 들어온 backlog 계획), `docs/decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md:84`
 
 **Interfaces:**
 - Consumes: Task 2의 대상 표기
@@ -173,7 +174,7 @@ Expected: S1은 RED/GREEN 명령과 결과 한 행을 그 커밋에 넣는다고
 - [ ] **Step 1: 실패 확인(목록).**
 
 Run: `for f in docs/plans/plan-*.md; do awk -v f="$f" '/^## Follow-ups/ {s = 1; next} /^## / {s = 0} s && /^- / && !/→/ && !/^- 없음$/ {print f ":" FNR}' "$f"; done`
-Expected: 대상이 없는 항목이 줄마다 나온다. [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:251`, `:252`, `:256`, [script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `:470`, `:471`이 들어 있다. [skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md) `:83`은 따로 센다.
+Expected: 대상이 없는 항목이 줄마다 나온다. [vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:252`, `:253`, `:257`, [script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `:471`, `:472`이 들어 있다. [skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md) `:84`은 따로 센다.
 
 - [ ] **Step 2: 사용자 결정.** 항목마다 위치, 요약, 지금 상태(배경 표처럼 명령으로 확인), 제안 대상을 표로 만들어 보인다. 사용자가 항목마다 대상을 정하고, 그 결정을 Progress log에 적는다. 브랜치 이름은 대상이 아니다. 하위 목록은 부모 항목에 대상을 단다.
 - [ ] **Step 3: 최소 구현.** 각 항목 끝([skill-structure ADR](../decisions/adr-2026-10-13-m0xvj6rr-skill-structure.md)은 그 칸 끝)에 ` → <대상> (2026-MM-DD)`만 덧붙인다. 다른 낱말은 건드리지 않는다.

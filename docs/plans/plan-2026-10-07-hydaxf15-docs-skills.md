@@ -1,5 +1,6 @@
 ---
 status: completed
+id: hydaxf15
 spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 ---
 
@@ -88,7 +89,7 @@ GCP 전환 (2026-10-12)
 Makefile scripts/lib/common.sh scripts/backup.sh scripts/restore.sh           Task 4 (Makefile은 include 부분만)
 .agents/skills/git-workflow/SKILL.md                                          Task 4
 tests/main_checkout.bats (새 파일) tests/common.bats tests/backup_restore.bats tests/helpers.bash  Task 4
-README.md docs/ARCHITECTURE.md docs/runbooks/*.md docs/decisions/*.md         Task 5 (rbk-2026-10-12-vebvx40g-oci-vm.md → rbk-2026-10-12-tcjs7m6x-gcp-vm.md, ADR 0001 이름 변경)
+README.md docs/ARCHITECTURE.md docs/runbooks/*.md docs/decisions/*.md         Task 5 (rbk-2026-10-12-vebvx40g-oci-vm.md → rbk-2026-10-12-tcjs7m6x-gcp-vm.md, basic-memory-on-oci-tailscale ADR → basic-memory-on-gcp-tailscale ADR)
 .agents/skills/{bm-upgrade,bm-recover,bm-diagnose}/SKILL.md tests/repo.bats   Task 5
 scripts/remote/bootstrap.sh scripts/status.sh scripts/bootstrap-vm.sh         Task 6
 scripts/verify-vm.sh Makefile(status 도움말) .env.example tests/stubs/*         Task 6
@@ -267,7 +268,7 @@ git commit -m "docs: add repo skills for upgrade, recovery and diagnosis" --trai
 **Files:**
 - Create: `README.md`, `docs/ARCHITECTURE.md`
 - Create: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`, OCI VM 런북(`rbk-2026-10-12-vebvx40g-oci-vm.md`, 이 계획에서 GCP VM 런북으로 바뀜), `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`
-- Create: OCI 시절 [basic-memory-on-oci-tailscale ADR](../decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md)(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜), `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`
+- Create: OCI 시절 basic-memory-on-oci-tailscale ADR(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜), `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`
 - Test: `tests/repo.bats`(Markdown 링크 검사 추가)
 
 **Interfaces:**
@@ -603,7 +604,7 @@ OCI는 7일 동안 CPU(95번째 백분위), 네트워크, 메모리(A1만 해당
 
 - [ ] **Step 8: ADR 작성**
 
-OCI 시절 [basic-memory-on-oci-tailscale ADR](../decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md)(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜):
+OCI 시절 basic-memory-on-oci-tailscale ADR(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜):
 ```markdown
 # ADR b229z2y6: Basic Memory를 OCI Always Free + Tailscale에 자체 호스팅
 
@@ -1122,7 +1123,7 @@ Task 4(C1 코드: `Makefile`, `scripts/lib/common.sh`, `scripts/backup.sh`, `scr
 
 **Files:**
 - Rename + 전체 재작성: OCI VM 런북(`rbk-2026-10-12-vebvx40g-oci-vm.md`, 이 계획에서 GCP VM 런북으로 바뀜) → `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`
-- Rename + 전체 재작성: OCI 시절 [basic-memory-on-oci-tailscale ADR](../decisions/adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md)(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜) → `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md`
+- Rename + 전체 재작성: OCI 시절 basic-memory-on-oci-tailscale ADR(`adr-2026-10-12-b229z2y6-basic-memory-on-oci-tailscale.md`, 이 계획에서 GCP ADR로 바뀜) → `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md`
 - 전체 재작성: `docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md`, `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md`, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`, `README.md`, `docs/ARCHITECTURE.md`
 - Modify: `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md`
 - 전체 재작성: `.agents/skills/bm-recover/SKILL.md`, `.agents/skills/bm-diagnose/SKILL.md`, `.agents/skills/bm-upgrade/SKILL.md`
@@ -1900,7 +1901,7 @@ git commit -m "docs: rewrite docs and skills for the GCP e2-micro host" --traile
 - 건드리지 않는다: `tests/repo.bats`, `AGENTS.md`(Task 5와 컨트롤러 소유)
 
 **Interfaces:**
-- Consumes: Task 4와 Task 5가 plan/04에 들어간 상태(`docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`가 있고 `rbk-2026-10-12-t79ex2ny-operations.md`에 "Idle reclamation" 제목이 없다), 스펙 §2(메모리 행), §7.4, §7.6, §7.7, §9
+- Consumes: Task 4와 Task 5가 `plan/hydaxf15-docs-skills`에 들어간 상태(`docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md`가 있고 `rbk-2026-10-12-t79ex2ny-operations.md`에 "Idle reclamation" 제목이 없다), 스펙 §2(메모리 행), §7.4, §7.6, §7.7, §9
 - Produces:
   - `bootstrap.sh`의 `ensure_swap`. `main()`에서 `install_docker`보다 먼저 실행된다. 상수 `SWAP_SIZE_MB=1024`. 테스트용 재정의 `SWAP_FILE`(기본 `/swapfile`), 기존 `ETC_DIR`(fstab).
   - `status.sh`의 출력 `memory used: N%`, `swap used: U/T MB`, 스왑이 없을 때의 경고 `WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)`(Task 5의 문서가 `rerun 'make vm-bootstrap'`을 그대로 인용하므로 문구를 바꾸지 않는다).

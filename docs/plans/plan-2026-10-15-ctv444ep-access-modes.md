@@ -1,5 +1,6 @@
 ---
 status: completed
+id: ctv444ep
 spec: docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md
 ---
 
@@ -1420,7 +1421,7 @@ Exposure audit 2번 항목 끝에 ``(`tailscale` 모드만)``을 붙인다. 첫 
 
 - [ ] **Step 7: `README.md`와 GCP 설계 상태 줄**
 
-README 첫 문단의 "Tailscale tailnet 안에서만 접근하게 만드는"을 "Tailscale tailnet 또는 SSH 터널(GCP IAP) 중 VM마다 고른 한 경로로만 접근하게 만드는"으로 바꾼다. 결정 기록 줄에 [access-modes ADR](../decisions/adr-2026-10-15-cz8c26gp-access-modes.md) 링크(대상 `docs/decisions/adr-2026-10-15-cz8c26gp-access-modes.md`, 링크 글자 `ADR 0006`)를 더한다.
+README 첫 문단의 "Tailscale tailnet 안에서만 접근하게 만드는"을 "Tailscale tailnet 또는 SSH 터널(GCP IAP) 중 VM마다 고른 한 경로로만 접근하게 만드는"으로 바꾼다. 결정 기록 줄에 [access-modes ADR](../decisions/adr-2026-10-15-cz8c26gp-access-modes.md) 링크(대상 `docs/decisions/adr-2026-10-15-cz8c26gp-access-modes.md`, 링크 글자 `access-modes ADR`)를 더한다.
 
 사전 요구사항의 "VM 작업용" 첫 항목(Tailscale 앱 줄)을 바꾼다.
 

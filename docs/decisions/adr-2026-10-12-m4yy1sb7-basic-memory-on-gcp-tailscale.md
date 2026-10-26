@@ -1,5 +1,6 @@
 ---
 status: accepted
+id: m4yy1sb7
 date: 2026-10-12
 amended-by: docs/decisions/adr-2026-10-22-fcvznmdc-web-connector.md
 ---

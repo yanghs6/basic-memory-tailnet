@@ -1,5 +1,6 @@
 ---
 status: backlog
+id: d3dpb00s
 spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 ---
 

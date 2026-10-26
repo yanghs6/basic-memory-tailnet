@@ -1,5 +1,6 @@
 ---
 status: completed
+id: a88datfz
 spec: docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md
 ---
 
@@ -456,7 +457,7 @@ git push
 ### Task 3: 운영 문서
 
 **Files:**
-- Modify: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`, `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md:29-35`, `docs/ARCHITECTURE.md`(토폴로지 첫 줄들, Serve 행, 자동 검증 범위, 검증 흐름), `README.md:39`
+- Modify: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`, `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md:30-36`, `docs/ARCHITECTURE.md`(토폴로지 첫 줄들, Serve 행, 자동 검증 범위, 검증 흐름), `README.md:39`
 
 **Interfaces:**
 - Consumes: Task 1·2의 출력 문구(`OK: SilverBullet checks passed`, `refuses ports 22 80 443 8443 8737 3000`)
@@ -501,9 +502,9 @@ Funnel 문단의 마지막 문장([vm-rollout 계획](plan-2026-10-07-qtvzskgx-v
 `serve reset`은 443과 8443 설정을 모두 지우므로, 그 뒤 `make vm-bootstrap HOST=agent-hub`로 두 포트를 다시 설정합니다.
 ```
 
-- [ ] **Step 2: `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md:29-35`와 `README.md:39`**
+- [ ] **Step 2: `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md:30-36`와 `README.md:39`**
 
-`rbk-2026-10-12-ha5w72pm-bootstrap.md:29`의 `make deploy verify status`를 `make deploy sb-fonts verify status`로 바꾼다(`sb-fonts`는 Mac의 TTF가 필요하다. README 사전 요구사항 참고). `:33`과 `:35`를 바꾼다.
+`rbk-2026-10-12-ha5w72pm-bootstrap.md:30`의 `make deploy verify status`를 `make deploy sb-fonts verify status`로 바꾼다(`sb-fonts`는 Mac의 TTF가 필요하다. README 사전 요구사항 참고). `:34`과 `:36`를 바꾼다.
 
 ```markdown
 - [ ] `make verify`가 `OK: MCP round trip passed`, `OK: SilverBullet checks passed`, `listens on 127.0.0.1 only`(8737과 3000), `tailscale serve is tailnet only`, `refuses ports 22 80 443 8443 8737 3000`을 모두 출력한다.

@@ -1,5 +1,6 @@
 ---
 status: completed
+id: n6xpm12e
 spec: docs/specs/spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md
 ---
 
@@ -2041,7 +2042,7 @@ git push
 
 **Files:**
 - Create: `docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md`
-- Modify: `docs/ARCHITECTURE.md`, `README.md`, `AGENTS.md:10,22`(사용자 승인 필요), `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md:158`
+- Modify: `docs/ARCHITECTURE.md`, `README.md`, `AGENTS.md:10,22`(사용자 승인 필요), `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md:159`
 
 **Interfaces:**
 - Consumes: Task 6의 확인 결과(ADR 근거)
@@ -2190,7 +2191,7 @@ web-ui-vm-rollout 계획에서 두 컨테이너를 함께 띄운 뒤의 메모�
 
 - [ ] **Step 5: GCP 설계 한 줄**
 
-`docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md:158`("유일한 비밀값은 Tailscale 인증 키다…") 다음 줄에 넣는다.
+`docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md:159`("유일한 비밀값은 Tailscale 인증 키다…") 다음 줄에 넣는다.
 
 ```markdown
 - 2026-10-14 갱신: [SilverBullet 웹 UI 설계](spec-2026-10-14-cjerm8b4-silverbullet-web-ui.md)가 두 번째 비밀값 `SB_USER`를 더한다(§8.3).

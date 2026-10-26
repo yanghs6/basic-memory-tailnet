@@ -1,5 +1,6 @@
 ---
 status: completed
+id: hf9kadp3
 spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 ---
 
@@ -371,7 +372,7 @@ Task 6~9는 아래 Step을 각 Task의 표에 대해 같은 순서로 밟는다.
   - 규칙의 정본이나 대상 파일이 다르다: 레지스트리 행을 도는 두 검사(셀 값과 번호), 크기 한도(AGENTS.md 바이트와 SKILL.md 줄), 포트 127.0.0.1(파일 전체를 봐서 새 서비스도 잡음), AGENTS.md 제목 검사 두 개, 워크플로 두 검사
   - 합치면 동작이 바뀐다: strict mode와 bash 3.2 검사(파일 집합이 달라, 합치면 bash 3.2 검사가 스텁까지 넓어짐)
   - 대상이 달라 도우미로 얻는 것이 적다: 빈 목록 방어 줄
-- 커밋: `test: merge the repo-wide tests that check one rule` / `test: drop the repo-wide checks ADR 0004 and 0007 rule out` (`Task: 9`).
+- 커밋: `test: merge the repo-wide tests that check one rule` / `test: drop the repo-wide checks the test-scope and structure-checks ADRs rule out` (`Task: 9`).
 
 ### Task 10: Add the script-authoring skill and make new-script
 

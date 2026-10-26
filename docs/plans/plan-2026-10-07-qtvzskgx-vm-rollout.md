@@ -1,5 +1,6 @@
 ---
 status: completed
+id: qtvzskgx
 spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 ---
 

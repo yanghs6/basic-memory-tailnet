@@ -27,6 +27,25 @@ Plan: 08"
   done
 }
 
+@test "accepts Plan as an id, a legacy number or none, and rejects ids outside the alphabet or length" {
+  local value
+  for value in k7m2x9qa 26 none; do
+    PR_TITLE="feat: x" PR_BODY="Summary.
+
+Assisted-by: claude-code claude-opus-5-5
+Plan: $value" run "$CHECK"
+    assert_success
+  done
+  for value in K7M2X9QA k7m2x9q k7m2x9qai k7m2x9qi; do
+    PR_TITLE="feat: x" PR_BODY="Summary.
+
+Assisted-by: claude-code claude-opus-5-5
+Plan: $value" run "$CHECK"
+    assert_failure 1
+    assert_output --partial "trailer 'Plan: $value' must be"
+  done
+}
+
 @test "rejects an empty title and titles that are not '<type>: <description>'" {
   local title message
   # <unset> stands for no PR_TITLE at all (CI did not pass the title). The title check would also refuse an unset or

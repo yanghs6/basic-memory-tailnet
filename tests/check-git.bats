@@ -11,7 +11,7 @@ setup() {
   # Each case rebuilds the repo of setup in its own subshell, so the test leaves it first.
   cd "$BATS_TEST_TMPDIR" || return
   for case in "work branch with Plan none and Task review" "plan branch with a merge from main" \
-    "explicit branch from a detached HEAD"; do
+    "explicit branch from a detached HEAD" "id-named plan branch with an id Plan trailer"; do
     (
       rm -rf "$WORK" && init_git_repo || exit 1
       case "$case" in
@@ -26,6 +26,10 @@ setup() {
           git switch -q -c plan/02-merge && agent_commit claude-code "feat: on branch" \
             && git switch -q main && git commit -q --allow-empty -m "chore: on main" \
             && git switch -q plan/02-merge && git merge -q --no-ff main -m "Merge main" || exit 1
+          run "$CHECK"
+          ;;
+        "id-named"*)
+          git switch -q -c plan/k7m2x9qa-x && PLAN_TRAILER=k7m2x9qa agent_commit claude-code "feat: id branch" || exit 1
           run "$CHECK"
           ;;
         "explicit branch"*)
@@ -46,8 +50,11 @@ setup() {
   # Each case: where check-git.sh runs | the branch problem it reports.
   for case in "main|on main: agents never commit to main" \
     "detached HEAD|detached HEAD: create a branch first" \
-    "feature/x|branch 'feature/x' must look like plan/NN-slug or work/slug" \
-    "explicit feature/x|branch 'feature/x' must look like plan/NN-slug or work/slug"; do
+    "feature/x|branch 'feature/x' must look like plan/<id>-slug or work/slug" \
+    "plan/K7M2X9QA-x|branch 'plan/K7M2X9QA-x' must look like" \
+    "plan/k7m2x9q-x|branch 'plan/k7m2x9q-x' must look like" \
+    "plan/k7m2x9qai-x|branch 'plan/k7m2x9qai-x' must look like" \
+    "explicit feature/x|branch 'feature/x' must look like plan/<id>-slug or work/slug"; do
     IFS='|' read -r place message <<<"$case"
     (
       rm -rf "$WORK" && init_git_repo || exit 1
@@ -57,8 +64,8 @@ setup() {
           git checkout -q --detach || exit 1
           run "$CHECK"
           ;;
-        feature/x)
-          git switch -q -c feature/x || exit 1
+        feature/x | plan/*)
+          git switch -q -c "$place" || exit 1
           run "$CHECK"
           ;;
         "explicit feature/x")

@@ -1,5 +1,6 @@
 ---
 status: approved
+id: restd5vd
 date: 2026-10-07
 amended-by: [docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md, docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md]
 ---
@@ -52,7 +53,7 @@ amended-by: [docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, docs/spe
   - `git gc`
   - 다른 에이전트의 브랜치·worktree 삭제
 - 이름은 작업 단위로 짓는다.
-  - 계획: `plan/<NN>-<slug>` (예: `plan/sqzn0teq-local-foundation`)
+  - 계획: `plan/<NN>-<slug>`(이 스펙을 쓸 때의 규칙. [doc-ids-and-draft-board 설계](spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md)가 `plan/<ID>-<slug>`로 바꿨고, 예도 그 형식이다. 예: `plan/sqzn0teq-local-foundation`)
   - 그 밖의 작업: `work/<slug>`
 - 도구가 자동으로 만든 브랜치(`worktree-*`, `codex/*`, detached HEAD)는 리뷰 요청 전에 `git branch -m`으로 규칙에 맞게 바꾼다.
 
@@ -110,7 +111,7 @@ Task: 3
   - Codex: `codex exec -o <파일> "<체크리스트 프롬프트>"`
   - Claude: `claude -p --agent branch-reviewer`
 - `.claude/agents/branch-reviewer.md`: `tools: Read, Grep, Glob, Bash`, `disallowedTools: Write, Edit, NotebookEdit`, `permissionMode: plan`. Bash는 `git diff`·`git log`·`git show`만 허용한다.
-- [git-review-tooling 계획](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md) 이후에는 `make review BRANCH=<브랜치> REVIEWER=codex|claude`로 실행한다. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)은 위 명령을 손으로 실행한다.
+- git-review-tooling 계획 이후에는 `make review BRANCH=<브랜치> REVIEWER=codex|claude`로 실행한다. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)은 위 명령을 손으로 실행한다.
 
 **체크리스트** (`AGENTS.md`의 `## Code Review Rules`. Codex는 이 섹션을 자동으로 읽고, Claude는 `@AGENTS.md`로 읽는다)
 1. 계획의 Task가 모두 구현됐고, 각 검증 단계가 증거(명령과 결과)와 함께 통과했는가
@@ -118,7 +119,7 @@ Task: 3
 3. `make check`가 통과하는가
 4. 보안: 비밀값, `.env`, 공개 노출, 인증 없는 엔드포인트
 5. `AGENTS.md`가 요구하는 문서가 갱신됐는가
-6. 모든 커밋에 트레일러가 있는가([git-review-tooling 계획](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md) 이후 `make check-git`)
+6. 모든 커밋에 트레일러가 있는가(git-review-tooling 계획 이후 `make check-git`)
 
 이 변경이 새로 만든 문제만 지적하고, 추측성 지적과 취향 문제는 줄인다.
 
@@ -173,11 +174,11 @@ Reviewed-Head: <sha>
 
 | 시점 | 내용 |
 |---|---|
-| 지금 (writing-plans) | 계획 01~05의 Global Constraints에 3·4절 규칙을 넣고, 계획 끝 "마무리"를 5·6절 절차로 바꾼다. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)은 `plan/sqzn0teq-local-foundation` 브랜치에서 시작하고, 리뷰는 수동 명령으로 한다. |
+| 지금 (writing-plans) | local-foundation·git-review-tooling·vm-scripts·docs-skills·vm-rollout 계획의 Global Constraints에 3·4절 규칙을 넣고, 계획 끝 "마무리"를 5·6절 절차로 바꾼다. [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md)은 `plan/sqzn0teq-local-foundation` 브랜치에서 시작하고, 리뷰는 수동 명령으로 한다. |
 | [local-foundation 계획](../plans/plan-2026-10-07-sqzn0teq-local-foundation.md) Task 4 | `AGENTS.md` 기본판에 짧은 `## Git` 섹션을 넣는다(브랜치, worktree, 트레일러, 금지 사항). |
-| **새 [git-review-tooling 계획](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md): Git & Review Tooling** | 아래 산출물. 기존 계획 02·03·04는 03·04·05로 번호를 바꾼다. |
+| **새 git-review-tooling 계획** | 아래 산출물. 기존 vm-scripts·docs-skills·vm-rollout 계획은 번호를 02·03·04에서 03·04·05로 바꾼다. |
 
-**새 [git-review-tooling 계획](../plans/plan-2026-10-07-qq4h1djv-git-review-tooling.md) 산출물**
+**새 git-review-tooling 계획 산출물**
 - `scripts/check-git.sh` + `make check-git`
   - `main..HEAD` 커밋마다 `Assisted-by`·`Plan`·`Task`가 있는지
   - `Co-authored-by`·`Signed-off-by`가 없는지

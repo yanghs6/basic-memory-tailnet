@@ -1,5 +1,6 @@
 ---
 status: accepted
+id: a878ypj5
 date: 2026-10-13
 amended-by: docs/decisions/adr-2026-10-16-q36rwq5s-structure-checks.md
 ---

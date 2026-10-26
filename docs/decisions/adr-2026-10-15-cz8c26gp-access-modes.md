@@ -1,5 +1,6 @@
 ---
 status: accepted
+id: cz8c26gp
 date: 2026-10-15
 amended-by: docs/decisions/adr-2026-10-22-fcvznmdc-web-connector.md
 ---

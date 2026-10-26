@@ -1,5 +1,6 @@
 ---
 status: completed
+id: hyajr3k3
 spec: docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md
 ---
 
@@ -171,7 +172,7 @@ Expected: exit 0.
 
 ```bash
 git add docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md
-git commit -m "docs: record that doc-body-backfill plan keeps the section structure of existing documents (D9)" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: hyajr3k3" --trailer "Task: 3"
+git commit -m "docs: record that the doc-body-backfill plan keeps the section structure of existing documents (D9)" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: hyajr3k3" --trailer "Task: 3"
 git push
 ```
 

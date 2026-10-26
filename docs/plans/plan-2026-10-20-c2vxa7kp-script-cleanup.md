@@ -1,5 +1,6 @@
 ---
 status: completed
+id: c2vxa7kp
 spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 ---
 

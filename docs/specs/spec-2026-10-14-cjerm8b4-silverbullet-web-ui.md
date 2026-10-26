@@ -1,5 +1,6 @@
 ---
 status: approved
+id: cjerm8b4
 date: 2026-10-14
 amended-by: docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md
 ---
@@ -120,14 +121,14 @@ Self-hosted Basic Memory 0.23.2에는 웹 UI가 없다. REST API는 MCP 서버 �
   - `tailscale serve --bg --https=8443`은 기존 443 설정을 지우지 않는다(`serve status --json`에 두 포트가 모두 있음).
   - `serve status --json`의 모양은 테스트 스텁과 같다: `Web."<host>:<port>".Handlers["/"].Proxy`이고, Funnel이 꺼져 있으면 `AllowFunnel`이 없다.
   - Mac에서 tailnet 왕복이 300ms쯤이면 새 TLS 연결이 2초를 넘을 수 있다(`/.ping` 2.6초). 그러면 새 기기에서 처음 열 때 클라이언트의 2초 ping이 시간을 넘겨, 상단 막대가 빨갛게(`sb-sync-error`) 되고 글꼴 요청이 503을 받아 기본 글꼴로 보인다. 몇 초 뒤 새로고침하면 둘 다 정상이 된다.
-- **Verified ([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) 진행 로그 2026-10-13 Step 14, `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md:293`):** 22번이 닫힌 뒤에도 `make vm-bootstrap HOST=agent-hub </dev/null`이 Tailscale SSH로 키 없이 다시 실행되고 Serve를 다시 적용한다. [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)은 이 경로로 8443을 더한다.
+- **Verified ([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) 진행 로그 2026-10-13 Step 14, `docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md:294`):** 22번이 닫힌 뒤에도 `make vm-bootstrap HOST=agent-hub </dev/null`이 Tailscale SSH로 키 없이 다시 실행되고 Serve를 다시 적용한다. [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)은 이 경로로 8443을 더한다.
 - **Verified (tailscale `ipn/serve.go:53-76`, `:125-172`, `cmd/tailscale/cli/serve_v2.go:259-264`):** `tailscale serve status --json`은 `Web`(키 `<호스트>:<포트>`, 값의 `Handlers["/"].Proxy`)과 `AllowFunnel`(키 `<호스트>:<포트>`)을 담은 설정을 출력한다. [web-ui-vm-rollout 계획](../plans/plan-2026-10-14-a88datfz-web-ui-vm-rollout.md)의 `verify`가 포트별 대상과 Funnel을 이 JSON으로 검사한다.
 
 **Tailscale과 VM**
 
 - **Verified (tailscale.com/kb/1242/tailscale-serve):** Serve 문서에는 HTTPS 포트 제한이 없다. `--set-path`가 접두어를 떼고 넘기는지는 문서에 없다.
 - **Verified (tailscale.com/kb/1153/enabling-https):** HTTPS 인증서를 받은 기기 이름은 공개 CT 로그에 남는다.
-- **Verified (`docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md:53`):** 기존 VM `agent-hub-01`은 기본 서비스 계정을 유지한다.
+- **Verified (`docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md:54`):** 기존 VM `agent-hub-01`은 기본 서비스 계정을 유지한다.
 
 ## 4. 아키텍처
 

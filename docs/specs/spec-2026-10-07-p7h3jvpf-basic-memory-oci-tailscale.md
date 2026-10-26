@@ -1,5 +1,6 @@
 ---
 status: superseded
+id: p7h3jvpf
 date: 2026-10-12
 superseded-by: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 ---

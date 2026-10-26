@@ -1,5 +1,6 @@
 ---
 status: backlog
+id: gaewewkf
 spec: none
 ---
 
@@ -53,12 +54,12 @@ spec: none
 - `scripts/bootstrap-vm.sh:2`, `:33` (`HOST=<public-ip>` usage), `:43`, `:50` (`upload failed` 안내)
 - `scripts/show-status.sh:34` (`make vm-bootstrap HOST=<public-ip>` 안내)
 - `tests/vm_ops.bats:7`, `:84-87`, `:112-116`, `:131`, `:142-168` (공인 IP 검증 테스트), `tests/bootstrap.bats:170-173`
-- `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md:35` (ephemeral 외부 IPv4), `:91-107` (공인 IP 조회, 정지 후 IP 변경)
-- `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md:7`, `:16-17`, `:42`, `:45`, `:49`
-- `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:48`, `:64`, `:79-82`
-- `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md:23`, `docs/ARCHITECTURE.md:50`, `:57-58`, `:63`, `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md:29-30`
+- `docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md:36` (ephemeral 외부 IPv4), `:92-108` (공인 IP 조회, 정지 후 IP 변경)
+- `docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md:8`, `:17-18`, `:43`, `:46`, `:50`
+- `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:49`, `:65`, `:80-83`
+- `docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md:24`, `docs/ARCHITECTURE.md:50`, `:57-58`, `:63`, `docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md:30-31`
 - `.agents/skills/bm-diagnose/SKILL.md:22`, `.agents/skills/bm-recover/SKILL.md:11`, `:15-16`, `.agents/skills/bm-upgrade` (ghcr.io 이미지 pull 경로; 줄 번호는 설계 때 확인)
-- GCP 스펙 `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md:22`, `:33`, `:37`, `:51`, `:55`, `:88`, `:96-97`, `:122`, `:136`, `:157`, `:173`, `:194-197`, `:216`, `:222-225`
+- GCP 스펙 `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md:23`, `:34`, `:38`, `:52`, `:56`, `:89`, `:97-98`, `:123`, `:137`, `:158`, `:174`, `:195-198`, `:217`, `:223-226`
 
 ## 완료 조건 (초안)
 
