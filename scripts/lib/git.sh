@@ -3,6 +3,7 @@
 # problem list both report, and where make review writes its reports. Sources common.sh.
 # Must stay compatible with macOS bash 3.2.
 #   add_problem MESSAGE... -> add one line to PROBLEMS
+#   add_public_text_problems LABEL HINT TEXT -> add each public text hit in TEXT to PROBLEMS; returns 1 on a hit
 #   report_problems HEADING -> print PROBLEMS under HEADING and exit 1; nothing when there are none
 #   branch_slug BRANCH -> BRANCH with every / replaced by -
 #   review_out_dir -> REVIEW_OUT_DIR, else the main checkout's .review-out
@@ -22,13 +23,31 @@ readonly PLAN_ID_PATTERN='[0-9a-hjkmnp-tv-z]{8}'
 readonly PLAN_PATTERN="^(${PLAN_ID_PATTERN}|none)\$"
 readonly BRANCH_PATTERN="^(plan/${PLAN_ID_PATTERN}-[a-z0-9-]+|work/[a-z0-9-]+)\$"
 readonly TASK_PATTERN='^([0-9]+|review|none)$'
-readonly FORBIDDEN_TRAILERS="Co-authored-by Signed-off-by"
+readonly FORBIDDEN_TRAILERS="Co-authored-by Signed-off-by Claude-Session"
+readonly PUBLIC_TEXT_CHECK="$REPO_DIR/scripts/check-public-text.sh"
 
 PROBLEMS=""
 
 add_problem() {
   PROBLEMS="${PROBLEMS}  - $*
 "
+}
+
+# add_public_text_problems LABEL HINT TEXT -> checks TEXT with check-public-text.sh and adds each hit
+# ('LABEL:<line>: <kind>', never the value) as a problem ending in HINT. Returns 1 when it added any, so the caller
+# can leave the values out of its other messages; dies when the check fails without a hit.
+add_public_text_problems() {
+  local label="$1" hint="$2" output line found=0
+  if output="$(printf '%s\n' "$3" | "$PUBLIC_TEXT_CHECK" --label "$label" - 2>&1)"; then
+    return 0
+  fi
+  while IFS= read -r line; do
+    [[ "$line" == "$label:"[0-9]* ]] || continue
+    add_problem "$line ($hint)"
+    found=1
+  done <<<"$output"
+  ((found == 1)) || die "the public text check of $label failed: $output"
+  return 1
 }
 
 # report_problems HEADING -> when add_problem collected anything, print "HEADING:" and the list on stderr and exit 1.

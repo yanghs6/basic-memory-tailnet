@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Check the git policy for a branch (docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md):
-# branch name, trailers on every non-merge commit in BASE..BRANCH, forbidden trailers, worktree config.
+# branch name, trailers on every non-merge commit in BASE..BRANCH, forbidden trailers, public text in the commit
+# messages (scripts/check-public-text.sh), worktree config.
 # Usage: make check-git, or check-git.sh [BASE] [BRANCH]   (defaults: main, the current branch)
 # Pass BRANCH to check a branch from anywhere, e.g. from a reviewer's detached worktree.
 set -euo pipefail
@@ -38,23 +39,35 @@ check_branch() {
   fi
 }
 
-# check_trailer WHERE COMMIT KEY PATTERN FORMAT
+# check_trailer WHERE COMMIT KEY PATTERN FORMAT [HIDE]: with HIDE set, a malformed value is not printed.
 check_trailer() {
-  local where="$1" sha="$2" key="$3" pattern="$4" format="$5" value
+  local where="$1" sha="$2" key="$3" pattern="$4" format="$5" hide="${6:-}" value
   value="$(trailer "$sha" "$key")" || exit 1
   if [[ -z "$value" ]]; then
     add_problem "$where: missing trailer '$key: $format' ($POLICY_HINT)"
-  elif [[ ! "$value" =~ $pattern ]]; then
+  elif [[ "$value" =~ $pattern ]]; then
+    return 0
+  elif [[ -n "$hide" ]]; then
+    add_problem "$where: trailer '$key' must be '$key: $format'"
+  else
     add_problem "$where: trailer '$key: $value' must be '$key: $format'"
   fi
 }
 
+# check_commit COMMIT: the whole message (subject, body, trailers) is checked for public text first. A commit with a
+# hit is named by its short SHA only and its trailer values are not printed, so the report publishes none of it.
 check_commit() {
-  local sha="$1" where key
-  where="$(git log -1 --format='%h "%s"' "$sha")" || exit 1
-  check_trailer "$where" "$sha" Assisted-by "$ASSISTED_BY_PATTERN" "<claude-code|codex|antigravity|gemini-cli> <model>"
-  check_trailer "$where" "$sha" Plan "$PLAN_PATTERN" "<id|none>"
-  check_trailer "$where" "$sha" Task "$TASK_PATTERN" "<N|review|none>"
+  local sha="$1" where message key hide=""
+  where="$(git log -1 --format=%h "$sha")" || exit 1
+  message="$(git log -1 --format=%B "$sha")" || exit 1
+  if add_public_text_problems "$where" "$POLICY_HINT" "$message"; then
+    where="$(git log -1 --format='%h "%s"' "$sha")" || exit 1
+  else
+    hide=1
+  fi
+  check_trailer "$where" "$sha" Assisted-by "$ASSISTED_BY_PATTERN" "<claude-code|codex|antigravity|gemini-cli> <model>" "$hide"
+  check_trailer "$where" "$sha" Plan "$PLAN_PATTERN" "<id|none>" "$hide"
+  check_trailer "$where" "$sha" Task "$TASK_PATTERN" "<N|review|none>" "$hide"
   for key in $FORBIDDEN_TRAILERS; do
     if [[ -n "$(trailer "$sha" "$key")" ]]; then
       add_problem "$where: agents never add '$key' ($POLICY_HINT)"
