@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Git, pull request and review helpers for scripts/*.sh: the trailer rules check-git.sh and check-pr.sh share, a
-# problem list both report, and where make review writes its reports. Sources common.sh.
+# Git, pull request and review helpers for scripts/*.sh: the trailer rules check-git.sh and check-pr.sh share, the PR
+# body trailers check-pr.sh and check-tests.sh read, a problem list they report, and where make review writes its
+# reports. Sources common.sh.
 # Must stay compatible with macOS bash 3.2.
+#   pr_trailers TITLE BODY -> the trailer lines of the squash commit message the PR title and body become
+#   trailer_values KEY TRAILERS -> the values of KEY in TRAILERS, one per line
 #   add_problem MESSAGE... -> add one line to PROBLEMS
 #   add_public_text_problems LABEL HINT TEXT -> add each public text hit in TEXT to PROBLEMS; returns 1 on a hit
 #   report_problems HEADING -> print PROBLEMS under HEADING and exit 1; nothing when there are none
@@ -27,6 +30,20 @@ readonly FORBIDDEN_TRAILERS="Co-authored-by Signed-off-by Claude-Session"
 readonly PUBLIC_TEXT_CHECK="$REPO_DIR/scripts/check-public-text.sh"
 
 PROBLEMS=""
+
+# pr_trailers TITLE BODY -> the trailers of the squash commit message (TITLE, a blank line, BODY), one per line; only
+# the body's last paragraph can hold them. git log reads that message's trailers without the '---' divider rule, so
+# parse it the same way. GitHub sends bodies with CRLF line ends, which git interpret-trailers does not parse.
+pr_trailers() {
+  printf '%s\n\n%s\n' "$1" "$2" | tr -d '\r' | git interpret-trailers --parse --no-divider \
+    || die "git interpret-trailers could not parse the PR body"
+}
+
+# trailer_values KEY TRAILERS -> the values of KEY (matched case-insensitively, like git), one per line.
+trailer_values() {
+  awk -v key="$1" 'BEGIN { key = tolower(key) }
+    { i = index($0, ":"); if (i && tolower(substr($0, 1, i - 1)) == key) { v = substr($0, i + 1); sub(/^ +/, "", v); print v } }' <<<"$2"
+}
 
 add_problem() {
   PROBLEMS="${PROBLEMS}  - $*

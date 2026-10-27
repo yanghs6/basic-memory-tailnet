@@ -1,4 +1,4 @@
-# Branch name, commit trailers, and the PR title and body that become the squash commit
+# Branch name, commit trailers, the PR title and body that become the squash commit, and the test count and skips
 # (docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md, section 6). Runs again when the title or body is edited.
 name: pr-rules
 
@@ -29,3 +29,8 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: scripts/check-pr.sh
+      - name: Test count and skips
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: scripts/check-tests.sh origin/main

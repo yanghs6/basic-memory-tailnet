@@ -156,3 +156,41 @@ printf "env [%s] [%s]\n" "${COMPOSE_PROFILES-unset}" "${BM_WEB_BASE_URL-unset}" 
   run grep -cE "^docker run --rm -v $LINKED_WT:/repo -v $MAIN_REPO/\.git:$MAIN_REPO/\.git:ro -w /repo zricethezav/gitleaks:v[0-9.]+@sha256:[0-9a-f]{64} git --redact --verbose --log-opts=--all /repo$" "$STUB_LOG"
   assert_output 1
 }
+
+@test "make help prints each target with its ## description" {
+  local description line
+  linked_worktree_with_makefile
+  description="$(sed -n 's/^check:.*## //p' "$REPO_DIR/Makefile")"
+  run make_in "$LINKED_WT" help
+  assert_success
+  line="$(grep -E '^ +check ' <<<"$output")" || fail "make help printed no check line:"$'\n'"$output"
+  [[ "$line" == *" $description" ]] || fail "make help printed '$line'; expected the description from the Makefile check line: '$description'"
+}
+
+@test "make fmt, test, local-down and local-logs run their docker command in the checkout they run from" {
+  local target shfmt_image tools_image
+  shfmt_image="$(sed -n 's/^SHFMT_IMAGE := //p' "$REPO_DIR/Makefile")"
+  tools_image="$(sed -n 's/^TOOLS_IMAGE := //p' "$REPO_DIR/Makefile")"
+  for target in fmt test local-down local-logs; do
+    (
+      rm -rf "$BATS_TEST_TMPDIR/main" "$BATS_TEST_TMPDIR/linked" && linked_worktree_with_makefile \
+        && setup_stubs docker && : >"$STUB_LOG" || exit 1
+      # docker is the stub and the mount is the fixture, so make fmt rewrites nothing in this repo.
+      if [[ "$target" == fmt ]]; then
+        touch "$LINKED_WT/probe.sh" || exit 1
+      fi
+      # local-down first runs scripts/check-local-stack.sh, which reads compose.yaml; the stub reports no stack.
+      if [[ "$target" == local-down ]]; then
+        cp -R "$REPO_DIR/scripts" "$REPO_DIR/compose.yaml" "$LINKED_WT/" || exit 1
+      fi
+      run make_in "$LINKED_WT" "$target"
+      assert_success || exit 1
+      case "$target" in
+        fmt) assert_stub_called -Fx "docker run --rm -v $LINKED_WT:/repo -v $MAIN_REPO/.git:$MAIN_REPO/.git:ro -w /repo $shfmt_image -w probe.sh" ;;
+        test) assert_log_order "docker build -q -t $tools_image tools" "$tools_image bats tests" ;;
+        local-down) assert_stub_called -Fx 'docker compose -f compose.yaml down' ;;
+        local-logs) assert_stub_called -Fx 'docker compose -f compose.yaml logs --tail=200' ;;
+      esac
+    ) || fail "make $target did not run its docker command in the linked worktree it ran from"
+  done
+}

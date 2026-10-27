@@ -34,6 +34,25 @@ setup() {
   done
 }
 
+@test "pr_trailers reads the squash message trailers from the body's last paragraph only, also with CRLF line ends, a rule above them or only the trailers" {
+  local case body trailers
+  # Each case: the body's shape | the Plan value trailer_values must read from it (none: no trailer paragraph).
+  for case in "plain|h8j3m5rx" "crlf|h8j3m5rx" "rule|h8j3m5rx" "trailers only|h8j3m5rx" "text after the trailers|" \
+    "marker in a middle paragraph|"; do
+    (
+      case "${case%%|*}" in
+        plain) body="$(printf 'Summary.\n\nAssisted-by: claude-code claude-opus-5-5\nPlan: h8j3m5rx')" ;;
+        crlf) body="$(printf 'Summary.\r\n\r\nAssisted-by: claude-code claude-opus-5-5\r\nPlan: h8j3m5rx\r\n')" ;;
+        rule) body="$(printf 'Summary.\n\n---\n\nAssisted-by: claude-code claude-opus-5-5\nPlan: h8j3m5rx')" ;;
+        "trailers only") body="$(printf 'Assisted-by: claude-code claude-opus-5-5\nPlan: h8j3m5rx')" ;;
+        "text after the trailers") body="$(printf 'Summary.\n\nPlan: h8j3m5rx\n\nThanks.')" ;;
+        "marker in a middle paragraph") body="$(printf 'Summary.\n\nPlan: h8j3m5rx\n\nMore.\n\nAssisted-by: claude-code m')" ;;
+      esac
+      trailers="$(pr_trailers "feat: x" "$body")" && [[ "$(trailer_values plan "$trailers")" == "${case#*|}" ]] || exit 1
+    ) || fail "pr_trailers or trailer_values misread the body: ${case%%|*}"
+  done
+}
+
 @test "add_public_text_problems returns 0 on clean text, adds each hit with the hint and no value and returns 1, and dies when the check fails without a hit" {
   local cgnat case root
   # A CGNAT (tailnet range) address never sits in a repo file, so build it here.
