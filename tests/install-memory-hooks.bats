@@ -23,8 +23,11 @@ commands() { jq -r --arg e "$2" '.hooks[$e][]?.hooks[]?.command' "$1"; }
   local file agent
   run "$INSTALL"
   assert_success
+  assert_output --partial "settings.json: added SessionStart Stop"
+  assert_output --partial "hooks.json: added SessionStart Stop"
   run "$INSTALL"
   assert_success
+  assert_output --partial "settings.json: already up to date"
   for file in "$HOME/.claude/settings.json:claude-code" "$HOME/.codex/hooks.json:codex"; do
     agent="${file##*:}" file="${file%:*}"
     (
@@ -46,6 +49,7 @@ commands() { jq -r --arg e "$2" '.hooks[$e][]?.hooks[]?.command' "$1"; }
   assert_success
   run "$INSTALL" --remove
   assert_success
+  assert_output --partial "settings.json: removed SessionStart Stop"
   [[ -L "$HOME/.claude/settings.json" ]] || fail "the symlink was replaced by a file"
   assert_equal "$(commands "$HOME/.claude/settings.json" UserPromptSubmit)" "bash memsearch.sh"
   assert_equal "$(commands "$HOME/.claude/settings.json" SessionStart)" ""
@@ -59,4 +63,26 @@ commands() { jq -r --arg e "$2" '.hooks[$e][]?.hooks[]?.command' "$1"; }
   assert_equal "$(cat "$HOME/.claude/settings.json")" "{"
   assert_equal "$(find "$HOME/.claude" -name '*.bak-*' | wc -l | tr -d ' ')" 0
   [[ ! -e "$HOME/.codex/hooks.json" ]] || fail "wrote the Codex file although the Claude file is broken"
+}
+
+@test "leaves the file byte-identical when the user added a hook after ours, and replaces a stale own entry of another checkout path" {
+  local before
+  run "$INSTALL"
+  assert_success
+  jq '.hooks.SessionStart += [{hooks: [{type: "command", command: "other.sh", timeout: 5}]}]' \
+    "$HOME/.claude/settings.json" >"$BATS_TEST_TMPDIR/edited.json"
+  cp "$BATS_TEST_TMPDIR/edited.json" "$HOME/.claude/settings.json"
+  before="$(cat "$HOME/.claude/settings.json")"
+  rm -f "$HOME/.claude"/settings.json.bak-*
+  run "$INSTALL"
+  assert_success
+  assert_equal "$(cat "$HOME/.claude/settings.json")" "$before"
+  assert_equal "$(find "$HOME/.claude" -name '*.bak-*' | wc -l | tr -d ' ')" 0
+  assert_equal "$(commands "$HOME/.claude/settings.json" SessionStart | tail -n 1)" other.sh
+  jq '.hooks.Stop[0].hooks[0].command |= sub("-C .+ memory"; "-C /old/place memory")' "$HOME/.claude/settings.json" \
+    >"$BATS_TEST_TMPDIR/stale.json"
+  cp "$BATS_TEST_TMPDIR/stale.json" "$HOME/.claude/settings.json"
+  run "$INSTALL"
+  assert_success
+  assert_equal "$(commands "$HOME/.claude/settings.json" Stop)" "$SYNC_CMD"
 }

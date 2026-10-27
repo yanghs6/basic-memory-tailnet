@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Adds this repo's memory hooks to the user's Claude Code settings and Codex hooks file: memory-sync on SessionStart and
 # Stop, memory-index on SessionStart (UserPromptSubmit gets nothing). Both files are read and checked before either is
-# written. A hook that matches OWN_COMMAND_PATTERN is ours: it is removed first and added again at the end of its event,
-# so running it again gives the same result and a moved checkout replaces the old entry. A changed file is copied to
+# written. A hook that matches OWN_COMMAND_PATTERN is ours. An event that already has exactly the wanted hooks is left alone;
+# otherwise ours are removed and added again at the end of the event (a moved checkout replaces the old entry). A changed file is copied to
 # <file>.bak-<utc stamp> first (an existing backup is kept) and written through its path, so a symlink stays.
 # --remove only takes our hooks out. Edits user settings: ask the user before running it.
 # Usage: make memory-hooks [REMOVE=1]
@@ -19,20 +19,28 @@ readonly OWN_COMMAND_PATTERN='^make -s --no-print-directory -C .+ memory-(sync H
 readonly CLAUDE_AGENT=claude-code
 readonly CODEX_AGENT=codex
 
-# The settings with our hooks removed and, unless $remove is true, added again. Variables: pattern, remove, sync, index,
-# events (space separated), index_event, timeout.
+# The settings with our hooks removed or, unless $remove is true, made present. An event whose own groups already equal
+# the wanted ones (same commands in the same order, type command, the timeout, no matcher) is left exactly as it is, so
+# a hook the user added after ours keeps its place; any other event loses its own groups and gets the wanted ones at
+# the end. Variables: pattern, remove, sync, index, events (space separated), index_event, timeout.
 HOOKS_JQ=""
 read -r -d '' HOOKS_JQ <<'JQ' || true
 def own: ((.command // "") | test($pattern));
+def has_own: any(.hooks[]?; own);
 def strip: map(
   . as $g | ($g.hooks // []) as $all | [$all[] | select(own | not)] as $kept
   | if $kept == $all then $g elif ($kept | length) == 0 then empty else $g | .hooks = $kept end);
 def group($cmd): {hooks: [{type: "command", command: $cmd, timeout: $timeout}]};
+def wanted($e): [
+  (if ($events | split(" ") | index($e)) != null then group($sync) else empty end),
+  (if $e == $index_event then group($index) else empty end)];
 
-(if .hooks then .hooks |= map_values(strip) else . end)
+($events | split(" ") + [$index_event] | unique) as $managed
+| (if .hooks then .hooks |= with_entries(if $remove or (.key | IN($managed[]) | not) then .value |= strip else . end) else . end)
 | if $remove then .
-  else reduce ($events | split(" "))[] as $e (.; .hooks[$e] = ((.hooks[$e] // []) + [group($sync)]))
-    | .hooks[$index_event] = ((.hooks[$index_event] // []) + [group($index)])
+  else reduce $managed[] as $e (.;
+    (.hooks[$e] // []) as $cur | wanted($e) as $w
+    | if [$cur[] | select(has_own)] == $w then . else .hooks[$e] = ($cur | strip) + $w end)
   end
 JQ
 
@@ -60,9 +68,22 @@ new_json() {
 # same_json A B -> succeeds when both JSON texts are equal, whatever their key order and layout.
 same_json() { [[ "$(jq -S . <<<"$1")" == "$(jq -S . <<<"$2")" ]]; }
 
+# changed_events CURRENT NEW -> "added <events>" and "removed <events>" lines: the events whose own hooks differ between
+# the two JSON texts, split by whether NEW still has own hooks there.
+changed_events() {
+  jq -rn --argjson old "$1" --argjson new "$2" --arg pattern "$OWN_COMMAND_PATTERN" '
+    def ownc: (.hooks // {}) | map_values([.[]?.hooks[]? | (.command // "") | select(test($pattern))]);
+    ($old | ownc) as $o | ($new | ownc) as $n
+    | [$o, $n] | map(keys) | add | unique | map(select(($o[.] // []) != ($n[.] // []))) as $changed
+    | [$changed[] | select(($n[.] // []) | length > 0)] as $added
+    | [$changed[] | select(($n[.] // []) | length == 0)] as $removed
+    | (if ($added | length) > 0 then "added " + ($added | join(" ")) else empty end),
+      (if ($removed | length) > 0 then "removed " + ($removed | join(" ")) else empty end)'
+}
+
 # write_if_changed FILE CURRENT NEW -> backs up and writes FILE, or says it is up to date.
 write_if_changed() {
-  local file="$1" current="$2" new="$3" backup
+  local file="$1" current="$2" new="$3" backup events line
   if same_json "$current" "$new"; then
     log "$file: already up to date"
     return 0
@@ -75,6 +96,10 @@ write_if_changed() {
   fi
   printf '%s\n' "$new" | cat >"$file"
   log "$file: updated (backup $(basename "${backup:-none}"))"
+  events="$(changed_events "$current" "$new")" || exit 1
+  while IFS= read -r line; do
+    [[ -z "$line" ]] || log "$file: $line"
+  done <<<"$events"
 }
 
 main() {
