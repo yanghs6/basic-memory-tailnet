@@ -2,7 +2,7 @@
 load helpers
 
 setup() {
-  setup_stubs codex claude
+  setup_stubs codex claude make
   init_git_repo
   git switch -q -c plan/k7m2x9qa-git-review-tooling
   export REVIEW_OUT_DIR="$BATS_TEST_TMPDIR/out" REVIEW_WORKTREE_PARENT="$BATS_TEST_TMPDIR/wt"
@@ -42,30 +42,105 @@ review_repo() {
       assert_output "$diff_report" || exit 1
       run cat "$OUT-r1-$reviewer-plan.md"
       assert_output "$plan_report" || exit 1
-      # Both reviewer calls run in the review worktree, which is gone afterwards.
+      # Both reviewer calls and make check run in the review worktree, which is gone afterwards.
       run grep -c -F ":: cwd=$REVIEW_WT" "$STUB_LOG"
-      assert_output 2 || exit 1
+      assert_output 3 || exit 1
       run worktree_count
       assert_output 1 || exit 1
       run ls "$REVIEW_OUT_DIR"
-      assert_output "plan-k7m2x9qa-git-review-tooling-r1-$reviewer-diff.md
+      assert_output "plan-k7m2x9qa-git-review-tooling-r1-$reviewer-check.log
+plan-k7m2x9qa-git-review-tooling-r1-$reviewer-diff.md
 plan-k7m2x9qa-git-review-tooling-r1-$reviewer-meta.txt
 plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
       run cat "$OUT-r1-$reviewer-meta.txt"
-      assert_line "base $(git rev-parse main)" && assert_line "head $(git rev-parse plan/k7m2x9qa-git-review-tooling)" || exit 1
+      assert_line "base $(git rev-parse main)" && assert_line "head $(git rev-parse plan/k7m2x9qa-git-review-tooling)" \
+        && assert_line "effort low" || exit 1
       if [[ "$reviewer" == codex ]]; then
-        assert_stub_called -F 'codex exec review -c sandbox_mode="read-only" --base main :: cwd='"$REVIEW_WT" \
-          && assert_stub_called -F "codex exec --sandbox read-only -o $OUT-r1-codex-plan.md"
+        assert_line "model gpt-6.1-sol" \
+          && assert_stub_called -F 'codex exec review -m gpt-6.1-sol -c model_reasoning_effort="low" -c sandbox_mode="read-only" --base main :: cwd='"$REVIEW_WT" \
+          && assert_stub_called -F "codex exec -m gpt-6.1-sol -c model_reasoning_effort=\"low\" --sandbox read-only -o $OUT-r1-codex-plan.md"
       else
+        assert_line "model claude-opus-5-5" || exit 1
         run grep -c "^claude " "$STUB_LOG"
         assert_output 2 || exit 1
-        run grep -c "^claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence " "$STUB_LOG"
+        run grep -c "^claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence --model claude-opus-5-5 --effort low " "$STUB_LOG"
         assert_output 2 || exit 1
         # No user or system git config, so no external diff or textconv helper loads.
         run grep -c " git_config_global=/dev/null git_config_nosystem=1$" "$STUB_LOG"
         assert_output 2
       fi
     ) || fail "$reviewer review of a branch by $author"
+  done
+}
+
+@test "passes REVIEW_MODEL and REVIEW_EFFORT to both reviewer calls and records them in the meta file" {
+  local reviewer author
+  cd "$BATS_TEST_TMPDIR" || return
+  for reviewer in codex claude; do
+    author=codex
+    [[ "$reviewer" == codex ]] && author=claude-code
+    (
+      review_repo "$author" || exit 1
+      REVIEW_MODEL=model-y REVIEW_EFFORT=xhigh run "$REVIEW" plan/k7m2x9qa-git-review-tooling "$reviewer"
+      assert_success || exit 1
+      if [[ "$reviewer" == codex ]]; then
+        run grep -c -F -- '-m model-y -c model_reasoning_effort="xhigh" ' "$STUB_LOG"
+      else
+        run grep -c -F -- '--model model-y --effort xhigh ' "$STUB_LOG"
+      fi
+      assert_output 2 || exit 1
+      run cat "$OUT-r1-$reviewer-meta.txt"
+      assert_line "model model-y" && assert_line "effort xhigh"
+    ) || fail "$reviewer review did not pass or record REVIEW_MODEL and REVIEW_EFFORT"
+  done
+}
+
+@test "gives the reviewer the make check result of the reviewed head and keeps the log" {
+  local case reviewer exit_code result prompt_calls
+  cd "$BATS_TEST_TMPDIR" || return
+  # Each case: the reviewer | the exit code of make check | the result line in the meta file and the prompt | how many
+  # reviewer calls carry it (codex exec review --base takes no prompt, so only the codex plan review gets it).
+  for case in "codex|0|passed|1" "codex|2|failed (exit 2)|1" "claude|0|passed|2" "claude|2|failed (exit 2)|2"; do
+    IFS='|' read -r reviewer exit_code result prompt_calls <<<"$case"
+    (
+      if [[ "$reviewer" == codex ]]; then
+        review_repo claude-code || exit 1
+      else
+        review_repo codex || exit 1
+      fi
+      MAKE_STUB_EXIT="$exit_code" run "$REVIEW" plan/k7m2x9qa-git-review-tooling "$reviewer"
+      assert_success || exit 1
+      run grep -c -F "make check :: cwd=$REVIEW_WT" "$STUB_LOG"
+      assert_output 1 || exit 1
+      run cat "$OUT-r1-$reviewer-check.log"
+      assert_output "make stub: check output" || exit 1
+      run cat "$OUT-r1-$reviewer-meta.txt"
+      assert_line "check $result" || exit 1
+      run grep -c -F "make check on the reviewed head: $result" "$STUB_LOG"
+      assert_output "$prompt_calls" || exit 1
+      # A failed check also hands the reviewer the end of its log.
+      if [[ "$exit_code" != 0 ]]; then
+        run grep -c -x -F "make stub: check output" "$STUB_LOG"
+        assert_output "$prompt_calls"
+      fi
+    ) || fail "$reviewer review with make check exiting $exit_code"
+  done
+}
+
+@test "closes stdin for every reviewer call" {
+  local reviewer author
+  cd "$BATS_TEST_TMPDIR" || return
+  for reviewer in codex claude; do
+    author=codex
+    [[ "$reviewer" == codex ]] && author=claude-code
+    (
+      review_repo "$author" || exit 1
+      STUB_LOG_STDIN=1 run "$REVIEW" plan/k7m2x9qa-git-review-tooling "$reviewer" <<<"leaked input"
+      assert_success || exit 1
+      run grep -c -x "$reviewer stdin_bytes=0" "$STUB_LOG"
+      assert_output 2 || exit 1
+      refute_stub_called -E "^$reviewer stdin_bytes=[1-9]"
+    ) || fail "$reviewer review passed stdin on to the reviewer"
   done
 }
 
@@ -138,7 +213,7 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
   done
 }
 
-@test "refuses a stale review worktree, a leftover review-base branch, a relative REVIEW_OUT_DIR and an unknown reviewer, and leaves what exists alone" {
+@test "refuses a stale review worktree, a leftover review-base branch, a relative REVIEW_OUT_DIR, an unknown effort and an unknown reviewer, and leaves what exists alone" {
   local case input message
   cd "$BATS_TEST_TMPDIR" || return
   # Each case: what is in the way | the message of the check that refuses it. For the unknown reviewer that is the
@@ -147,6 +222,7 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
   for case in "stale review worktree|a review worktree already exists" \
     "leftover review-base branch|review-base/plan-k7m2x9qa-git-review-tooling-r2 already exists" \
     "relative REVIEW_OUT_DIR|REVIEW_OUT_DIR must be an absolute path" \
+    "unknown effort|REVIEW_EFFORT must be one of" \
     "unknown reviewer|REVIEWER=codex|claude"; do
     IFS='|' read -r input message <<<"$case"
     (
@@ -162,6 +238,10 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
         "relative REVIEW_OUT_DIR")
           review_repo claude-code || exit 1
           REVIEW_OUT_DIR=out run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+          ;;
+        "unknown effort")
+          review_repo claude-code || exit 1
+          REVIEW_EFFORT=extreme run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
           ;;
         "unknown reviewer")
           review_repo || exit 1
