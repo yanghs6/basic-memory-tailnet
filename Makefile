@@ -24,12 +24,14 @@ export REVIEW_BASE REVIEW_ALLOW_SAME_VENDOR REVIEW_MODEL
 
 SHELLCHECK_IMAGE := koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d
 SHFMT_IMAGE := mvdan/shfmt:v3.12.0@sha256:307d265ffd25ce832899ae17c93ed5062fc3375c514bba8f52cbf52792735c4d
+# The image's entrypoint is gitleaks and it trusts every directory (safe.directory '*'), so DOCKER_RUN fits it as is.
+GITLEAKS_IMAGE := zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
 TOOLS_IMAGE := bm-tools:local
 COVERAGE_MIN := 80
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' '*.bats' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git review review-post review-record vm-bootstrap deploy verify probe status logs sb-fonts backup restore access-check tunnel new-doc new-id new-script
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify check-git secret-scan review review-post review-record vm-bootstrap deploy verify probe status logs sb-fonts backup restore access-check tunnel new-doc new-id new-script
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -80,6 +82,10 @@ tunnel: ## ssh mode: forward MCP and the web UI to 127.0.0.1:BM_TUNNEL_MCP_PORT 
 
 check-git: ## Check the git policy for the current branch against origin/main (name, commit trailers, worktree config)
 	scripts/check-git.sh origin/main
+
+# git log reads every ref through the read-only common dir mount, which also resolves a linked worktree's .git file.
+secret-scan: ## Scan every commit of every local ref for secrets with gitleaks (values redacted; run git fetch origin first)
+	$(DOCKER_RUN) $(GITLEAKS_IMAGE) git --redact --verbose --log-opts=--all /repo
 
 new-doc: ## Create a document from its template: TYPE=<type> SLUG=<slug> [ID=<id>] (types and rules: docs/README.md)
 	scripts/create-doc.sh "$(TYPE)" "$(SLUG)" "$(ID)"

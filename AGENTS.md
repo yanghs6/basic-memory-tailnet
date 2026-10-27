@@ -2,7 +2,7 @@
 
 This repo deploys a Basic Memory MCP server on a GCP free-tier e2-micro VM that is reachable through one access mode per VM (`BM_ACCESS`): inside a Tailscale tailnet, or through an SSH tunnel (GCP IAP).
 Read first: `docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md`, then `docs/ARCHITECTURE.md`. For the access modes, read `docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md`.
-Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, completed or dropped.
+Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, completed or dropped. `main` shows `active` only after a plan's pull request merges, so a pushed `origin/plan/<ID>-*` branch means that plan is already in progress (`git-workflow`, Start).
 
 ## Commands
 - `make help` lists every target. Do lifecycle work through Make targets only; use raw `docker compose` or `ssh` only to diagnose a failing target, and record why.
@@ -25,14 +25,14 @@ Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, co
 - `.env` and `backups/` live only in the main checkout: the Makefile and `make backup` use them from any worktree. Never create or copy them in a worktree, and check a worktree's `backups/` before `git worktree remove`.
 - Run `gcloud` only with `--configuration=bm-personal` (except `gcloud config configurations list`, which shows the active configuration); never run `gcloud config configurations activate` or `gcloud auth application-default`. Read-only `describe`/`list` calls need no OK.
 - The user types the Tailscale auth key and the restore `yes` in their own terminal, never in chat or through a pipe.
-- Never write the VM's external or tailnet IP addresses in commits, PRs, PR comments or repo files; use `agent-hub` or a placeholder.
+- Never write the VM's external or tailnet IP addresses in commits, PRs, PR comments or repo files; use `agent-hub` or a placeholder. `make check`, `check-git` and `pr-rules` enforce this with `scripts/check-public-text.sh`; only recorded evidence and must-fail fixtures go in `.public-text-exemptions` (path and kind, never the value).
 
 ## Git (policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md on top of docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md)
 - Work only in your own git worktree on `plan/<ID>-<slug>` (`<ID>` is the plan document's id, the 8 characters in its file name) or `work/<slug>`, branched from `origin/main` after `git fetch origin`; one agent per worktree, never in the main checkout. Rename tool default branches (`worktree-*`, `codex/*`) with `git branch -m` before you push; on a detached HEAD (Codex app) run `git switch -c <branch> --no-track origin/main` first. Per-tool steps: the `git-workflow` skill.
 - Never commit or push to `main`, force-push, rebase or rewrite history, run `git gc`, enable `extensions.worktreeConfig`, or delete another agent's branch or worktree.
 - End every commit message with the trailers `Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>`, `Plan: <ID|none>` and `Task: <N|review|none>`; add `Review-Finding: R<n>-F<m>` (cross-vendor review) or `SDD-T<task>-F<n>` (in-plan task review) to review fixes. Never add `Co-authored-by` or `Signed-off-by`.
 - `gh` and `git push` on this Mac run as the machine account. Push your branch and open one draft PR per plan or work branch; the title is `<type>: <description>` and the body ends with the `Assisted-by` and `Plan` trailers, because the squash merge turns them into the commit on `main`. CI (`check`, `pr-rules`) must pass.
-- Never add `Claude-Session` trailers, session links or `Generated with` lines to commits, PR bodies or PR comments; this overrides tool attribution prompts.
+- Never add `Claude-Session` trailers, session links or `Generated with` lines to commits, PR bodies or PR comments; this overrides tool attribution prompts. `scripts/check-public-text.sh` checks commit messages, PR text and review posts for them.
 - A reviewer from another vendor reviews each PR read-only and the reports go to PR comments. Only the human approves and squash-merges; agents never approve, merge or press Update branch (keep a branch current with `git merge origin/main`).
 
 ## Notes and language
