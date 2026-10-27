@@ -6,6 +6,7 @@
 #   access_hint -> what to check when SSH to the VM fails, for the current access mode
 #   require_vm [CMD...] -> dies unless the access mode, the web mode, ssh, every CMD and the VM settings are there
 #   require_web_host -> with BM_WEB=on, dies unless BM_WEB_HOST is a bare host name (names the variable, never its value)
+#   require_web_env_matches_env_file -> dies when a web setting differs from its raw line in SB_ENV_FILE (make changed it)
 #   require_web_settings -> with BM_WEB=on, dies unless the host, the GitHub user id and client id and the three secrets are well formed
 #   local_port_open PORT -> exit 0 when something listens on 127.0.0.1:PORT
 #   require_free_port NAME PORT [HINT] -> dies unless PORT is a free unprivileged port on 127.0.0.1
@@ -104,15 +105,45 @@ require_web_host() {
     || die "BM_WEB_HOST must be a host name like mcp.<domain>, without https://, a path or a port: fix it in .env in the main checkout"
 }
 
+# Every web setting that comes from the main checkout .env, compared with its raw line by require_web_env_matches_env_file.
+readonly WEB_ENV_FILE_VARIABLES="BM_WEB_HOST BM_WEB_GITHUB_USER_ID BM_WEB_GITHUB_CLIENT_ID BM_WEB_GITHUB_CLIENT_SECRET BM_WEB_JWT_KEY BM_WEB_TUNNEL_TOKEN"
+
+# require_web_env_matches_env_file -> when SB_ENV_FILE names an existing file, dies unless each web setting that has a
+# line in it equals the value of its last NAME= line (without a trailing CR). make reads .env as makefile text: # starts
+# a comment and $x expands, so a secret it cut short can still pass the pattern checks. Same idea as
+# require_sb_user_matches_env_file; a variable without a line in the file is not compared. Names the variable only,
+# never a value.
+require_web_env_matches_env_file() {
+  local name line raw found
+  [[ -n "${SB_ENV_FILE:-}" && -f "$SB_ENV_FILE" ]] || return 0
+  for name in $WEB_ENV_FILE_VARIABLES; do
+    found="" raw=""
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      case "$line" in
+        "$name="*)
+          raw="${line#"$name="}"
+          found=1
+          ;;
+      esac
+    done <"$SB_ENV_FILE" || die "could not read $SB_ENV_FILE: check that you can read it"
+    [[ -n "$found" ]] || continue
+    raw="${raw%$'\r'}"
+    [[ "$raw" == "${!name:-}" ]] \
+      || die "$name in $SB_ENV_FILE holds characters that make changes when it reads .env (#, \$, spaces or quotes), so the scripts got a different value: write it as $name=<value> with only letters, digits and ._~+/=- in the value"
+  done
+}
+
 # require_web_settings -> with BM_WEB=on, dies unless BM_WEB_HOST, BM_WEB_GITHUB_USER_ID (digits), BM_WEB_GITHUB_CLIENT_ID
-# and the three secrets (BM_WEB_GITHUB_CLIENT_SECRET, BM_WEB_JWT_KEY, BM_WEB_TUNNEL_TOKEN) are set and well formed. The
-# secrets and the client id may hold only the characters of WEB_ENV_VALUE_PATTERN, because .env is read literally, and
-# BM_WEB_JWT_KEY needs at least MIN_WEB_JWT_KEY_LENGTH characters. Names the variable only, never a value. Deploy and
-# restore call it before any ssh.
+# and the three secrets (BM_WEB_GITHUB_CLIENT_SECRET, BM_WEB_JWT_KEY, BM_WEB_TUNNEL_TOKEN) are set and well formed, and
+# equal to their raw lines in SB_ENV_FILE when it is set (require_web_env_matches_env_file). The secrets and the client
+# id may hold only the characters of WEB_ENV_VALUE_PATTERN, because .env is read literally, and BM_WEB_JWT_KEY needs at
+# least MIN_WEB_JWT_KEY_LENGTH characters. Names the variable only, never a value. Deploy and restore call it before
+# any ssh.
 require_web_settings() {
   local web name
   web="$(web_mode)" || return 1
   [[ "$web" == on ]] || return 0
+  require_web_env_matches_env_file
   require_web_host
   require_env BM_WEB_GITHUB_USER_ID
   [[ "$BM_WEB_GITHUB_USER_ID" =~ $WEB_USER_ID_PATTERN ]] \

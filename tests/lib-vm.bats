@@ -163,6 +163,67 @@ setup() {
   done
 }
 
+# write_env_file FILE NAME RAW -> a main checkout .env with the SB_USER line the scripts check first and the line NAME=RAW.
+write_env_file() {
+  printf 'BM_PORT=8737\nSB_USER=%s\n%s=%s\n' "$SB_USER" "$2" "$3" >"$1"
+}
+
+# shellcheck disable=SC2030,SC2031,SC2016 # the subshells keep their settings to themselves; '$zq7k' is a literal .env suffix
+@test "require_web_settings stops on a web setting that differs from its raw line in SB_ENV_FILE, naming only the variable, and accepts equal values" {
+  local env_file="$BATS_TEST_TMPDIR/main.env" name suffix passed
+  use_web_env
+  # Each case: the suffix of the raw .env value. make passes on the value cut at # or with $zq7k expanded to nothing
+  # (so 'q7k' is left); a space stays in the value.
+  for name in BM_WEB_HOST BM_WEB_GITHUB_USER_ID BM_WEB_GITHUB_CLIENT_ID BM_WEB_GITHUB_CLIENT_SECRET BM_WEB_JWT_KEY BM_WEB_TUNNEL_TOKEN; do
+    for suffix in '#zq7k' '$zq7k' ' zq7k'; do
+      (
+        write_env_file "$env_file" "$name" "${!name}$suffix" || exit 1
+        case "$suffix" in
+          '#zq7k') passed="${!name}" ;;
+          '$zq7k') passed="${!name}q7k" ;;
+          *) passed="${!name}$suffix" ;;
+        esac
+        export "$name=$passed" SB_ENV_FILE="$env_file"
+        run require_web_settings
+        assert_failure && assert_output --partial "$name" && refute_output --partial "zq7k" || exit 1
+        if [[ "$suffix" != ' zq7k' ]]; then
+          assert_output --partial "$name in $env_file" || exit 1
+        fi
+      ) || fail "require_web_settings accepted $name made from the .env line $name=<value>$suffix"
+    done
+  done
+  # Equal values pass, the last line wins, a CRLF is not part of the value, and a variable with no line is not compared.
+  for name in BM_WEB_HOST BM_WEB_GITHUB_USER_ID BM_WEB_GITHUB_CLIENT_ID BM_WEB_GITHUB_CLIENT_SECRET BM_WEB_JWT_KEY BM_WEB_TUNNEL_TOKEN; do
+    printf '%s=old-value\n%s=%s\r\n' "$name" "$name" "${!name}" >>"$env_file.all"
+  done
+  SB_ENV_FILE="$env_file.all" run require_web_settings
+  assert_success
+  assert_output ""
+  : >"$env_file.none"
+  SB_ENV_FILE="$env_file.none" run require_web_settings
+  assert_success
+}
+
+# shellcheck disable=SC2030,SC2031 # the subshells keep their settings to themselves
+@test "deploy and restore stop before any ssh or docker call on a web secret that differs from its raw .env line, naming only the variable" {
+  local script arg env_file="$BATS_TEST_TMPDIR/main.env" archive="$BATS_TEST_TMPDIR/bm.tgz"
+  touch "$archive" "$archive.sha256" "$archive.manifest"
+  use_web_env
+  for script in deploy-stack.sh restore-notes.sh; do
+    arg=""
+    if [[ "$script" == restore-notes.sh ]]; then
+      arg="$archive"
+    fi
+    (
+      : >"$STUB_LOG" || exit 1
+      write_env_file "$env_file" BM_WEB_GITHUB_CLIENT_SECRET "${BM_WEB_GITHUB_CLIENT_SECRET}#zq7k" || exit 1
+      SB_ENV_FILE="$env_file" run "$REPO_DIR/scripts/$script" ${arg:+"$arg"}
+      assert_failure && assert_output --partial "BM_WEB_GITHUB_CLIENT_SECRET" && refute_output --partial "zq7k" \
+        && refute_stub_called -E '^(ssh|docker) ' || exit 1
+    ) || fail "$script went on with a web secret that differs from its .env line"
+  done
+}
+
 # shellcheck disable=SC2030,SC2031 # the subshells keep their BM_WEB to themselves
 @test "vm_env with BM_WEB off or empty prints exactly the five lines of a VM without the web connector" {
   local web
