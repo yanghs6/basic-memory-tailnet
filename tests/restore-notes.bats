@@ -412,6 +412,50 @@ add_model_cache() {
   assert_failure
 }
 
+@test "restore interrupted with Ctrl-C before the restored data runs rolls back like a failed step" {
+  make_archive "bad"
+  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
+  # The Ctrl-C hits the swap, after the current data moved aside.
+  export SSH_STUB_INTERRUPT_MATCH="sudo -n mv $BM_REMOTE_DATA_ROOT.restore-"
+  restore_with_answer yes
+  assert_failure 130
+  assert_stub_called -F "$SSH_STUB_INTERRUPT_MATCH"
+  assert_output --partial "restore failed; rolling back"
+  assert_output --partial "rolled back: the previous data is live again"
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
+  run cat "$BM_REMOTE_APP_DIR/compose.yaml"
+  assert_output "previous compose"
+}
+
+@test "restore interrupted while it removes its backups after a healthy start keeps the restored data live without a rollback" {
+  local case web match gw="$BM_REMOTE_APP_DIR/gateway"
+  make_archive "from backup"
+  # Each case: BM_WEB | the cleanup command that gets the Ctrl-C (the compose.yaml and .env copies, or the gateway backup).
+  for case in "off|rm -f $BM_REMOTE_APP_DIR/compose.yaml.prev-" "on|rm -f $BM_REMOTE_APP_DIR/compose.yaml.prev-" "on|rm -rf $BM_REMOTE_APP_DIR/gateway.backup-"; do
+    IFS='|' read -r web match <<<"$case"
+    (
+      : >"$STUB_LOG" || exit 1
+      rm -rf "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT".* "$BM_REMOTE_APP_DIR" || exit 1
+      mkdir -p "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config" "$gw" || exit 1
+      echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md" || exit 1
+      echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml" || exit 1
+      echo "previous code" >"$gw/gateway.py" || exit 1
+      if [[ "$web" == on ]]; then
+        use_web_env
+      fi
+      export SSH_STUB_INTERRUPT_MATCH="$match"
+      restore_with_answer yes
+      assert_failure && assert_stub_called -F "$match" || exit 1
+      refute_output --partial "rolling back" && refute_stub_called -F -- '--force-recreate' || exit 1
+      run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
+      assert_output "from backup" || exit 1
+      assert_same_file "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
+    ) || fail "restore interrupted at '$match' with BM_WEB=$web"
+  done
+}
+
 @test "restore with BM_WEB=off rolls back without touching a gateway directory" {
   local gw="$BM_REMOTE_APP_DIR/gateway"
   make_archive "bad"

@@ -4,7 +4,8 @@
 # The archive is extracted into a staging dir and checked against its manifest before anything live is
 # touched. Current data is moved aside, never deleted. This repo's SilverBullet space files are written into the
 # restored notes folder while the containers are stopped, so Basic Memory starts with the current notes .gitignore.
-# Any failure after the stop puts the previous data, compose.yaml and .env back and restarts the container.
+# Any failure or Ctrl-C after the stop, until the restored data is healthy, puts the previous data, compose.yaml and .env
+# back and restarts the container.
 # With BM_WEB=on only Basic Memory and SilverBullet decide success (and the rollback); the web connector starts after
 # them and only warns when it is not healthy.
 # Usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz   (asks the user to type yes)
@@ -30,6 +31,8 @@ GATEWAY_BACKUP_PATH="$BM_REMOTE_APP_DIR/gateway.backup-$STAMP"
 STOP_ATTEMPTED=""
 # Set when the VM had data before this restore; without it (a recreated VM) there is nothing to roll back to.
 HAD_PREVIOUS_DATA=""
+# The status a shell reports for Ctrl-C (128 + SIGINT).
+readonly INTERRUPTED_EXIT_CODE=130
 # The services the restored notes need.
 readonly NOTE_SERVICES="basic-memory silverbullet"
 # The services whose health decides the restore and its rollback: empty (every service, as before the web connector)
@@ -158,6 +161,9 @@ main() {
   fi
 
   trap rollback EXIT
+  # Ctrl-C exits through the rollback with a failure status: without this trap bash 5 runs the EXIT trap with $? = 0
+  # after the interrupted ssh dies, and the rollback takes that for success (bash 3.2 passes 130).
+  trap 'exit $INTERRUPTED_EXIT_CODE' INT
   STOP_ATTEMPTED=1
   step "stop container"
   # A recreated VM has no compose.yaml yet, so there is nothing to stop.
@@ -194,18 +200,15 @@ main() {
   step "start container"
   remote_compose "up -d --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS${WAIT_SERVICES:+ $WAIT_SERVICES}" \
     || die "container did not become healthy with the restored data"
+  # The notes are restored: nothing after this rolls them back, neither an interrupted removal of the backups below
+  # (it only leaves them on the VM) nor an interrupted wait for the web connector.
+  trap - EXIT
   remote "rm -f $COMPOSE_PREV $ENV_PREV" || log "WARNING: could not remove $COMPOSE_PREV and $ENV_PREV"
   # The gateway backup only serves this run's rollback; the restored data is kept in $PREV, the gateway files are in the repo.
-  # Forget the backup before deleting it, so a signal during the rm cannot make the rollback read a half-deleted backup and
-  # remove the live gateway files it no longer finds there.
   if [[ -n "$GATEWAY_BACKUP_DIR" ]]; then
-    local gateway_backup="$GATEWAY_BACKUP_DIR"
-    GATEWAY_BACKUP_DIR=""
-    remote "rm -rf $gateway_backup" || log "WARNING: could not remove $gateway_backup"
+    remote "rm -rf $GATEWAY_BACKUP_DIR" || log "WARNING: could not remove $GATEWAY_BACKUP_DIR"
   fi
   log "restored $(basename "$archive"); previous data kept at $PREV"
-  # The notes are restored: nothing after this rolls them back, not even an interrupted wait for the web connector.
-  trap - EXIT
   start_web_services
 }
 

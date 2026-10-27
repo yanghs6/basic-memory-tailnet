@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Test stub for ssh: logs the call, then runs the remote command locally so other stubs on PATH
 # act as the VM. SSH_STUB_FAIL_MATCH=<substring> makes matching remote commands fail with 255.
+# SSH_STUB_INTERRUPT_MATCH=<substring> interrupts matching remote commands like Ctrl-C before they run: the caller and
+# this ssh both get SIGINT.
 # A tunnel (-N) runs no remote command: SSH_STUB_TUNNEL_EXIT=<n> ends it at once with n (forwarding failed);
 # otherwise it records its pid in $STUB_LOG.tunnel-pids and stays up like an open tunnel until it is killed (with its output closed).
 set -euo pipefail
@@ -19,5 +21,8 @@ remote_cmd="${*: -1}"
 if [[ -n "${SSH_STUB_FAIL_MATCH:-}" && "$remote_cmd" == *"$SSH_STUB_FAIL_MATCH"* ]]; then
   echo "ssh stub: simulated failure for: $remote_cmd" >&2
   exit 255
+fi
+if [[ -n "${SSH_STUB_INTERRUPT_MATCH:-}" && "$remote_cmd" == *"$SSH_STUB_INTERRUPT_MATCH"* ]]; then
+  kill -INT "$PPID" "$$"
 fi
 exec bash -c "$remote_cmd"
