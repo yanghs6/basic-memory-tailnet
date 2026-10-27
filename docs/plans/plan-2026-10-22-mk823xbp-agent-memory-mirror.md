@@ -784,11 +784,11 @@ git commit -m "feat: print a Basic Memory index of other Macs' memory at session
 - Consumes: Task 3·4의 Make 타깃, `common.sh`의 `main_checkout_root`·`utc_stamp`.
 - Produces: `make memory-hooks [REMOVE=1]` → `scripts/install-memory-hooks.sh [--remove]`.
 
-- [ ] **Step 1: 동사 추가와 `make new-script NAME=install-memory-hooks`**
+- [x] **Step 1: 동사 추가와 `make new-script NAME=install-memory-hooks`**
 
 동사표에 행을 더한다: `| install | Adds this repo's entries to a user's tool settings; running it again gives the same result | `install-memory-hooks` |`.
 
-- [ ] **Step 2: 실패하는 테스트 작성 (`tests/install-memory-hooks.bats`)**
+- [x] **Step 2: 실패하는 테스트 작성 (`tests/install-memory-hooks.bats`)**
 
 ```bash
 setup() {
@@ -851,12 +851,12 @@ commands() { jq -r --arg e "$2" '.hooks[$e][]?.hooks[]?.command' "$1"; }
 }
 ```
 
-- [ ] **Step 3: 실패 확인**
+- [x] **Step 3: 실패 확인**
 
 Run: `make test`
 Expected: `install-memory-hooks.bats`의 세 테스트가 `not implemented`로 실패한다.
 
-- [ ] **Step 4: 구현 (`scripts/install-memory-hooks.sh`)**
+- [x] **Step 4: 구현 (`scripts/install-memory-hooks.sh`)**
 
 상수: `HOOK_TIMEOUT_SECONDS=10`, `SYNC_EVENTS="SessionStart Stop"`, `INDEX_EVENT=SessionStart`, `OWN_COMMAND_PATTERN`(Global Constraints의 정규식).
 
@@ -874,7 +874,7 @@ Expected: `install-memory-hooks.bats`의 세 테스트가 `not implemented`로 �
 `memory-hooks: ## Add the memory-sync and memory-index hooks to Claude Code and Codex (REMOVE=1 removes them; ask the user first)`
 레시피는 `scripts/install-memory-hooks.sh $(if $(REMOVE),--remove)`이다.
 
-- [ ] **Step 5: 문서 (한국어)**
+- [x] **Step 5: 문서 (한국어)**
 
 - `docs/ARCHITECTURE.md`
   - 구성 요소 표의 `Makefile + scripts/` 행 라이브러리 목록에 `mcp`, `agent-memory`를 더한다.
@@ -903,12 +903,12 @@ Expected: `install-memory-hooks.bats`의 세 테스트가 `not implemented`로 �
   No OK needed: `make probe status logs verify backup access-check tunnel memory-sync memory-index` (`verify` writes and deletes a test note; `backup` stops the container briefly; `memory-sync` writes and deletes only `agent-memory/` notes). Ask the user before `make memory-hooks`: it edits their Claude Code and Codex hook settings.
   ```
 
-- [ ] **Step 6: 통과 확인**
+- [x] **Step 6: 통과 확인**
 
 Run: `make check`
 Expected: exit 0, 커버리지 80% 이상, `repo-docs.bats`의 링크 검사와 `repo-make.bats`가 통과한다. `wc -c AGENTS.md`가 24,000 이하다.
 
-- [ ] **Step 7: 커밋**
+- [x] **Step 7: 커밋**
 
 ```bash
 git add scripts/install-memory-hooks.sh tests/install-memory-hooks.bats .agents/skills/script-authoring/SKILL.md Makefile docs/ARCHITECTURE.md docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md README.md AGENTS.md
@@ -986,3 +986,4 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 | 2026-10-27 | Verified | Task 2: `scripts/lib/agent-memory.sh`와 `tests/lib-agent-memory.bats`를 만들고, `DEFAULT_TUNNEL_MCP_PORT`·`DEFAULT_TUNNEL_WEB_PORT`를 `open-tunnel.sh`에서 `common.sh`로 옮겼다(`verify-vm.sh` 주석과 `script-authoring`의 Libraries 목록도 고침). RED: 구현 전 `make test`는 exit 2, `lib-agent-memory.bats`의 네 테스트(47~50)가 함수가 없어 실패했고, 빈칸 검사 테스트(148)도 새 파일의 템플릿 빈칸 때문에 실패했다. GREEN: 구현 뒤 `make check` exit 0, 215개 테스트 모두 ok, not ok 0, total line coverage 89.44%(`scripts/lib/agent-memory.sh` 96.77%). |
 | 2026-10-27 | Verified | Task 3: `scripts/sync-agent-memory.sh`와 `tests/sync-agent-memory.bats`를 만들고, `tests/stubs/curl`의 MCP 모드가 요청의 id로 답하게 했으며, `make memory-sync`와 `.env.example`의 세 변수를 더했다. RED: 구현 전 `make test`는 exit 2, 227개 중 not ok 11개였다. `sync-agent-memory.bats`의 열 테스트(187~193, 195~197)가 템플릿의 `not implemented`로 실패했고, 빈칸 검사 테스트(149)가 새 스크립트의 템플릿 빈칸 때문에 실패했다. `BM_MEMORY_DEVICE` 거부 테스트(194)는 요청 전에 끝나는 템플릿에서도 통과했다. GREEN: `make check` exit 0, 227개 모두 ok, not ok 0, total line coverage 89.04%(`scripts/sync-agent-memory.sh` 85.58%). 바뀐 스텁으로 `verify-mcp.bats`(204~208)도 통과했고, `tests/verify-mcp.bats`와 `tests/fixtures/verify-mcp`는 `origin/main`과 차이가 없다. 계획의 테스트 코드에서 shellcheck 경고 두 개(SC2088 `~` 문자열, SC2034 반복 변수)가 나와 동작을 바꾸지 않는 `# shellcheck disable` 주석 두 줄을 더했다. 판단: `BM_MEMORY_EXCLUDE`는 `<키>--<폴더 이름>` 키도 바탕 키로 뺀다(Global Constraints 색인 규칙과 같게). macOS bash 3.2에서 가짜 HOME과 curl 스텁으로 한 번 돌려(세션 scratch 폴더, 커밋하지 않음) 키 충돌의 두 형태, 비밀값 건너뛰기, 재실행 무요청, hook 모드의 삭제를 확인했다. |
 | 2026-10-27 | Verified | Task 4: `scripts/show-memory-index.sh`, `tests/show-memory-index.bats`, `tests/fixtures/show-memory-index/{list,empty}.body`와 `make memory-index`를 만들었다. RED: 구현 전 `make test`에서 `show-memory-index.bats`의 첫 테스트가 `not implemented`로 실패했고, 템플릿 빈칸 검사(`repo-scripts.bats`)도 실패했다. GREEN: `make check` exit 0, 237 ok / 0 not ok, 전체 줄 커버리지 89.21%(`show-memory-index.sh` 95.00%). 계획과 달라진 점 셋(통제자가 승인): (1) 계획 테스트의 `${lines[1]:0:120}`은 기대 문자열보다 짧아 어떤 출력으로도 통과할 수 없어 접두 비교로 바꿨다. (2) 계획 fixture의 300자 제목으로는 색인이 2,500자를 넘지 않아 "뺀 줄 수" 줄이 나오지 않으므로 긴 노트 둘의 제목을 800자로 했다. (3) 스펙 §3.4대로 `<`·`>` 두 글자만 지우므로 `</system-reminder>`는 `/system-reminder`로 남고, 테스트 기대값을 그렇게 고쳤다. |
+| 2026-10-27 | Verified | Task 5: `scripts/install-memory-hooks.sh`와 `tests/install-memory-hooks.bats`를 만들고, `install` 동사(스킬 `script-authoring`)와 `make memory-hooks [REMOVE=1]`을 더했으며, ARCHITECTURE·운영 런북("기억 미러", 검색어 로그 `Verified`, 복원·재구축 뒤 `make memory-sync FULL=1`)·README·AGENTS.md를 고쳤다. RED: 구현 전 `make test`에서 not ok 3개였다. 새 hook 두 테스트(추가·--remove)는 `not implemented`로 실패했고, `scripts and tests hold no unfilled template blank`도 실패했다. 세 번째(잘못된 JSON) 테스트는 스텁이 항상 die해서 구현 전에도 통과했다. GREEN: 구현 뒤 `make test` 247 ok / 0 not ok, `make check` exit 0, 전체 줄 커버리지 89.21%(`install-memory-hooks.sh` 95.83%). `wc -c AGENTS.md` 11471(24,000 이하). `AGENTS.md:10`의 새 문구는 사용자가 2026-10-27에 승인했다. |

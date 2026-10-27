@@ -49,6 +49,7 @@ This table is the canonical verb list: `make new-script` and the repo checks rea
 | check | Checks rules or the environment and only reports; changes nothing | `check-git`, `check-pr`, `check-access` |
 | open | Holds a connection open in the foreground and exits with its exit code | `open-tunnel` |
 | sync | Brings files to the wanted state; running it again gives the same result | `sync-sb-space` |
+| install | Adds this repo's entries to a user's tool settings; running it again gives the same result | `install-memory-hooks` |
 | upload | Uploads built files to the VM | `upload-sb-fonts` |
 | review | Runs a review | `review-branch` |
 | post | Posts to a pull request | `post-review`, `post-review-record` |

@@ -21,9 +21,9 @@ reviewed: 2026-10-27
 | 배포 (compose 변경 후) | `make deploy verify` |
 | 웹 UI 글꼴 (새 VM이나 글꼴을 바꿀 때) | `make sb-fonts` |
 | 백업 (주 1회 + 업그레이드 전) | `make backup` |
-| 복원 | `make restore BACKUP=<백업 파일의 절대 경로>` (사용자가 자기 터미널에서 `yes` 입력. 저장소의 compose.yaml도 함께 적용하고, 실패하면 이전 상태로 자동 롤백, 끝나면 verify 실행) |
+| 복원 | `make restore BACKUP=<백업 파일의 절대 경로>` (사용자가 자기 터미널에서 `yes` 입력. 저장소의 compose.yaml도 함께 적용하고, 실패하면 이전 상태로 자동 롤백, 끝나면 verify 실행. 끝난 뒤 각 Mac에서 `make memory-sync FULL=1`을 한 번 실행) |
 
-에이전트는 `vm-bootstrap`, `deploy`, `restore`, `sb-fonts` 전에 사용자의 OK를 받습니다. `probe`, `status`, `logs`, `verify`, `backup`, `access-check`, `tunnel`은 OK 없이 실행할 수 있습니다(`verify`는 테스트 노트를 쓰고 지우며 SilverBullet에 로그인했다가 로그아웃하고, `backup`은 컨테이너를 잠깐 멈춥니다).
+에이전트는 `vm-bootstrap`, `deploy`, `restore`, `sb-fonts` 전에 사용자의 OK를 받습니다. `probe`, `status`, `logs`, `verify`, `backup`, `access-check`, `tunnel`, `memory-sync`, `memory-index`는 OK 없이 실행할 수 있습니다(`verify`는 테스트 노트를 쓰고 지우며 SilverBullet에 로그인했다가 로그아웃하고, `backup`은 컨테이너를 잠깐 멈추고, `memory-sync`는 `agent-memory/` 노트만 쓰고 지웁니다). `memory-hooks`는 사용자의 Claude Code·Codex hook 설정을 고치므로 OK를 받고 실행합니다.
 
 **배포·복원 전 이미지 점검:** `make status`의 컨테이너 이미지와 `grep 'image:' compose.yaml`이 같은지 확인합니다. 다르면 멈추고 사용자에게 묻습니다. 업그레이드 리뷰 중에는 VM이 main이 고정하지 않은 이미지로 돌 수 있고, 이때 옛 이미지를 새 버전이 손댄 데이터 위에 배포하면 안 되기 때문입니다([bm-upgrade 스킬](../../.agents/skills/bm-upgrade/SKILL.md)). 새로 만든 VM처럼 아직 아무것도 배포하지 않았다면 `make status`가 `could not query containers`로 끝납니다. 정상이므로 이미지 비교는 건너뜁니다. 이때 에이전트는 `git diff main -- compose.yaml`이 아무것도 출력하지 않는지만 확인하고, 사람은 main 체크아웃에서 실행하는지 확인합니다.
 
@@ -74,6 +74,25 @@ codex mcp add basic-memory --url <URL>
 - 확인: `claude mcp get basic-memory`가 `Connected`, Codex 세션의 `/mcp`에 `basic-memory`가 보입니다. VM에 닿지 않을 때 시작한 세션에는 도구가 없으므로 `/mcp`로 다시 연결하거나 새로 시작합니다.
 - **Assumption ([VM 런북](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 8단계의 Windows 설정):** Windows: PowerShell에서 `make tunnel`이 출력하는 `ssh -N ...` 명령을 그대로 실행하고 같은 URL을 등록합니다.
 
+### 기억 미러 (memory mirror)
+
+Claude Code·Codex의 기억 파일을 Basic Memory의 `agent-memory/`로 미러하고, 새 세션에 다른 Mac·에이전트의 기억 색인을 넣습니다([스펙](../specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md)). 각 Mac에서 한 번 설정합니다.
+
+1. 메인 체크아웃 `.env`에 `BM_MEMORY_DEVICE`(`^[a-z0-9-]+$`, 예: `mac-work`)를 넣습니다(사용자). 노트로 보내지 않을 프로젝트가 있으면 `BM_MEMORY_EXCLUDE`(쉼표로 구분한 프로젝트 키)도 넣습니다.
+2. `make tunnel`을 띄웁니다(`ssh` 모드).
+3. `make memory-sync`로 처음 올립니다. 다시 실행해 아무것도 보내지 않는지 봅니다.
+4. 사용자 OK를 받고 `make memory-hooks`를 실행합니다. SessionStart·Stop에 동기화를, SessionStart에 색인을 더합니다.
+5. Codex에서 `/hooks`로 새 hook을 신뢰합니다.
+
+- 확인: 새 세션을 열면 컨텍스트에 `Basic Memory index:`가 들어옵니다. 다른 Mac이나 다른 에이전트의 기억이 아직 없으면 아무것도 들어오지 않습니다. 지난 결정을 물으면 에이전트가 `read_note`나 `search_notes`를 부릅니다.
+- 에이전트 조회 규칙과 "새 기억은 영어로"는 사용자 전역 지침(`~/.agents/AGENTS.md`)에 있습니다(스펙 §3.8).
+- 로그: `~/.local/state/bm-agent-memory/sync.log`
+- 해제: `make memory-hooks REMOVE=1`
+- Codex는 hook을 파일 안의 위치와 명령으로 신뢰합니다. 설치나 해제 뒤에는 Codex `/hooks`를 다시 열어, 위치가 바뀐 다른 hook이 신뢰를 잃지 않았는지 봅니다.
+- 제외: `BM_MEMORY_EXCLUDE`에 키를 적으면 다음 동기화가 그 노트를 지웁니다. Codex 기억은 모두 `_global`이라 프로젝트 키로는 빠지지 않습니다. Codex 기억까지 빼려면 `_global`을 적어야 하고, 그러면 모든 Codex 기억과 홈 폴더 Claude 기억이 빠집니다(스펙 §4.2).
+- 복원과 재구축 뒤: `make restore`나 VM 재구축 뒤에는 각 Mac에서 `make memory-sync FULL=1`을 한 번 실행합니다. 로컬 상태 파일이 VM의 옛 노트를 알아채지 못하기 때문입니다(스펙 §3.3).
+- **Verified (2026-10-26):** 검색어가 로그에 남는지 확인했습니다. 시험 검색 뒤 `make logs | grep -c 'plan24 marker'`가 0이어서 컨테이너 로그에는 검색어가 보이지 않았습니다. VM의 Basic Memory 앱 로그 파일은 읽는 Make 타깃이 없어 읽지 않았습니다. Basic Memory 0.23.2 소스에서는 검색어를 DEBUG 수준에서만 기록하고 VM은 INFO로 도므로, 남지 않는 것으로 봅니다.
+
 ## 접속 방식 바꾸기 (Access mode change)
 
 `tailscale` → `ssh` 순서입니다. 2·5단계는 VM·클라우드를 바꾸므로 사용자 OK 후 진행합니다.
@@ -113,7 +132,8 @@ VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 �
 3. [rbk-2026-10-12-ha5w72pm-bootstrap.md](rbk-2026-10-12-ha5w72pm-bootstrap.md) 1단계(옛 `agent-hub` 기기 삭제, 호스트 키 정리)와 2~4단계(부트스트랩, Tailscale SSH 확인, `default-allow-ssh` 삭제)를 합니다.
 4. 배포 전에 `make status`의 이미지와 `compose.yaml`의 `image:`를 비교합니다(위의 이미지 점검). 아직 아무것도 배포하지 않은 VM에서는 `make status`가 `could not query containers`로 끝나는 것이 정상이며 비교는 건너뜁니다(에이전트는 `git diff main -- compose.yaml`이 비어 있는지만 확인). 그다음 `make deploy`, `make restore BACKUP=<절대 경로>`를 합니다.
 5. Exposure audit을 다시 합니다(방화벽을 새로 만들었으므로).
-6. Incident log와 점검 기록에 행을 추가합니다.
+6. 각 Mac에서 `make memory-sync FULL=1`을 한 번 실행합니다(위의 "기억 미러").
+7. Incident log와 점검 기록에 행을 추가합니다.
 
 ## Exposure audit
 

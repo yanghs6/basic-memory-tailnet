@@ -63,7 +63,7 @@ VM이나 클라우드를 바꾸는 명령의 승인 규칙과 `.env`·`backups/`
 
 문서의 종류와 위치, 새 문서를 만드는 법(`make new-doc`)은 [문서 지도](docs/README.md)에 있습니다.
 
-Claude Code·Codex 연결은 [운영 런북](docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 "에이전트 연결"에 있습니다.
+Claude Code·Codex 연결은 [운영 런북](docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 "에이전트 연결"에 있습니다. 두 에이전트의 기억을 Basic Memory로 미러하는 hook 설치(`make memory-hooks`)도 같은 절의 "기억 미러"에 있습니다.
 
 ## 범위 밖 (다음 목표)
 

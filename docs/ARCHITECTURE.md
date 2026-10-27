@@ -50,11 +50,12 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 
 | 구성 요소 | 위치 | 역할 |
 |---|---|---|
-| `Makefile` + `scripts/` | Mac | VM 수명주기의 유일한 제어 지점. SSH로 VM을 다룸. gcloud는 쓰지 않음. 공용 함수는 `scripts/lib/`(common, vm, sb, git, docs, layout)에 있고, 파일마다 첫머리에 함수 색인이 있음 |
+| `Makefile` + `scripts/` | Mac | VM 수명주기의 유일한 제어 지점. SSH로 VM을 다룸. gcloud는 쓰지 않음. 공용 함수는 `scripts/lib/`(common, vm, sb, git, docs, layout, mcp, agent-memory)에 있고, 파일마다 첫머리에 함수 색인이 있음 |
 | `scripts/remote/provision-vm.sh` | VM (root) | 스왑 파일 1GB, Docker·Tailscale 설치, 데이터 디렉터리, Serve 설정 |
 | `compose.yaml` | Mac(로컬 검증)·VM | Basic Memory와 SilverBullet(웹 UI), `BM_WEB=on`일 때만 뜨는 `gateway`(프로필 `web`)·`cloudflared`(프로필 `tunnel`) 컨테이너 정의 (같은 파일) |
 | `silverbullet/` + `scripts/sync-sb-space.sh`·`upload-sb-fonts.sh`·`verify-sb.sh` | Mac → 노트 폴더 | SilverBullet 공간 파일(노트 `.gitignore`, 관리 페이지 `Library/agent-hub/agent-hub.md`, 대시보드 `index.md`)과 글꼴을 쓰고, 로그인·셸 꺼짐을 검사. [web-ui-silverbullet ADR](decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md) |
 | `scripts/check-local-stack.sh` | Mac | `make local-up`·`local-down`이 compose를 부르기 전에 실행. compose project(`compose.yaml`의 `name:`)의 컨테이너가 다른 worktree에서 시작됐으면(라벨 `com.docker.compose.project.working_dir`) 멈춤. 그 디렉터리가 이미 없으면 경고만 남김. `docker ps`만 부름 |
+| `scripts/sync-agent-memory.sh`·`show-memory-index.sh`·`install-memory-hooks.sh` | Mac | Claude Code·Codex 기억 파일을 `agent-memory/`로 미러하고, 세션 시작 때 다른 Mac·에이전트 기억의 색인을 넣는 hook. [스펙](specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md) |
 | `make access-check` | Mac | 지금 네트워크에서 Tailscale 조정 서버·터널 엔드포인트·SSH 별칭이 되는지 보고하고 모드를 추천 (`scripts/check-access.sh`) |
 | `gateway/` + `gateway` 서비스 | VM·Mac(로컬 검증) | `BM_WEB=on`일 때만 도는 OAuth 게이트웨이(FastMCP). GitHub 로그인 한 계정(숫자 id)만 통과시키고 허용한 도구 18개만 Basic Memory `/mcp`로 넘김. 감사 로그는 표준 출력, 저장소는 `/srv/basic-memory/gateway/`. [web-connector ADR](decisions/adr-2026-10-22-fcvznmdc-web-connector.md), [런북](runbooks/rbk-2026-10-27-x9h4zzdh-web-connector.md) |
 | `cloudflared` 서비스 | VM | `BM_WEB=on`일 때만. Cloudflare로 아웃바운드 터널을 열고 `gateway`에만 닿음 |
@@ -76,6 +77,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 | SQLite 인덱스·설정·임베딩 모델 캐시 | `.local-data/config/` | `/srv/basic-memory/config/` |
 | `compose.yaml` | 명령을 실행한 체크아웃 루트(`make deploy`가 그 파일을 올림) | `/opt/basic-memory/` |
 | `.env` | main 체크아웃 루트 | `/opt/basic-memory/` (VM용 `.env`는 `make deploy`가 생성) |
+| 상태 파일 | `~/.local/state/bm-agent-memory/` | 해당 없음 |
 | 스왑 | 해당 없음 | `/swapfile` (1GB, `/etc/fstab`에 등록) |
 | 컨테이너 로그 (`make logs`) | Docker Desktop 안 | `/var/lib/docker/containers/<id>/<id>-json.log`. 두 경우 모두 `compose.yaml`의 `x-logging`이 컨테이너당 10MB × 3개(최대 30MB)로 제한 |
 | Basic Memory 앱 로그 | `.local-data/config/basic-memory.log` | `/srv/basic-memory/config/basic-memory.log`. Basic Memory가 10MB마다 교체하고 5개를 보관 |
@@ -95,6 +97,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 - 자동 검증 범위: `tests/repo-config.bats`(설정 파일)와 `make verify`/`make probe`(8737·3000 바인딩, Serve 포트별 대상과 Funnel, SilverBullet 로그인·셸 꺼짐, 공인 IP의 22·80·443·8443·8737·3000). `BM_WEB=on`이면 게이트웨이 포트 8738의 `127.0.0.1` 바인딩과 공인 IP의 8738 차단, 공개 URL `https://<BM_WEB_HOST>`의 OAuth 검사(공개 IPv4로만 풀림, 토큰 없는 `401`과 `resource_metadata`, 보호 리소스·인가 서버 메타데이터, 외부 redirect URI 등록 거절)도 봅니다. `ssh` 모드의 `verify`는 Serve 검사 대신 VM의 Tailscale 꺼짐과 sshd 키 전용을 임시 터널로 검사합니다. 방화벽 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit으로 수동 점검합니다.
 - SilverBullet은 로그인(`SB_USER`)이 있어야 열리고, 셸 명령은 꺼져 있으며(`SB_SHELL_BACKEND=off`), Basic Memory와 다른 Docker 네트워크에 있습니다. 노트 폴더만 마운트해서 Basic Memory DB와 설정을 보지 못합니다.
 - 웹 커넥터(`BM_WEB=on`)는 신뢰 경계를 하나 더합니다. 공개되는 것은 Cloudflare 호스트명 하나이고, `cloudflared`는 `web` 네트워크에만 있어 `gateway`에만 닿습니다. `gateway`가 토큰, GitHub 사용자 id, 도구 허용 목록을 강제하고 클라이언트의 `Authorization`을 Basic Memory로 넘기지 않습니다. 차단은 세 겹입니다: `BM_WEB=off` 배포(또는 `cloudflared` 정지), `BM_WEB_JWT_KEY` 교체, claude.ai 커넥터와 GitHub OAuth App 삭제([런북](runbooks/rbk-2026-10-27-x9h4zzdh-web-connector.md)). 노트 내용은 Cloudflare edge에서 평문으로 지나갑니다.
+- 회사 프로젝트의 기억도 VM에 저장됩니다. 색인과 에이전트가 읽는 노트는 지시가 아니라 참고 자료로 다룹니다([스펙](specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md) §4).
 - 비밀값은 다섯 가지입니다. Tailscale 인증 키는 저장소와 디스크에 남지 않습니다. 나머지(SilverBullet 로그인 `SB_USER`, 웹 커넥터의 `BM_WEB_GITHUB_CLIENT_SECRET`·`BM_WEB_JWT_KEY`·`BM_WEB_TUNNEL_TOKEN`)는 main 체크아웃 `.env`(ignore 대상)와 VM `/opt/basic-memory/.env`(권한 600)에만 있고, 스크립트는 ssh·curl 표준입력으로만 넘깁니다.
 
 ## 자원과 비용
@@ -109,6 +112,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 - **배포:** `make deploy` → compose와 VM용 `.env`(권한 600, `SB_USER` 포함) 전송 → `docker compose pull` → 공간 파일 쓰기(`sync-sb-space.sh`. 노트 `.gitignore`가 바뀌었으면 `.gitignore`만 쓰고 Basic Memory만 다시 만든 뒤 관리 페이지·`index.md` 쓰기) → `up -d --wait`. `BM_WEB=on`이면 `gateway/` 파일도 올리고 `COMPOSE_PROFILES=web,tunnel`로 `gateway`·`cloudflared`를 띄우며, `off`면 남은 두 컨테이너를 지움
 - **검증:** `make verify` → tailnet URL(`ssh` 모드는 임시 터널 `127.0.0.1:28737`·`23000`)로 MCP 왕복(initialize, tools/list, 쓰기·읽기·삭제) → 8443의 SilverBullet 로그인·쿠키·셸 꺼짐 → 포트 바인딩(8737, 3000) → Serve 포트별 대상, tailnet 전용 → 공인 IP 포트 차단. `make probe`는 노트를 쓰지 않고 SilverBullet에 로그인하지 않습니다. `BM_WEB=on`이면 공개 URL의 OAuth 검사(토큰 없는 401, 메타데이터, 외부 redirect URI 등록 거절, 공개 IPv4 해석)와 게이트웨이 포트 바인딩도 봅니다.
 - **백업:** `make backup` → 컨테이너 정지(재시작은 정지 전에 예약) → 파일별 체크섬 manifest → `/srv/basic-memory`를 tar로 받아옴(임베딩 모델 캐시 `config/fastembed_cache/`는 제외하며, 복원 뒤 첫 사용 때 Basic Memory가 다시 내려받음) → sha256 저장 → 세 파일을 최종 이름으로 rename → 컨테이너 재시작. 아카이브는 main 체크아웃의 `backups/`에 저장됩니다.
+- **기억 미러:** SessionStart·Stop hook → `make memory-sync HOOK=1` → Mac의 Claude Code·Codex 기억 파일(`*.md`)을 `agent-memory/<프로젝트 키>/<에이전트>/<기기>/`로 백그라운드 전송(바뀐 것만, 사라진 원본은 노트도 삭제). SessionStart → `make memory-index` → 다른 Mac·에이전트의 노트 색인(`Basic Memory index:`)을 에이전트 컨텍스트에 넣음. 터널이 없으면 경고 한 줄만 남기고 끝남
 - **복원:** `make restore` → 정지 → 임시 경로에 압축 해제 → manifest 대조 → 저장소 compose.yaml 적용 → 데이터 교체(기존은 `.prev-*`) → Basic Memory가 멈춘 동안 공간 파일 쓰기(`sync-sb-space.sh`) → 기동 → verify. 정지 이후 실패하면 이전 데이터와 compose로 자동 롤백
 
 관련 결정: [basic-memory-on-gcp-tailscale ADR](decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md), [vm-sizing ADR](decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md), [web-ui-silverbullet ADR](decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md), [access-modes ADR](decisions/adr-2026-10-15-cz8c26gp-access-modes.md), [web-connector ADR](decisions/adr-2026-10-22-fcvznmdc-web-connector.md)
