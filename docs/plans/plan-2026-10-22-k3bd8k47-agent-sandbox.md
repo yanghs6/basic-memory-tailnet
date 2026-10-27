@@ -60,7 +60,7 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 ### Start: branch, worktree, draft PR
 
 - [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/k3bd8k47-agent-sandbox` 브랜치를 만든다(`git-workflow` 스킬의 Start).
-- [ ] 첫 커밋(스펙 문서와 이 계획 개정)에서 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다. 감독 세션에 알린다.
+- [x] 첫 커밋(스펙 문서와 이 계획 개정)에서 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다. 감독 세션에 알린다.
 
 ### Task 1: Sandbox spike
 
@@ -81,6 +81,10 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
   - `make review`의 Claude 리뷰어(`claude -p --agent branch-reviewer`)가 새 설정에서 도는지(작은 시험 브랜치나 이 브랜치의 dry run)
   - `codex exec`에 `-c` permission profile(`extends=":read-only"`, `~/.ssh` deny)과 `shell_environment_policy`를 주고 `env | cut -d= -f1`(이름만), `ls ~/.ssh`(결과는 성공·실패만)
   - Claude Code `!` 모드에서 `[ -t 0 ] && echo tty || echo no-tty`
+  - 감독 세션 요청(2026-10-27), 운영에 필요한 경로:
+    - 작업 디렉터리 밖에서 Read·Edit·Write·Bash가 되는지: auto memory 폴더(`~/.claude/projects/<project>/memory/`)와 세션 scratchpad. 다른 세션 transcript(`~/.claude/projects/*/*.jsonl`) 읽기가 막히면 스펙 영향(3.10)에 적는다.
+    - mk823xbp(PR #30) memory hook(SessionStart·Stop의 `make memory-sync`, SessionStart의 `make memory-index`)이 새 설정에서 돌고 `make tunnel`로 Basic Memory에 닿는지. 커밋한 가드 훅과 사용자 hook의 순서·timeout이 서로 방해하지 않는지. hook이 메모리 폴더와 Codex memories를 읽는지. #30이 먼저 병합되면 이 확인을 #32 병합 전에 실제 설치 상태로 다시 한다.
+    - worktree에서 도는 make 타깃이 main checkout을 쓰는 경로: `.env` `-include`(VM 타깃), `backups/`(`make backup`), `.review-out/`(`review-post`, `review-record`), `log-exports/`(`export-logs`). 제외된 make 타깃은 sandbox 밖에서 돌므로 영향이 없어야 한다. sandbox 안에서 도는 타깃에서 깨지는 곳을 적는다.
 - [ ] **Step 3:** 결과로 정한다: 1-C 유지 또는 1-B, 8-B 또는 8-A, `excludedCommands`·`allowedDomains` 최종 목록, `export-logs` 출력 위치. Progress log에 `Verified`로 남긴다.
 - [ ] **Step 4:** 시험 키를 `.claude/settings.local.json`에서 지운다.
 
@@ -227,3 +231,4 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 | 날짜 | 표기 | 내용 |
 |---|---|---|
 | 2026-10-27 | Reported | 스펙 승인 전 사실 재확인(b64b86e)과 문서 확인은 스펙 2절에 있다. 원래 계획(2026-10-22)의 Facts와 Design questions는 스펙 1·2절로 옮겼다. |
+| 2026-10-27 | Verified | Start: `make check` exit 0(total line coverage 89.06%), `make check-git` OK, `scripts/check-public-text.sh`(스펙·계획·PR 본문) 0건. dfbdd82 push, 초안 PR #32. |
