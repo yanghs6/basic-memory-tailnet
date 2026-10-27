@@ -80,13 +80,18 @@ setup() {
   done
 }
 
-@test "lists every missing, malformed and forbidden trailer with its commit" {
-  local case problem subject problems line
+@test "lists every missing, malformed and forbidden trailer and public text in the message with its commit" {
+  local case problem subject problems line cgnat short expected
   cd "$BATS_TEST_TMPDIR" || return
+  # A CGNAT (tailnet range) address never sits in a repo file, so build it here.
+  cgnat="$(printf '%s.%s' 100.101 102.103)"
   # Each case: the trailers' problem | the commit subject | what check-git.sh lists after that subject, |-separated.
+  # A commit whose message has public text is named by its short SHA only (SHA below), never by its subject.
   for case in "missing|feat: no trailers|missing trailer 'Assisted-by:|missing trailer 'Plan:|missing trailer 'Task:" \
     "malformed|feat: bad values|trailer 'Assisted-by: Claude' must be|trailer 'Plan: 26' must be|trailer 'Task: first' must be" \
-    "forbidden|feat: attributed|agents never add 'Co-authored-by'|agents never add 'Signed-off-by'"; do
+    "forbidden|feat: attributed|agents never add 'Co-authored-by'|agents never add 'Signed-off-by'" \
+    "public-trailer|feat: clean subject|SHA:4: IPv4 address|SHA: trailer 'Plan' must be" \
+    "public|feat: reach $cgnat|SHA:1: IPv4 address|SHA:3: IPv4 address|SHA: agents never add 'Claude-Session'|SHA: trailer 'Plan' must be"; do
     IFS='|' read -r problem subject problems <<<"$case"
     (
       rm -rf "$WORK" && init_git_repo && git switch -q -c "work/$problem-trailers" || exit 1
@@ -99,12 +104,26 @@ setup() {
         forbidden)
           agent_commit claude-code "$subject" --trailer "Co-authored-by: Bot <bot@example.com>" --signoff || exit 1
           ;;
+        public)
+          # The Plan value is an address too, so the malformed-trailer message must not echo it.
+          git commit -q --allow-empty -m "$subject" -m "via $cgnat" --trailer "Assisted-by: claude-code model-x" \
+            --trailer "Plan: $cgnat" --trailer "Task: 1" --trailer "Claude-Session: x" || exit 1
+          ;;
+        public-trailer)
+          # Only a trailer carries the address: the subject and body are clean.
+          git commit -q --allow-empty -m "$subject" --trailer "Assisted-by: claude-code model-x" \
+            --trailer "Plan: $cgnat" --trailer "Task: 1" || exit 1
+          ;;
       esac
+      short="$(git log -1 --format=%h)" || exit 1
       run "$CHECK"
       assert_failure || exit 1
       while IFS= read -r line; do
-        assert_output --partial "\"$subject\": $line" || exit 1
+        expected="\"$subject\": $line"
+        [[ "$problem" != public* ]] || expected="  - ${line//SHA/$short}"
+        assert_output --partial "$expected" || exit 1
       done <<<"$(tr '|' '\n' <<<"$problems")"
+      refute_output --partial "$cgnat" || exit 1
     ) || fail "check-git did not list the $problem trailers"
   done
 }

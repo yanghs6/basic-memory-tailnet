@@ -1,7 +1,7 @@
 ---
 status: current
 id: ppmby9v6
-reviewed: 2026-10-14
+reviewed: 2026-10-27
 ---
 
 # GitHub 운영: 머신 계정, 첫 push, 저장소 설정
@@ -36,16 +36,47 @@ git config --local user.email 159414014+yanghs6-bot@users.noreply.github.com
 처음 공개하는 이력(첫 push의 `main`, 처음 push하는 브랜치)마다 실행합니다. `<ref>`는 공개할 브랜치입니다.
 
 ```bash
-git log -p <ref> | grep -nE 'tskey-[A-Za-z0-9]{10,}|PRIVATE KEY|([0-9]{1,3}\.){3}[0-9]{1,3}|[a-z0-9-]+\.ts\.net|@[A-Za-z0-9.-]+\.[a-z]{2,}'
+git log -p <ref> | scripts/check-public-text.sh -
+scripts/check-public-text.sh
+git log -p <ref> | grep -nE 'tskey-[A-Za-z0-9]{10,}|PRIVATE KEY|@[A-Za-z0-9.-]+\.[a-z]{2,}'
 git log -p <ref> | grep -cF '<실제 VM 외부 IP>'
 git log -p <ref> | grep -cF '<실제 VM Tailscale IP>'
 git log -p <ref> | grep -cF '<GCP 프로젝트 ID>'
 ```
 
-- 첫 명령에 걸린 줄이 테스트용 자리표시자인지 하나씩 확인합니다. 예: `127.0.0.1`, `203.0.113.10`, `tail1234.ts.net`, `agent@example.com`, `tskey-auth-test123`.
+- 첫 명령은 이력 전체에서 허용 집합 밖의 IPv4, tailnet IPv6, ts.net 이름, 세션 링크, Generated with 줄을 찾습니다. 값은 출력하지 않고 `stdin:<줄>: <종류>`만 알립니다. stdin에는 예외 목록이 적용되지 않으므로 [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)의 증거처럼 `.public-text-exemptions`에 오른 기록도 걸립니다. 걸린 줄이 그런 기록인지 확인합니다. 규칙은 [public-text-guard ADR](../decisions/adr-2026-10-26-vtmqpsyx-public-text-guard.md)에 있습니다.
+- 둘째 명령은 지금 작업 트리의 tracked 파일과 새 파일을 같은 규칙으로 검사하고 예외 목록을 적용합니다(`make check`와 같은 검사). exit 0이어야 합니다.
+- 셋째 명령에 걸린 줄이 테스트용 자리표시자인지 하나씩 확인합니다. 예: `agent@example.com`, `tskey-auth-test123`.
 - 나머지 명령은 모두 `0`이어야 합니다.
 - **실제 값이 걸리면 push하지 않습니다.** 현재 파일만 고쳐도 과거 커밋에는 값이 남습니다. 공개를 허용할지, 이력을 정리할지를 사용자가 정합니다(스펙 11절). 실제 자격증명이면 공개 여부와 관계없이 폐기하고 교체합니다.
 - `plan/qtvzskgx-vm-rollout`은 push하지 않습니다. 커밋 하나에 VM Tailscale IP가 있습니다. [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)은 스펙 11절의 `plan/qtvzskgx-vm-rollout-public` 절차로 공개합니다.
+
+### 2.1 전체 이력 비밀값 스캔
+
+**Command:** `git fetch origin` 뒤 `make secret-scan`을 실행합니다.
+
+- digest로 고정한 gitleaks 이미지(`Makefile`의 `GITLEAKS_IMAGE`)가 `gitleaks git --redact --verbose --log-opts=--all /repo`로 로컬의 모든 ref(브랜치, 원격 추적 브랜치, 태그)의 모든 커밋을 봅니다. `make test`와 같은 마운트를 쓰고, git common dir은 읽기 전용입니다. worktree에서 실행해도 같은 이력을 봅니다.
+- 통과는 exit 0이고 `no leaks found`가 출력되는 것입니다. 걸리면 exit 1로 끝나고, `--redact` 때문에 값 대신 `REDACTED`가 출력됩니다. 규칙 id, 파일, 커밋, `Fingerprint`는 그대로 나옵니다.
+- PR에만 남은 커밋(`refs/pull/<N>/head`)은 로컬 ref가 아니므로 보지 않습니다. 보려면 그 ref를 따로 받습니다(스펙 5절의 Assumption). `refs/remotes/origin/` 아래로 받으면 다른 worktree의 `git fetch --prune`이 지우므로, 따로 받아 스캔하고 바로 지웁니다.
+
+  ```bash
+  git fetch origin '+refs/pull/*/head:refs/pr-scan/*'
+  make secret-scan
+  git for-each-ref --format='delete %(refname)' refs/pr-scan | git update-ref --stdin
+  ```
+
+- 걸린 값이 테스트용 가짜 키(예: `tests/` fixture)이면 그 줄을 쓴 브랜치에서 줄 끝에 `gitleaks:allow` 주석을 붙이거나 값을 탐지되지 않는 모양으로 바꿉니다. 이미 `main`에 들어간 커밋이면 저장소 루트의 `.gitleaksignore`에 그 결과의 `Fingerprint`를 한 줄씩 적고 다시 실행합니다. 형식은 `<커밋>:<파일>:<규칙 id>:<줄>`이고, squash 병합 전 PR 커밋의 SHA는 병합 뒤 바뀌므로 그런 커밋은 적지 않습니다. gitleaks는 작업 디렉터리(`/repo`)의 `.gitleaksignore`를 기본으로 읽습니다.
+- **실제 자격증명이 걸리면** `.gitleaksignore`에 적지 않습니다. 폐기하고 교체한 뒤, 이력 처리는 사용자가 정합니다(위의 2절 규칙).
+- 결과는 진행 중인 계획의 Progress log에 `Verified`로 적습니다. 스캐너 버전, digest, 범위, 커밋 수, 규칙별 건수만 적고 값은 적지 않습니다.
+
+### 2.2 GitGuardian 오탐 처리
+
+GitGuardian GitHub App이 PR의 check run이나 대시보드에 테스트용 가짜 키를 incident로 올렸을 때 사용자가 처리합니다. 대시보드와 workspace 설정은 사용자만 바꿉니다.
+
+- **Verified (https://docs.gitguardian.com/internal-monitoring/prevent/detect-secrets-in-real-time-in-github):** 대시보드에서 incident를 test credential이나 false positive로 닫으면 check run이 같은 값을 다시 올리지 않습니다. PR의 check run에서 "Skip: test credential"(또는 "Skip: false positive")을 눌러도 됩니다.
+- **Verified (https://docs.gitguardian.com/secrets-detection/customize-detection/exclusion-rules):** 범위를 넓히려면 workspace 설정에서 filepath exclusion `tests/**`를 만들고 이 저장소에만 연결합니다. 선택 사항입니다. `tests/` 밖의 파일은 계속 검사합니다.
+- **Verified (https://docs.gitguardian.com/ggshield-docs/configuration):** `.gitguardian.yaml`은 ggshield CLI의 설정 파일입니다. 이 문서는 GitHub App이 이 파일을 읽는다고 말하지 않으므로 저장소에 두지 않습니다.
+- 처리한 incident와 방법(닫음, Skip, exclusion)은 진행 중인 계획의 Progress log에 적습니다. 값은 적지 않습니다.
 
 ## 3. 처음 push
 

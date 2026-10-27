@@ -136,3 +136,12 @@ printf "env [%s] [%s]\n" "${COMPOSE_PROFILES-unset}" "${BM_WEB_BASE_URL-unset}" 
   refute_stub_called '^verify-web '
   refute_stub_called '^docker '
 }
+
+@test "make secret-scan runs the digest-pinned gitleaks image over all refs with the git common dir mounted read-only" {
+  linked_worktree_with_makefile
+  setup_stubs docker
+  run make_in "$LINKED_WT" secret-scan
+  assert_success
+  run grep -cE "^docker run --rm -v $LINKED_WT:/repo -v $MAIN_REPO/\.git:$MAIN_REPO/\.git:ro -w /repo zricethezav/gitleaks:v[0-9.]+@sha256:[0-9a-f]{64} git --redact --verbose --log-opts=--all /repo$" "$STUB_LOG"
+  assert_output 1
+}

@@ -74,7 +74,7 @@ Plan: $value" run "$CHECK"
     "a rule and text after the trailers|missing trailer 'Assisted-by:|missing trailer 'Plan:" \
     "malformed values|trailer 'Assisted-by: Claude' must be|trailer 'Plan: 8' must be" \
     "a second Plan line|trailer 'Plan: h8j3m5rx,n3q8d5vb' must be" \
-    "forbidden trailers and a session link|must not carry 'Co-authored-by'|must not carry 'Signed-off-by'|must not carry a Claude Code session link"; do
+    "forbidden trailers and a session link|must not carry 'Co-authored-by'|must not carry 'Signed-off-by'|PR body:7: session link"; do
     IFS='|' read -r input problems <<<"$case"
     (
       case "$input" in
@@ -115,5 +115,45 @@ Claude-Session: https://claude.ai/code/session_0123456789"
         assert_output --partial "$line" || exit 1
       done <<<"$(tr '|' '\n' <<<"$problems")"
     ) || fail "check-pr did not list every problem of the body: $input"
+  done
+}
+
+@test "fails on an address in the body or the title, also with CRLF line ends, and echoes neither" {
+  local case input problems cgnat title body line
+  # A CGNAT (tailnet range) address never sits in a repo file, so build it here. Every kind of hit is tested in
+  # tests/check-public-text.bats; these cases show only which text check-pr.sh checks and that it echoes none of it.
+  cgnat="$(printf '%s.%s' 100.101 102.103)"
+  # Each case: the input's problem | what check-pr.sh must list for it, |-separated. The case block builds the input.
+  # In the last case the title and both trailers also break their formats, and those messages must not echo them.
+  for case in "an IP in the body|PR body:1: IPv4 address" \
+    "an IP in a CRLF body|PR body:1: IPv4 address" \
+    "an IP in a malformed title and the trailers|PR title:1: IPv4 address|PR body:3: IPv4 address|the title must be '<type>: <description>'|trailer 'Assisted-by' must be|trailer 'Plan' must be"; do
+    IFS='|' read -r input problems <<<"$case"
+    (
+      title="feat: x"
+      case "$input" in
+        "an IP in the body")
+          body="Reach $cgnat.
+
+$GOOD_BODY"
+          ;;
+        "an IP in a CRLF body")
+          body="$(printf 'Reach %s.\r\n\r\nAssisted-by: claude-code claude-opus-5-5\r\nPlan: none\r\n' "$cgnat")"
+          ;;
+        "an IP in a malformed title"*)
+          title="Reach $cgnat"
+          body="Summary.
+
+Assisted-by: $cgnat
+Plan: $cgnat"
+          ;;
+      esac
+      PR_TITLE="$title" PR_BODY="$body" run "$CHECK"
+      assert_failure 1 || exit 1
+      while IFS= read -r line; do
+        assert_output --partial "$line" || exit 1
+      done <<<"$(tr '|' '\n' <<<"$problems")"
+      refute_output --partial "$cgnat" || exit 1
+    ) || fail "check-pr did not list the public text without its value: $input"
   done
 }
