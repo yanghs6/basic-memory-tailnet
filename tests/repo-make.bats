@@ -87,6 +87,56 @@ make_in() {
   assert_output --partial "[unset] [unset] --read-only"
 }
 
+@test "make local-up with BM_WEB=on hands COMPOSE_PROFILES=web to compose and runs the same compose command" {
+  linked_worktree_with_makefile
+  setup_stubs docker
+  # The docker stub logs only its arguments; this one also logs the profiles and the gateway base URL compose sees.
+  # shellcheck disable=SC2016 # the fake command expands its variables when it runs
+  fake_cmd docker 'printf "docker %s\n" "$*" >>"$STUB_LOG"
+printf "env [%s] [%s]\n" "${COMPOSE_PROFILES-unset}" "${BM_WEB_BASE_URL-unset}" >>"$STUB_LOG"'
+  cp -R "$REPO_DIR/scripts" "$REPO_DIR/silverbullet" "$LINKED_WT/"
+  printf 'SB_USER=admin:Tr4mpoline\nBM_WEB=on\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" local-up
+  assert_success
+  run grep -c '^docker compose -f compose.yaml up -d --wait$' "$STUB_LOG"
+  assert_output 1
+  assert_stub_called -Fx 'env [web] [http://127.0.0.1:8738]'
+  refute_stub_called -F 'env [unset]'
+  [[ -d "$LINKED_WT/.local-data/gateway" ]] || fail "make local-up must create .local-data/gateway for the gateway store"
+
+  : >"$STUB_LOG"
+  printf 'SB_USER=admin:Tr4mpoline\nBM_WEB=yes\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" local-up
+  assert_failure
+  assert_output --partial "BM_WEB must be on or off (got 'yes')"
+  refute_stub_called '^docker '
+}
+
+@test "make local-verify with BM_WEB=on runs the gateway unit tests as uid 1000, and without it touches no container" {
+  linked_worktree_with_makefile
+  setup_stubs docker
+  mkdir -p "$LINKED_WT/scripts"
+  local name
+  for name in verify-mcp verify-sb verify-web; do
+    # shellcheck disable=SC2016 # the generated script expands $* and $STUB_LOG when it runs
+    printf '#!/usr/bin/env bash\necho "%s $*" >>"$STUB_LOG"\n' "$name" >"$LINKED_WT/scripts/$name.sh"
+    chmod +x "$LINKED_WT/scripts/$name.sh"
+  done
+  printf 'SB_USER=admin:Tr4mpoline\nBM_WEB=on\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" local-verify
+  assert_success
+  assert_stub_called -Fx 'verify-web http://127.0.0.1:8738'
+  # The gateway serves the public path as uid 1000; its tests run as the same user, never as root.
+  assert_stub_called -Fx 'docker compose -f compose.yaml exec -T --user 1000:1000 gateway python -m unittest -v test_gateway'
+
+  : >"$STUB_LOG"
+  printf 'SB_USER=admin:Tr4mpoline\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" local-verify
+  assert_success
+  refute_stub_called '^verify-web '
+  refute_stub_called '^docker '
+}
+
 @test "make secret-scan runs the digest-pinned gitleaks image over all refs with the git common dir mounted read-only" {
   linked_worktree_with_makefile
   setup_stubs docker

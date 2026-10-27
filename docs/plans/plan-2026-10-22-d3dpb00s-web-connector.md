@@ -1,5 +1,5 @@
 ---
-status: backlog
+status: active
 id: d3dpb00s
 spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 ---
@@ -103,7 +103,7 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 - [ ] **Step 2: 실패하는 스크립트 테스트 작성.** `make new-script NAME=verify-web`으로 `scripts/verify-web.sh`와 `tests/verify-web.bats`를 만든다. curl 스텁 응답은 `tests/fixtures/verify-web/`, `dig` 스텁은 `tests/stubs/dig`에 둔다. 테스트:
   - "passes when the gateway answers 401 with resource_metadata, serves both metadata documents and refuses a foreign redirect URI": 각 검사의 `OK:` 줄을 확인한다.
   - 실패 경우 표(`@test` 하나에 case 반복): 토큰 없는 `POST /mcp`가 200, `WWW-Authenticate`에 `resource_metadata` 없음, 보호 리소스 메타데이터의 `resource`가 `BASE_URL/mcp`가 아님, `code_challenge_methods_supported`에 `S256` 없음, `client_id_metadata_document_supported`가 true가 아님, `token_endpoint_auth_methods_supported`에 `none` 없음, `/register`가 2xx. 모두 실패해야 한다.
-  - "--public fails when the host resolves to a private, CGNAT or loopback address and never prints the host or the addresses": `dig` 스텁이 RFC 1918 주소, CGNAT(`100.64.0.0/10`) 안의 주소, loopback 주소를 돌려줄 때 실패한다. [public-text-guard 계획](plan-2026-10-22-v9whrbs6-public-text-guard.md)의 공개 텍스트 검사는 RFC 1918, link-local, CIDR 표기만 허용하므로, CGNAT 예시는 파일에 낱개 주소로 쓰지 않고 테스트가 실행 중에 `100.64.0.0/10` 안의 주소를 만든다. 공개 주소일 때는 통과한다. 두 경우 모두 출력에 호스트명과 주소가 없다.
+  - "--public fails when the host resolves to a private, CGNAT or loopback address and never prints the host or the addresses": `dig` 스텁이 RFC 1918 주소, CGNAT(`100.64.0.0/10`) 안의 주소, loopback 주소를 돌려줄 때 실패한다. [public-text-guard 계획](plan-2026-10-22-v9whrbs6-public-text-guard.md)의 공개 텍스트 검사는 RFC 1918, link-local, loopback, `0.0.0.0`, 문서용 대역, IAP 대역의 주소와 CIDR 표기만 허용하고 CGNAT 낱개 주소는 허용하지 않으므로, CGNAT 예시는 파일에 낱개 주소로 쓰지 않고 테스트가 실행 중에 `100.64.0.0/10` 안의 주소를 만든다. 공개 주소일 때는 통과한다. 두 경우 모두 출력에 호스트명과 주소가 없다.
 - [ ] **Step 3: 실패하는 Make·라이브러리 테스트 작성.** `tests/lib-vm.bats`에 `web_mode`가 빈 값·`on`·`off`를 받고 `On`·`yes`를 거절하는 테스트를 더한다. `tests/repo-make.bats`에 새 테스트 하나를 더한다. "make local-up with BM_WEB=on hands COMPOSE_PROFILES=web to compose and runs the same compose command": docker 스텁이 받은 환경을 기록하게 하고, `COMPOSE_PROFILES=web`과 `docker compose -f compose.yaml up -d --wait` 줄을 확인한다. `BM_WEB=yes`면 compose 호출 전에 `BM_WEB must be on or off`로 실패한다. 기존 `:55` 테스트는 그대로 통과해야 한다.
 - [ ] **Step 4: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패한다(서비스·파일·스크립트·Make 처리 없음).
 - [ ] **Step 5: 게이트웨이 동작 테스트 작성(`gateway/test_gateway.py`, `unittest.IsolatedAsyncioTestCase`).** 가짜 백엔드는 21개 도구와 `new_tool`을 가진 FastMCP 서버다. 받은 요청 헤더와 호출된 도구 이름을 기록하며, 같은 프로세스의 uvicorn 스레드에서 빈 포트로 띄운다. 인증은 `StaticTokenVerifier`로 `owner`(sub `"4242"`), `other`(sub `"5151"`), `no-sub`, `login-sub`(sub `"octocat"`) 토큰을 만든다. 게이트웨이는 `build_gateway(settings, auth=verifier)`로 조립한다.
@@ -165,7 +165,7 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
     - "with BM_WEB=on and a malformed secret stops before ssh".
     - "with BM_WEB=on uploads the gateway runtime files before starting the stack": 게이트웨이 코드가 없는 VM(웹으로 배포한 적이 없는 재생성 VM)을 흉내 내고, ssh 스텁 로그에서 세 파일의 업로드가 `up -d --wait`보다 앞에 있는지 본다.
   - `verify-vm.bats`: `BM_WEB=on`이면 `verify-web.sh --public "https://<host>"`를 `verify`와 `probe` 모두에서 부르고, `BM_WEB_PORT`의 loopback 검사와 공인 IP 검사를 한다. `off`면 셋 다 하지 않는다.
-  - `show-status.bats`: `BM_WEB=on`이면 `gateway store: <N> KiB, <M> client registrations` 줄이 나온다. 원격 명령은 `du -sk`와, `mcp-oauth-proxy-clients`가 들어간 경로의 파일 수다. `off`면 그 줄이 없다.
+  - `show-status.bats`: `BM_WEB=on`이면 `gateway store: <N> KiB, <M> client registrations` 줄이 나온다. 원격 명령은 `du -sk`와, `oauth-proxy/` 아래 모든 키 지문 디렉터리의 `S_mcp_oauth_proxy_clients-<8 hex>/` 안 파일 수다. FastMCP의 컬렉션 이름 `mcp-oauth-proxy-clients`를 py-key-value-aio 0.4.6의 FileTreeV1 전략이 이 디렉터리 이름으로 바꾸고, 옆의 `S_mcp_oauth_proxy_clients-<8 hex>-info.json` 메타데이터 파일은 세지 않는다. `off`면 그 줄이 없다.
 - [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패하고 기존 테스트는 통과한다.
 - [ ] **Step 3: 최소 구현.**
   - `deploy-stack.sh`: `require_sb_user` 다음에 `require_web_settings`를 부른다. `compose.yaml`을 올린 뒤 `upload_gateway_files`를 부른다. `up` 뒤 `off`면 `remote_compose "rm --stop --force $WEB_SERVICES"`(Step 0 결과대로)를 부른다.
@@ -236,3 +236,20 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
+| 2026-10-26 | Verified | Task 1 RED: Step 1~3의 테스트를 먼저 쓰고 `make test` → 새 테스트 10개와 기존 빈칸 검사(갓 만든 `make new-script` 파일) 1개만 실패했다(`web_mode: command not found`, 서비스·파일 없음, `COMPOSE_PROFILES` 줄 없음, fixture 없음). 게이트웨이 동작 테스트는 `ModuleNotFoundError: No module named 'gateway'`로 실패했다(서비스가 없어 Make 타깃이 없으므로 진단용 `docker run`으로 실행). |
+| 2026-10-26 | Verified | Task 1 GREEN: `make check` exit 0, 160개 모두 ok, 라인 커버리지 93.88%(`verify-web.sh` 96.91%). |
+| 2026-10-26 | Verified | `make local-up local-verify local-down BM_WEB=on BM_WEB_GITHUB_USER_ID=4242 BM_WEB_GITHUB_CLIENT_ID=fake-client BM_WEB_GITHUB_CLIENT_SECRET=fake-secret BM_WEB_JWT_KEY=<openssl rand -hex 32>`(가짜 값을 make 명령줄로 넘겼고 main checkout `.env`는 고치지 않았다) exit 0. `verify-web.sh`의 `OK:` 네 줄, `Ran 9 tests ... OK`, 기존 MCP·SilverBullet `OK:` 줄이 나왔다. 게이트웨이는 uid 1000으로 돌고, verify 세 번 뒤에도 저장소 파일이 0개다(등록 거절 검사가 아무것도 저장하지 않음). 출력에 가짜 값이 없다. |
+| 2026-10-26 | Verified | `BM_WEB` 없이 `make local-up local-verify local-down` exit 0. gateway·web·cloudflared 줄이 없고 basic-memory·silverbullet 컨테이너만 떴다. |
+| 2026-10-26 | Verified | arm64 Mac `docker stats --no-stream`: `gateway-server 70.68MiB`(verify와 unittest 뒤). |
+| 2026-10-26 | Verified | 고정값: `python:3.12.15-slim`(보안 릴리스, 3.12.16은 2026-10-25 나왔지만 이미지 없음), `cloudflare/cloudflared:2026.10.3`(2026.10.0 이후 릴리스 노트는 Go·기반 이미지 갱신과 메시지 잘림 수정뿐), `pip-tools` 7.6.2, 둘 다 multi-arch index digest. cloudflared 헬스체크 `cloudflared tunnel --metrics 127.0.0.1:20241 ready`는 2026.10.3 소스로 확인했고, 실제 토큰이 없어 로컬에서 돌리지 않았다. |
+| 2026-10-27 | Verified | Task 1 리뷰 수정 1회차(`Review-Finding: SDD-T1-F1`~`F3`): uvicorn access log를 껐고, 감사 줄을 소유자 확인 밖에 두어 거부된 호출도 호출자의 `sub`(없으면 `null`)와 함께 남기며, `make local-verify`의 게이트웨이 테스트를 `--user 1000:1000`으로 돌린다. 새 테스트 셋을 먼저 써서 실패를 확인했다. `make check` exit 0, 161개 모두 ok, 커버리지 93.88%. |
+| 2026-10-27 | Verified | 수정 뒤 `make local-up local-verify local-down BM_WEB=on`(가짜 값, make 명령줄) exit 0: `verify-web.sh` `OK:` 네 줄, uid 1000으로 `Ran 11 tests ... OK`. 가짜 `GET /auth/callback?code=FAKE-CODE-7d1e&state=fake-state` 뒤 `make local-logs`에 그 code가 든 줄과 access 줄이 0개다(고치기 전에는 요청 줄이 그대로 남았다). |
+| 2026-10-27 | Verified | Task 2 Step 0: `make local-up BM_WEB=on`(가짜 값) 뒤 진단용으로 `COMPOSE_PROFILES` 없이 `docker compose -f compose.yaml rm --stop --force gateway cloudflared`를 실행했다. `gateway-server`만 지워지고 basic-memory·silverbullet은 그대로 떠 있었다. 그래서 배포는 이 명령을 그대로 쓴다. `cloudflared`는 로컬에서 띄우지 않아(프로필 `tunnel`) 지우는 동작은 확인하지 못했다. 첫 시도는 셸에 `SB_USER`가 없어 실패했고(VM에서는 `.env`에 있다), 가짜 값을 넣어 다시 했다. |
+| 2026-10-27 | Verified | Task 2 RED: 테스트를 먼저 쓰고 `make test` → 186개 중 새 테스트 21개만 실패(deploy-stack, lib-vm, restore-notes, show-status, verify-vm). 기존 테스트는 실패하지 않았다. GREEN: `make check` exit 0, 186개 모두 ok, 커버리지 94.13%. |
+| 2026-10-27 | Verified | `BM_WEB=off` 배포는 `up` 뒤 "remove web connector containers" 단계를 한 번 더 돈다(`rm --stop --force gateway cloudflared`). 스펙 §3.3의 "`BM_WEB=off`로 배포하면 VM에 남은 웹 서비스를 멈추고 지운다"가 요구하는 동작이고, 완료 조건 2의 "동작이 직전과 같다"에서 이 한 단계만 다르다. `vm_env`의 출력과 그 밖의 타깃은 직전과 같다. |
+| 2026-10-27 | Verified | Task 3: `AGENTS.md:13` 첫 문장을 스펙 §3.6 문장으로 바꾸고 비밀값 줄을 다섯 개로 늘렸다. 새 웹 커넥터 런북, 운영 런북 Exposure audit, `bm-upgrade` 스킬, ARCHITECTURE, README를 고쳤고 web-connector ADR을 accepted로 바꿨다. `make check` exit 0, 186개 모두 ok, 커버리지 94.13%, `AGENTS.md` 10,719바이트(한도 24,000). |
+| 2026-10-27 | Verified | 최종 리뷰 수정(`Review-Finding: SDD-final-I1`, `I2`, `I3`, `m1`, `m2`, `m4`, `m5`, `P1`, `P2`, `G1`): RED는 `make test` 190개 중 새로 쓰거나 이 브랜치가 더한 테스트를 고친 8개만 실패, 게이트웨이 테스트는 `AttributeError: … AUDIT_VALUE_MAX_CHARS`. GREEN은 `make check` exit 0, 190개 모두 ok, 커버리지 94.16%. |
+| 2026-10-27 | Verified | FastMCP 4.1.3과 py-key-value-aio 0.4.6 소스(휠 해시가 `requirements.txt`와 같음): 등록 컬렉션 `mcp-oauth-proxy-clients`는 `oauth-proxy/<지문>/S_mcp_oauth_proxy_clients-4db71f6a/`에 있고, 옆에 메타데이터 파일 `S_mcp_oauth_proxy_clients-4db71f6a-info.json`이 있다. 그래서 이전 패턴은 등록 수를 늘 0으로 셌다. 새 게이트웨이 테스트가 실제 `/register`로 하나를 등록하고 상태 스크립트의 패턴이 파일 하나에만 맞는지 고정한다. |
+| 2026-10-27 | Verified | Docker Compose v5.0.2 `config --hash gateway`가 `BM_WEB_CODE_SHA256`에 따라 바뀌고 basic-memory의 해시는 그대로다. 그래서 게이트웨이 코드만 바꾼 배포는 게이트웨이만 다시 만든다. |
+| 2026-10-27 | Verified | 수정 뒤 `make local-up local-verify local-down BM_WEB=on`(가짜 값, make 명령줄) exit 0: `verify-web.sh` `OK:` 줄, uid 1000으로 `Ran 13 tests … OK`, 출력에 가짜 값 없음. `BM_WEB` 없이도 exit 0이고 basic-memory·silverbullet만 떴다. |
+| 2026-10-27 | Verified | gitleaks v8.30.1(`docker run --rm -v "$PWD:/scan:ro" ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f dir /scan/tests --no-banner --redact -v`, 이력 없이 파일만): 고치기 전 `leaks found: 2`(`tests/helpers.bash:35`, `tests/lib-vm.bats:191`, generic-api-key), 고친 뒤 `no leaks found`. 이력은 다시 쓰지 않으므로 옛 값은 이 PR의 head 이력에 남는다. |

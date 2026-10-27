@@ -6,6 +6,8 @@
 # (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit).
 # In the ssh access mode it runs the same checks through a temporary SSH tunnel on 127.0.0.1 and, instead of Serve,
 # checks that Tailscale does not expose the VM and that sshd accepts keys only.
+# With BM_WEB=on it also checks the web connector: the gateway port on loopback and closed from outside, and the OAuth
+# front on the public host (verify-web.sh --public); the host name and its addresses are never printed.
 # Usage: make verify, or make probe (read-only)
 set -euo pipefail
 
@@ -170,13 +172,15 @@ check_public_closed() {
 }
 
 main() {
-  local port="${BM_PORT:-$DEFAULT_BM_PORT}" sb_port="${SB_PORT:-$DEFAULT_SB_PORT}" mode url sb_url
+  local port="${BM_PORT:-$DEFAULT_BM_PORT}" sb_port="${SB_PORT:-$DEFAULT_SB_PORT}" web_port="${BM_WEB_PORT:-$DEFAULT_BM_WEB_PORT}" mode web url sb_url
   case "${1:-}" in
     "" | --read-only) ;;
     *) die "usage: make verify, or make probe (read-only)" ;;
   esac
   require_vm curl jq nc
   mode="$(access_mode)" || exit 1
+  web="$(web_mode)" || exit 1
+  require_web_host
   require_env BM_VM_PUBLIC_IP
   validate_public_ip "$BM_VM_PUBLIC_IP"
   if [[ "$mode" == ssh ]]; then
@@ -200,13 +204,21 @@ main() {
   fi
   check_loopback_binding "$port"
   check_loopback_binding "$sb_port"
+  if [[ "$web" == on ]]; then
+    check_loopback_binding "$web_port"
+  fi
   if [[ "$mode" == ssh ]]; then
     check_tailscale_off
     check_sshd_auth
   else
     check_serve "$port" "$sb_port"
   fi
-  check_public_closed "$port" "$sb_port"
+  if [[ "$web" == on ]]; then
+    check_public_closed "$port" "$sb_port" "$web_port"
+    "$SCRIPT_DIR/verify-web.sh" --public "https://$BM_WEB_HOST"
+  else
+    check_public_closed "$port" "$sb_port"
+  fi
   if [[ "$mode" == ssh ]]; then
     log "OK: automated VM checks passed (access: ssh); audit firewall rules by hand (docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md, Exposure audit)"
   else

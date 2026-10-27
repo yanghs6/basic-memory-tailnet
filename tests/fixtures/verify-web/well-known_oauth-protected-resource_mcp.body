@@ -1,0 +1,1 @@
+{"resource":"http://127.0.0.1:8738/mcp","authorization_servers":["http://127.0.0.1:8738/"],"scopes_supported":["user"],"bearer_methods_supported":["header"]}

@@ -267,3 +267,206 @@ add_model_cache() {
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
   assert_output "restored"
 }
+
+@test "restore with BM_WEB=on and a missing or malformed setting stops before ssh and names only the variable" {
+  local case name value
+  make_archive "from backup"
+  use_web_env
+  for case in "BM_WEB_JWT_KEY|key with space" "BM_WEB_GITHUB_CLIENT_SECRET|" "BM_WEB_TUNNEL_TOKEN|tok\$en" "BM_WEB_HOST|https://mcp.example.com"; do
+    IFS='|' read -r name value <<<"$case"
+    (
+      : >"$STUB_LOG" || exit 1
+      export "$name=$value"
+      restore_with_answer yes
+      assert_failure && assert_output --partial "$name" && refute_stub_called -E '^(ssh|docker|sudo) ' || exit 1
+      if [[ -n "$value" ]]; then
+        refute_output --partial "$value"
+      fi
+    ) || fail "restore went on with $name='$value'"
+  done
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
+}
+
+@test "restore with BM_WEB=on uploads the gateway runtime files before starting the stack on a VM that never ran the gateway" {
+  local file secret
+  make_archive "from backup"
+  use_web_env
+  [[ ! -e "$BM_REMOTE_APP_DIR/gateway" ]] || fail "the fake VM must start without gateway files"
+  restore_with_answer yes
+  assert_success
+  for secret in test-client-secret fake-jwt-key-fake-jwt-key-fake-jwt-key test-tunnel-token; do
+    refute_output --partial "$secret"
+  done
+  for file in boot.py gateway.py requirements.txt; do
+    assert_same_file "$REPO_DIR/gateway/$file" "$BM_REMOTE_APP_DIR/gateway/$file"
+  done
+  assert_log_order "gateway/.boot.py.new" "docker compose up -d --wait --wait-timeout 360"
+  assert_log_order "gateway/.gateway.py.new" "docker compose up -d --wait --wait-timeout 360"
+  assert_log_order "gateway/.requirements.txt.new" "docker compose up -d --wait --wait-timeout 360"
+  run grep -x 'COMPOSE_PROFILES=web,tunnel' "$BM_REMOTE_APP_DIR/.env"
+  assert_success
+}
+
+@test "restore with BM_WEB=off uploads no gateway files" {
+  make_archive "from backup"
+  restore_with_answer yes
+  assert_success
+  [[ ! -e "$BM_REMOTE_APP_DIR/gateway" ]] || fail "a BM_WEB=off restore uploaded the gateway files"
+}
+
+@test "restore with BM_WEB=on succeeds once the note services are healthy, and only warns without a rollback when the web services are not" {
+  local case failing warned
+  make_archive "from backup"
+  use_web_env
+  # Each case: the compose call that fails (none: every service healthy) | warned when the restore must warn about the
+  # web services. The restore waits for the note services, starts the rest with a plain up -d, then waits once for all.
+  for case in "|" "compose up -d|warned" "compose up -d --wait --wait-timeout 360|warned"; do
+    IFS='|' read -r failing warned <<<"$case"
+    (
+      : >"$STUB_LOG" || exit 1
+      rm -rf "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT".* || exit 1
+      mkdir -p "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config" || exit 1
+      echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md" || exit 1
+      export DOCKER_STUB_FAIL_EXACT="$failing"
+      restore_with_answer yes
+      assert_success && assert_output --partial "restored $(basename "$ARCHIVE")" && refute_output --partial "rolling back" || exit 1
+      if [[ "$warned" == warned ]]; then
+        assert_output --partial "WARNING: the web connector services" || exit 1
+      else
+        refute_output --partial "WARNING" || exit 1
+      fi
+      refute_stub_called -F -- '--force-recreate' || exit 1
+      run awk '$0 == "docker compose up -d --wait --wait-timeout 360 basic-memory silverbullet" && !n { n = NR } $0 == "docker compose up -d" && !p { p = NR } END { exit !(n && p && n < p) }' "$STUB_LOG"
+      assert_success || exit 1
+      run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
+      assert_output "from backup"
+    ) || fail "restore with BM_WEB=on and a failing '$failing'"
+  done
+}
+
+@test "restore with BM_WEB=on rolls back by the same rule: it waits only for the note services and only warns about the web services" {
+  make_archive "bad"
+  use_web_env
+  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
+  # The restore's start of the note services fails, the rollback's succeeds; the web services stay unhealthy.
+  export DOCKER_STUB_FAIL_EXACT=$'compose up -d --wait --wait-timeout 360 basic-memory silverbullet\ncompose up -d --wait --wait-timeout 360'
+  restore_with_answer yes
+  assert_failure
+  assert_output --partial "container did not become healthy with the restored data"
+  assert_output --partial "rolled back: the previous data is live again"
+  assert_output --partial "WARNING: the web connector services"
+  assert_stub_called -Fx 'docker compose up -d --force-recreate --wait --wait-timeout 360 basic-memory silverbullet'
+  refute_stub_called -Fx 'docker compose up -d --force-recreate --wait --wait-timeout 360'
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
+}
+
+@test "restore with BM_WEB=on backs the live gateway files up to a path unique to the run and rolls back from exactly that path" {
+  local gw="$BM_REMOTE_APP_DIR/gateway" backup
+  make_archive "bad"
+  use_web_env
+  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
+  mkdir -p "$gw" "$BM_REMOTE_APP_DIR/gateway.backup-19700101T000000Z"
+  echo "previous code" >"$gw/gateway.py"
+  echo "stale" >"$BM_REMOTE_APP_DIR/gateway.backup-19700101T000000Z/gateway.py"
+  export DOCKER_STUB_FAIL_EXACT='compose up -d --wait --wait-timeout 360 basic-memory silverbullet'
+  restore_with_answer yes
+  assert_failure
+  assert_output --partial "rolled back: the previous data is live again"
+  run grep -ohE "$BM_REMOTE_APP_DIR/gateway\.backup-[0-9]{8}T[0-9]{6}Z" "$STUB_LOG"
+  backup="$(sort -u <<<"$output")"
+  [[ "$(wc -l <<<"$backup")" -eq 1 && "$backup" != *19700101* ]] || fail "the backup path is not one path unique to the run: $backup"
+  assert_log_order "cp -p $gw/gateway.py $backup/gateway.py" "cat > $gw/.gateway.py.new" "--force-recreate"
+  refute_stub_called -E 'mv .*gateway(\.new|\.prev| )'
+  run cat "$gw/gateway.py"
+  assert_output "previous code"
+  [[ ! -e "$backup" ]] || fail "the backup was left after the rollback"
+  run cat "$BM_REMOTE_APP_DIR/gateway.backup-19700101T000000Z/gateway.py"
+  assert_output "stale"
+}
+
+@test "restore with BM_WEB=on onto a VM without the live gateway directory rolls back by removing the files it added" {
+  local gw="$BM_REMOTE_APP_DIR/gateway"
+  make_archive "bad"
+  use_web_env
+  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
+  export DOCKER_STUB_FAIL_EXACT='compose up -d --wait --wait-timeout 360 basic-memory silverbullet'
+  restore_with_answer yes
+  assert_failure
+  [[ ! -e "$gw/gateway.py" && ! -e "$gw/boot.py" && ! -e "$gw/requirements.txt" ]] || fail "a rolled back restore left the gateway files it added"
+}
+
+@test "restore with BM_WEB=on removes its gateway backup once the restore succeeded" {
+  local gw="$BM_REMOTE_APP_DIR/gateway"
+  make_archive "from backup"
+  use_web_env
+  mkdir -p "$gw"
+  echo "previous code" >"$gw/gateway.py"
+  restore_with_answer yes
+  assert_success
+  run bash -c "ls -d '$BM_REMOTE_APP_DIR'/gateway.backup-* 2>/dev/null"
+  assert_failure
+}
+
+@test "restore interrupted with Ctrl-C before the restored data runs rolls back like a failed step" {
+  make_archive "bad"
+  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
+  # The Ctrl-C hits the swap, after the current data moved aside.
+  export SSH_STUB_INTERRUPT_MATCH="sudo -n mv $BM_REMOTE_DATA_ROOT.restore-"
+  restore_with_answer yes
+  assert_failure 130
+  assert_stub_called -F "$SSH_STUB_INTERRUPT_MATCH"
+  assert_output --partial "restore failed; rolling back"
+  assert_output --partial "rolled back: the previous data is live again"
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
+  run cat "$BM_REMOTE_APP_DIR/compose.yaml"
+  assert_output "previous compose"
+}
+
+@test "restore interrupted while it removes its backups after a healthy start keeps the restored data live without a rollback" {
+  local case web match gw="$BM_REMOTE_APP_DIR/gateway"
+  make_archive "from backup"
+  # Each case: BM_WEB | the cleanup command that gets the Ctrl-C (the compose.yaml and .env copies, or the gateway backup).
+  for case in "off|rm -f $BM_REMOTE_APP_DIR/compose.yaml.prev-" "on|rm -f $BM_REMOTE_APP_DIR/compose.yaml.prev-" "on|rm -rf $BM_REMOTE_APP_DIR/gateway.backup-"; do
+    IFS='|' read -r web match <<<"$case"
+    (
+      : >"$STUB_LOG" || exit 1
+      rm -rf "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT".* "$BM_REMOTE_APP_DIR" || exit 1
+      mkdir -p "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config" "$gw" || exit 1
+      echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md" || exit 1
+      echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml" || exit 1
+      echo "previous code" >"$gw/gateway.py" || exit 1
+      if [[ "$web" == on ]]; then
+        use_web_env
+      fi
+      export SSH_STUB_INTERRUPT_MATCH="$match"
+      restore_with_answer yes
+      assert_failure && assert_stub_called -F "$match" || exit 1
+      refute_output --partial "rolling back" && refute_stub_called -F -- '--force-recreate' || exit 1
+      run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
+      assert_output "from backup" || exit 1
+      assert_same_file "$REPO_DIR/compose.yaml" "$BM_REMOTE_APP_DIR/compose.yaml"
+    ) || fail "restore interrupted at '$match' with BM_WEB=$web"
+  done
+}
+
+@test "restore with BM_WEB=off rolls back without touching a gateway directory" {
+  local gw="$BM_REMOTE_APP_DIR/gateway"
+  make_archive "bad"
+  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
+  mkdir -p "$gw"
+  echo "kept" >"$gw/gateway.py"
+  export DOCKER_STUB_FAIL_EXACT='compose up -d --wait --wait-timeout 360'
+  restore_with_answer yes
+  assert_failure
+  run cat "$gw/gateway.py"
+  assert_output "kept"
+  refute_stub_called -F "gateway"
+}

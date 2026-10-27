@@ -1,10 +1,10 @@
 # agent-share-poc: Basic Memory on GCP + Tailscale
 
-여러 기기의 코딩 에이전트(Codex, Claude Code, Antigravity)가 같은 기억을 쓰도록, Basic Memory MCP 서버를 GCP 무료 등급 e2-micro VM에 올리고 Tailscale tailnet 또는 SSH 터널(GCP IAP) 중 VM마다 고른 한 경로로만 접근하게 만드는 저장소입니다.
+여러 기기의 코딩 에이전트(Codex, Claude Code, Antigravity)가 같은 기억을 쓰도록, Basic Memory MCP 서버를 GCP 무료 등급 e2-micro VM에 올리고 Tailscale tailnet 또는 SSH 터널(GCP IAP) 중 VM마다 고른 한 경로로만 접근하게 만드는 저장소입니다. 선택 기능으로 claude.ai 웹 커넥터(아웃바운드 터널 뒤의 OAuth 게이트웨이)도 켤 수 있습니다.
 
 - 설계: [docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md](docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md)
 - 구조: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- 결정 기록: [basic-memory-on-gcp-tailscale ADR](docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md), [vm-sizing ADR](docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md), [web-ui-silverbullet ADR](docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md), [access-modes ADR](docs/decisions/adr-2026-10-15-cz8c26gp-access-modes.md)
+- 결정 기록: [basic-memory-on-gcp-tailscale ADR](docs/decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md), [vm-sizing ADR](docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md), [web-ui-silverbullet ADR](docs/decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md), [web-connector ADR](docs/decisions/adr-2026-10-22-fcvznmdc-web-connector.md), [access-modes ADR](docs/decisions/adr-2026-10-15-cz8c26gp-access-modes.md)
 - 에이전트 지침: [AGENTS.md](AGENTS.md)
 
 ## 사전 요구사항 (Prerequisites)
@@ -42,6 +42,10 @@ make local-down
 
 **주의:** 노트의 관찰 카테고리 글자(`[decision]`, `[fact]` 등)를 누르면 SilverBullet이 카테고리를 지웁니다. 실수했으면 바로 `Cmd+Z`로 되돌리세요.
 
+### 웹 커넥터 (claude.ai, 선택)
+
+`.env`의 `BM_WEB=on`이면 claude.ai의 커스텀 커넥터로도 Basic Memory를 쓸 수 있습니다. Cloudflare의 아웃바운드 터널(`cloudflared`)과 GitHub 로그인 한 계정만 통과시키는 OAuth 게이트웨이를 통하고, VM의 인바운드 규칙은 늘지 않습니다. 비어 있거나 `off`면 아무것도 바뀌지 않습니다. 로컬 확인은 `BM_WEB=on`으로 `make local-up local-verify`, 켜는 절차와 차단은 [web-connector 런북](docs/runbooks/rbk-2026-10-27-x9h4zzdh-web-connector.md)에 있습니다.
+
 ## VM 구축 순서
 
 VM이나 클라우드를 바꾸는 명령의 승인 규칙과 `.env`·`backups/`를 두는 곳은 [AGENTS.md](AGENTS.md)의 Safety에 있습니다.
@@ -51,6 +55,7 @@ VM이나 클라우드를 바꾸는 명령의 승인 규칙과 `.env`·`backups/`
 2. [VM 만들기](docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md): e2-micro, us-west1-b, Ubuntu 26.04 Minimal, pd-standard 30GB, 방화벽 정리, `default-allow-ssh`를 내 IP/32로 제한
 3. [부트스트랩](docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md): (`tailscale` 모드) `make vm-bootstrap` → `ssh ubuntu@agent-hub true` 확인 → `default-allow-ssh` 삭제 → `make deploy sb-fonts verify status`. `ssh` 모드는 같은 문서의 "ssh 모드 순서"를 따릅니다.
 4. [운영](docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md): 백업, 복원, 업그레이드, 정지된 VM 시작, 비용 점검
+5. (선택) [웹 커넥터](docs/runbooks/rbk-2026-10-27-x9h4zzdh-web-connector.md): claude.ai 연결
 
 ## 에이전트용 스킬
 
