@@ -16,6 +16,8 @@ WEB_ALLOWED_TOOLS="basic_memory_diagnostics build_context edit_note fetch list_d
 move_note read_content read_note recent_activity schema_diff schema_infer schema_validate search search_notes view_note write_note"
 # The web services: compose starts them only in their profiles, so their variables must not stop other compose calls.
 WEB_SERVICES="gateway cloudflared"
+# The docker run options that take their value as the next word, so that word is not the image.
+DOCKER_RUN_VALUE_OPTIONS=" -e -p -u -v -w --entrypoint --env --env-file --mount --name --network --platform --publish --user --volume --workdir "
 # The first --hash line under a requirement in a pip-compile --generate-hashes file.
 HASH_LINE='^ +--hash=sha256:[0-9a-f]{64}'
 
@@ -29,10 +31,27 @@ compose_services() {
   awk '/^[^ ]/ { inside = ($0 == "services:"); next } inside && /^  [a-z0-9-]+:$/ { sub(/^ +/, ""); sub(/:$/, ""); print }' "$REPO_DIR/compose.yaml"
 }
 
+# docker_run_image ARGS -> the image of a docker run argument list: the first word that is neither an option nor the
+# value of an option in DOCKER_RUN_VALUE_OPTIONS. Globbing is off, so make text such as $(CURDIR) stays as it is.
+docker_run_image() (
+  set -f
+  local word wants_value=false
+  for word in $1; do
+    if [[ "$wants_value" == true ]]; then
+      wants_value=false
+    elif [[ "$word" == -* ]]; then
+      [[ "$DOCKER_RUN_VALUE_OPTIONS" != *" $word "* ]] || wants_value=true
+    else
+      printf '%s\n' "$word"
+      return 0
+    fi
+  done
+)
+
 # makefile_image_problems -> one "  Makefile:line: ..." line for each image the Makefile names without a digest: an
 # *_IMAGE value without @sha256:<digest> (a value read from compose.yaml with $(shell ...) is checked there; an image a
 # recipe builds with docker build -t $(VAR) has no registry digest), a $(DOCKER_RUN) recipe whose next word is not
-# a $(..._IMAGE) variable, and a bare docker run recipe that names no $(..._IMAGE) variable. A Makefile with no
+# a $(..._IMAGE) variable, and a bare docker run recipe whose image (docker_run_image) is not one. A Makefile with no
 # *_IMAGE variable or no $(DOCKER_RUN) recipe is a problem too, so the check cannot pass on nothing.
 makefile_image_problems() {
   local built images line name value
@@ -58,8 +77,9 @@ makefile_image_problems() {
       || echo "  Makefile:${line%%:*}: \$(DOCKER_RUN) runs '$value', expected a \$(<NAME>_IMAGE) variable pinned above"
   done
   grep -nE '^'$'\t''.*docker run ' "$REPO_DIR/Makefile" | while IFS= read -r line; do
-    [[ "$line" =~ \$\([A-Z_]+_IMAGE\) ]] \
-      || echo "  Makefile:${line%%:*}: docker run names no image variable, expected a \$(<NAME>_IMAGE) variable pinned above"
+    value="$(docker_run_image "${line#*docker run }")"
+    [[ "$value" =~ ^\$\([A-Z_]+_IMAGE\)$ ]] \
+      || echo "  Makefile:${line%%:*}: docker run runs '$value', expected a \$(<NAME>_IMAGE) variable pinned above"
   done
 }
 
