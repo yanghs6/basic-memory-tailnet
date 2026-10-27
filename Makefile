@@ -43,7 +43,7 @@ COVERAGE_MIN := 80
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' '*.bats' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify gateway-lock check-git secret-scan review review-post review-record vm-bootstrap deploy verify probe status logs sb-fonts backup restore access-check tunnel memory-sync new-doc new-id new-script
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify gateway-lock check-git secret-scan review review-post review-record vm-bootstrap deploy verify probe status logs sb-fonts backup restore access-check tunnel memory-sync memory-index new-doc new-id new-script
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -114,6 +114,9 @@ tunnel: ## ssh mode: forward MCP and the web UI to 127.0.0.1:BM_TUNNEL_MCP_PORT 
 
 memory-sync: ## Mirror this Mac's Claude Code and Codex memory files to Basic Memory (HOOK=1: in the background, always exit 0; FULL=1: rewrite everything after a restore)
 	scripts/sync-agent-memory.sh $(if $(HOOK),--hook) $(if $(FULL),--full)
+
+memory-index: ## Print the Basic Memory index of this project and global notes for a SessionStart hook on stdin (MEMORY_AGENT=claude-code|codex)
+	scripts/show-memory-index.sh "$(MEMORY_AGENT)"
 
 check-git: ## Check the git policy for the current branch against origin/main (name, commit trailers, worktree config)
 	scripts/check-git.sh origin/main

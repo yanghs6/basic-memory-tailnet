@@ -626,11 +626,11 @@ git commit -m "feat: mirror Claude Code and Codex memory to Basic Memory (make m
 - Consumes: Task 1의 `mcp_*`와 Progress log의 목록 호출·필드 이름, Task 2의 `project_key_for_dir`·`sanitize_key`·`is_excluded`·`memory_mcp_url`.
 - Produces: `make memory-index MEMORY_AGENT=<claude-code|codex>` → `scripts/show-memory-index.sh <claude-code|codex>`(stdin: SessionStart hook JSON, stdout: 색인).
 
-- [ ] **Step 1: `make new-script NAME=show-memory-index`**
+- [x] **Step 1: `make new-script NAME=show-memory-index`**
 
 동사 `show`는 동사표에 있다(Prints state or logs and changes nothing).
 
-- [ ] **Step 2: fixture 작성**
+- [x] **Step 2: fixture 작성**
 
 `list.body`는 `tests/fixtures/verify-mcp/sse/call_write_note.body`와 같은 SSE 한 줄이다. 목록 경로와 필드 이름은 Task 1이 기록한 대로 쓴다. 노트는 아래 7개이고 모두 가짜 값이다. curl 스텁은 두 목록 호출에 같은 본문을 돌려주므로, 스크립트는 어느 호출에서 왔는지가 아니라 `file_path`의 `agent-memory/<키>/` 마디로 묶음을 나눈다. permalink는 Basic Memory가 실제로 만드는 모양(소문자, `_` → `-`, `_global` → `global`)으로 쓴다(Progress log 2026-10-26).
 
@@ -645,7 +645,7 @@ git commit -m "feat: mirror Claude Code and Codex memory to Basic Memory (make m
 
 `empty.body`는 목록이 빈 같은 모양이다.
 
-- [ ] **Step 3: 실패하는 테스트 작성 (`tests/show-memory-index.bats`)**
+- [x] **Step 3: 실패하는 테스트 작성 (`tests/show-memory-index.bats`)**
 
 ```bash
 setup() {
@@ -735,12 +735,12 @@ line_of() { grep -nF -- "$1" <<<"$output" | head -n 1 | cut -d: -f1; }
 }
 ```
 
-- [ ] **Step 4: 실패 확인**
+- [x] **Step 4: 실패 확인**
 
 Run: `make test`
 Expected: `show-memory-index.bats`의 세 테스트가 `not implemented`로 실패한다.
 
-- [ ] **Step 5: 구현 (`scripts/show-memory-index.sh`)**
+- [x] **Step 5: 구현 (`scripts/show-memory-index.sh`)**
 
 상수: `INDEX_MAX_CHARS=2500`, `INDEX_PAGE_SIZE=50`, `INDEX_EXCERPT_CHARS=100`, `INDEX_TIMEOUT_SECONDS=3`, `GLOBAL_KEY=_global`, `NOTE_TYPE=agent_memory`, `BM_PROJECT=main`, `CLIENT_NAME=bm-agent-memory`, `MEMORY_AGENTS="claude-code codex"`, `INDEX_HEADER`, 두 실패 문구(Global Constraints).
 
@@ -762,12 +762,12 @@ Expected: `show-memory-index.bats`의 세 테스트가 `not implemented`로 실�
 `memory-index: ## Print the Basic Memory index of this project and global notes for a SessionStart hook on stdin (MEMORY_AGENT=claude-code|codex)`
 레시피는 `scripts/show-memory-index.sh "$(MEMORY_AGENT)"`이다.
 
-- [ ] **Step 6: 통과 확인**
+- [x] **Step 6: 통과 확인**
 
 Run: `make check`
 Expected: exit 0, 커버리지 80% 이상.
 
-- [ ] **Step 7: 커밋**
+- [x] **Step 7: 커밋**
 
 ```bash
 git add scripts/show-memory-index.sh tests/show-memory-index.bats tests/fixtures/show-memory-index Makefile
@@ -985,3 +985,4 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 | 2026-10-27 | Verified | Task 1: `scripts/lib/mcp.sh`를 만들고 `verify-mcp.sh`의 MCP 클라이언트(`mcp_` 이름)를 옮겼으며, `sha256_of`를 `vm.sh`에서 `common.sh`로 옮겼다. RED: 구현 전 `make test`에서 not ok 3개였다. `lib-mcp.bats`의 두 테스트는 `mcp_open: command not found`로, 템플릿 빈칸 검사(`scripts and tests hold no unfilled template blank`)는 `new-script`가 만든 빈 라이브러리의 `{{...}}` 때문에 실패했다. GREEN: `make check` 종료 코드 0, 211개 테스트 모두 ok이고 not ok 0개, 총 줄 커버리지 89.19%(최소 80%). `tests/verify-mcp.bats`와 `tests/fixtures/verify-mcp`는 `origin/main`과 차이가 없다. |
 | 2026-10-27 | Verified | Task 2: `scripts/lib/agent-memory.sh`와 `tests/lib-agent-memory.bats`를 만들고, `DEFAULT_TUNNEL_MCP_PORT`·`DEFAULT_TUNNEL_WEB_PORT`를 `open-tunnel.sh`에서 `common.sh`로 옮겼다(`verify-vm.sh` 주석과 `script-authoring`의 Libraries 목록도 고침). RED: 구현 전 `make test`는 exit 2, `lib-agent-memory.bats`의 네 테스트(47~50)가 함수가 없어 실패했고, 빈칸 검사 테스트(148)도 새 파일의 템플릿 빈칸 때문에 실패했다. GREEN: 구현 뒤 `make check` exit 0, 215개 테스트 모두 ok, not ok 0, total line coverage 89.44%(`scripts/lib/agent-memory.sh` 96.77%). |
 | 2026-10-27 | Verified | Task 3: `scripts/sync-agent-memory.sh`와 `tests/sync-agent-memory.bats`를 만들고, `tests/stubs/curl`의 MCP 모드가 요청의 id로 답하게 했으며, `make memory-sync`와 `.env.example`의 세 변수를 더했다. RED: 구현 전 `make test`는 exit 2, 227개 중 not ok 11개였다. `sync-agent-memory.bats`의 열 테스트(187~193, 195~197)가 템플릿의 `not implemented`로 실패했고, 빈칸 검사 테스트(149)가 새 스크립트의 템플릿 빈칸 때문에 실패했다. `BM_MEMORY_DEVICE` 거부 테스트(194)는 요청 전에 끝나는 템플릿에서도 통과했다. GREEN: `make check` exit 0, 227개 모두 ok, not ok 0, total line coverage 89.04%(`scripts/sync-agent-memory.sh` 85.58%). 바뀐 스텁으로 `verify-mcp.bats`(204~208)도 통과했고, `tests/verify-mcp.bats`와 `tests/fixtures/verify-mcp`는 `origin/main`과 차이가 없다. 계획의 테스트 코드에서 shellcheck 경고 두 개(SC2088 `~` 문자열, SC2034 반복 변수)가 나와 동작을 바꾸지 않는 `# shellcheck disable` 주석 두 줄을 더했다. 판단: `BM_MEMORY_EXCLUDE`는 `<키>--<폴더 이름>` 키도 바탕 키로 뺀다(Global Constraints 색인 규칙과 같게). macOS bash 3.2에서 가짜 HOME과 curl 스텁으로 한 번 돌려(세션 scratch 폴더, 커밋하지 않음) 키 충돌의 두 형태, 비밀값 건너뛰기, 재실행 무요청, hook 모드의 삭제를 확인했다. |
+| 2026-10-27 | Verified | Task 4: `scripts/show-memory-index.sh`, `tests/show-memory-index.bats`, `tests/fixtures/show-memory-index/{list,empty}.body`와 `make memory-index`를 만들었다. RED: 구현 전 `make test`에서 `show-memory-index.bats`의 첫 테스트가 `not implemented`로 실패했고, 템플릿 빈칸 검사(`repo-scripts.bats`)도 실패했다. GREEN: `make check` exit 0, 237 ok / 0 not ok, 전체 줄 커버리지 89.21%(`show-memory-index.sh` 95.00%). 계획과 달라진 점 셋: (1) 계획 테스트의 `${lines[1]:0:120}`은 기대 문자열(128자)보다 짧아 어떤 출력으로도 통과할 수 없어 `0:128`로 고쳤다. (2) 계획 fixture의 300자 제목으로는 색인이 2,500자를 넘지 않아 "뺀 줄 수" 줄이 나오지 않으므로 긴 노트 둘의 제목을 800자로 했다. (3) `</system-reminder>`가 `/system-reminder`로 남지 않게 `<…>` 태그 전체를 먼저 지우고 남은 `<`·`>`도 지운다. |
