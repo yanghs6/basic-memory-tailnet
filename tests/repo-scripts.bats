@@ -13,6 +13,10 @@ SOURCES_SH='(^|[;&|({]|\$\(|(^|[[:space:]])(then|do|else))[[:space:]]*(\.|source
 # A line that sources common.sh: the sourced path ends in common.sh before any comment, so a comment naming
 # common.sh does not count.
 SOURCES_COMMON='^[[:space:]]*(\.|source)[[:space:]]+[^#]*[/"[:space:]]common\.sh"?[[:space:]]*(#.*)?$'
+# A line that sources a library: the sourced path ends in /lib/<topic>.sh before any comment.
+SOURCES_LIB='^[[:space:]]*(\.|source)[[:space:]]+[^#]*/lib/[A-Za-z0-9_-]+\.sh"?[[:space:]]*(#.*)?$'
+# The one shebang of a script: env finds bash 3.2 on macOS and bash 5 on the VM and in the test image.
+SHEBANG='#!/usr/bin/env bash'
 # A template blank: two opening braces, a letter, then text up to two closing braces. A generator's sed pattern for a
 # blank ends in the sed delimiter (s/<blank>/<value>/), so a blank followed by / does not count. A test that checks a
 # blank is gone escapes the braces in its pattern, so its file holds no two braces in a row and does not count either.
@@ -41,16 +45,20 @@ script_path_refs() {
     'docs/runbooks/*.md' .agents/skills Makefile .github .claude/agents
 }
 
-@test "every executable shell file enables strict mode" {
-  local file files missing=""
+@test "every executable shell file starts with #!/usr/bin/env bash and enables strict mode" {
+  local file files first missing="" shebangs=""
   require_shell_files
   while IFS= read -r file; do
     # Libraries and the library template are sourced by scripts that already run in strict mode.
     case "$file" in
       *.bash | scripts/lib/* | "$SCRIPT_TEMPLATES_DIR/lib.sh") continue ;;
     esac
+    first=""
+    IFS= read -r first <"$REPO_DIR/$file" || true
+    [[ "$first" == "$SHEBANG" ]] || shebangs="$shebangs"$'\n'"  $file:1: '$first'"
     grep -qx 'set -euo pipefail' "$REPO_DIR/$file" || missing="$missing $file"
   done <<<"$files"
+  [[ -z "$shebangs" ]] || fail "make '$SHEBANG' the first line (AGENTS.md Invariants, Scripts) of:$shebangs"
   [[ -z "$missing" ]] || fail "add 'set -euo pipefail' right after the shebang in:$missing"
 }
 
@@ -105,6 +113,72 @@ script_path_refs() {
   done
   ((libs > 0)) || fail "found no library under scripts/lib other than common.sh"
   [[ -z "$missing" ]] || fail "add a line that sources common.sh, such as . \"\${BASH_SOURCE[0]%/*}/common.sh\" in $SCRIPT_TEMPLATES_DIR/lib.sh, to:$missing"
+}
+
+@test "every script in scripts/ sources common.sh or a scripts/lib library" {
+  # With the test above (each library sources common.sh), every script gets common.sh, so die and mask are defined.
+  local path rel sources line topic scripts=0 problems=""
+  for path in "$REPO_DIR"/scripts/*.sh; do
+    [[ -f "$path" ]] || continue
+    rel="${path#"$REPO_DIR"/}"
+    scripts=$((scripts + 1))
+    if ! sources="$(grep -nE "$SOURCES_LIB" "$path")"; then
+      problems="$problems"$'\n'"  $rel: sources no library"
+      continue
+    fi
+    while IFS= read -r line; do
+      topic="${line##*/lib/}"
+      topic="${topic%%.sh*}"
+      [[ -f "$REPO_DIR/scripts/lib/$topic.sh" ]] \
+        || problems="$problems"$'\n'"  $rel:${line%%:*}: sources lib/$topic.sh, which is not in scripts/lib"
+    done <<<"$sources"
+  done
+  ((scripts > 0)) || fail "found no script under scripts/"
+  [[ -z "$problems" ]] || fail "source common.sh or a topic library that exists (scripts/lib/<topic>.sh), as $SCRIPT_TEMPLATES_DIR/script.sh does with . \"\$SCRIPT_DIR/lib/common.sh\":$problems"
+}
+
+# ssh_forward_problems FILE... -> "file:line: problem: text" for each ssh local forward that does not go through
+# forward_spec. The ssh context of a line is: it has the word ssh, it continues (trailing backslash) a line in the
+# context, or it is inside a multi-line array literal (NAME=( ... ), how tunnel_args builds ssh arguments). In the
+# context a standalone -L must be followed by "$(forward_spec and a bundled short option holding L (-NL, -L0.0.0.0:...)
+# is a problem; LocalForward is a problem anywhere. Lines outside the context are not read for -L, so a file test
+# ([[ ! -L "$path" ]]) or curl -fsSL passes. Comment lines are skipped.
+ssh_forward_problems() {
+  awk '
+    function report(what) { printf "  %s:%d: %s: %s\n", FILENAME, FNR, what, $0 }
+    FNR == 1 { cont = 0; depth = 0 }
+    /^[[:space:]]*#/ { next }
+    {
+      was_inside = depth > 0
+      if (depth > 0 || /[A-Za-z_][A-Za-z0-9_]*\+?=\(/) {
+        line = $0
+        depth += gsub(/\(/, "", line) - gsub(/\)/, "", line)
+        if (depth < 0) depth = 0
+      }
+      context = cont || was_inside || depth > 0 || /(^|[^A-Za-z0-9_.-])ssh([^A-Za-z0-9_-]|$)/
+      cont = context && /\\$/
+      if (/LocalForward/) report("LocalForward")
+      if (!context) next
+      for (i = 1; i <= NF; i++) {
+        word = $i
+        sub(/^\(/, "", word)
+        if (word == "-L") {
+          if (i == NF || $(i + 1) != "\"$(forward_spec") report("-L not followed by \"$(forward_spec")
+        } else if (word ~ /^-[A-Za-z0-9]*L/) {
+          report("bundled option " word)
+        }
+      }
+    }
+  ' "$@"
+}
+
+@test "every ssh -L in scripts/ and the Makefile goes through forward_spec" {
+  local files problems
+  files="$(git -C "$REPO_DIR" ls-files --cached --others --exclude-standard -- 'scripts/*.sh' Makefile)" \
+    && [[ "$files" == *scripts/lib/vm.sh* ]] || fail "git ls-files found no scripts/lib/vm.sh, or failed"
+  # shellcheck disable=SC2086 # one path per word; tracked paths hold no spaces
+  problems="$(cd "$REPO_DIR" && ssh_forward_problems $files)" || fail "awk failed on the scripts and the Makefile"
+  [[ -z "$problems" ]] || fail "build every ssh forward with forward_spec or tunnel_args (scripts/lib/vm.sh), which bind 127.0.0.1 only; no other -L, bundled -...L or LocalForward:"$'\n'"$problems"
 }
 
 @test "every executable script is named <verb>-<object>.sh with a verb from the script-authoring table" {
