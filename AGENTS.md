@@ -9,13 +9,14 @@ Plans: `docs/plans/`; each plan's front matter `status` says backlog, active, co
 - `make check` (lint + all tests + coverage >= 80%) must pass before every commit. `make fmt` fixes shfmt findings.
 - Local: `make local-up local-verify local-down` (`make sb-fonts LOCAL=1` uploads the web fonts locally). `local-up` uses a fixed container name and port, so run it in one worktree at a time (`make check` is safe to run concurrently). VM changing (ask the user first, see Safety): `make vm-bootstrap deploy restore sb-fonts`. No OK needed: `make probe status logs verify backup access-check tunnel` (`verify` writes and deletes a test note; `backup` stops the container briefly).
 
-## Invariants (enforced by the tests/repo-*.bats files; never weaken a test to make it pass)
+## Invariants (never weaken a test to make it pass; a pull request that removes or skips tests carries `Tests-Removed: <reason>` in its trailer paragraph)
 - Basic Memory has no auth: publish every port on `127.0.0.1` only, never enable Tailscale Funnel, and add no inbound firewall rule beyond the access mode's own (none for tailscale, the tunnel range to port 22 for ssh). The only public path is the optional web connector (`BM_WEB=on`): `cloudflared` dials out and reaches only the OAuth gateway, which admits one GitHub account (by numeric id) and lists only allowed tools. In ssh mode the only inbound rule from outside the VPC is the tunnel range to port 22, every `ssh -L` binds `127.0.0.1` (`forward_spec`), and a VM never runs both modes.
 - Pin container images by digest; change the pin only after reading the release notes and passing `make check local-up local-verify`. Upgrade Basic Memory only through the `bm-upgrade` skill.
 - Scripts: `#!/usr/bin/env bash` then `set -euo pipefail`; source `scripts/lib/common.sh` or a `scripts/lib/` library that sources it (scripts in `scripts/remote/` run alone on the VM and source none); fail with an actionable message via `die`.
 - Scripts must run on macOS bash 3.2: no `mapfile`, associative arrays, `${x,,}`, `inherit_errexit`, or empty array expansion. After `x="$(fn)"` where `fn` can fail, add `|| exit 1`.
 - Name constants instead of magic numbers. Never print secrets or session ids; use `mask`.
 - Write the bats test first: `tests/<name>.bats` for `scripts/<name>.sh`, `tests/remote-<name>.bats` and `tests/lib-<name>.bats` for `scripts/remote/` and `scripts/lib/` (`make new-script` creates both); fake commands live in tests/stubs/, recorded responses in tests/fixtures/<test name>/.
+- `make check` and CI `pr-rules` check these rules where a check can see them; the rules no check can see, and why, are listed in docs/decisions/adr-2026-10-27-0svs72hp-prose-only-invariants.md.
 
 ## Safety
 - Never commit secrets, `.env`, Tailscale auth keys, `backups/`, `.local-data/`, or note content.

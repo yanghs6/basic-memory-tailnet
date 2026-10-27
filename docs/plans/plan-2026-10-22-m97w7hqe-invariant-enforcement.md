@@ -177,9 +177,9 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 **Interfaces:**
 - Consumes: Task 1~3의 검사 이름과 Task 2의 트레일러 이름
 
-- [ ] **Step 1: 사용자 OK.** 바꿀 제목과 목록 위치(Open question 2)를 보여 주고 OK를 받는다.
-- [ ] **Step 2: 제목 수정.** "enforced by the tests/repo-*.bats files"를 뺀다. 지금도 검사는 `repo-*.bats`만이 아니라 짝 테스트(`tests/open-tunnel.bats:19`), `tools/coverage.sh:20-29`, CI `pr-rules`, ruleset에 있고, 일부 규칙은 어디에도 없다. 예: `## Invariants (never weaken a test to make it pass; a pull request that removes or skips tests carries Tests-Removed: <reason>)`, 마지막 항목은 "`make check` and CI `pr-rules` check these rules; the rules no check can see, and why, are in <ADR 링크>". `script-authoring` 스킬 `:16`이 이 절을 "AGENTS.md Invariants"로 부르므로 그 이름은 유지한다.
-- [ ] **Step 3: prose-only 목록.** 그날 트리를 기준으로 한 행씩 확인해 적는다. 시작 목록(`AGENTS.md` 행: 이유):
+- [x] **Step 1: 사용자 OK.** 바꿀 제목과 목록 위치(Open question 2)를 보여 주고 OK를 받는다.
+- [x] **Step 2: 제목 수정.** "enforced by the tests/repo-*.bats files"를 뺀다. 지금도 검사는 `repo-*.bats`만이 아니라 짝 테스트(`tests/open-tunnel.bats:19`), `tools/coverage.sh:20-29`, CI `pr-rules`, ruleset에 있고, 일부 규칙은 어디에도 없다. 예: `## Invariants (never weaken a test to make it pass; a pull request that removes or skips tests carries Tests-Removed: <reason>)`, 마지막 항목은 "`make check` and CI `pr-rules` check these rules; the rules no check can see, and why, are in <ADR 링크>". `script-authoring` 스킬 `:16`이 이 절을 "AGENTS.md Invariants"로 부르므로 그 이름은 유지한다.
+- [x] **Step 3: prose-only 목록.** 그날 트리를 기준으로 한 행씩 확인해 적는다. 시작 목록(`AGENTS.md` 행: 이유):
   - `:9` 커밋마다 `make check`: CI가 PR head에서 같은 명령을 돌린다. 커밋마다 막으려면 도구별 hook이 필요하다.
   - `:12` 테스트 약화 금지: Task 2는 삭제와 `skip`만 본다. 약해진 단언은 리뷰가 본다.
   - `:13` 공개 인그레스 0, ssh 모드의 방화벽 규칙, VM당 한 모드: VM·클라우드 상태라서 `make verify`/`make probe`와 `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`의 노출 점검이 본다. `make check`는 볼 수 없다.
@@ -191,10 +191,10 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
   - `:32` `main` 밖의 force-push·rebase, `git gc`, 다른 브랜치 삭제: ruleset은 `main`만 지킨다.
   - `:33` `Review-Finding` 형식: Follow-ups.
   - `:39-40` 레이블과 언어: [structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md) 결정 2가 검사를 금지한다.
-- [ ] **Step 4: 통과 확인.** 새 테스트는 없다([structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md) 결정 2).
+- [x] **Step 4: 통과 확인.** 새 테스트는 없다([structure-checks ADR](../decisions/adr-2026-10-16-q36rwq5s-structure-checks.md) 결정 2).
   Run: `make check`
   Expected: exit 0. 문서 검사(링크, docs 경로, front matter)와 `AGENTS.md` 크기 검사가 통과한다. `wc -c AGENTS.md`가 24,000 이하다.
-- [ ] **Step 5: 커밋.** `git commit -m "docs: say which invariants checks enforce and list the prose-only ones" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 4"`
+- [x] **Step 5: 커밋.** `git commit -m "docs: say which invariants checks enforce and list the prose-only ones" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 4"`
 
 ### Finish: review and hand-off
 
@@ -220,3 +220,4 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 | 2026-10-27 | Verified | Task 2 `09a2699`: 구현 전 `make test`에서 새 테스트 not ok(template `die`, `pr_trailers` 없음). `make check` exit 0, 214 ok, 커버리지 89.13%. `scripts/check-tests.sh origin/main` → `OK: … @test 209 -> 214, 0 new skip line(s)`. PR #28의 `pr-rules`가 새 단계 "Test count and skips"와 함께 통과. |
 | 2026-10-27 | Verified | Task 3 `1c83789`: 심은 위반(평가의 주입 셋, `-NL`, `LocalForward`, `#!/bin/bash`, 없는 `lib/nope.sh`, `FROM debian:13`, 변수 없는 이미지)에 네 검사 모두 not ok, 메시지에 심은 파일:줄. `scripts/remote/provision-vm.sh`, `scripts/check-public-text.sh`는 나오지 않음. `make test` 1..216 ok. |
 | 2026-10-27 | Verified | 리뷰 수정: `dddeef2`(SDD-T2-F1, `then`·`{`·`(` 뒤의 `skip`), `23377a3`(SDD-T3-F1, 한 줄 배열과 따옴표 친 `-L`), `016acf8`(SDD-T3-F2, `docker run` 레시피 이미지와 빈 Makefile 방지). 심은 위반 3개가 각각 파일:줄로 not ok. `make check` exit 0, 커버리지 89.08%. 남긴 P3: Task 1 테스트 이름의 "checkout"(fmt만 봄), ssh 검사의 `-oX…L` 같은 큰소리 오탐, source 검사가 함수·heredoc 안 source를 받음, Dockerfile `FROM --platform`·`scratch` 거부. |
+| 2026-10-27 | Verified | Task 4: [prose-only-invariants ADR](../decisions/adr-2026-10-27-0svs72hp-prose-only-invariants.md)의 표 40행(검사 있음 15, 일부 10, 검사 없음 15)을 그날 트리의 테스트와 스크립트를 열어 확인. `AGENTS.md` 제목과 마지막 항목 수정, 11,269바이트(한도 24,000). `git grep -n 'enforced by the tests/repo'`은 기록(완료된 test-cleanup 계획, 이 계획)에만 남음. `make check` exit 0, `@test` 216개, 커버리지 89.08%. |
