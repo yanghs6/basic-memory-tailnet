@@ -1,7 +1,7 @@
 ---
 status: current
 id: t79ex2ny
-reviewed: 2026-10-16
+reviewed: 2026-10-27
 ---
 
 # 운영
@@ -166,6 +166,8 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다.
 | 2026-10-15 | 장애 아님: 접속 방식을 `tailscale`에서 `ssh`로 바꿈([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8) | 사용 안 함(롤백 지점 `bm-20261015T090644Z.tgz`) | 없음 | VM의 Tailscale은 로그아웃만 함(패키지 유지), admin console의 `agent-hub` 기기 삭제. 2026-10-16 `make verify` 통과 | 해당 없음(장애 아님) |
 | 2026-10-21 | Assumption: 배포 직후 Basic Memory의 재색인으로 1GB VM의 응답이 30초를 넘김. 배포 직후 첫 `make verify`가 `tools/list`에서 `curl: (28)`로 끝남 | 사용 안 함 | 없음 | 2분 뒤 `make probe`·`make verify` 통과. 출처: [script-cleanup 계획](../plans/plan-2026-10-20-c2vxa7kp-script-cleanup.md) Progress log `:498-500` | [recovery-drill 계획](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md) Task 2(`bm-diagnose` 실패 메시지 목록의 `curl: (28)` 행). 원인 확인은 그 계획의 Follow-ups에 남긴다 |
 | 2026-10-26 | 장애 아님: 사용자가 Ruleset `main`의 Enforcement를 껐다가 다시 켬. [doc-ids 계획](../plans/plan-2026-10-26-e3svnr3h-doc-ids.md) Task 4의 일회성 이력 재작성 | 사용 안 함(재작성 전 `main` a1d77be의 mirror 백업 사본을 저장소 밖에 둠) | 없음 | `git push --force-with-lease`로 `main`을 829e77a로 바꾼 뒤 Enforcement를 다시 켰다. 공개 규칙 API에 규칙 5개(deletion, non_fast_forward, required_linear_history, pull_request, required_status_checks)가 보인다. [GitHub 런북](rbk-2026-10-14-ppmby9v6-github.md) 6절 4단계의 기록이다 | 해당 없음(장애 아님) |
+| 2026-10-27 | Assumption: 0.24.1 첫 기동의 DB 마이그레이션과 재색인으로 1GB VM이 느려짐. 시험 배포 직후 `make verify`가 세 번 실패함(05:16Z ssh banner 시간 초과, 05:18Z 검증 터널 열리지 않음, 05:19Z `write_note`의 `curl: (28)`) | 사용 안 함 | 없음 | 컨테이너는 내내 healthy였고 메모리 64%, 스왑 487/1023MB. `make probe` 통과 뒤 05:22Z `make verify` 통과. 출처: [recovery-drill 계획](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md) Progress log | 원인 확인과, 업그레이드 직후 verify를 몇 분 미룰지는 [recovery-drill 계획](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md) Follow-ups에 남김 |
+| 2026-10-27 | 장애 아님: 롤백 시험([recovery-drill 계획](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md) Task 4). 0.24.1로 배포한 뒤 옛 `image:` 줄과 `make restore`로 0.23.2와 백업 시점 데이터로 되돌림 | `bm-20261027T050239Z.tgz` | 05:02:39Z(백업)부터 약 05:27Z(복원)까지. 그 사이 쓴 노트는 VM의 `/srv/basic-memory.prev-*`(이번 복원분)에만 남음 | 사용자가 시험 창 동안 노트 쓰기를 멈춤. 표시 노트 `verify/rollback-drill`이 복원 뒤 사라진 것을 확인 | `/srv/basic-memory.prev-*` 삭제는 사람이 정함 |
 
 ### 점검 기록 (Exposure audit)
 
