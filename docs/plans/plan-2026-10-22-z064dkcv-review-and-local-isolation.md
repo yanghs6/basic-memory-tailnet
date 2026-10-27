@@ -1,5 +1,5 @@
 ---
-status: backlog
+status: active
 id: z064dkcv
 spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 ---
@@ -219,3 +219,8 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
+| 2026-10-27 | Verified | 사용자가 이 계획을 승인했다. `AGENTS.md:10` 문장 수정(Task 4)도 승인에 포함된다. |
+| 2026-10-27 | Verified | Open question 1: A를 골랐다. 기본 모델은 Codex `gpt-6.1-sol`, Claude `claude-opus-5-5`이다. 기본 강도는 추천한 `high`가 아니라 `low`로 정했다(사용자 결정). |
+| 2026-10-27 | Verified | Open question 2: A를 골랐다. 리뷰 worktree에서 `make check`를 직접 돌린다. |
+| 2026-10-27 | Verified | Open question 3: (a)를 골랐다. 다른 worktree가 띄운 스택이면 `local-up`·`local-down`이 거부한다. |
+| 2026-10-27 | Verified | 계획 작성 뒤 PR #24(`01eb909`)가 `Makefile`의 `local-up`·`local-down` 위치를 81–89행으로 옮겼고, PR #25가 `scripts/post-review.sh:64-65`에 코멘트 머리 공개 텍스트 검사를 넣었다. 각 Task는 이 줄 번호가 아니라 현재 코드 기준으로 고친다. |
