@@ -88,7 +88,8 @@ claude_folder_name() {
 claude_folder_cwd() {
   local folder="${1%/}" name cwd
   name="${folder##*/}"
-  # grep -o prints only the cwd fields: session files can be large.
+  # grep -o prints only the cwd fields (session files can be large); sort -u leaves the few distinct values, since a
+  # session file repeats the same cwd tens of thousands of times.
   while IFS= read -r cwd; do
     cwd="${cwd#\"cwd\":\"}"
     cwd="${cwd%\"}"
@@ -96,7 +97,7 @@ claude_folder_cwd() {
       echo "$cwd"
       return 0
     fi
-  done < <(find "$folder" -maxdepth 1 -name '*.jsonl' -exec grep -ho '"cwd":"[^"]*"' {} + 2>/dev/null || true)
+  done < <(find "$folder" -maxdepth 1 -name '*.jsonl' -exec grep -ho '"cwd":"[^"]*"' {} + 2>/dev/null | LC_ALL=C sort -u || true)
   return 1
 }
 

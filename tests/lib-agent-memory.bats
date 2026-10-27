@@ -48,6 +48,17 @@ setup() {
   assert_equal "$(claude_folder_key "$folder")" "local-$(sanitize_key "${folder##*/}")"
 }
 
+@test "claude_folder_cwd finds the cwd when the same lines repeat many times across session files" {
+  local cwd="$BATS_TEST_TMPDIR/proj" folder i
+  folder="$BATS_TEST_TMPDIR/projects/$(claude_folder_name "$cwd")"
+  mkdir -p "$folder"
+  for i in 1 2 3; do
+    yes '{"cwd":"/elsewhere"}' | head -n 500 >"$folder/s$i.jsonl"
+    printf '{"cwd":"%s"}\n' "$cwd" >>"$folder/s$i.jsonl"
+  done
+  assert_equal "$(claude_folder_cwd "$folder")" "$cwd"
+}
+
 @test "require_memory_device takes a lowercase key and refuses an empty, uppercase or spaced one; is_excluded matches whole keys only" {
   local device
   BM_MEMORY_DEVICE=mac-work require_memory_device
