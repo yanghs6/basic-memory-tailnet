@@ -61,6 +61,7 @@ drop_second_test() {
   word=skip
   # Each case: the change and the PR body | pass or fail | what the output must show.
   for case in "removes one|fail|2 -> 1" "adds a skip|fail|tests/a.bats:9" "adds a skip after &&|fail|tests/helpers.bash:3" \
+    "adds a skip after then|fail|tests/a.bats:9" "adds a skip in braces|fail|tests/a.bats:9" \
     "removes one with a reason|pass|2 -> 1" "removes one with an empty reason|fail|2 -> 1" \
     "removes one with the marker in a middle paragraph|fail|2 -> 1"; do
     IFS='|' read -r input expected shown <<<"$case"
@@ -74,6 +75,12 @@ drop_second_test() {
         "adds a skip after &&")
           # shellcheck disable=SC2016 # the $(id -u) is literal text of the helper file, not run here
           printf 'note() {\n  echo "%sping"\n  [ "$(id -u)" -eq 0 ] && %s "root"\n}\n' "$word" "$word" >tests/helpers.bash || exit 1
+          ;;
+        "adds a skip after then")
+          printf '@test "if %ss" {\n  if true; then %s "x"; fi\n}\n' "$word" "$word" >>tests/a.bats || exit 1
+          ;;
+        "adds a skip in braces")
+          printf '@test "brace %ss" {\n  true && { %s "x"; }\n}\n' "$word" "$word" >>tests/a.bats || exit 1
           ;;
         *) drop_second_test || exit 1 ;;
       esac

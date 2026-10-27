@@ -27,8 +27,8 @@ test_count() {
 }
 
 # added_skips FROM TO -> 'path:line' of every line added between FROM and TO that runs skip: skip in command
-# position (at the line start or after &&, || or ;) followed by a blank or the line end. A test name or a string that
-# only contains the word does not count.
+# position (at the line start or after &&, ||, ;, |, { or (, optionally behind then, else or do) followed by a blank or
+# the line end. A test name or a string that only contains the word does not count.
 added_skips() {
   git diff -U0 --no-color --no-ext-diff --no-renames --src-prefix=a/ --dst-prefix=b/ "$1" "$2" -- \
     "$TEST_FILES" "$HELPER_FILE" | awk '
@@ -37,7 +37,8 @@ added_skips() {
     /^@@ / { header = 0; match($0, /\+[0-9]+/); line = substr($0, RSTART + 1, RLENGTH - 1) + 0; next }
     !header && /^\+/ {
       text = substr($0, 2)
-      if (text ~ /^[ \t]*skip([ \t]|$)/ || text ~ /(&&|\|\||;)[ \t]*skip([ \t]|$)/) print file ":" line
+      if (text ~ /^[ \t]*((then|else|do)[ \t]+)?skip([ \t]|$)/ ||
+        text ~ /(&&|;|[{(|])[ \t]*((then|else|do)[ \t]+)?skip([ \t]|$)/) print file ":" line
       line++
     }'
 }

@@ -29,7 +29,7 @@ date: 2026-10-27
 2. 표지는 `Assisted-by`와 같게 파싱한다. PR 제목, 빈 줄, 본문으로 만든 squash 커밋 메시지의 마지막(트레일러) 문단에 있고 값이 비어 있지 않아야 한다. 값이 빈 `Tests-Removed:`나 본문 중간 문단의 `Tests-Removed:`는 표지가 아니다. 파서는 `scripts/lib/git.sh`의 `pr_trailers`와 `trailer_values`이고 `scripts/check-pr.sh`와 함께 쓴다.
 3. 기준점은 `git merge-base origin/main HEAD`다. 브랜치가 `git merge origin/main`으로 받은 `main` 쪽 삭제나, 브랜치가 아직 받지 않은 `main` 쪽 추가는 PR 탓이 아니기 때문이다. 기준점이 없으면 고칠 방법과 함께 실패한다.
 4. 센다: 기준점과 `HEAD`의 `tests/*.bats`에서 `^@test `로 시작하는 줄 수. 줄었으면 위반이다.
-5. 찾는다: 기준점과 `HEAD` 사이에 `tests/*.bats`와 `tests/helpers.bash`에 더해진 줄 가운데 `skip`이 명령 위치(줄 처음이나 `&&`, `||`, `;` 뒤)에 있고 뒤에 공백이나 줄 끝이 오는 줄. `[ "$(id -u)" -eq 0 ] && skip "…"` 모양도 잡고, 테스트 이름의 `skips`나 문자열 `"skipping"`은 잡지 않는다.
+5. 찾는다: 기준점과 `HEAD` 사이에 `tests/*.bats`와 `tests/helpers.bash`에 더해진 줄 가운데 `skip`이 명령 위치(줄 처음이나 `&&`, `||`, `;`, `|`, `{`, `(` 뒤, 그 사이에 `then`, `else`, `do`가 와도 됨)에 있고 뒤에 공백이나 줄 끝이 오는 줄. `[ "$(id -u)" -eq 0 ] && skip "…"`, `if …; then skip "…"; fi`, `{ skip "…"; }` 모양도 잡고, 테스트 이름의 `skips`나 문자열 `"skipping"`은 잡지 않는다.
 6. 검사는 `scripts/check-tests.sh BASE`(입력 `PR_TITLE`, `PR_BODY`)이고 `pr-rules` 잡의 새 단계 "Test count and skips"가 `origin/main`으로 실행한다. 새 잡은 만들지 않는다. ruleset의 필수 검사 목록을 바꾸지 않기 위해서다.
 
 ## 결과
@@ -38,6 +38,6 @@ date: 2026-10-27
 - 알려진 한계:
   - 하나를 지우고 하나를 더한 PR은 수가 같아 통과한다. 수만 세고 어떤 테스트인지는 보지 않는다.
   - 단언을 약하게 바꾼 것(`assert_failure`를 지움, 기대값을 넓힘, 반복문 경우를 뺌)은 잡지 않는다.
-  - 명령 위치 판단은 정규식이라 문자열 안의 `; skip x` 같은 줄은 위반으로 잡힌다(오탐). 이런 줄은 변수로 만들어 피하거나 표지를 단다. `tests/check-tests.bats`는 `skip` 줄을 변수로 만든다.
+  - 명령 위치 판단은 정규식이라 문자열 안의 `; skip x`나 `(skip x)` 같은 줄은 위반으로 잡힌다(오탐). 이런 줄은 변수로 만들어 피하거나 표지를 단다. `tests/check-tests.bats`는 `skip` 줄을 변수로 만든다.
   - `Makefile`의 커버리지 기준(`COVERAGE_MIN`)을 낮추는 변경은 범위 밖이다.
-- 확인 방법: `tests/check-tests.bats`(통과 반복문: 그대로, 하나 더함, `main`이 더한 것을 받지 않음, `main`이 지운 것을 병합. 실패 반복문: 지움, `skip`, `&& skip`, 이유 있는 지움은 통과, 빈 값과 중간 문단은 실패), `tests/lib-git.bats`의 `pr_trailers` 경우, PR마다 `pr-rules`의 "Test count and skips" 단계.
+- 확인 방법: `tests/check-tests.bats`(통과 반복문: 그대로, 하나 더함, `main`이 더한 것을 받지 않음, `main`이 지운 것을 병합. 실패 반복문: 지움, `skip`, `&& skip`, `then skip`, `{ skip`, 이유 있는 지움은 통과, 빈 값과 중간 문단은 실패), `tests/lib-git.bats`의 `pr_trailers` 경우, PR마다 `pr-rules`의 "Test count and skips" 단계.
