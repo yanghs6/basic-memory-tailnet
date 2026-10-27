@@ -246,6 +246,55 @@ reviewer_hook_command() {
   assert_success
 }
 
+# Every `*` entry in sandbox.excludedCommands must be one of these: arguments make a target's exact string useless, and a wider
+# pattern (make *, docker *, bash *) would take the sandbox off for everything it matches.
+SANDBOX_STAR_EXCLUDES='make local-up *|make local-down *|make local-logs *|make local-verify *|make review *|make review-post *|make review-record *|make probe *|make status *|make logs *|make export-logs *|make verify *|make backup *|make access-check *|make tunnel *|make deploy *|make restore *|make vm-bootstrap *|make sb-fonts *|gh *|gcloud *|git push *'
+# The ask rules the settings must keep: outward actions and VM or cloud changes.
+SANDBOX_ASK_RULES='Bash(git push --force*)|Bash(git push * --force*)|Bash(git push -f*)|Bash(git push * -f*)|Bash(git push *)|Bash(gh pr create *)|Bash(gh pr edit *)|Bash(gh pr comment *)|Bash(gh pr ready *)|Bash(make review-post *)|Bash(make review-record *)|Bash(make deploy *)|Bash(make restore *)|Bash(make vm-bootstrap *)|Bash(make sb-fonts *)|Bash(gcloud compute instances create *)|Bash(gcloud compute instances delete *)|Bash(gcloud compute firewall-rules create *)|Bash(gcloud compute firewall-rules delete *)'
+
+# settings_problems FILE: print one line per way the Claude Code settings in FILE break the sandbox rules; print nothing when they hold.
+settings_problems() {
+  jq -r --arg star "$SANDBOX_STAR_EXCLUDES" --arg ask "$SANDBOX_ASK_RULES" '
+    def need(cond; msg): if cond then empty else msg end;
+    ($star | split("|")) as $stars
+    | ($ask | split("|")) as $asks
+    | (.sandbox.filesystem.denyRead // []) as $deny_read
+    | (.sandbox.excludedCommands // []) as $excluded
+    | (.permissions.deny // []) as $deny
+    | (.permissions.ask // []) as $asked
+    | need(.sandbox.enabled == true; "sandbox.enabled must be true"),
+      need(.sandbox.allowUnsandboxedCommands == false; "sandbox.allowUnsandboxedCommands must be false"),
+      need((.permissions | has("blockReadsOutsideWorkingDirectories") | not); "permissions.blockReadsOutsideWorkingDirectories must be absent (the spike fell back to 1-B)"),
+      ("../../../.env", "~/.ssh", "~/.config/gcloud", "~/.config/gh" | . as $p | need($deny_read | index($p); "sandbox.filesystem.denyRead lacks " + $p)),
+      need(((.sandbox.network.allowedDomains // []) | length) > 0; "sandbox.network.allowedDomains must not be empty"),
+      need($deny | index("Read(~/**/.env)"); "permissions.deny lacks Read(~/**/.env)"),
+      ($excluded[] | select(contains("*")) | select(. as $e | $stars | index($e) | not) | "sandbox.excludedCommands has a `*` entry outside the fixed list: " + .),
+      ($deny[] | select((test("^Read\\((\\./\\.env|\\./backups/\\*\\*|\\./\\.local-data/\\*\\*|~/\\.ssh/\\*\\*|~/\\.config/gcloud/\\*\\*|~/\\.config/gh/\\*\\*|~/\\*\\*/\\.env)\\)$") or test("^Bash\\(rm .*(backups|basic-memory\\.prev)")) | not) | "permissions.deny holds a rule that is neither a secret read nor a backup deletion: " + .),
+      need($deny | any(test("^Bash\\(rm .*backups")); "permissions.deny lacks a backups deletion rule"),
+      need($deny | any(test("^Bash\\(rm .*basic-memory\\.prev")); "permissions.deny lacks a basic-memory.prev deletion rule"),
+      ($asks[] | . as $r | need($asked | index($r); "permissions.ask lacks " + $r))
+  ' "$1" || return 1
+}
+
+@test "the Claude Code settings keep the sandbox on, deny only secret reads and backup deletion, and ask before outward or VM commands" {
+  local settings="$REPO_DIR/.claude/settings.json" bad="$BATS_TEST_TMPDIR/bad.json"
+  # The check itself: a copy without one required key and a copy with `make *` added must both be reported.
+  jq 'del(.sandbox.enabled)' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "sandbox.enabled must be true"
+  jq '.sandbox.excludedCommands += ["make *"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "outside the fixed list: make *"
+  jq '.permissions.deny += ["Bash(rm *)"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "neither a secret read nor a backup deletion"
+  # The committed file holds every rule.
+  run settings_problems "$settings"
+  assert_output ""
+  # A committed file must stay portable: no home directory path.
+  refute_matches "$settings" '/Users/|/home/'
+}
+
 @test "cloudflared runs a pinned cloudflared image as a remotely managed tunnel in the tunnel profile, publishes no port and joins only the web network" {
   local cf command
   cf="$(service_block cloudflared)"
