@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 id: zw0shxee
 spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 ---
@@ -239,3 +239,4 @@ Expected: `make check`는 exit 0이고, 두 번째 명령은 아무것도 출력
 | 2026-10-27 | Verified | Task 4 Step 6(사용자 OK): worktree `compose.yaml`을 0.23.2로 되돌림(`git diff origin/main -- compose.yaml` 비어 있음). 사용자가 자기 터미널에서 이 worktree(`.claude/worktrees/recovery-drill`)로 가서 `make restore BACKUP=<main>/backups/bm-20261027T050239Z.tgz`를 실행하고 `yes`를 입력했으며 완료를 알렸다. 복원 시각은 05:29:08Z에 컨테이너가 "Up 2 minutes"여서 약 05:27Z다. |
 | 2026-10-27 | Verified | Task 4 Step 7: `make status` IMAGE `basic-memory:0.23.2@sha256:939f1173…`(main과 같음), healthy, 메모리 68%, 스왑 402/1023MB. `read_note main/verify/rollback-drill` → Note Not Found, 제목 검색도 결과 없음(백업 이후 변경이 사라짐, 스펙 §1 완료 조건 3). `make probe` 통과(05:30:29Z). 시험 창은 05:02:39Z → 약 05:27Z이고, 그 사이 데이터는 VM `/srv/basic-memory.prev-*`(이번 복원분)에만 남는다. |
 | 2026-10-27 | Verified | Task 4 Step 8: Incident log에 2026-10-27 행 두 개(시험 배포 직후 verify 실패, 장애 아님: 롤백 시험)를 더하고 런북 `reviewed`를 2026-10-27로 바꿨다. 칸 수 명령 → `6`, IPv4 grep → 0건. |
+| 2026-10-27 | Command | Finish: `make check` → exit 0, 테스트 210개 중 not ok 0개, 줄 커버리지 89.21%(최소 80%). `git log -p origin/main..HEAD -- compose.yaml` → 비어 있음(시험 pin이 이력에 없음). |
