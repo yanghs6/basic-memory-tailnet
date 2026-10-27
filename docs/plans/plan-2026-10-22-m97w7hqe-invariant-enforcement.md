@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 id: m97w7hqe
 spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 ---
@@ -198,7 +198,7 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 
 ### Finish: review and hand-off
 
-- [ ] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
+- [x] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
 - [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
 - [ ] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
 - [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
@@ -222,3 +222,4 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 | 2026-10-27 | Verified | 리뷰 수정: `dddeef2`(SDD-T2-F1, `then`·`{`·`(` 뒤의 `skip`), `23377a3`(SDD-T3-F1, 한 줄 배열과 따옴표 친 `-L`), `016acf8`(SDD-T3-F2, `docker run` 레시피 이미지와 빈 Makefile 방지). 심은 위반 3개가 각각 파일:줄로 not ok. `make check` exit 0, 커버리지 89.08%. 남긴 P3: Task 1 테스트 이름의 "checkout"(fmt만 봄), ssh 검사의 `-oX…L` 같은 큰소리 오탐, source 검사가 함수·heredoc 안 source를 받음, Dockerfile `FROM --platform`·`scratch` 거부. |
 | 2026-10-27 | Verified | Task 4: [prose-only-invariants ADR](../decisions/adr-2026-10-27-0svs72hp-prose-only-invariants.md)의 표 40행(검사 있음 15, 일부 10, 검사 없음 15)을 그날 트리의 테스트와 스크립트를 열어 확인. `AGENTS.md` 제목과 마지막 항목 수정, 11,269바이트(한도 24,000). `git grep -n 'enforced by the tests/repo'`은 기록(완료된 test-cleanup 계획, 이 계획)에만 남음. `make check` exit 0, `@test` 216개, 커버리지 89.08%. |
 | 2026-10-27 | Verified | `git merge origin/main`(`7cfca60`, PR #29) 뒤 Task 1 테스트의 `local-down` 경우가 실패했다. #29가 레시피 앞에 `scripts/check-local-stack.sh`를 더했는데 fixture에 그 스크립트와 `compose.yaml`이 없어서다. 그 경우에만 `local-up` 테스트처럼 둘을 복사했고, `docker compose -f compose.yaml down` 정확 일치 검사는 그대로다. `make check` exit 0, @test 221, 커버리지 89.04%. |
+| 2026-10-27 | Verified | Task 4 리뷰 수정 `160f7a2`(SDD-T4-F1, 병합으로 밀린 ADR 인용 두 개). 완료 시점 `make check` exit 0, @test 221, 커버리지 89.04%. 남긴 P3: ADR `:13` 행의 "공개 인그레스 0" 표현, `AGENTS.md:8`·`:10` 행 없음. |
