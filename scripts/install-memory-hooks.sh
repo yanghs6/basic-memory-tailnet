@@ -12,10 +12,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 . "$SCRIPT_DIR/lib/common.sh"
 
-readonly HOOK_TIMEOUT_SECONDS=10
+readonly HOOK_TIMEOUT_SECONDS=15
 readonly SYNC_EVENTS="SessionStart Stop"
 readonly INDEX_EVENT=SessionStart
-readonly OWN_COMMAND_PATTERN='^make -s --no-print-directory -C .+ memory-(sync HOOK=1|index MEMORY_AGENT=(claude-code|codex))$'
+# Make exits 2 on its own errors (a moved checkout, a missing target) and a Claude Code Stop hook that exits 2 blocks the
+# stop, so each command ends in || exit 1 (a non-blocking error). The pattern also matches the older form without it.
+readonly OWN_COMMAND_PATTERN='^make -s --no-print-directory -C .+ memory-(sync HOOK=1|index MEMORY_AGENT=(claude-code|codex))( \|\| exit 1)?$'
 readonly CLAUDE_AGENT=claude-code
 readonly CODEX_AGENT=codex
 
@@ -58,8 +60,8 @@ current_json() {
 # new_json CURRENT_JSON AGENT MAIN REMOVE -> CURRENT_JSON with our hooks for AGENT replaced (REMOVE true: removed).
 new_json() {
   local current="$1" agent="$2" main="$3" remove="$4" sync_cmd index_cmd
-  sync_cmd="make -s --no-print-directory -C '$main' memory-sync HOOK=1"
-  index_cmd="make -s --no-print-directory -C '$main' memory-index MEMORY_AGENT=$agent"
+  sync_cmd="make -s --no-print-directory -C '$main' memory-sync HOOK=1 || exit 1"
+  index_cmd="make -s --no-print-directory -C '$main' memory-index MEMORY_AGENT=$agent || exit 1"
   jq --arg pattern "$OWN_COMMAND_PATTERN" --argjson remove "$remove" --arg sync "$sync_cmd" --arg index "$index_cmd" \
     --arg events "$SYNC_EVENTS" --arg index_event "$INDEX_EVENT" --argjson timeout "$HOOK_TIMEOUT_SECONDS" \
     "$HOOKS_JQ" <<<"$current"

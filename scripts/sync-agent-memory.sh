@@ -102,39 +102,74 @@ acquire_lock() {
 # key_taken KEY -> status 0 when keys.tsv already gives KEY to a Claude folder.
 key_taken() { awk -F'\t' -v key="$1" '$2 == key { found = 1 } END { exit !found }' "$KEYS_FILE"; }
 
-# folder_key FOLDER -> the project key keys.tsv holds for the Claude folder FOLDER. A folder without one gets
-# claude_folder_key, made unique as spec section 3.2 rule 7 says, and keys.tsv keeps it.
-folder_key() {
-  local folder="$1" name key base cwd dir
-  name="${folder##*/}"
-  key="$(awk -F'\t' -v name="$name" '$1 == name { print $2; exit }' "$KEYS_FILE")" || exit 1
-  if [[ -z "$key" ]]; then
-    key="$(claude_folder_key "$folder")" || exit 1
-    if key_taken "$key"; then
-      base="$key"
-      cwd="$(claude_folder_cwd "$folder")" || cwd=""
-      dir="${cwd:-$name}"
-      key="$base--$(sanitize_key "${dir##*/}")" || exit 1
-      if key_taken "$key"; then
-        key="$key-$(printf '%s' "$dir" | sha256_of - | cut -c "1-$KEY_HASH_LENGTH")" || exit 1
-      fi
-      log "WARNING: project key $base is taken; using $key for $(tilde_path "$folder")"
-    fi
-    printf '%s\t%s\n' "$name" "$key" >>"$KEYS_FILE"
+# new_folder_entry FOLDER -> "<key><tab><repo>" for a Claude folder keys.tsv has no line for: claude_folder_key, made
+# unique as spec section 3.2 rule 7 says, and the origin of the cwd of its sessions (empty when there is none). keys.tsv
+# keeps both.
+new_folder_entry() {
+  local folder="$1" name="${1##*/}" key base cwd="" dir repo=""
+  key="$(claude_folder_key "$folder")" || exit 1
+  if cwd="$(claude_folder_cwd "$folder")"; then
+    repo="$(repo_for_dir "$cwd")" || exit 1
   fi
-  echo "$key"
+  if key_taken "$key"; then
+    base="$key"
+    dir="${cwd:-$name}"
+    key="$base--$(sanitize_key "${dir##*/}")" || exit 1
+    if key_taken "$key"; then
+      key="$key-$(printf '%s' "$dir" | sha256_of - | cut -c "1-$KEY_HASH_LENGTH")" || exit 1
+    fi
+    log "WARNING: project key $base is taken; using $key for $(tilde_path "$folder")"
+  fi
+  printf '%s\t%s\t%s\n' "$name" "$key" "$repo" >>"$KEYS_FILE"
+  printf '%s\t%s\n' "$key" "$repo"
+}
+
+# fill_keys_repo NAME REPO -> keys.tsv with REPO as the third column of the two-column line (an older run's) of the
+# Claude folder NAME, through a .partial file in the same folder. It runs inside $(...), where errexit is off, so each
+# step checks its own status: a cut-short keys.tsv would give folders new keys.
+fill_keys_repo() {
+  local hint
+  hint="check the permissions and free space of $(tilde_path "$STATE_DIR")"
+  awk -F'\t' -v OFS='\t' -v name="$1" -v repo="$2" '$1 == name && NF == 2 { $3 = repo } { print }' "$KEYS_FILE" \
+    >"$KEYS_FILE$PARTIAL_SUFFIX" || die "cannot write $KEYS_FILE_NAME$PARTIAL_SUFFIX: $hint"
+  mv "$KEYS_FILE$PARTIAL_SUFFIX" "$KEYS_FILE" || die "cannot replace $KEYS_FILE_NAME: $hint"
+}
+
+# folder_entry FOLDER -> "<key><tab><repo>" that keys.tsv holds for the Claude folder FOLDER (repo empty when none).
+# Only a folder without a line, or with a line without the repo column, reads its session files (hundreds of MiB on a
+# busy Mac); that column is filled once.
+folder_entry() {
+  local folder="$1" name line rest key cwd repo=""
+  name="${folder##*/}"
+  line="$(awk -F'\t' -v name="$name" '$1 == name { print; exit }' "$KEYS_FILE")" || exit 1
+  if [[ -z "$line" ]]; then
+    new_folder_entry "$folder"
+    return 0
+  fi
+  rest="${line#*$'\t'}"
+  key="${rest%%$'\t'*}"
+  case "$rest" in
+    *$'\t'*) repo="${rest#*$'\t'}" ;;
+    *)
+      if cwd="$(claude_folder_cwd "$folder")"; then
+        repo="$(repo_for_dir "$cwd")" || exit 1
+      fi
+      fill_keys_repo "$name" "$repo"
+      ;;
+  esac
+  printf '%s\t%s\n' "$key" "$repo"
 }
 
 # excluded_key KEY -> status 0 when BM_MEMORY_EXCLUDE lists KEY or the key it was made unique from (<key>--<name>).
 excluded_key() { is_excluded "$1" || is_excluded "${1%%--*}"; }
 
 # md_files ROOT AGENT -> the *.md files under ROOT, NUL separated; for Codex without .git/, other hidden files and
-# folders, and its work file.
+# folders, and its work file. -H follows ROOT when it is a symlink (a memory folder kept elsewhere), nothing below it.
 md_files() {
   if [[ "$2" == "$AGENT_CODEX" ]]; then
-    find "$1" \( -name '.*' -o -name "$CODEX_WORK_FILE" \) -prune -o -type f -name '*.md' -print0
+    find -H "$1" \( -name '.*' -o -name "$CODEX_WORK_FILE" \) -prune -o -type f -name '*.md' -print0
   else
-    find "$1" -type f -name '*.md' -print0
+    find -H "$1" -type f -name '*.md' -print0
   fi
 }
 
@@ -178,7 +213,7 @@ add_sources() {
 # collect_claude -> the desired lines of every Claude Code memory folder, in folder name order, except temporary
 # folders and excluded projects.
 collect_claude() {
-  local projects="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" folder key cwd repo
+  local projects="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" folder entry key repo
   [[ -d "$projects" ]] || return 0
   find "$projects" -mindepth 1 -maxdepth 1 -type d >"$WORK_DIR/folders.found" || cannot_list "$projects"
   LC_ALL=C sort "$WORK_DIR/folders.found" >"$WORK_DIR/folders"
@@ -186,13 +221,11 @@ collect_claude() {
     if [[ "${folder##*/}" == "$TMP_FOLDER_PREFIX"* || ! -d "$folder/$CLAUDE_MEMORY_FOLDER" ]]; then
       continue
     fi
-    key="$(folder_key "$folder")" || exit 1
+    entry="$(folder_entry "$folder")" || exit 1
+    key="${entry%%$'\t'*}"
+    repo="${entry#*$'\t'}"
     if excluded_key "$key"; then
       continue
-    fi
-    repo=""
-    if cwd="$(claude_folder_cwd "$folder")"; then
-      repo="$(repo_for_dir "$cwd")" || exit 1
     fi
     add_sources "$folder/$CLAUDE_MEMORY_FOLDER" "$key" "$AGENT_CLAUDE" "$repo" ""
   done <"$WORK_DIR/folders"

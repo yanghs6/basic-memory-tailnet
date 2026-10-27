@@ -29,6 +29,7 @@ line_of() { grep -nF -- "$1" <<<"$output" | head -n 1 | cut -d: -f1; }
   assert_equal "${lines[0]}" "$HEADER"
   [[ "${lines[1]}" == "- ports | main/agent-memory/acme-widget/claude-code/mac-personal/ports | claude-code@mac-personal | 2026-10-21 | /system-reminder ports are fixed"* ]] || fail "wrong project line: ${lines[1]:0:160}"
   refute_output --partial "acme-widget/claude-code/mac-work/"
+  assert_output --partial "- home-note | main/agent-memory/global/claude-code/mac-work/home-note | claude-code@mac-work |"
   (($(line_of "main/agent-memory/global/codex/mac-work/memory-summary | codex@mac-work |") < $(line_of "main/agent-memory/global/codex/mac-personal/memory-summary | codex@mac-personal |"))) || fail "global notes are missing or not newest first"
   assert_equal "$(grep -c 'mac-personal/ports |' <<<"$output")" 1
   for line in "${lines[@]:1}"; do
@@ -40,6 +41,10 @@ line_of() { grep -nF -- "$1" <<<"$output" | head -n 1 | cut -d: -f1; }
   assert_success
   refute_output --partial "global/codex/mac-work/"
   assert_output --partial "acme-widget/claude-code/mac-work/memory"
+  run "$INDEX" claude-code <<<"$(hook_input "$HOME")"
+  assert_success
+  assert_output --partial "global/codex/mac-personal/"
+  refute_output --partial "global/claude-code/mac-work/"
 }
 
 @test "prints and sends nothing in the Codex memory folder or an excluded project, and refuses an unknown agent before any request" {

@@ -11,7 +11,7 @@ setup() {
   jq -n '{model: "x", hooks: {UserPromptSubmit: [{hooks: [{type: "command", command: "bash memsearch.sh", timeout: 10}]}]}}' \
     >"$HOME/.claude/settings.json"
   MAIN="$(main_checkout_root "$REPO_DIR")"
-  SYNC_CMD="make -s --no-print-directory -C '$MAIN' memory-sync HOOK=1"
+  SYNC_CMD="make -s --no-print-directory -C '$MAIN' memory-sync HOOK=1 || exit 1"
   INDEX_CMD="make -s --no-print-directory -C '$MAIN' memory-index MEMORY_AGENT"
   INSTALL="$REPO_DIR/scripts/install-memory-hooks.sh"
 }
@@ -31,7 +31,7 @@ commands() { jq -r --arg e "$2" '.hooks[$e][]?.hooks[]?.command' "$1"; }
   for file in "$HOME/.claude/settings.json:claude-code" "$HOME/.codex/hooks.json:codex"; do
     agent="${file##*:}" file="${file%:*}"
     (
-      assert_equal "$(commands "$file" SessionStart)" "$(printf '%s\n%s=%s' "$SYNC_CMD" "$INDEX_CMD" "$agent")" \
+      assert_equal "$(commands "$file" SessionStart)" "$(printf '%s\n%s=%s || exit 1' "$SYNC_CMD" "$INDEX_CMD" "$agent")" \
         && assert_equal "$(commands "$file" Stop)" "$SYNC_CMD"
     ) || fail "hooks in $file"
   done
@@ -65,7 +65,7 @@ commands() { jq -r --arg e "$2" '.hooks[$e][]?.hooks[]?.command' "$1"; }
   [[ ! -e "$HOME/.codex/hooks.json" ]] || fail "wrote the Codex file although the Claude file is broken"
 }
 
-@test "leaves the file byte-identical when the user added a hook after ours, and replaces a stale own entry of another checkout path" {
+@test "leaves the file byte-identical when the user added a hook after ours, and replaces a stale own entry of another checkout path in the older form without || exit 1" {
   local before
   run "$INSTALL"
   assert_success
@@ -79,7 +79,7 @@ commands() { jq -r --arg e "$2" '.hooks[$e][]?.hooks[]?.command' "$1"; }
   assert_equal "$(cat "$HOME/.claude/settings.json")" "$before"
   assert_equal "$(find "$HOME/.claude" -name '*.bak-*' | wc -l | tr -d ' ')" 0
   assert_equal "$(commands "$HOME/.claude/settings.json" SessionStart | tail -n 1)" other.sh
-  jq '.hooks.Stop[0].hooks[0].command |= sub("-C .+ memory"; "-C /old/place memory")' "$HOME/.claude/settings.json" \
+  jq '.hooks.Stop[0].hooks[0].command |= (sub("-C .+ memory"; "-C /old/place memory") | sub(" [|][|] exit 1$"; ""))' "$HOME/.claude/settings.json" \
     >"$BATS_TEST_TMPDIR/stale.json"
   cp "$BATS_TEST_TMPDIR/stale.json" "$HOME/.claude/settings.json"
   run "$INSTALL"

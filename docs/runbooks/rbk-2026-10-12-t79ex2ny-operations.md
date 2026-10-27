@@ -79,7 +79,7 @@ codex mcp add basic-memory --url <URL>
 
 Claude Code·Codex의 기억 파일을 Basic Memory의 `agent-memory/`로 미러하고, 새 세션에 다른 Mac·에이전트의 기억 색인을 넣습니다([스펙](../specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md)). 각 Mac에서 한 번 설정합니다.
 
-1. 메인 체크아웃 `.env`에 `BM_MEMORY_DEVICE`(`^[a-z0-9-]+$`, 예: `mac-work`)를 넣습니다(사용자). 노트로 보내지 않을 프로젝트가 있으면 `BM_MEMORY_EXCLUDE`(쉼표로 구분한 프로젝트 키)도 넣습니다.
+1. 메인 체크아웃 `.env`에 `BM_MEMORY_DEVICE`(`^[a-z0-9-]+$`, 예: `mac-work`)를 넣습니다(사용자). Mac마다 다른 값을 씁니다. 다른 Mac의 `.env`를 복사했다면 이 값을 바꿉니다. 같은 값이면 두 Mac이 서로의 노트를 덮어쓰고, `FULL=1`은 상대 Mac의 노트를 지웁니다. 노트로 보내지 않을 프로젝트가 있으면 `BM_MEMORY_EXCLUDE`(쉼표로 구분한 프로젝트 키)도 넣습니다.
 2. `make tunnel`을 띄웁니다(`ssh` 모드).
 3. `make memory-sync`로 처음 올립니다. 다시 실행해 아무것도 보내지 않는지 봅니다.
 4. 사용자 OK를 받고 `make memory-hooks`를 실행합니다. SessionStart·Stop에 동기화를, SessionStart에 색인을 더합니다.
@@ -92,7 +92,9 @@ Claude Code·Codex의 기억 파일을 Basic Memory의 `agent-memory/`로 미러
 - Codex는 hook을 파일 안의 위치와 명령으로 신뢰합니다. 설치나 해제 뒤에는 Codex `/hooks`를 다시 열어, 위치가 바뀐 다른 hook이 신뢰를 잃지 않았는지 봅니다.
 - 제외: `BM_MEMORY_EXCLUDE`에 키를 적으면 다음 동기화가 그 노트를 지웁니다. Codex 기억은 모두 `_global`이라 프로젝트 키로는 빠지지 않습니다. Codex 기억까지 빼려면 `_global`을 적어야 하고, 그러면 모든 Codex 기억과 홈 폴더 Claude 기억이 빠집니다(스펙 §4.2).
 - 복원과 재구축 뒤: `make restore`나 VM 재구축 뒤에는 각 Mac에서 `make memory-sync FULL=1`을 한 번 실행합니다. 로컬 상태 파일이 VM의 옛 노트를 알아채지 못하기 때문입니다(스펙 §3.3).
-- **Verified (2026-10-26):** 검색어가 로그에 남는지 확인했습니다. 시험 검색 뒤 `make logs | grep -c 'plan24 marker'`가 0이어서 컨테이너 로그에는 검색어가 보이지 않았습니다. VM의 Basic Memory 앱 로그 파일은 읽는 Make 타깃이 없어 읽지 않았습니다. Basic Memory 0.23.2 소스에서는 검색어를 DEBUG 수준에서만 기록하고 VM은 INFO로 도므로, 남지 않는 것으로 봅니다.
+- `CLAUDE_CONFIG_DIR`나 `CODEX_HOME`을 쓴다면 두 에이전트에 같은 값을 주거나, 둘 다 두지 않습니다. 한 에이전트에만 있으면 두 에이전트의 hook이 서로 다른 원본 폴더를 보고, 턴마다 서로의 노트를 지우고 다시 씁니다.
+- **Verified (2026-10-26):** 시험 노트를 쓰고 검색한 뒤 `make logs | grep -c 'plan24 marker'`가 0이어서, 컨테이너 로그에 시험 노트 본문은 없었습니다. 이때 검색어(`경로`, `경로 <시각>`)는 grep하지 않았습니다. VM의 Basic Memory 앱 로그 파일은 읽는 Make 타깃이 없어 읽지 않았습니다.
+- **Reported (Basic Memory 0.23.2 소스):** 검색어는 DEBUG 수준에서만 기록되고 VM은 INFO로 돕니다. [agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md) Task 6 Step 7에서 고유한 검색어로 `search_notes`를 한 번 부른 뒤 `make logs`에서 그 검색어를 grep해 다시 확인합니다.
 
 ## 접속 방식 바꾸기 (Access mode change)
 

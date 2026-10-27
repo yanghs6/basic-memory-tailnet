@@ -47,7 +47,7 @@ spec: docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md
   - 프로젝트 키가 `BM_MEMORY_EXCLUDE`(쉼표로 구분)에 있으면 뺀다. Codex 기억은 모두 `_global`이라, 회사 프로젝트 키를 빼도 Codex 기억 안의 그 내용은 남는다(스펙 §4.2). 런북에 이 한계를 적는다.
   - 경로에 탭이나 줄바꿈이 있는 파일은 경고하고 뺀다(상태 파일이 TSV다).
 - 상태 폴더는 `${XDG_STATE_HOME:-$HOME/.local/state}/bm-agent-memory/`이다. 이 폴더에 다음을 둔다.
-  - 동기화: `state.tsv`(원본 경로, 노트 경로 `directory/title`, sha256, permalink), `keys.tsv`(Claude 기억 폴더 이름, 키), `sync.log`, 잠금 폴더 `lock/`
+  - 동기화: `state.tsv`(원본 경로, 노트 경로 `directory/title`, sha256, permalink), `keys.tsv`(Claude 기억 폴더 이름, 키, repo. repo는 원격이 없거나 모르면 빈 칸이고, 두 칸뿐인 옛 줄은 한 번 채운다. 2026-10-27 최종 리뷰 C1), `sync.log`, 잠금 폴더 `lock/`
 - 메시지는 스펙 그대로 쓴다.
   - 동기화: `basic-memory unreachable (run make tunnel); sync skipped`
   - 색인:
@@ -74,10 +74,11 @@ spec: docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md
   - 이런 형식이 있는 파일은 보내지 않는다.
   - 테스트의 가짜 토큰은 실행 중에 만들어, 저장소에 토큰 모양 문자열을 남기지 않는다.
 - hook 명령(`<main>`은 `main_checkout_root`의 결과이고, 작은따옴표로 감싼다):
-  - SessionStart·Stop: `make -s --no-print-directory -C '<main>' memory-sync HOOK=1`
-  - SessionStart: `make -s --no-print-directory -C '<main>' memory-index MEMORY_AGENT=claude-code`(Claude 설정), `... MEMORY_AGENT=codex`(Codex 설정)
+  - SessionStart·Stop: `make -s --no-print-directory -C '<main>' memory-sync HOOK=1 || exit 1`
+  - SessionStart: `make -s --no-print-directory -C '<main>' memory-index MEMORY_AGENT=claude-code || exit 1`(Claude 설정), `... MEMORY_AGENT=codex || exit 1`(Codex 설정)
+  - 끝의 `|| exit 1`은 make 자신의 오류(종료 코드 2)가 Claude Code Stop hook의 멈춤을 막지 않게 한다(스펙 §3.5, 2026-10-27 최종 리뷰 C2).
   - UserPromptSubmit에는 아무것도 더하지 않는다(스펙 결정 8).
-  - 정규식 `^make -s --no-print-directory -C .+ memory-(sync HOOK=1|index MEMORY_AGENT=(claude-code|codex))$`에 맞는 항목만 이 계획의 hook으로 본다.
+  - 정규식 `^make -s --no-print-directory -C .+ memory-(sync HOOK=1|index MEMORY_AGENT=(claude-code|codex))( \|\| exit 1)?$`에 맞는 항목만 이 계획의 hook으로 본다. `|| exit 1`이 없는 옛 형태도 맞으므로 옛 항목은 새 항목으로 바뀐다.
 - `AGENTS.md`의 스크립트 규칙을 따른다: strict mode 머리, `common.sh` 계열 source, `die`, 이름 붙인 상수, macOS bash 3.2, `x="$(fn)" || exit 1`. 테스트를 먼저 쓰고, `make test`/`make check`로만 돌리고, [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)의 범위를 지킨다. `tests/verify-mcp.bats`와 그 fixture는 고치지 않는다. 테스트 안에서 `export`하는 bats 파일은 shebang 다음 줄에서 SC2030·SC2031을 끈다(`script-authoring` Gotchas).
 - 기억 본문, 세션 id, 홈 폴더 절대 경로, VM 주소는 커밋·PR·로그에 쓰지 않는다. 스크립트는 기억 본문을 출력하지 않고, 테스트는 가짜 기억 파일만 쓴다.
 - 에이전트는 `.env`를 읽지 않는다. `BM_MEMORY_DEVICE`는 사용자가 메인 체크아웃 `.env`에 넣는다.
@@ -800,7 +801,7 @@ setup() {
   jq -n '{model: "x", hooks: {UserPromptSubmit: [{hooks: [{type: "command", command: "bash memsearch.sh", timeout: 10}]}]}}' \
     >"$HOME/.claude/settings.json"
   MAIN="$(main_checkout_root "$REPO_DIR")"
-  SYNC_CMD="make -s --no-print-directory -C '$MAIN' memory-sync HOOK=1"
+  SYNC_CMD="make -s --no-print-directory -C '$MAIN' memory-sync HOOK=1 || exit 1"
   INDEX_CMD="make -s --no-print-directory -C '$MAIN' memory-index MEMORY_AGENT"
   INSTALL="$REPO_DIR/scripts/install-memory-hooks.sh"
 }
@@ -817,7 +818,7 @@ commands() { jq -r --arg e "$2" '.hooks[$e][]?.hooks[]?.command' "$1"; }
   for file in "$HOME/.claude/settings.json:claude-code" "$HOME/.codex/hooks.json:codex"; do
     agent="${file##*:}" file="${file%:*}"
     (
-      assert_equal "$(commands "$file" SessionStart)" "$(printf '%s\n%s=%s' "$SYNC_CMD" "$INDEX_CMD" "$agent")" \
+      assert_equal "$(commands "$file" SessionStart)" "$(printf '%s\n%s=%s || exit 1' "$SYNC_CMD" "$INDEX_CMD" "$agent")" \
         && assert_equal "$(commands "$file" Stop)" "$SYNC_CMD"
     ) || fail "hooks in $file"
   done
@@ -858,14 +859,14 @@ Expected: `install-memory-hooks.bats`의 세 테스트가 `not implemented`로 �
 
 - [x] **Step 4: 구현 (`scripts/install-memory-hooks.sh`)**
 
-상수: `HOOK_TIMEOUT_SECONDS=10`, `SYNC_EVENTS="SessionStart Stop"`, `INDEX_EVENT=SessionStart`, `OWN_COMMAND_PATTERN`(Global Constraints의 정규식).
+상수: `HOOK_TIMEOUT_SECONDS=15`(2026-10-27 최종 리뷰 M1, 전에는 10), `SYNC_EVENTS="SessionStart Stop"`, `INDEX_EVENT=SessionStart`, `OWN_COMMAND_PATTERN`(Global Constraints의 정규식).
 
 - 대상 파일은 `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json`(`MEMORY_AGENT=claude-code`)과 `${CODEX_HOME:-$HOME/.codex}/hooks.json`(`MEMORY_AGENT=codex`)이다. 메인 체크아웃 경로는 `main_checkout_root`로 구한다. 경로에 작은따옴표가 있으면 die한다.
 - 한 이벤트에 우리 항목이 둘이면(SessionStart의 동기화와 색인) 동기화 다음에 색인 순서로 더한다. 동기화는 백그라운드로 곧바로 끝나므로 색인이 기다리지 않는다.
 - 먼저 두 파일을 다 읽고 검사한 뒤에 쓴다. 없는 파일은 `{}`로 본다. JSON이 아니면 `die "<file> is not valid JSON; fix it, nothing was changed"`. 없던 Codex 파일은 최상위에 `hooks`만 둔 채로 만든다. Codex가 모르는 최상위 키를 거부하기 때문이다(스펙 §2).
 - 새 내용은 jq로 만든다.
   - 모든 이벤트에서 `OWN_COMMAND_PATTERN`에 맞는 hook을 빼고, 비게 된 그룹을 지운다.
-  - `--remove`가 아니면 이벤트마다 `{"hooks":[{"type":"command","command":<cmd>,"timeout":10}]}`을 목록 끝에 더한다. matcher는 두지 않는다.
+  - `--remove`가 아니면 이벤트마다 `{"hooks":[{"type":"command","command":<cmd>,"timeout":15}]}`을 목록 끝에 더한다. matcher는 두지 않는다.
   - 그래서 경로가 바뀐 옛 항목은 새 항목으로 바뀐다. 바뀐 것이 없으면 아래 비교에서 쓰지 않으므로, Codex가 위치로 기억하는 신뢰도 그대로다.
 - `jq -S`로 비교해 새 내용이 지금과 같으면 `<file>: already up to date`를 남기고 쓰지 않는다. 다르면 있던 파일을 `<file>.bak-<utc_stamp>`로 복사하고(같은 이름의 백업이 있으면 덮어쓰지 않는다. 처음 백업이 원본이다), `cat`으로 원래 경로에 쓴다(심볼릭 링크를 그대로 둔다). 더하거나 뺀 이벤트를 남긴다.
 - 끝에 Codex는 새 hook을 `/hooks`에서 한 번 신뢰해야 한다는 줄을 남긴다.
@@ -944,6 +945,11 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 - [ ] **Step 6: 전역 지침 (사용자).** 스펙 §3.8의 `~/.agents/AGENTS.md` 문구를 사용자에게 보인다. 사용자가 넣은 뒤 두 에이전트의 새 세션에서 Step 7을 한다. 넣는 일은 사용자가 한다.
 - [ ] **Step 7: 색인과 에이전트 조회 (완료 조건 5, 결정 8).**
   - Codex 기억이나 다른 에이전트의 기억이 있는 상태에서 새 세션을 열고, 컨텍스트에 `Basic Memory index:`가 들어오는지 본다. 그 에이전트 자신의 이 Mac 노트는 없어야 한다.
+  - 색인 목록 호출의 확인하지 않은 동작(2026-10-27 최종 리뷰 M7)을 본다. 셋 모두 결과만 Progress log에 적는다.
+    - 검색어 없는 `search_notes`(`metadata_filters`만) 목록이 최근 갱신 순인지. 노트가 50개를 넘을 때 첫 50개가 가장 최근 것인지 본다.
+    - 결과가 `has_more: true`일 때 마지막 줄의 `<n> more`가 덜 세는지. 색인은 받은 50개 안에서 뺀 줄만 세므로, 받지 않은 다음 쪽의 노트는 수에 들지 않는다.
+    - 목록에 노트가 아닌 행(관찰 `observation`이나 관계)이 섞여 색인 줄이 되는지.
+  - 검색어 로그(2026-10-27 최종 리뷰 M2): 다른 노트에 없을 고유한 검색어(예: `bm-query-check-<UTC 시각>`)로 `search_notes`를 한 번 부른 뒤 `make logs | grep -c '<그 검색어>'`를 실행한다. 0이면 Verified로 적고, 0이 아니면 Follow-ups의 검색어 로그 항목을 연다. 2026-10-26 확인은 시험 노트 본문만 grep했고 검색어는 grep하지 않았다.
   - 이 저장소에서 실제로 할 법한 한국어 질문 5개를 사용자와 정한다. 지난 결정을 묻는 질문이고, 영어 기억에 답이 있는 것과 한국어 기억에 답이 있는 것을 섞는다. 예: "기억 미러의 경로 규칙이 뭐였지?"
   - 두 에이전트에서 각각 묻고 다음을 적는다.
     - MCP를 불렀는지(`read_note`, `search_notes`)
@@ -953,7 +959,7 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
   - 기록은 질문, 호출 여부, 결과 건수만 한다.
 - [ ] **Step 8: 개인 Mac (완료 조건 6, 사용자 일정).**
   - 준비 상태를 확인한다: 메인 체크아웃과 `.env`, `make tunnel`, `codex --version` 0.163 이상, `codex features list`의 `hooks`·`memories`, `jq`, Claude Code와 Codex의 `basic-memory` MCP 등록. 빠진 것은 운영 런북 "에이전트 연결"로 맞춘다.
-  - `BM_MEMORY_DEVICE=mac-personal`로 Step 1~3과 Step 6을 한다.
+  - `BM_MEMORY_DEVICE=mac-personal`로 Step 1~3과 Step 6을 한다. Mac마다 다른 `BM_MEMORY_DEVICE`를 쓴다. 다른 Mac의 `.env`를 복사했으면 이 값을 꼭 바꾼다. 같은 값이면 두 Mac이 서로의 노트를 덮어쓰고, `FULL=1`은 상대 Mac의 노트를 지운다(2026-10-27 최종 리뷰 M5).
   - 한 Mac의 에이전트가 다른 Mac에서 올린 기억을 색인이나 검색으로 찾는지 본다(`<agent>@mac-personal` 줄).
 - [ ] **Step 9: 기록과 결과 PR.**
   - Progress log에 Step 2~8의 결과를 `Verified`로 적는다.
@@ -970,6 +976,7 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 - 에이전트가 MCP를 잘 부르지 않으면(Task 6 Step 7), 대안 B(질문마다 질문 내용을 보내지 않는 로컬 알림 한 줄)를 따로 정한다.
 - 한국어 기억의 검색 품질이 부족하면(Task 6 Step 7), 두 안을 따로 정한다. 하나는 VM을 키우고(e2-medium 약 $24.46/월) 다국어 임베딩 모델(multilingual-e5-large)과 `hybrid`로 옮기는 것이다. 이미지 설정을 바꾸므로 `bm-upgrade` 스킬과 VM 변경 OK가 필요하고, 먼저 로컬에서 RSS를 잰다. 다른 하나는 기존 한국어 기억을 영어로 옮기는 것이다.
 - 답변이 조회된 노트를 인용하면 그 내용이 Codex 기억에 간접적으로 남을 수 있다(스펙 §6). 미러가 같은 내용을 되풀이해 키우는지 한 달 뒤 `agent-memory/_global/codex/` 크기로 본다.
+- `mcp_post`가 요청 본문(기억 내용)을 curl 인자(`-d`)로 넘겨, 실행 중에 `ps`로 보이고 ARG_MAX(1 MiB)에 묶인다. 지금 가장 큰 기억 파일은 73 KB다. `--data-binary @-`로 stdin에 넘기고 curl 스텁도 stdin을 읽게 바꾼다(2026-10-27 최종 리뷰 M3).
 
 ## Progress log
 
@@ -987,3 +994,4 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 | 2026-10-27 | Verified | Task 3: `scripts/sync-agent-memory.sh`와 `tests/sync-agent-memory.bats`를 만들고, `tests/stubs/curl`의 MCP 모드가 요청의 id로 답하게 했으며, `make memory-sync`와 `.env.example`의 세 변수를 더했다. RED: 구현 전 `make test`는 exit 2, 227개 중 not ok 11개였다. `sync-agent-memory.bats`의 열 테스트(187~193, 195~197)가 템플릿의 `not implemented`로 실패했고, 빈칸 검사 테스트(149)가 새 스크립트의 템플릿 빈칸 때문에 실패했다. `BM_MEMORY_DEVICE` 거부 테스트(194)는 요청 전에 끝나는 템플릿에서도 통과했다. GREEN: `make check` exit 0, 227개 모두 ok, not ok 0, total line coverage 89.04%(`scripts/sync-agent-memory.sh` 85.58%). 바뀐 스텁으로 `verify-mcp.bats`(204~208)도 통과했고, `tests/verify-mcp.bats`와 `tests/fixtures/verify-mcp`는 `origin/main`과 차이가 없다. 계획의 테스트 코드에서 shellcheck 경고 두 개(SC2088 `~` 문자열, SC2034 반복 변수)가 나와 동작을 바꾸지 않는 `# shellcheck disable` 주석 두 줄을 더했다. 판단: `BM_MEMORY_EXCLUDE`는 `<키>--<폴더 이름>` 키도 바탕 키로 뺀다(Global Constraints 색인 규칙과 같게). macOS bash 3.2에서 가짜 HOME과 curl 스텁으로 한 번 돌려(세션 scratch 폴더, 커밋하지 않음) 키 충돌의 두 형태, 비밀값 건너뛰기, 재실행 무요청, hook 모드의 삭제를 확인했다. |
 | 2026-10-27 | Verified | Task 4: `scripts/show-memory-index.sh`, `tests/show-memory-index.bats`, `tests/fixtures/show-memory-index/{list,empty}.body`와 `make memory-index`를 만들었다. RED: 구현 전 `make test`에서 `show-memory-index.bats`의 첫 테스트가 `not implemented`로 실패했고, 템플릿 빈칸 검사(`repo-scripts.bats`)도 실패했다. GREEN: `make check` exit 0, 237 ok / 0 not ok, 전체 줄 커버리지 89.21%(`show-memory-index.sh` 95.00%). 계획과 달라진 점 셋(통제자가 승인): (1) 계획 테스트의 `${lines[1]:0:120}`은 기대 문자열보다 짧아 어떤 출력으로도 통과할 수 없어 접두 비교로 바꿨다. (2) 계획 fixture의 300자 제목으로는 색인이 2,500자를 넘지 않아 "뺀 줄 수" 줄이 나오지 않으므로 긴 노트 둘의 제목을 800자로 했다. (3) 스펙 §3.4대로 `<`·`>` 두 글자만 지우므로 `</system-reminder>`는 `/system-reminder`로 남고, 테스트 기대값을 그렇게 고쳤다. |
 | 2026-10-27 | Verified | Task 5: `scripts/install-memory-hooks.sh`와 `tests/install-memory-hooks.bats`를 만들고, `install` 동사(스킬 `script-authoring`)와 `make memory-hooks [REMOVE=1]`을 더했으며, ARCHITECTURE·운영 런북("기억 미러", 검색어 로그 `Verified`, 복원·재구축 뒤 `make memory-sync FULL=1`)·README·AGENTS.md를 고쳤다. RED: 구현 전 `make test`에서 not ok 3개였다. 새 hook 두 테스트(추가·--remove)는 `not implemented`로 실패했고, `scripts and tests hold no unfilled template blank`도 실패했다. 세 번째(잘못된 JSON) 테스트는 스텁이 항상 die해서 구현 전에도 통과했다. GREEN: 구현 뒤 `make test` 247 ok / 0 not ok, `make check` exit 0, 전체 줄 커버리지 89.21%(`install-memory-hooks.sh` 95.83%). `wc -c AGENTS.md` 11471(24,000 이하). `AGENTS.md:10`의 새 문구는 사용자가 2026-10-27에 승인했다. |
+| 2026-10-27 | Verified | 최종 리뷰 수정(기준 `08f74fd`). C1: `keys.tsv`에 Claude 폴더의 repo를 셋째 칸으로 두고 읽는다. 줄이 없는 폴더와 두 칸뿐인 옛 줄(repo를 한 번 채움)만 세션 파일을 읽고, 보낼 것이 없는 실행은 `.jsonl`을 읽지 않는다(`folder_entry`, `new_folder_entry`, `fill_keys_repo`, Global Constraints의 `keys.tsv` 칸 설명). `fill_keys_repo`는 `$(...)` 안에서 돌아 errexit가 꺼지므로 단계마다 실패를 확인한다. C2(통제자 결정): hook 명령 셋 끝에 `\|\| exit 1`을 붙이고, `OWN_COMMAND_PATTERN`이 그 접미사를 선택으로 받아 옛 형태 항목도 새 형태로 바꾼다. 스펙 §3.5의 표와 이유 한 문장(make는 자기 오류에 2로 끝나고 Claude Code Stop hook의 2는 멈춤을 막는다), 이 계획 Global Constraints의 명령·정규식, Task 5 Step 2의 코드 조각을 고쳤다. C3: 색인의 `is_mine`이 Claude Code에서는 현재 프로젝트 키의 `claude-code/<이 기기>`만 빼서, 홈 폴더 Claude 기억(`_global/claude-code/<이 기기>`)이 프로젝트 세션 색인에 나온다. fixture에 `_global/claude-code/mac-work/home-note`를 더했고 2,500자 테스트는 그대로 통과한다(고친 것 없음). I1: `bm-recover` 스킬 6단계, `bm-upgrade`의 `references/rollback.md` 3단계, 웹 커넥터 런북 되돌리기 1단계에 복원 뒤 `make memory-sync FULL=1` 한 줄. M1(통제자 결정): hook 시간 제한을 10초에서 15초로(`HOOK_TIMEOUT_SECONDS=15`), 스펙 §3.5의 계산을 요청 네 번 × 3초 = 12초로, Task 5 Step 4의 값을 고쳤다. `timeout: 10`을 확인하는 테스트는 원래 없었다. M2 정정: 2026-10-26의 `make logs \| grep -c 'plan24 marker'` = 0은 컨테이너 로그에 시험 노트 본문이 없다는 것만 보이고, 검색어(`경로`, `경로 <시각>`)는 grep하지 않았다. 위 2026-10-26 행은 고치지 않고, 운영 런북의 그 줄을 Verified(본문)와 Reported(DEBUG에서만 기록, VM은 INFO, 0.23.2 소스)로 나눴으며 Task 6 Step 7에 고유 검색어 grep 확인을 더했다. M4: `md_files`가 `find -H`로 심볼릭 링크인 기억 폴더도 훑는다(F1 테스트의 가짜 `find`를 `-H` 인자에 맞췄다). M5·M6: 운영 런북 기억 미러 절에 Mac마다 다른 `BM_MEMORY_DEVICE`, 두 에이전트에 같은 `CLAUDE_CONFIG_DIR`·`CODEX_HOME`(또는 둘 다 없이). M5는 Task 6 Step 8에도 적었다. M7: Task 6 Step 7에 목록 순서, `has_more`일 때의 `n more`, 관찰 행 확인. T3: `BM_MEMORY_DEVICE` 거부 테스트에 메시지 확인을 더했다(코드가 이미 맞아 RED 없음). M3는 Follow-ups에 적었다. RED: 테스트를 먼저 고친 `make test`는 exit 2, 254개 중 not ok 5개였다(hook 명령 두 테스트, 색인 첫 테스트의 `home-note` 줄, 새 `keys.tsv` 테스트의 `refute_stub_called jsonl`, 새 심볼릭 링크 테스트의 쓴 노트 0개). 명령만 바꾸고 접미사를 반드시 요구하는 정규식으로 돌리면 옛 형태 테스트 하나만 실패했다(옛 항목이 남아 Stop에 명령 둘). GREEN: `make test` 254 ok / 0 not ok, `make check` exit 0, 254 ok / 0 not ok, 전체 줄 커버리지 89.04%(`sync-agent-memory.sh` 86.86%, `show-memory-index.sh` 95.00%, `install-memory-hooks.sh` 84.75%). |

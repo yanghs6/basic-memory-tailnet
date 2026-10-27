@@ -152,7 +152,44 @@ tool_calls() { jq -r --arg name "$1" 'select(.params.name == $name) | .id' "$STU
   export BM_MEMORY_DEVICE=
   run "$SYNC"
   assert_failure
+  assert_output --partial "BM_MEMORY_DEVICE must be"
   refute_stub_called '^curl '
+}
+
+@test "keeps each Claude folder's repo in keys.tsv: a run with nothing to send reads no session file, a later write sends the repo after the session files are gone, and an older two-column line gets its repo once" {
+  "$SYNC" 2>/dev/null
+  REAL_FIND="$(command -v find)"
+  export REAL_FIND
+  # shellcheck disable=SC2016 # the fake expands its arguments when it runs
+  fake_cmd find 'case "$*" in *jsonl*) echo "find $*" >>"$STUB_LOG" ;; esac
+exec "$REAL_FIND" "$@"'
+  : >"$STUB_LOG"
+  run "$SYNC"
+  assert_success
+  refute_stub_called jsonl
+  rm "$CLAUDE_MEM/s1.jsonl"
+  echo changed >>"$CLAUDE_MEM/memory/MEMORY.md"
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC"
+  assert_success
+  assert_equal "$(jq -r 'select(.params.name == "write_note") | .params.arguments.metadata.repo' "$STUB_LOG.requests")" github.com/acme/widget
+  printf '{"cwd":"%s"}\n' "$WIDGET" >"$CLAUDE_MEM/s1.jsonl"
+  cut -f1,2 "$STATE_DIR/keys.tsv" >"$BATS_TEST_TMPDIR/keys.old"
+  cp "$BATS_TEST_TMPDIR/keys.old" "$STATE_DIR/keys.tsv"
+  echo again >>"$CLAUDE_MEM/memory/MEMORY.md"
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC"
+  assert_success
+  assert_equal "$(jq -r 'select(.params.name == "write_note") | .params.arguments.metadata.repo' "$STUB_LOG.requests")" github.com/acme/widget
+  assert_equal "$(cat "$STATE_DIR/keys.tsv")" "$(printf '%s\t%s\t%s' "${CLAUDE_MEM##*/}" acme-widget github.com/acme/widget)"
+}
+
+@test "mirrors a Claude memory folder that is a symlink to another folder" {
+  mv "$CLAUDE_MEM/memory" "$BATS_TEST_TMPDIR/dotfiles-memory"
+  ln -s "$BATS_TEST_TMPDIR/dotfiles-memory" "$CLAUDE_MEM/memory"
+  run "$SYNC"
+  assert_success
+  assert_equal "$(written_notes | grep -c '^agent-memory/acme-widget/claude-code/mac-test/')" 2
 }
 
 @test "does not mirror a file with a token-like secret and deletes its earlier mirror" {
@@ -209,9 +246,9 @@ tool_calls() { jq -r --arg name "$1" 'select(.params.name == $name) | .id' "$STU
   REAL_FIND="$(command -v find)"
   export REAL_FIND
   # shellcheck disable=SC2016 # the fake expands its arguments when it runs
-  fake_cmd find 'if [[ "$1" == "$LOCKED_ROOT" ]]; then
-  "$REAL_FIND" "$1" -path "$1/locked" -prune -o "${@:2}"
-  echo "find: $1/locked: Permission denied" >&2
+  fake_cmd find 'if [[ "$1" == -H && "$2" == "$LOCKED_ROOT" ]]; then
+  "$REAL_FIND" -H "$2" -path "$2/locked" -prune -o "${@:3}"
+  echo "find: $2/locked: Permission denied" >&2
   exit 1
 fi
 exec "$REAL_FIND" "$@"'

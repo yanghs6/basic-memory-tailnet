@@ -32,7 +32,7 @@ INDEX_JQ=""
 read -r -d '' INDEX_JQ <<'JQ' || true
 def clean: gsub("\\s+"; " ") | gsub("[<>]"; "") | sub("^ "; "") | sub(" $"; "");
 def is_mine: $device != "" and .device == $device and .agent == $agent
-  and ($agent == "claude-code" or .key == $global);
+  and .key == (if $agent == "claude-code" then $project else $global end);
 def newest: sort_by(.updated_at) | reverse;
 def to_line: "- \(.title | clean) | \(.permalink | clean) | \(.agent)@\(.device) | \(.updated_at[0:10]) | \(.content | clean | .[0:$excerpt] | sub(" $"; ""))";
 def more($n): "- ... \($n) more notes not listed; search_notes finds them";
