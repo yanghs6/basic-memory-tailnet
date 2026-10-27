@@ -196,8 +196,12 @@ main() {
     || die "container did not become healthy with the restored data"
   remote "rm -f $COMPOSE_PREV $ENV_PREV" || log "WARNING: could not remove $COMPOSE_PREV and $ENV_PREV"
   # The gateway backup only serves this run's rollback; the restored data is kept in $PREV, the gateway files are in the repo.
+  # Forget the backup before deleting it, so a signal during the rm cannot make the rollback read a half-deleted backup and
+  # remove the live gateway files it no longer finds there.
   if [[ -n "$GATEWAY_BACKUP_DIR" ]]; then
-    remote "rm -rf $GATEWAY_BACKUP_DIR" || log "WARNING: could not remove $GATEWAY_BACKUP_DIR"
+    local gateway_backup="$GATEWAY_BACKUP_DIR"
+    GATEWAY_BACKUP_DIR=""
+    remote "rm -rf $gateway_backup" || log "WARNING: could not remove $gateway_backup"
   fi
   log "restored $(basename "$archive"); previous data kept at $PREV"
   # The notes are restored: nothing after this rolls them back, not even an interrupted wait for the web connector.
