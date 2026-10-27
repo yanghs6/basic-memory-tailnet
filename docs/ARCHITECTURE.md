@@ -58,6 +58,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 | `make access-check` | Mac | 지금 네트워크에서 Tailscale 조정 서버·터널 엔드포인트·SSH 별칭이 되는지 보고하고 모드를 추천 (`scripts/check-access.sh`) |
 | `gateway/` + `gateway` 서비스 | VM·Mac(로컬 검증) | `BM_WEB=on`일 때만 도는 OAuth 게이트웨이(FastMCP). GitHub 로그인 한 계정(숫자 id)만 통과시키고 허용한 도구 18개만 Basic Memory `/mcp`로 넘김. 감사 로그는 표준 출력, 저장소는 `/srv/basic-memory/gateway/`. [web-connector ADR](decisions/adr-2026-10-22-fcvznmdc-web-connector.md), [런북](runbooks/rbk-2026-10-27-x9h4zzdh-web-connector.md) |
 | `cloudflared` 서비스 | VM | `BM_WEB=on`일 때만. Cloudflare로 아웃바운드 터널을 열고 `gateway`에만 닿음 |
+| `make export-logs` | Mac | VM에서 실행 중인 서비스마다 `docker logs --timestamps --since <SINCE>`(기본 24h)를 SSH로 받아, 한 줄에 `{time, service, stream, msg, data}` 하나인 JSON Lines 파일 하나로 시간순으로 씀. `data`는 msg가 JSON 객체일 때만 있음. 서비스 설정은 바꾸지 않음. 로그 줄은 화면에 찍지 않음 (`scripts/export-logs.sh`, [조사](research/rsch-2026-10-27-k2zsffqn-json-log-export.md)) |
 | `make tunnel` | Mac | `ssh` 모드에서 MCP(18737)·웹 UI(13000)를 `127.0.0.1`로 포워딩 (`scripts/open-tunnel.sh`) |
 | Tailscale Serve | VM | tailnet HTTPS 443 → `http://127.0.0.1:8737`(Basic Memory), 8443 → `http://127.0.0.1:3000`(SilverBullet) |
 | Tailscale SSH | VM | `tailscale` 모드에서 부트스트랩 이후의 유일한 관리 경로(`ssh` 모드는 SSH 별칭) |
@@ -78,6 +79,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 | `.env` | main 체크아웃 루트 | `/opt/basic-memory/` (VM용 `.env`는 `make deploy`가 생성) |
 | 스왑 | 해당 없음 | `/swapfile` (1GB, `/etc/fstab`에 등록) |
 | 컨테이너 로그 (`make logs`) | Docker Desktop 안 | `/var/lib/docker/containers/<id>/<id>-json.log`. 두 경우 모두 `compose.yaml`의 `x-logging`이 컨테이너당 10MB × 3개(최대 30MB)로 제한 |
+| 내려받은 로그 (`make export-logs`) | main 체크아웃의 `log-exports/logs-<UTC>.jsonl` (mode 600, git-ignored. 노트 식별자·client 주소가 들어갈 수 있어 채팅·PR·저장소에 붙이지 않음) | 해당 없음 |
 | Basic Memory 앱 로그 | `.local-data/config/basic-memory.log` | `/srv/basic-memory/config/basic-memory.log`. Basic Memory가 10MB마다 교체하고 5개를 보관 |
 
 **Verified (0.23.2):** 기본 프로젝트 `main`은 `/app/data/basic-memory`에 생성됩니다.

@@ -9,6 +9,7 @@ CLAUDE.local.md
 # Generated data
 .local-data/
 backups/
+log-exports/
 .coverage/
 .review-out/
 # Agent scratch (SDD ledgers, task briefs, review packages)
