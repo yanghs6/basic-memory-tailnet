@@ -19,8 +19,9 @@
 #   vm_tailscale_logged_in -> exit 0 when Tailscale on the VM is logged in, 1 when it is not
 #   vm_env -> the .env content for the VM (with BM_WEB=on also the web connector settings and the gateway code hash)
 #   gateway_code_sha256 DIR -> one sha256 over the GATEWAY_RUNTIME_FILES in DIR, in their listed order
-#   upload_gateway_files -> with BM_WEB=on, upload the gateway runtime files to a staging folder on the VM and swap it in (deploy and restore)
-#   gateway_rollback_cmd -> a command for `remote` that puts the previous gateway folder back (restore's rollback)
+#   upload_gateway_files -> with BM_WEB=on, upload the gateway runtime files under temporary names and mv -f them into place (deploy and restore)
+#   backup_gateway_files DIR -> with BM_WEB=on, copy the live gateway files into DIR on the VM and set GATEWAY_BACKUP_DIR (restore)
+#   gateway_rollback_cmd DIR -> a command for `remote` that puts the files backed up in DIR back (restore's rollback)
 #   manifest_cmd DIR -> a command printing "<sha256>  ./<path>" for every data file under DIR
 #   sha256_of FILE -> hex digest of a local file
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
@@ -279,40 +280,55 @@ gateway_code_sha256() {
   printf '%s' "$lines" | sha256_of /dev/stdin
 }
 
-# Suffixes of the gateway folder's neighbours on the VM: the staging copy an upload fills, and the one backup copy of
-# the folder a swap replaced.
-readonly GATEWAY_STAGE_SUFFIX=.new
-readonly GATEWAY_BACKUP_SUFFIX=.prev
-# Set to 1 as soon as upload_gateway_files starts the swap, so a rollback knows the backup copy may be the live folder.
-GATEWAY_SWAP_ATTEMPTED=""
+# Set by backup_gateway_files to the backup directory once the live runtime files are copied there; empty means a
+# rollback has nothing to put back (BM_WEB off, or no backup made).
+GATEWAY_BACKUP_DIR=""
 
-# upload_gateway_files -> with BM_WEB=on, uploads GATEWAY_RUNTIME_FILES into a fresh staging folder next to
-# $BM_REMOTE_APP_DIR/gateway and only when every file arrived swaps it in with renames, keeping the previous folder as
-# the one backup copy (an older backup copy is replaced). A failed upload leaves the live folder untouched. Compose
-# mounts the folder read-only into the gateway container. Does nothing, and prints nothing, while BM_WEB is off.
+# upload_gateway_files -> with BM_WEB=on, uploads each of GATEWAY_RUNTIME_FILES into $BM_REMOTE_APP_DIR/gateway under a
+# temporary name (.<name>.new), and only when every file arrived moves them onto their names with one `mv -f` command.
+# The folder itself is never renamed: compose bind-mounts it into the gateway container, and a renamed folder would
+# leave a running container on the old one. Each file is replaced atomically, and a failed upload leaves the live files
+# untouched (a leftover temporary file is overwritten by the next upload). Does nothing, and prints nothing, while
+# BM_WEB is off.
 upload_gateway_files() {
-  local web file live stage backup
+  local web file live moves=""
   web="$(web_mode)" || return 1
   [[ "$web" == on ]] || return 0
   live="$BM_REMOTE_APP_DIR/gateway"
-  stage="$live$GATEWAY_STAGE_SUFFIX"
-  backup="$live$GATEWAY_BACKUP_SUFFIX"
-  step "upload the gateway runtime files to $BM_VM_HOST:$live (staged, then swapped in)"
-  remote "rm -rf $stage && mkdir -p $stage" || die "could not create $stage on the VM: $(access_hint)"
+  step "upload the gateway runtime files to $BM_VM_HOST:$live (temporary names, then moved onto the real ones)"
+  remote "mkdir -p $live" || die "could not create $live on the VM: $(access_hint)"
   for file in $GATEWAY_RUNTIME_FILES; do
-    remote "cat > $stage/$file" <"$REPO_DIR/gateway/$file" \
-      || die "upload of gateway/$file failed; the live $live was not touched: $(access_hint)"
+    remote "cat > $live/.$file.new" <"$REPO_DIR/gateway/$file" \
+      || die "upload of gateway/$file failed; the live gateway files were not touched: $(access_hint)"
+    moves="${moves:+$moves && }mv -f $live/.$file.new $live/$file"
   done
-  GATEWAY_SWAP_ATTEMPTED=1
-  remote "rm -rf $backup && { [ ! -e $live ] || mv $live $backup; } && mv $stage $live" \
-    || die "could not swap the staged gateway files into $live on the VM: $(access_hint)"
+  remote "$moves" || die "could not move the uploaded gateway files into place in $live on the VM: $(access_hint)"
 }
 
-# gateway_rollback_cmd -> a shell command (run it with `remote`) that puts the backup copy back as the gateway folder
-# and does nothing when there is no backup copy. For restore's rollback after upload_gateway_files swapped.
+# backup_gateway_files DIR -> with BM_WEB=on, copies the live runtime files that exist into DIR on the VM (created even
+# when there are none, which means "the VM had no gateway files") and only then sets GATEWAY_BACKUP_DIR to DIR, so a
+# rollback never reads a half-made backup. Does nothing, and prints nothing, while BM_WEB is off.
+backup_gateway_files() {
+  local dir="$1" web file live cmd="mkdir -p $1"
+  web="$(web_mode)" || return 1
+  [[ "$web" == on ]] || return 0
+  live="$BM_REMOTE_APP_DIR/gateway"
+  for file in $GATEWAY_RUNTIME_FILES; do
+    cmd="$cmd && { [ ! -e $live/$file ] || cp -p $live/$file $dir/$file; }"
+  done
+  step "back up the live gateway files to $dir"
+  remote "$cmd" || die "could not back up the gateway files on the VM; nothing was changed: $(access_hint)"
+  GATEWAY_BACKUP_DIR="$dir"
+}
+
+# gateway_rollback_cmd DIR -> a shell command (run it with `remote`) that puts the files backed up in DIR back, each
+# through a temporary name and `mv -f` like the upload, removes the runtime files DIR does not hold (this run added
+# them), and removes DIR only when all of that worked.
 gateway_rollback_cmd() {
-  local live="$BM_REMOTE_APP_DIR/gateway"
-  printf 'if [ -e %s ]; then rm -rf %s && mv %s %s; fi' "$live$GATEWAY_BACKUP_SUFFIX" "$live" "$live$GATEWAY_BACKUP_SUFFIX" "$live"
+  local dir="$1" live="$BM_REMOTE_APP_DIR/gateway"
+  # shellcheck disable=SC2016  # $f, $ok are for the shell on the VM
+  printf 'ok=1; for f in %s; do if [ -e %s/$f ]; then cp -p %s/$f %s/.$f.new && mv -f %s/.$f.new %s/$f || ok=0; else rm -f %s/$f || ok=0; fi; done; [ $ok = 1 ] && rm -rf %s' \
+    "$GATEWAY_RUNTIME_FILES" "$dir" "$dir" "$live" "$live" "$live" "$live" "$dir"
 }
 
 # manifest_cmd DIR -> a shell command (run it with `remote`) that prints "<sha256>  ./<path>" for every file

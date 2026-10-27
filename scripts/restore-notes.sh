@@ -25,6 +25,8 @@ COMPOSE_FILE="$BM_REMOTE_APP_DIR/compose.yaml"
 COMPOSE_PREV="$COMPOSE_FILE.prev-$STAMP"
 ENV_FILE="$BM_REMOTE_APP_DIR/.env"
 ENV_PREV="$ENV_FILE.prev-$STAMP"
+# Where this run backs up the live gateway files (BM_WEB=on); unique to the run and outside the data root and backups/.
+GATEWAY_BACKUP_PATH="$BM_REMOTE_APP_DIR/gateway.backup-$STAMP"
 STOP_ATTEMPTED=""
 # Set when the VM had data before this restore; without it (a recreated VM) there is nothing to roll back to.
 HAD_PREVIOUS_DATA=""
@@ -72,8 +74,12 @@ rollback() {
     exit "$exit_code"
   fi
   log "restore failed; rolling back"
-  remote "if [ -e $PREV ]; then if [ -e $ROOT ]; then sudo -n mv $ROOT $ROOT.failed-$STAMP; fi; sudo -n mv $PREV $ROOT; fi; if [ -e $COMPOSE_PREV ]; then mv $COMPOSE_PREV $COMPOSE_FILE; fi; if [ -e $ENV_PREV ]; then mv $ENV_PREV $ENV_FILE; fi;${GATEWAY_SWAP_ATTEMPTED:+ $(gateway_rollback_cmd);} sudo -n rm -rf $STAGE" \
+  remote "if [ -e $PREV ]; then if [ -e $ROOT ]; then sudo -n mv $ROOT $ROOT.failed-$STAMP; fi; sudo -n mv $PREV $ROOT; fi; if [ -e $COMPOSE_PREV ]; then mv $COMPOSE_PREV $COMPOSE_FILE; fi; if [ -e $ENV_PREV ]; then mv $ENV_PREV $ENV_FILE; fi; sudo -n rm -rf $STAGE" \
     || log "WARNING: rollback could not restore the directories; check $ROOT, $PREV, $COMPOSE_FILE and $ENV_FILE on the VM by hand"
+  if [[ -n "$GATEWAY_BACKUP_DIR" ]]; then
+    remote "$(gateway_rollback_cmd "$GATEWAY_BACKUP_DIR")" \
+      || log "WARNING: rollback could not restore the gateway files; they are backed up in $GATEWAY_BACKUP_DIR on the VM"
+  fi
   if [[ -z "$HAD_PREVIOUS_DATA" ]]; then
     report_no_previous_data
     exit "$exit_code"
@@ -173,6 +179,7 @@ main() {
   step "apply this repo's compose.yaml and the VM .env (previous copies kept until the restore succeeds)"
   upload_vm_file "$COMPOSE_FILE" "$COMPOSE_PREV" <"$REPO_DIR/compose.yaml" || die "could not upload compose.yaml"
   vm_env | upload_vm_file "$ENV_FILE" "$ENV_PREV" || die "could not write $ENV_FILE on the VM"
+  backup_gateway_files "$GATEWAY_BACKUP_PATH"
   upload_gateway_files
 
   step "swap in the restored data (previous data -> $PREV)"
@@ -188,6 +195,10 @@ main() {
   remote_compose "up -d --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS${WAIT_SERVICES:+ $WAIT_SERVICES}" \
     || die "container did not become healthy with the restored data"
   remote "rm -f $COMPOSE_PREV $ENV_PREV" || log "WARNING: could not remove $COMPOSE_PREV and $ENV_PREV"
+  # The gateway backup only serves this run's rollback; the restored data is kept in $PREV, the gateway files are in the repo.
+  if [[ -n "$GATEWAY_BACKUP_DIR" ]]; then
+    remote "rm -rf $GATEWAY_BACKUP_DIR" || log "WARNING: could not remove $GATEWAY_BACKUP_DIR"
+  fi
   log "restored $(basename "$archive"); previous data kept at $PREV"
   # The notes are restored: nothing after this rolls them back, not even an interrupted wait for the web connector.
   trap - EXIT

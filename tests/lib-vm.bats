@@ -280,69 +280,82 @@ write_env_file() {
   done
 }
 
-@test "upload_gateway_files uploads into a staging directory, then swaps it in and keeps the previous gateway as one backup copy, when BM_WEB is on; nothing when it is off" {
-  local file gw="$BM_REMOTE_APP_DIR/gateway"
+@test "upload_gateway_files uploads each file under a temporary name in the live directory, then moves them onto their names with one mv -f, without renaming the directory, when BM_WEB is on; nothing when it is off" {
+  local file gw="$BM_REMOTE_APP_DIR/gateway" inode
   run upload_gateway_files
   assert_success
   assert_output ""
-  [[ ! -e "$gw" && ! -e "$gw.new" ]] || fail "upload_gateway_files wrote files with BM_WEB unset"
+  [[ ! -e "$gw" ]] || fail "upload_gateway_files wrote files with BM_WEB unset"
   refute_stub_called -E '^ssh '
   use_web_env
-  mkdir -p "$gw" "$gw.prev"
+  mkdir -p "$gw"
   echo "live code" >"$gw/gateway.py"
-  echo "older backup" >"$gw.prev/old.txt"
+  inode="$(stat -c %i "$gw")"
   run upload_gateway_files
   assert_success
   for file in boot.py gateway.py requirements.txt; do
     assert_same_file "$REPO_DIR/gateway/$file" "$gw/$file"
-    assert_stub_called -F "cat > $gw.new/$file"
+    assert_stub_called -F "cat > $gw/.$file.new"
     refute_stub_called -F "cat > $gw/$file"
+    [[ ! -e "$gw/.$file.new" ]] || fail "the temporary file .$file.new was left behind"
   done
-  assert_log_order "cat > $gw.new/boot.py" "cat > $gw.new/gateway.py" "cat > $gw.new/requirements.txt" "mv $gw.new $gw"
-  [[ ! -e "$gw.new" ]] || fail "the staging directory was left behind"
-  run cat "$gw.prev/gateway.py"
-  assert_output "live code"
-  [[ ! -e "$gw.prev/old.txt" ]] || fail "an older backup copy was not replaced"
+  assert_log_order "cat > $gw/.boot.py.new" "cat > $gw/.gateway.py.new" "cat > $gw/.requirements.txt.new" "mv -f $gw/.boot.py.new $gw/boot.py"
+  run grep -c 'mv -f' "$STUB_LOG"
+  assert_output 1
+  refute_stub_called -E 'gateway\.(new|prev)'
+  [[ "$(stat -c %i "$gw")" == "$inode" ]] || fail "the gateway directory was replaced: a running container would keep the old one"
 }
 
-@test "upload_gateway_files on a VM without a gateway directory swaps the staged one in and leaves no backup" {
-  local gw="$BM_REMOTE_APP_DIR/gateway"
+@test "upload_gateway_files creates the gateway directory on a VM that has none" {
   use_web_env
   run upload_gateway_files
   assert_success
-  assert_same_file "$REPO_DIR/gateway/gateway.py" "$gw/gateway.py"
-  [[ ! -e "$gw.prev" ]] || fail "a backup copy appeared without a previous gateway"
+  assert_same_file "$REPO_DIR/gateway/gateway.py" "$BM_REMOTE_APP_DIR/gateway/gateway.py"
 }
 
-@test "upload_gateway_files fails with an actionable message when an upload fails, and the live gateway directory stays as it was" {
+@test "upload_gateway_files fails with an actionable message when an upload fails, and every live file stays as it was" {
   local gw="$BM_REMOTE_APP_DIR/gateway"
   use_web_env
   mkdir -p "$gw"
+  echo "live boot" >"$gw/boot.py"
   echo "live code" >"$gw/gateway.py"
-  SSH_STUB_FAIL_MATCH="gateway.new/gateway.py" run upload_gateway_files
+  SSH_STUB_FAIL_MATCH=".gateway.py.new" run upload_gateway_files
   assert_failure
   assert_output --partial "gateway/gateway.py"
   run cat "$gw/gateway.py"
   assert_output "live code"
-  [[ ! -e "$gw.prev" ]] || fail "a failed upload moved the live directory"
-  refute_stub_called -F "mv $gw.new $gw"
+  run cat "$gw/boot.py"
+  assert_output "live boot"
+  refute_stub_called -F "mv -f"
 }
 
-@test "gateway_rollback_cmd puts the backup copy back as the gateway directory and does nothing without one" {
-  local gw="$BM_REMOTE_APP_DIR/gateway"
-  mkdir -p "$gw"
-  echo "new code" >"$gw/gateway.py"
-  run bash -c "$(gateway_rollback_cmd)"
+@test "backup_gateway_files copies the live runtime files into the given directory and does nothing when BM_WEB is off" {
+  local gw="$BM_REMOTE_APP_DIR/gateway" backup="$BM_REMOTE_APP_DIR/gateway.backup-test"
+  run backup_gateway_files "$backup"
   assert_success
-  run cat "$gw/gateway.py"
-  assert_output "new code"
-  mkdir -p "$gw.prev"
-  echo "previous code" >"$gw.prev/gateway.py"
-  run bash -c "$(gateway_rollback_cmd)"
+  refute_stub_called -E '^ssh '
+  [[ -z "$GATEWAY_BACKUP_DIR" ]] || fail "the backup was marked usable with BM_WEB off"
+  use_web_env
+  mkdir -p "$gw"
+  echo "live code" >"$gw/gateway.py"
+  backup_gateway_files "$backup"
+  [[ "$GATEWAY_BACKUP_DIR" == "$backup" ]] || fail "the backup was not marked usable"
+  assert_same_file "$gw/gateway.py" "$backup/gateway.py"
+  [[ ! -e "$backup/boot.py" ]] || fail "a file the live directory lacks appeared in the backup"
+}
+
+@test "gateway_rollback_cmd puts the backed up files back, removes the files this run added and removes the backup" {
+  local gw="$BM_REMOTE_APP_DIR/gateway" backup="$BM_REMOTE_APP_DIR/gateway.backup-test"
+  mkdir -p "$gw" "$backup"
+  echo "new code" >"$gw/gateway.py"
+  echo "new boot" >"$gw/boot.py"
+  echo "previous code" >"$backup/gateway.py"
+  run bash -c "$(gateway_rollback_cmd "$backup")"
   assert_success
   run cat "$gw/gateway.py"
   assert_output "previous code"
-  [[ ! -e "$gw.prev" ]] || fail "the backup copy was left after the rollback"
+  [[ ! -e "$gw/boot.py" ]] || fail "a file this run added was left"
+  [[ ! -e "$backup" ]] || fail "the backup was left after the rollback"
 }
 
 @test "manifest_cmd lists every file's sha256 sorted by path" {

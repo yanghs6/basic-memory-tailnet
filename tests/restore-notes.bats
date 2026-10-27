@@ -301,9 +301,9 @@ add_model_cache() {
   for file in boot.py gateway.py requirements.txt; do
     assert_same_file "$REPO_DIR/gateway/$file" "$BM_REMOTE_APP_DIR/gateway/$file"
   done
-  assert_log_order "gateway.new/boot.py" "docker compose up -d --wait --wait-timeout 360"
-  assert_log_order "gateway.new/gateway.py" "docker compose up -d --wait --wait-timeout 360"
-  assert_log_order "gateway.new/requirements.txt" "docker compose up -d --wait --wait-timeout 360"
+  assert_log_order "gateway/.boot.py.new" "docker compose up -d --wait --wait-timeout 360"
+  assert_log_order "gateway/.gateway.py.new" "docker compose up -d --wait --wait-timeout 360"
+  assert_log_order "gateway/.requirements.txt.new" "docker compose up -d --wait --wait-timeout 360"
   run grep -x 'COMPOSE_PROFILES=web,tunnel' "$BM_REMOTE_APP_DIR/.env"
   assert_success
 }
@@ -363,22 +363,53 @@ add_model_cache() {
   assert_output "original"
 }
 
-@test "restore with BM_WEB=on rolls the gateway directory back to the previous one when the restore fails after the swap" {
+@test "restore with BM_WEB=on backs the live gateway files up to a path unique to the run and rolls back from exactly that path" {
+  local gw="$BM_REMOTE_APP_DIR/gateway" backup
+  make_archive "bad"
+  use_web_env
+  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
+  mkdir -p "$gw" "$BM_REMOTE_APP_DIR/gateway.backup-19700101T000000Z"
+  echo "previous code" >"$gw/gateway.py"
+  echo "stale" >"$BM_REMOTE_APP_DIR/gateway.backup-19700101T000000Z/gateway.py"
+  export DOCKER_STUB_FAIL_EXACT='compose up -d --wait --wait-timeout 360 basic-memory silverbullet'
+  restore_with_answer yes
+  assert_failure
+  assert_output --partial "rolled back: the previous data is live again"
+  run grep -ohE "$BM_REMOTE_APP_DIR/gateway\.backup-[0-9]{8}T[0-9]{6}Z" "$STUB_LOG"
+  backup="$(sort -u <<<"$output")"
+  [[ "$(wc -l <<<"$backup")" -eq 1 && "$backup" != *19700101* ]] || fail "the backup path is not one path unique to the run: $backup"
+  assert_log_order "cp -p $gw/gateway.py $backup/gateway.py" "cat > $gw/.gateway.py.new" "--force-recreate"
+  refute_stub_called -E 'mv .*gateway(\.new|\.prev| )'
+  run cat "$gw/gateway.py"
+  assert_output "previous code"
+  [[ ! -e "$backup" ]] || fail "the backup was left after the rollback"
+  run cat "$BM_REMOTE_APP_DIR/gateway.backup-19700101T000000Z/gateway.py"
+  assert_output "stale"
+}
+
+@test "restore with BM_WEB=on onto a VM without the live gateway directory rolls back by removing the files it added" {
   local gw="$BM_REMOTE_APP_DIR/gateway"
   make_archive "bad"
   use_web_env
   echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
   echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
-  mkdir -p "$gw"
-  echo "previous code" >"$gw/gateway.py"
   export DOCKER_STUB_FAIL_EXACT='compose up -d --wait --wait-timeout 360 basic-memory silverbullet'
   restore_with_answer yes
   assert_failure
-  assert_output --partial "rolled back: the previous data is live again"
-  assert_log_order "mv $gw.new $gw" "--force-recreate"
-  run cat "$gw/gateway.py"
-  assert_output "previous code"
-  [[ ! -e "$gw.prev" ]] || fail "the backup copy was left after the rollback"
+  [[ ! -e "$gw/gateway.py" && ! -e "$gw/boot.py" && ! -e "$gw/requirements.txt" ]] || fail "a rolled back restore left the gateway files it added"
+}
+
+@test "restore with BM_WEB=on removes its gateway backup once the restore succeeded" {
+  local gw="$BM_REMOTE_APP_DIR/gateway"
+  make_archive "from backup"
+  use_web_env
+  mkdir -p "$gw"
+  echo "previous code" >"$gw/gateway.py"
+  restore_with_answer yes
+  assert_success
+  run bash -c "ls -d '$BM_REMOTE_APP_DIR'/gateway.backup-* 2>/dev/null"
+  assert_failure
 }
 
 @test "restore with BM_WEB=off rolls back without touching a gateway directory" {
@@ -386,13 +417,12 @@ add_model_cache() {
   make_archive "bad"
   echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
   echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
-  mkdir -p "$gw" "$gw.prev"
+  mkdir -p "$gw"
   echo "kept" >"$gw/gateway.py"
-  echo "stale" >"$gw.prev/gateway.py"
   export DOCKER_STUB_FAIL_EXACT='compose up -d --wait --wait-timeout 360'
   restore_with_answer yes
   assert_failure
   run cat "$gw/gateway.py"
   assert_output "kept"
-  refute_stub_called -F "$gw"
+  refute_stub_called -F "gateway"
 }
