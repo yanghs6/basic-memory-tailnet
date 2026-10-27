@@ -1,0 +1,391 @@
+#!/usr/bin/env bash
+# Mirrors this Mac's Claude Code and Codex memory files to Basic Memory as notes under
+# agent-memory/<project key>/<agent>/<device>/: writes new and changed files, deletes the notes of removed, excluded or
+# secret-holding files, and records what the server holds in the state folder (memory_state_dir). It never prints file
+# content. --hook runs in the background with its output in the state folder's sync.log and always exits 0 (Claude Code
+# and Codex hooks); --full writes every file again and deletes this device's mirror notes that no file backs (after a
+# restore or a VM rebuild).
+# Usage: make memory-sync [HOOK=1] [FULL=1]
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/mcp.sh
+. "$SCRIPT_DIR/lib/mcp.sh"
+# shellcheck source=lib/agent-memory.sh
+. "$SCRIPT_DIR/lib/agent-memory.sh"
+
+readonly NOTE_ROOT=agent-memory
+readonly AGENT_CLAUDE=claude-code
+readonly AGENT_CODEX=codex
+readonly BM_PROJECT=main
+readonly NOTE_TYPE=agent_memory
+readonly CLAUDE_MEMORY_FOLDER=memory
+readonly CODEX_FOLDER=memories
+readonly CODEX_V2_FOLDER=memories_v2
+readonly CODEX_V2_PREFIX=v2
+readonly CLIENT_NAME=bm-agent-memory
+# Claude Code folders of sessions in /private/tmp (scratch work) are not mirrored.
+readonly TMP_FOLDER_PREFIX=-private-tmp-
+# Codex writes this file only while it consolidates its memory, and it holds deleted text too.
+readonly CODEX_WORK_FILE=phase2_workspace_diff.md
+readonly LOCK_STALE_MINUTES=10
+# Length of the path hash in the key of a third folder of the same repository (<key>--<name>-<hash>).
+readonly KEY_HASH_LENGTH=6
+readonly SEARCH_PAGE_SIZE=50
+# Token formats with the gitleaks default lengths (Tailscale, GitHub, AWS, Slack, Anthropic, OpenAI, Google, PEM private
+# keys); a file holding one is never sent.
+readonly SECRET_PATTERN='tskey-[a-z]+-[A-Za-z0-9]+-[A-Za-z0-9]{10,}|gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|A[KS]IA[A-Z2-7]{16}|xox[bp]-[0-9]+-[A-Za-z0-9-]{10,}|sk-ant-[a-z]+[0-9]{2}-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]+T3BlbkFJ|AIza[A-Za-z0-9_-]{35}|-----BEGIN [A-Z0-9 ]*PRIVATE KEY'
+readonly STATE_FILE_NAME=state.tsv
+readonly KEYS_FILE_NAME=keys.tsv
+readonly LOG_FILE_NAME=sync.log
+readonly LOCK_DIR_NAME=lock
+
+IS_HOOK=""
+IS_FULL=""
+STATE_DIR=""
+STATE_FILE=""
+KEYS_FILE=""
+LOCK_DIR=""
+# Work files of one run: desired (file, note path, sha256, key, agent, repo), old-state (a copy of state.tsv),
+# next-state (the lines of the new state.tsv), write (desired lines plus the old sha256 and permalink), delete (state lines).
+WORK_DIR=""
+REQUEST_ID=1
+WROTE=0
+DELETED=0
+FAILED=0
+
+usage() { die "usage: sync-agent-memory.sh [--hook] [--full] (make memory-sync [HOOK=1] [FULL=1])"; }
+
+parse_args() {
+  while (($#)); do
+    case "$1" in
+      --hook) IS_HOOK=1 ;;
+      --full) IS_FULL=1 ;;
+      *) usage ;;
+    esac
+    shift
+  done
+}
+
+# tilde_path PATH -> PATH with the home folder written as ~, for messages and the source_path metadata.
+tilde_path() {
+  case "$1" in
+    "$HOME"/*) printf '%s/%s\n' "~" "${1#"$HOME"/}" ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
+cleanup() {
+  local exit_code=$?
+  mcp_close
+  [[ -z "$WORK_DIR" ]] || rm -rf "$WORK_DIR"
+  rm -rf "$LOCK_DIR"
+  exit "$exit_code"
+}
+
+# acquire_lock -> take the lock folder, after removing one older than LOCK_STALE_MINUTES; exits 0 while another run
+# holds it.
+acquire_lock() {
+  local stale
+  stale="$(find "$LOCK_DIR" -maxdepth 0 -mmin +"$LOCK_STALE_MINUTES" 2>/dev/null || true)"
+  if [[ -n "$stale" ]]; then
+    log "WARNING: removing a memory-sync lock older than $LOCK_STALE_MINUTES minutes"
+    rm -rf "$LOCK_DIR"
+  fi
+  if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    log "another memory-sync is running"
+    exit 0
+  fi
+  trap cleanup EXIT
+}
+
+# key_taken KEY -> status 0 when keys.tsv already gives KEY to a Claude folder.
+key_taken() { awk -F'\t' -v key="$1" '$2 == key { found = 1 } END { exit !found }' "$KEYS_FILE"; }
+
+# folder_key FOLDER -> the project key keys.tsv holds for the Claude folder FOLDER. A folder without one gets
+# claude_folder_key, made unique as spec section 3.2 rule 7 says, and keys.tsv keeps it.
+folder_key() {
+  local folder="$1" name key base cwd dir
+  name="${folder##*/}"
+  key="$(awk -F'\t' -v name="$name" '$1 == name { print $2; exit }' "$KEYS_FILE")" || exit 1
+  if [[ -z "$key" ]]; then
+    key="$(claude_folder_key "$folder")" || exit 1
+    if key_taken "$key"; then
+      base="$key"
+      cwd="$(claude_folder_cwd "$folder")" || cwd=""
+      dir="${cwd:-$name}"
+      key="$base--$(sanitize_key "${dir##*/}")" || exit 1
+      if key_taken "$key"; then
+        key="$key-$(printf '%s' "$dir" | sha256_of - | cut -c "1-$KEY_HASH_LENGTH")" || exit 1
+      fi
+      log "WARNING: project key $base is taken; using $key for $(tilde_path "$folder")"
+    fi
+    printf '%s\t%s\n' "$name" "$key" >>"$KEYS_FILE"
+  fi
+  echo "$key"
+}
+
+# excluded_key KEY -> status 0 when BM_MEMORY_EXCLUDE lists KEY or the key it was made unique from (<key>--<name>).
+excluded_key() { is_excluded "$1" || is_excluded "${1%%--*}"; }
+
+# md_files ROOT AGENT -> the *.md files under ROOT, NUL separated; for Codex without .git/, other hidden files and
+# folders, and its work file.
+md_files() {
+  if [[ "$2" == "$AGENT_CODEX" ]]; then
+    find "$1" \( -name '.*' -o -name "$CODEX_WORK_FILE" \) -prune -o -type f -name '*.md' -print0
+  else
+    find "$1" -type f -name '*.md' -print0
+  fi
+}
+
+# add_source FILE NOTE KEY AGENT REPO -> the desired line of FILE, unless its path has a tab or a line break or it holds
+# a token-like secret (a WARNING then).
+add_source() {
+  local file="$1" status=0 sha
+  # A case statement, because xtrace (kcov) would print the line break of a [[ ]] pattern.
+  case "$file" in
+    *[$'\t\n']*)
+      log "WARNING: $(tilde_path "$file") has a tab or a line break in its path; not mirrored"
+      return 0
+      ;;
+  esac
+  grep -q -E -e "$SECRET_PATTERN" -- "$file" || status=$?
+  if ((status == 0)); then
+    log "WARNING: $(tilde_path "$file") looks like it holds a secret; not mirrored"
+    return 0
+  fi
+  ((status == 1)) || die "cannot read $(tilde_path "$file"): fix its permissions, then run make memory-sync again"
+  sha="$(sha256_of "$file")" || exit 1
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$file" "$2" "$sha" "$3" "$4" "$5" >>"$WORK_DIR/desired"
+}
+
+# add_sources ROOT KEY AGENT REPO PREFIX -> the desired lines of the memory files under ROOT; PREFIX starts their path
+# below the device folder.
+add_sources() {
+  local root="$1" key="$2" agent="$3" repo="$4" prefix="$5" file rel
+  while IFS= read -r -d '' file; do
+    rel="${file#"$root"/}"
+    add_source "$file" "$NOTE_ROOT/$key/$agent/$BM_MEMORY_DEVICE/$prefix${rel%.md}" "$key" "$agent" "$repo"
+  done < <(md_files "$root" "$agent")
+}
+
+# collect_claude -> the desired lines of every Claude Code memory folder, in folder name order, except temporary
+# folders and excluded projects.
+collect_claude() {
+  local projects="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" folder key cwd repo
+  [[ -d "$projects" ]] || return 0
+  while IFS= read -r folder; do
+    if [[ "${folder##*/}" == "$TMP_FOLDER_PREFIX"* || ! -d "$folder/$CLAUDE_MEMORY_FOLDER" ]]; then
+      continue
+    fi
+    key="$(folder_key "$folder")" || exit 1
+    if excluded_key "$key"; then
+      continue
+    fi
+    repo=""
+    if cwd="$(claude_folder_cwd "$folder")"; then
+      repo="$(repo_for_dir "$cwd")" || exit 1
+    fi
+    add_sources "$folder/$CLAUDE_MEMORY_FOLDER" "$key" "$AGENT_CLAUDE" "$repo" ""
+  done < <(find "$projects" -mindepth 1 -maxdepth 1 -type d | LC_ALL=C sort)
+}
+
+# collect_codex -> the desired lines of the Codex memory (and memory V2 under v2/), all under the _global key.
+collect_codex() {
+  local home="${CODEX_HOME:-$HOME/.codex}"
+  if excluded_key "$GLOBAL_PROJECT_KEY"; then
+    return 0
+  fi
+  if [[ -d "$home/$CODEX_FOLDER" ]]; then
+    add_sources "$home/$CODEX_FOLDER" "$GLOBAL_PROJECT_KEY" "$AGENT_CODEX" "" ""
+  fi
+  if [[ -d "$home/$CODEX_V2_FOLDER" ]]; then
+    add_sources "$home/$CODEX_V2_FOLDER" "$GLOBAL_PROJECT_KEY" "$AGENT_CODEX" "" "$CODEX_V2_PREFIX/"
+  fi
+}
+
+# plan_changes -> next-state (state lines whose file, note path and sha256 are still desired), write (the other desired
+# lines, with the old sha256 and permalink) and delete (state lines whose file and note path are no longer desired).
+# With --full every desired line is written and the deletions come from plan_full_deletes.
+plan_changes() {
+  : >"$WORK_DIR/next-state"
+  : >"$WORK_DIR/write"
+  : >"$WORK_DIR/delete"
+  awk -F'\t' -v OFS='\t' -v full="$IS_FULL" -v dir="$WORK_DIR" '
+    FILENAME == ARGV[1] { old[$1 FS $2] = $0; old_sha[$1 FS $2] = $3; old_link[$1 FS $2] = $4; next }
+    {
+      pair = $1 FS $2
+      wanted[pair] = 1
+      if (full == "" && (pair in old) && old_sha[pair] == $3) print old[pair] > (dir "/next-state")
+      else print $0, old_sha[pair], old_link[pair] > (dir "/write")
+    }
+    END { if (full == "") for (pair in old) if (!(pair in wanted)) print old[pair] > (dir "/delete") }
+  ' "$WORK_DIR/old-state" "$WORK_DIR/desired"
+}
+
+# connect -> an initialized MCP session with the mirror's endpoint; dies when it cannot be reached.
+connect() {
+  mcp_open
+  MCP_URL="$(memory_mcp_url)" || exit 1
+  (mcp_initialize "$CLIENT_NAME") || die "basic-memory unreachable (run make tunnel); sync skipped"
+}
+
+# list_device_notes -> remote: the file_path and permalink of every mirror note of this device, page by page.
+list_device_notes() {
+  local page=1 args result
+  : >"$WORK_DIR/remote"
+  while :; do
+    REQUEST_ID=$((REQUEST_ID + 1))
+    args="$(jq -cn --arg project "$BM_PROJECT" --arg device "$BM_MEMORY_DEVICE" --argjson page "$page" \
+      --argjson size "$SEARCH_PAGE_SIZE" \
+      '{project: $project, metadata_filters: {device: $device, mirror: true}, page: $page, page_size: $size,
+        output_format: "json"}')" || exit 1
+    result="$(mcp_call_tool "$REQUEST_ID" search_notes "$args")" \
+      || die "search_notes failed, so FULL=1 cannot tell which notes to delete; run make memory-sync FULL=1 again"
+    jq -r '.results[] | [.file_path, .permalink] | @tsv' <<<"$result" >>"$WORK_DIR/remote" \
+      || die "search_notes: the result has no results list; run make memory-sync FULL=1 again"
+    [[ "$(jq -r '.has_more' <<<"$result")" == true ]] || return 0
+    page=$((page + 1))
+  done
+}
+
+# plan_full_deletes -> delete: a state-like line (no file, no sha256) for each listed note under agent-memory/ whose
+# file_path without .md is no desired note path. Permalinks are lowercased and romanized, so they are never compared.
+plan_full_deletes() {
+  awk -F'\t' -v OFS='\t' -v root="$NOTE_ROOT/" '
+    FILENAME == ARGV[1] { wanted[$2] = 1; next }
+    index($1, root) == 1 && $2 != "" {
+      path = $1
+      sub(/\.md$/, "", path)
+      if (!(path in wanted)) print "", path, "", $2
+    }
+  ' "$WORK_DIR/desired" "$WORK_DIR/remote" >"$WORK_DIR/delete"
+}
+
+# unit_fields FILE -> FILE with each tab turned into the unit separator, which read splits on without merging empty
+# fields (it merges runs of tabs).
+unit_fields() { LC_ALL=C tr '\t' '\037' <"$1"; }
+
+# delete_one PERMALINK -> deletes the note; fails when the result holds an error. A note that is already gone counts as
+# deleted (deleted: false and no error).
+delete_one() {
+  local args result
+  args="$(jq -cn --arg id "$1" --arg project "$BM_PROJECT" '{identifier: $id, project: $project, output_format: "json"}')" \
+    || exit 1
+  result="$(mcp_call_tool "$REQUEST_ID" delete_note "$args")" || exit 1
+  jq -e 'type == "object" and (has("error") | not)' <<<"$result" >/dev/null || die "delete_note: error for $1"
+}
+
+# send_deletes -> delete_one for each line of delete; the line of a failed delete stays in the state.
+send_deletes() {
+  local source note sha permalink
+  while IFS=$'\037' read -r source note sha permalink; do
+    REQUEST_ID=$((REQUEST_ID + 1))
+    if (delete_one "$permalink"); then
+      DELETED=$((DELETED + 1))
+    else
+      log "WARNING: could not delete $note; the next memory-sync tries again"
+      FAILED=$((FAILED + 1))
+      printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$sha" "$permalink" >>"$WORK_DIR/next-state"
+    fi
+  done < <(unit_fields "$WORK_DIR/delete")
+}
+
+# write_args FILE NOTE KEY AGENT REPO -> the write_note arguments: the file as it is, the note path and the mirror
+# metadata (repo only when there is one).
+write_args() {
+  jq -cn --rawfile content "$1" --arg directory "${2%/*}" --arg title "${2##*/}" --arg project "$BM_PROJECT" \
+    --arg note_type "$NOTE_TYPE" --arg key "$3" --arg agent "$4" --arg repo "$5" --arg device "$BM_MEMORY_DEVICE" \
+    --arg source_path "$(tilde_path "$1")" \
+    '{title: $title, directory: $directory, content: $content, project: $project, note_type: $note_type,
+      overwrite: true, output_format: "json",
+      metadata: ({project: $key} + (if $repo == "" then {} else {repo: $repo} end)
+        + {agent: $agent, device: $device, source_path: $source_path, mirror: true})}'
+}
+
+# write_one FILE NOTE KEY AGENT REPO -> the permalink of the note written from FILE; fails unless the result's action is
+# created or updated (conflict is a failure too).
+write_one() {
+  local args result action
+  args="$(write_args "$@")" || exit 1
+  result="$(mcp_call_tool "$REQUEST_ID" write_note "$args")" || exit 1
+  action="$(jq -r '.action' <<<"$result")" || exit 1
+  [[ "$action" == created || "$action" == updated ]] || die "write_note: action $action for $2"
+  jq -r '.permalink // empty' <<<"$result"
+}
+
+# send_writes -> write_one for each line of write; a written note's line goes to the state with its permalink, and a
+# failed update keeps the old line, so the note can still be deleted if the file goes away.
+send_writes() {
+  local source note sha key agent repo old_sha old_link permalink
+  while IFS=$'\037' read -r source note sha key agent repo old_sha old_link; do
+    REQUEST_ID=$((REQUEST_ID + 1))
+    if permalink="$(write_one "$source" "$note" "$key" "$agent" "$repo")" && [[ -n "$permalink" ]]; then
+      WROTE=$((WROTE + 1))
+      printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$sha" "$permalink" >>"$WORK_DIR/next-state"
+    else
+      log "WARNING: could not write $note; the next memory-sync tries again"
+      FAILED=$((FAILED + 1))
+      if [[ -n "$old_link" ]]; then
+        printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$old_sha" "$old_link" >>"$WORK_DIR/next-state"
+      fi
+    fi
+  done < <(unit_fields "$WORK_DIR/write")
+}
+
+# write_state -> state.tsv replaced by next-state through a .partial file in the same folder.
+write_state() {
+  cp "$WORK_DIR/next-state" "$STATE_FILE$PARTIAL_SUFFIX"
+  mv "$STATE_FILE$PARTIAL_SUFFIX" "$STATE_FILE"
+}
+
+# sync_memory -> lock, keys, the desired list, the comparison, the requests and the new state.
+sync_memory() {
+  require_cmd curl jq git
+  require_memory_device
+  acquire_lock
+  WORK_DIR="$(mktemp -d)" || exit 1
+  : >"$WORK_DIR/desired"
+  touch "$KEYS_FILE"
+  collect_claude
+  collect_codex
+  if [[ -f "$STATE_FILE" ]]; then
+    cp "$STATE_FILE" "$WORK_DIR/old-state"
+  else
+    : >"$WORK_DIR/old-state"
+  fi
+  plan_changes
+  if [[ -z "$IS_FULL" && ! -s "$WORK_DIR/write" && ! -s "$WORK_DIR/delete" ]]; then
+    return 0
+  fi
+  connect
+  if [[ -n "$IS_FULL" ]]; then
+    list_device_notes
+    plan_full_deletes
+  fi
+  send_deletes
+  send_writes
+  write_state
+  log "synced: wrote $WROTE, deleted $DELETED, failed $FAILED"
+  ((FAILED == 0)) || die "$FAILED notes failed (see the WARNING lines above); the next memory-sync tries them again"
+}
+
+main() {
+  parse_args "$@"
+  STATE_DIR="$(memory_state_dir)" || exit 1
+  STATE_FILE="$STATE_DIR/$STATE_FILE_NAME"
+  KEYS_FILE="$STATE_DIR/$KEYS_FILE_NAME"
+  LOCK_DIR="$STATE_DIR/$LOCK_DIR_NAME"
+  # The hook's log goes to this folder, so it exists before anything runs in the background.
+  mkdir -p "$STATE_DIR" || die "cannot create the state folder $(tilde_path "$STATE_DIR"); check its parent's permissions"
+  if [[ -n "$IS_HOOK" ]]; then
+    (
+      trap '' HUP
+      sync_memory
+    ) >>"$STATE_DIR/$LOG_FILE_NAME" 2>&1 </dev/null &
+    exit 0
+  fi
+  sync_memory
+}
+
+main "$@"

@@ -1,0 +1,197 @@
+#!/usr/bin/env bats
+# shellcheck disable=SC2030,SC2031 # bats runs each @test in a subshell; exports there stay in that test
+load helpers
+
+setup() {
+  setup_stubs curl
+  use_mcp_fixtures sse
+  export HOME="$BATS_TEST_TMPDIR/home" BM_MEMORY_DEVICE=mac-test BM_MEMORY_MCP_URL=http://127.0.0.1:18737/mcp
+  unset XDG_STATE_HOME BM_MEMORY_EXCLUDE CODEX_HOME CLAUDE_CONFIG_DIR
+  # shellcheck source=../scripts/lib/agent-memory.sh
+  . "$REPO_DIR/scripts/lib/agent-memory.sh"
+  WIDGET="$BATS_TEST_TMPDIR/work/widget"
+  git init -q "$WIDGET" && git -C "$WIDGET" remote add origin git@github.com:acme/widget.git
+  CLAUDE_MEM="$HOME/.claude/projects/$(claude_folder_name "$WIDGET")"
+  CODEX_MEM="$HOME/.codex/memories"
+  mkdir -p "$CLAUDE_MEM/memory" "$HOME/.claude/projects/-private-tmp-x/memory" "$CODEX_MEM/rollout_summaries" "$CODEX_MEM/.git" \
+    "$HOME/.codex/memories_v2"
+  echo v2 >"$HOME/.codex/memories_v2/MEMORY.md"
+  printf '{"cwd":"%s"}\n' "$WIDGET" >"$CLAUDE_MEM/s1.jsonl"
+  printf -- '---\nname: m\n---\nindex\n' >"$CLAUDE_MEM/memory/MEMORY.md"
+  echo note >"$CLAUDE_MEM/memory/회의 메모.md"
+  echo tmp >"$HOME/.claude/projects/-private-tmp-x/memory/t.md"
+  echo summary >"$CODEX_MEM/memory_summary.md"
+  echo rollout >"$CODEX_MEM/rollout_summaries/r1.md"
+  echo ref >"$CODEX_MEM/.git/HEAD.md"
+  echo diff >"$CODEX_MEM/phase2_workspace_diff.md"
+  echo hidden >"$CODEX_MEM/.hidden.md"
+  SYNC="$REPO_DIR/scripts/sync-agent-memory.sh"
+  STATE_DIR="$HOME/.local/state/bm-agent-memory"
+}
+
+# written_notes -> "directory/title" of every write_note request, sorted.
+written_notes() {
+  jq -r 'select(.params.name == "write_note") | .params.arguments | "\(.directory)/\(.title)"' "$STUB_LOG.requests" | LC_ALL=C sort
+}
+
+# tool_calls NAME -> how many requests called the tool NAME.
+tool_calls() { jq -r --arg name "$1" 'select(.params.name == $name) | .id' "$STUB_LOG.requests" | wc -l | tr -d ' '; }
+
+@test "mirrors Claude and Codex (v1 and v2) memory under agent-memory/<key>/<agent>/<device>/ with the mirror metadata, skips temp folders, Codex .git, phase2_workspace_diff.md and hidden files, and a rerun sends nothing" {
+  run "$SYNC"
+  assert_success
+  assert_equal "$(written_notes)" "$(printf '%s\n' agent-memory/_global/codex/mac-test/memory_summary \
+    agent-memory/_global/codex/mac-test/rollout_summaries/r1 agent-memory/_global/codex/mac-test/v2/MEMORY \
+    agent-memory/acme-widget/claude-code/mac-test/MEMORY "agent-memory/acme-widget/claude-code/mac-test/회의 메모" | LC_ALL=C sort)"
+  # shellcheck disable=SC2088 # source_path holds a literal ~ for the home folder
+  assert_equal "$(jq -cS 'select(.params.arguments.directory == "agent-memory/acme-widget/claude-code/mac-test" and .params.arguments.title == "MEMORY")
+    | .params.arguments | {project, note_type, overwrite, metadata}' "$STUB_LOG.requests")" \
+    "$(jq -cnS --arg src "~/.claude/projects/${CLAUDE_MEM##*/}/memory/MEMORY.md" '{project: "main", note_type: "agent_memory", overwrite: true,
+      metadata: {project: "acme-widget", repo: "github.com/acme/widget", agent: "claude-code", device: "mac-test", source_path: $src, mirror: true}}')"
+  : >"$STUB_LOG"
+  run "$SYNC"
+  assert_success
+  refute_stub_called '^curl '
+}
+
+@test "sends only a changed file again, and deletes the note of a removed file and every note of a newly excluded project" {
+  "$SYNC" 2>/dev/null
+  rm -f "$STUB_LOG.requests"
+  echo changed >>"$CLAUDE_MEM/memory/MEMORY.md"
+  rm "$CLAUDE_MEM/memory/회의 메모.md"
+  run "$SYNC"
+  assert_success
+  assert_equal "$(written_notes)" agent-memory/acme-widget/claude-code/mac-test/MEMORY
+  assert_equal "$(jq -r 'select(.params.name == "delete_note") | .params.arguments.identifier' "$STUB_LOG.requests")" main/verify/bm-verify-test1
+  rm -f "$STUB_LOG.requests"
+  export BM_MEMORY_EXCLUDE=_global
+  run "$SYNC"
+  assert_success
+  assert_equal "$(tool_calls write_note)" 0
+  assert_equal "$(tool_calls delete_note)" 3
+  ! grep -q /codex/ "$STATE_DIR/state.tsv" || fail "the state still lists Codex notes"
+}
+
+@test "keeps the state when the endpoint is down or one write fails, and the next run sends only what was missed" {
+  export CURL_STUB_EXIT=7
+  run "$SYNC"
+  assert_failure
+  assert_output --partial "basic-memory unreachable (run make tunnel); sync skipped"
+  [[ ! -e "$STATE_DIR/state.tsv" ]] || fail "state written while the endpoint was down"
+  unset CURL_STUB_EXIT
+  export CURL_STUB_FAIL_MATCH='"title":"MEMORY"'
+  run "$SYNC"
+  assert_failure
+  assert_equal "$(cut -f2 "$STATE_DIR/state.tsv" | LC_ALL=C sort | tr '\n' ' ')" \
+    "agent-memory/_global/codex/mac-test/memory_summary agent-memory/_global/codex/mac-test/rollout_summaries/r1 agent-memory/acme-widget/claude-code/mac-test/회의 메모 "
+  unset CURL_STUB_FAIL_MATCH
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC"
+  assert_success
+  assert_equal "$(written_notes)" \
+    "$(printf '%s\n' agent-memory/_global/codex/mac-test/v2/MEMORY agent-memory/acme-widget/claude-code/mac-test/MEMORY)"
+}
+
+@test "keeps the old state line when an update fails, so removing the file afterwards still deletes its note" {
+  "$SYNC" 2>/dev/null
+  echo changed >>"$CLAUDE_MEM/memory/MEMORY.md"
+  export CURL_STUB_FAIL_MATCH='"title":"MEMORY"'
+  run "$SYNC"
+  assert_failure
+  assert_equal "$(grep -c 'claude-code/mac-test/MEMORY' "$STATE_DIR/state.tsv")" 1
+  unset CURL_STUB_FAIL_MATCH
+  rm "$CLAUDE_MEM/memory/MEMORY.md"
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC"
+  assert_success
+  assert_equal "$(tool_calls delete_note)" 1
+}
+
+@test "counts a write_note result with action conflict as a failure and keeps that file out of the state" {
+  sed 's/\\"action\\":\\"created\\"/\\"action\\":\\"conflict\\"/; s/"action":"created"/"action":"conflict"/' \
+    "$CURL_FIXTURES/call_write_note.body" >"$CURL_FIXTURES/conflict.body"
+  mv "$CURL_FIXTURES/conflict.body" "$CURL_FIXTURES/call_write_note.body"
+  run "$SYNC"
+  assert_failure
+  assert_output --partial "failed 5"
+  [[ ! -s "$STATE_DIR/state.tsv" ]] || fail "a conflicting write reached the state"
+}
+
+@test "--hook on a Mac without a state folder yet prints nothing, exits 0 and logs to a new state folder when the endpoint is down" {
+  [[ ! -e "$STATE_DIR" ]] || fail "the test needs a fresh HOME without a state folder"
+  local i
+  export CURL_STUB_EXIT=7
+  run "$SYNC" --hook
+  assert_success
+  assert_output ""
+  # shellcheck disable=SC2034 # i only counts the tries
+  for i in $(seq 50); do
+    grep -q 'sync skipped' "$STATE_DIR/sync.log" 2>/dev/null && break
+    sleep 0.1
+  done
+  grep -q 'basic-memory unreachable (run make tunnel); sync skipped' "$STATE_DIR/sync.log" || fail "no skip line in sync.log"
+}
+
+@test "--full writes every file again and deletes this device's notes that no local file backs, although the state says everything is synced" {
+  "$SYNC" 2>/dev/null
+  rm -f "$STUB_LOG.requests"
+  printf 'data: %s\n' "$(jq -cn '{jsonrpc: "2.0", id: 2, result: {isError: false, structuredContent: {result: {has_more: false, results: [
+    {title: "MEMORY", permalink: "main/agent-memory/acme-widget/claude-code/mac-test/memory", file_path: "agent-memory/acme-widget/claude-code/mac-test/MEMORY.md"},
+    {title: "old", permalink: "main/agent-memory/acme-widget/claude-code/mac-test/old", file_path: "agent-memory/acme-widget/claude-code/mac-test/old.md"}]}}}}')" \
+    >"$CURL_FIXTURES/call_search_notes.body"
+  run "$SYNC" --full
+  assert_success
+  assert_equal "$(tool_calls write_note)" 5
+  assert_equal "$(jq -c 'select(.params.name == "search_notes") | .params.arguments.metadata_filters' "$STUB_LOG.requests")" '{"device":"mac-test","mirror":true}'
+  assert_equal "$(jq -r 'select(.params.name == "delete_note") | .params.arguments.identifier' "$STUB_LOG.requests")" \
+    main/agent-memory/acme-widget/claude-code/mac-test/old
+}
+
+@test "refuses a missing BM_MEMORY_DEVICE before any request" {
+  export BM_MEMORY_DEVICE=
+  run "$SYNC"
+  assert_failure
+  refute_stub_called '^curl '
+}
+
+@test "does not mirror a file with a token-like secret and deletes its earlier mirror" {
+  local secret
+  for secret in "tskey-auth-k$(printf 'A%.0s' {1..8})-$(printf 'k%.0s' {1..12})" "gho_$(printf 'a%.0s' {1..36})" \
+    "github_pat_$(printf 'b%.0s' {1..82})" "ASIA$(printf 'C%.0s' {1..16})" "xoxb-1234-$(printf 'd%.0s' {1..12})" \
+    "sk-ant-api03-$(printf 'e%.0s' {1..24})" "sk-proj-$(printf 'f%.0s' {1..12})T3BlbkFJ" "AIza$(printf 'g%.0s' {1..35})" \
+    "-----BEGIN OPENSSH PRIVATE"" KEY-----"; do
+    (
+      echo note >"$CLAUDE_MEM/memory/회의 메모.md" && "$SYNC" 2>/dev/null && rm -f "$STUB_LOG.requests" \
+        && printf 'token %s\n' "$secret" >"$CLAUDE_MEM/memory/회의 메모.md" || exit 1
+      run "$SYNC"
+      assert_success && assert_output --partial "looks like it holds a secret" \
+        && assert_equal "$(tool_calls write_note)" 0 && assert_equal "$(tool_calls delete_note)" 1
+    ) || fail "secret pattern ${secret:0:5}"
+  done
+}
+
+@test "exits quietly while another run holds a fresh lock, and clears a lock older than 10 minutes" {
+  mkdir -p "$STATE_DIR/lock"
+  run "$SYNC"
+  assert_success
+  refute_stub_called '^curl '
+  touch -t 202001010000 "$STATE_DIR/lock"
+  run "$SYNC"
+  assert_success
+  assert_stub_called '^curl '
+  [[ ! -e "$STATE_DIR/lock" ]] || fail "lock left behind"
+}
+
+@test "gives a second Claude folder of the same repo the key <key>--<folder name> and a third one a hashed suffix, with a warning, so no two folders share a note path" {
+  local clone folder
+  for clone in "$BATS_TEST_TMPDIR/work2/widget" "$BATS_TEST_TMPDIR/work3/widget"; do
+    git init -q "$clone" && git -C "$clone" remote add origin https://github.com/acme/widget.git
+    folder="$HOME/.claude/projects/$(claude_folder_name "$clone")"
+    mkdir -p "$folder/memory" && printf '{"cwd":"%s"}\n' "$clone" >"$folder/s1.jsonl" && echo other >"$folder/memory/MEMORY.md"
+  done
+  run "$SYNC"
+  assert_success
+  assert_output --partial "project key acme-widget is taken"
+  assert_equal "$(written_notes | grep -c '^agent-memory/acme-widget--widget/claude-code/mac-test/MEMORY$')" 1
+  assert_equal "$(written_notes | grep -c -E '^agent-memory/acme-widget--widget-[0-9a-f]{6}/claude-code/mac-test/MEMORY$')" 1
+}

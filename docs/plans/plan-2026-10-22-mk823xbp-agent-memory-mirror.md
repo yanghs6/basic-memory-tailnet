@@ -352,9 +352,9 @@ git commit -m "feat: add the project key rules of the agent memory mirror" --tra
 - Consumes: Task 1의 `mcp_open`·`mcp_close`·`mcp_initialize`·`mcp_call_tool`·`sha256_of`, Task 2의 함수 전부, Task 1 Progress log의 삭제 응답.
 - Produces: `make memory-sync [HOOK=1] [FULL=1]` → `scripts/sync-agent-memory.sh [--hook] [--full]`. 상태 폴더의 `state.tsv`·`keys.tsv`·`sync.log`·`lock/`.
 
-- [ ] **Step 1: `make new-script NAME=sync-agent-memory`**
+- [x] **Step 1: `make new-script NAME=sync-agent-memory`**
 
-- [ ] **Step 2: 실패하는 테스트 작성 (`tests/sync-agent-memory.bats`)**
+- [x] **Step 2: 실패하는 테스트 작성 (`tests/sync-agent-memory.bats`)**
 
 ```bash
 setup() {
@@ -550,16 +550,16 @@ tool_calls() { jq -r --arg name "$1" 'select(.params.name == $name) | .id' "$STU
 }
 ```
 
-- [ ] **Step 3: 실패 확인**
+- [x] **Step 3: 실패 확인**
 
 Run: `make test`
 Expected: `sync-agent-memory.bats`의 테스트가 `not implemented`로 실패한다. 다른 테스트는 통과한다.
 
-- [ ] **Step 4: curl 스텁이 요청의 id로 답하게 한다**
+- [x] **Step 4: curl 스텁이 요청의 id로 답하게 한다**
 
 `tests/stubs/curl`의 MCP 모드에서, 요청에 `id`가 있으면 복사한 본문의 `"id":<숫자>`를 그 id로 바꾼다(`sed -E`). 동기화는 요청마다 다른 id를 쓰는데, fixture의 id는 고정이기 때문이다. 본문 안의 문자열 속 `\"id\":`는 앞에 역슬래시가 있어 바뀌지 않는다. 스텁 머리 주석의 MCP 모드 설명에 한 줄을 더한다.
 
-- [ ] **Step 5: 구현 (`scripts/sync-agent-memory.sh`)**
+- [x] **Step 5: 구현 (`scripts/sync-agent-memory.sh`)**
 
 상수: `NOTE_ROOT=agent-memory`, `AGENT_CLAUDE=claude-code`, `AGENT_CODEX=codex`, `BM_PROJECT=main`, `NOTE_TYPE=agent_memory`, `CODEX_V2_FOLDER=memories_v2`, `CODEX_V2_PREFIX=v2`, `CLIENT_NAME=bm-agent-memory`, `TMP_FOLDER_PREFIX=-private-tmp-`, `CODEX_WORK_FILE=phase2_workspace_diff.md`, `LOCK_STALE_MINUTES=10`, `SECRET_PATTERN`(Global Constraints의 형식을 ERE 하나로).
 
@@ -604,12 +604,12 @@ BM_MEMORY_MCP_URL=
 BM_MEMORY_EXCLUDE=
 ```
 
-- [ ] **Step 6: 통과 확인**
+- [x] **Step 6: 통과 확인**
 
 Run: `make check`
 Expected: exit 0, 커버리지 80% 이상, `verify-mcp.bats`가 바뀐 스텁으로도 통과한다.
 
-- [ ] **Step 7: 커밋**
+- [x] **Step 7: 커밋**
 
 ```bash
 git add scripts/sync-agent-memory.sh tests/sync-agent-memory.bats tests/stubs/curl Makefile .env.example
@@ -984,3 +984,4 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 | 2026-10-27 | Verified | 시작. 웹 커넥터 PR #24가 `01eb909`로 병합된 뒤 supervisor 세션이 시작 신호를 보냈다. `git fetch origin` 뒤 `git branch -r --list 'origin/plan/mk823xbp-*'`의 출력이 없었고, `01eb909`에서 브랜치를 만들었다. PR #24로 밀린 줄 번호를 `01eb909`에 맞췄다: `scripts/lib/vm.sh:18,170-177` → `:26,341-348`, `scripts/verify-vm.sh:20-21` → `:22-23`, `Makefile:15` → `:16`, `Makefile:32` → `:46`, `Makefile:8-15` → `:8-17`, `docs/ARCHITECTURE.md:43` → `:53`. `scripts/verify-mcp.sh`, `scripts/open-tunnel.sh`, `AGENTS.md:10`은 그대로다. 스펙 §2의 `docs/ARCHITECTURE.md:96`(지금 `:110`)은 2026-10-22의 증거 문장이라 고치지 않았다. |
 | 2026-10-27 | Verified | Task 1: `scripts/lib/mcp.sh`를 만들고 `verify-mcp.sh`의 MCP 클라이언트(`mcp_` 이름)를 옮겼으며, `sha256_of`를 `vm.sh`에서 `common.sh`로 옮겼다. RED: 구현 전 `make test`에서 not ok 3개였다. `lib-mcp.bats`의 두 테스트는 `mcp_open: command not found`로, 템플릿 빈칸 검사(`scripts and tests hold no unfilled template blank`)는 `new-script`가 만든 빈 라이브러리의 `{{...}}` 때문에 실패했다. GREEN: `make check` 종료 코드 0, 211개 테스트 모두 ok이고 not ok 0개, 총 줄 커버리지 89.19%(최소 80%). `tests/verify-mcp.bats`와 `tests/fixtures/verify-mcp`는 `origin/main`과 차이가 없다. |
 | 2026-10-27 | Verified | Task 2: `scripts/lib/agent-memory.sh`와 `tests/lib-agent-memory.bats`를 만들고, `DEFAULT_TUNNEL_MCP_PORT`·`DEFAULT_TUNNEL_WEB_PORT`를 `open-tunnel.sh`에서 `common.sh`로 옮겼다(`verify-vm.sh` 주석과 `script-authoring`의 Libraries 목록도 고침). RED: 구현 전 `make test`는 exit 2, `lib-agent-memory.bats`의 네 테스트(47~50)가 함수가 없어 실패했고, 빈칸 검사 테스트(148)도 새 파일의 템플릿 빈칸 때문에 실패했다. GREEN: 구현 뒤 `make check` exit 0, 215개 테스트 모두 ok, not ok 0, total line coverage 89.44%(`scripts/lib/agent-memory.sh` 96.77%). |
+| 2026-10-27 | Verified | Task 3: `scripts/sync-agent-memory.sh`와 `tests/sync-agent-memory.bats`를 만들고, `tests/stubs/curl`의 MCP 모드가 요청의 id로 답하게 했으며, `make memory-sync`와 `.env.example`의 세 변수를 더했다. RED: 구현 전 `make test`는 exit 2, 227개 중 not ok 11개였다. `sync-agent-memory.bats`의 열 테스트(187~193, 195~197)가 템플릿의 `not implemented`로 실패했고, 빈칸 검사 테스트(149)가 새 스크립트의 템플릿 빈칸 때문에 실패했다. `BM_MEMORY_DEVICE` 거부 테스트(194)는 요청 전에 끝나는 템플릿에서도 통과했다. GREEN: `make check` exit 0, 227개 모두 ok, not ok 0, total line coverage 89.04%(`scripts/sync-agent-memory.sh` 85.58%). 바뀐 스텁으로 `verify-mcp.bats`(204~208)도 통과했고, `tests/verify-mcp.bats`와 `tests/fixtures/verify-mcp`는 `origin/main`과 차이가 없다. 계획의 테스트 코드에서 shellcheck 경고 두 개(SC2088 `~` 문자열, SC2034 반복 변수)가 나와 동작을 바꾸지 않는 `# shellcheck disable` 주석 두 줄을 더했다. 판단: `BM_MEMORY_EXCLUDE`는 `<키>--<폴더 이름>` 키도 바탕 키로 뺀다(Global Constraints 색인 규칙과 같게). macOS bash 3.2에서 가짜 HOME과 curl 스텁으로 한 번 돌려(세션 scratch 폴더, 커밋하지 않음) 키 충돌의 두 형태, 비밀값 건너뛰기, 재실행 무요청, hook 모드의 삭제를 확인했다. |
