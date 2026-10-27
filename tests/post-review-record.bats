@@ -30,19 +30,26 @@ setup() {
   done
 }
 
-@test "writes nothing when the PR has several records or gh reports no login" {
-  local case problem message
-  # Each case: what gh reports | the message of the check that stops before any write.
-  for case in "several records|has 2 Review record comments" "no login|gh returned no login"; do
+@test "writes nothing when the PR has several records, gh reports no login or the findings carry public text" {
+  local case problem message cgnat
+  # A CGNAT (tailnet range) address never sits in a repo file, so build it here; tests/lib-git.bats covers the check.
+  cgnat="$(printf '%s.%s' 100.101 102.103)"
+  # Each case: what is wrong | the message of the check that stops before any write. Public text stops before any gh
+  # call, the login lookup included.
+  for case in "several records|has 2 Review record comments" "no login|gh returned no login" \
+    "public text|$FINDINGS:4: IPv4 address"; do
     IFS='|' read -r problem message <<<"$case"
     (
       : >"$STUB_LOG" || exit 1
       case "$problem" in
         "several records") export GH_STUB_JQ_OUTPUT=$'1\n2' ;;
         "no login") export GH_STUB_LOGIN='' ;;
+        "public text") printf '| R1-F2 | P2 | %s | leaks | open |\n' "$cgnat" >>"$FINDINGS" ;;
       esac || exit 1
       run "$RECORD" 12 "$FINDINGS"
-      assert_failure && assert_output --partial "$message" && refute_stub_called -E 'POST|PATCH'
-    ) || fail "post-review-record wrote although gh reported $problem"
+      assert_failure && assert_output --partial "$message" && refute_stub_called -E 'POST|PATCH' \
+        && refute_output --partial "$cgnat" || exit 1
+      if [[ "$problem" == "public text" ]]; then refute_stub_called '^gh '; fi
+    ) || fail "post-review-record did not stop before writing on: $problem"
   done
 }

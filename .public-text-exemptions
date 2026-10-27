@@ -1,0 +1,16 @@
+# Exemptions for scripts/check-public-text.sh run without arguments (make check). One line per file and kind:
+# '<repo-relative path> <kind id>', kind ids: ipv4 tailnet-ipv6 ts-net session-link generated-with.
+# Never write the matched value here. Only recorded evidence and must-fail test inputs belong in this list
+# (docs/decisions/adr-2026-10-26-vtmqpsyx-public-text-guard.md, decision 9).
+
+# Recorded evidence in plans.
+docs/plans/plan-2026-10-07-qtvzskgx-vm-rollout.md ipv4
+docs/plans/plan-2026-10-13-gaewewkf-ipv6-egress.md ipv4
+
+# Must-fail test inputs.
+tests/check-pr.bats session-link
+tests/fixtures/check-public-text/generated-with.txt generated-with
+tests/fixtures/check-public-text/ipv4.txt ipv4
+tests/fixtures/check-public-text/session-link.txt session-link
+tests/fixtures/check-public-text/tailnet-ipv6.txt tailnet-ipv6
+tests/fixtures/check-public-text/ts-net.txt ts-net

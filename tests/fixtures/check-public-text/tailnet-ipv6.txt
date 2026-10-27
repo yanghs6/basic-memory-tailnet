@@ -1,0 +1,3 @@
+# must-fail input of tests/check-public-text.bats; obviously fake tailnet IPv6 addresses
+fd7a:115c:a1e0::dead:beef
+FD7A:115C:A1E0:AB12::1

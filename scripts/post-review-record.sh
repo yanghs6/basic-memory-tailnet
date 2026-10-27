@@ -5,8 +5,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/git.sh
+. "$SCRIPT_DIR/lib/git.sh"
 
 # The first line of the record comment; this script finds the record again by it.
 readonly MARKER='<!-- review-record -->'
@@ -19,6 +19,9 @@ main() {
   local pr="${1:-}" file="${2:-}" me body ids count
   [[ "$pr" =~ ^[0-9]+$ && -n "$file" ]] || usage
   [[ -f "$file" ]] || die "findings file '$file' not found"
+  # The pull request is public: refuse to post an address, ts.net name or session link.
+  add_public_text_problems "$file" "fix it in that file" "$(cat "$file")" || true
+  report_problems "wrote nothing: the findings file carries public text; replace the host with agent-hub and a tailnet IP with <agent-hub tailnet IP>, delete session links and Generated with lines, then rerun make review-record PR=$pr FILE=$file"
   require_cmd gh
   # On a public repo anyone can post a comment that starts with the marker; only the machine account's count.
   me="$(gh api user --jq .login)" || die "could not read the gh login; run gh auth status"
