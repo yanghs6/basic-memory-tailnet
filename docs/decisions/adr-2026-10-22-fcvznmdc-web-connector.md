@@ -1,7 +1,7 @@
 ---
-status: proposed
+status: accepted
 id: fcvznmdc
-date: 2026-10-22
+date: 2026-10-27
 ---
 
 # ADR fcvznmdc: claude.ai 웹 커넥터는 아웃바운드 터널 뒤의 OAuth 게이트웨이로만 연다
