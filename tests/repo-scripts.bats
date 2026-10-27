@@ -139,8 +139,8 @@ script_path_refs() {
 
 # ssh_forward_problems FILE... -> "file:line: problem: text" for each ssh local forward that does not go through
 # forward_spec. The ssh context of a line is: it has the word ssh, it continues (trailing backslash) a line in the
-# context, or it is inside a multi-line array literal (NAME=( ... ), how tunnel_args builds ssh arguments). In the
-# context a standalone -L must be followed by "$(forward_spec and a bundled short option holding L (-NL, -L0.0.0.0:...)
+# context, or it is in an array literal (NAME=( ... ) or NAME+=( ... ), on one line or several, how tunnel_args builds
+# ssh arguments). In the context a standalone -L (quoted or not) must be followed by "$(forward_spec and a bundled short option holding L (-NL, -L0.0.0.0:...)
 # is a problem; LocalForward is a problem anywhere. Lines outside the context are not read for -L, so a file test
 # ([[ ! -L "$path" ]]) or curl -fsSL passes. Comment lines are skipped.
 ssh_forward_problems() {
@@ -155,13 +155,14 @@ ssh_forward_problems() {
         depth += gsub(/\(/, "", line) - gsub(/\)/, "", line)
         if (depth < 0) depth = 0
       }
-      context = cont || was_inside || depth > 0 || /(^|[^A-Za-z0-9_.-])ssh([^A-Za-z0-9_-]|$)/
+      context = cont || was_inside || depth > 0 || /[A-Za-z_][A-Za-z0-9_]*\+?=\(/ || /(^|[^A-Za-z0-9_.-])ssh([^A-Za-z0-9_-]|$)/
       cont = context && /\\$/
       if (/LocalForward/) report("LocalForward")
       if (!context) next
       for (i = 1; i <= NF; i++) {
         word = $i
         sub(/^\(/, "", word)
+        gsub(/["\047]/, "", word)
         if (word == "-L") {
           if (i == NF || $(i + 1) != "\"$(forward_spec") report("-L not followed by \"$(forward_spec")
         } else if (word ~ /^-[A-Za-z0-9]*L/) {
