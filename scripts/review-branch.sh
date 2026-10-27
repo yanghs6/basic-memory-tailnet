@@ -3,11 +3,13 @@
 # (docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md, section 5). Writes two reports:
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-diff.md   bugs introduced since the base
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-plan.md   plan conformance per AGENTS.md Code Review Rules
-# It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs
-# that post-review.sh puts in the comment header.
+# It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs, the model and
+# the reasoning effort that post-review.sh puts in the comment header.
 # Usage: make review BRANCH=<plan/<ID>-<slug>|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]
 #   REVIEW_BASE=<ref>            base for the review (default main; the reviewed head for round 2)
 #   REVIEW_ALLOW_SAME_VENDOR=1   allow a reviewer from the author's vendor (prints a warning)
+#   REVIEW_MODEL=<model>         reviewer model (default DEFAULT_CODEX_MODEL or DEFAULT_CLAUDE_MODEL)
+#   REVIEW_EFFORT=<effort>       reasoning effort, one of REVIEW_EFFORTS (default DEFAULT_REVIEW_EFFORT)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -15,6 +17,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib/git.sh"
 
 readonly BASE_REF="${REVIEW_BASE:-main}"
+readonly DEFAULT_CODEX_MODEL=gpt-6.1-sol
+readonly DEFAULT_CLAUDE_MODEL=claude-opus-5-5
+readonly DEFAULT_REVIEW_EFFORT=low
+# The reasoning efforts both reviewer CLIs accept (codex model_reasoning_effort, claude --effort).
+readonly REVIEW_EFFORTS="low medium high xhigh max"
 
 BRANCH=""
 REVIEWER=""
@@ -22,6 +29,8 @@ BASE_BRANCH=""
 TEMP_BASE=""
 WT=""
 SAME_VENDOR_ALLOWED=""
+MODEL=""
+EFFORT=""
 
 usage() {
   die "usage: make review BRANCH=<plan/<ID>-<slug>|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]"
@@ -58,6 +67,20 @@ reviewer_tool() {
     claude) echo claude-code ;;
     *) usage ;;
   esac
+}
+
+# resolve_model_effort: sets MODEL and EFFORT from REVIEW_MODEL and REVIEW_EFFORT or the reviewer's defaults.
+resolve_model_effort() {
+  local default_model="$DEFAULT_CLAUDE_MODEL" allowed
+  [[ "$REVIEWER" == codex ]] && default_model="$DEFAULT_CODEX_MODEL"
+  MODEL="${REVIEW_MODEL:-$default_model}"
+  EFFORT="${REVIEW_EFFORT:-$DEFAULT_REVIEW_EFFORT}"
+  [[ "$MODEL" =~ ^[A-Za-z0-9._-]+$ ]] \
+    || die "REVIEW_MODEL '$MODEL' may contain only letters, digits, '.', '_' and '-'; unset it to use $default_model"
+  for allowed in $REVIEW_EFFORTS; do
+    [[ "$EFFORT" == "$allowed" ]] && return 0
+  done
+  die "REVIEW_EFFORT must be one of: $REVIEW_EFFORTS (got '$EFFORT'); unset it to use $DEFAULT_REVIEW_EFFORT"
 }
 
 check_independence() {
@@ -134,9 +157,11 @@ EOF
 run_codex() {
   local diff_out="$1" plan_out="$2"
   # codex exec review defaults to a workspace-write sandbox; force read-only for the change review.
-  (cd "$WT" && codex exec review -c 'sandbox_mode="read-only"' --base "$BASE_BRANCH") >"$diff_out" \
+  (cd "$WT" && codex exec review -m "$MODEL" -c "model_reasoning_effort=\"$EFFORT\"" -c 'sandbox_mode="read-only"' \
+    --base "$BASE_BRANCH") >"$diff_out" \
     || die "codex change review failed; see $diff_out"
-  (cd "$WT" && codex exec --sandbox read-only -o "$plan_out" "$(plan_prompt)") >/dev/null \
+  (cd "$WT" && codex exec -m "$MODEL" -c "model_reasoning_effort=\"$EFFORT\"" --sandbox read-only \
+    -o "$plan_out" "$(plan_prompt)") >/dev/null \
     || die "codex plan review failed"
 }
 
@@ -146,7 +171,8 @@ run_codex() {
 # user or system config. A helper in the repository's own .git/config still runs; that config is the human's.
 claude_review() {
   (cd "$WT" && GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 \
-    claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence "$1")
+    claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence \
+    --model "$MODEL" --effort "$EFFORT" "$1")
 }
 
 run_claude() {
@@ -167,6 +193,7 @@ main() {
   round="${3:-1}"
   [[ "$round" =~ ^[0-9]+$ ]] || usage
   reviewer_tool "$REVIEWER" >/dev/null
+  resolve_model_effort
   require_cmd git "$REVIEWER"
   git show-ref --verify --quiet "refs/heads/$BRANCH" || die "branch '$BRANCH' not found"
   check_independence
@@ -199,7 +226,7 @@ main() {
   fi
   mv "$diff_out$PARTIAL_SUFFIX" "$diff_out"
   mv "$plan_out$PARTIAL_SUFFIX" "$plan_out"
-  printf 'base %s\nhead %s\n' "$base_sha" "$head_sha" >"$meta_out"
+  printf 'base %s\nhead %s\nmodel %s\neffort %s\n' "$base_sha" "$head_sha" "$MODEL" "$EFFORT" >"$meta_out"
   log "reviews written: $diff_out and $plan_out"
   log "Next: verify each finding, then make review-post PR=<number> BRANCH=$BRANCH REVIEWER=$REVIEWER ROUND=$round REVIEW_MODEL=<reviewer model> and make review-record PR=<number> FILE=<findings file>"
 }

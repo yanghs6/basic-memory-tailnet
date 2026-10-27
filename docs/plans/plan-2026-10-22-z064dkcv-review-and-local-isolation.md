@@ -224,3 +224,4 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 | 2026-10-27 | Verified | Open question 2: A를 골랐다. 리뷰 worktree에서 `make check`를 직접 돌린다. |
 | 2026-10-27 | Verified | Open question 3: (a)를 골랐다. 다른 worktree가 띄운 스택이면 `local-up`·`local-down`이 거부한다. |
 | 2026-10-27 | Verified | 계획 작성 뒤 PR #24(`01eb909`)가 `Makefile`의 `local-up`·`local-down` 위치를 81–89행으로 옮겼고, PR #25가 `scripts/post-review.sh:64-65`에 코멘트 머리 공개 텍스트 검사를 넣었다. 각 Task는 이 줄 번호가 아니라 현재 코드 기준으로 고친다. |
+| 2026-10-27 | Verified | Task 1 Step 0: Codex config reference는 `model_reasoning_effort` 값으로 `low`, `medium`, `high`, `xhigh`, `max`, `ultra`를 들고 "Available levels depend on the model and client"라고 적는다. Claude Code 2.1.311의 `claude --help`는 `--effort`에 `low, medium, high, xhigh, max`를 받는다. 공통 집합 `low medium high xhigh max`를 `REVIEW_EFFORTS`로 정했다. 계획의 Assumption(`low medium high xhigh`)과 달리 `max`도 두 쪽에 모두 있어 넣었다. 모델이 지원하지 않는 강도는 리뷰어 CLI가 거부한다. |

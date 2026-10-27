@@ -32,7 +32,7 @@ local-up local-down local-logs local-verify: export COMPOSE_PROFILES := web
 local-up local-down local-logs local-verify: export BM_WEB_BASE_URL := http://127.0.0.1:$(BM_WEB_PORT)
 endif
 REVIEW_BASE := $(or $(REVIEW_BASE),origin/main)
-export REVIEW_BASE REVIEW_ALLOW_SAME_VENDOR REVIEW_MODEL
+export REVIEW_BASE REVIEW_ALLOW_SAME_VENDOR REVIEW_MODEL REVIEW_EFFORT
 
 SHELLCHECK_IMAGE := koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d
 SHFMT_IMAGE := mvdan/shfmt:v3.12.0@sha256:307d265ffd25ce832899ae17c93ed5062fc3375c514bba8f52cbf52792735c4d
@@ -126,7 +126,7 @@ new-id: ## Print one unused document id, e.g. for a draft on the Basic Memory dr
 new-script: ## Create a script and its pair test from the templates: NAME=<name> [KIND=script|remote|lib] (rules: the script-authoring skill)
 	scripts/create-script.sh "$(NAME)" "$(KIND)"
 
-review: ## Read-only review by another vendor: BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<sha>]
+review: ## Read-only review by another vendor: BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<sha>] [REVIEW_MODEL=<model>] [REVIEW_EFFORT=low|medium|high|xhigh|max]
 	scripts/review-branch.sh "$(BRANCH)" "$(REVIEWER)" "$(or $(ROUND),1)"
 
 review-post: ## Post a review round's reports to its PR: PR=<number> BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_MODEL=<model>]

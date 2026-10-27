@@ -52,20 +52,45 @@ review_repo() {
 plan-k7m2x9qa-git-review-tooling-r1-$reviewer-meta.txt
 plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
       run cat "$OUT-r1-$reviewer-meta.txt"
-      assert_line "base $(git rev-parse main)" && assert_line "head $(git rev-parse plan/k7m2x9qa-git-review-tooling)" || exit 1
+      assert_line "base $(git rev-parse main)" && assert_line "head $(git rev-parse plan/k7m2x9qa-git-review-tooling)" \
+        && assert_line "effort low" || exit 1
       if [[ "$reviewer" == codex ]]; then
-        assert_stub_called -F 'codex exec review -c sandbox_mode="read-only" --base main :: cwd='"$REVIEW_WT" \
-          && assert_stub_called -F "codex exec --sandbox read-only -o $OUT-r1-codex-plan.md"
+        assert_line "model gpt-6.1-sol" \
+          && assert_stub_called -F 'codex exec review -m gpt-6.1-sol -c model_reasoning_effort="low" -c sandbox_mode="read-only" --base main :: cwd='"$REVIEW_WT" \
+          && assert_stub_called -F "codex exec -m gpt-6.1-sol -c model_reasoning_effort=\"low\" --sandbox read-only -o $OUT-r1-codex-plan.md"
       else
+        assert_line "model claude-opus-5-5" || exit 1
         run grep -c "^claude " "$STUB_LOG"
         assert_output 2 || exit 1
-        run grep -c "^claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence " "$STUB_LOG"
+        run grep -c "^claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence --model claude-opus-5-5 --effort low " "$STUB_LOG"
         assert_output 2 || exit 1
         # No user or system git config, so no external diff or textconv helper loads.
         run grep -c " git_config_global=/dev/null git_config_nosystem=1$" "$STUB_LOG"
         assert_output 2
       fi
     ) || fail "$reviewer review of a branch by $author"
+  done
+}
+
+@test "passes REVIEW_MODEL and REVIEW_EFFORT to both reviewer calls and records them in the meta file" {
+  local reviewer author
+  cd "$BATS_TEST_TMPDIR" || return
+  for reviewer in codex claude; do
+    author=codex
+    [[ "$reviewer" == codex ]] && author=claude-code
+    (
+      review_repo "$author" || exit 1
+      REVIEW_MODEL=model-y REVIEW_EFFORT=xhigh run "$REVIEW" plan/k7m2x9qa-git-review-tooling "$reviewer"
+      assert_success || exit 1
+      if [[ "$reviewer" == codex ]]; then
+        run grep -c -F -- '-m model-y -c model_reasoning_effort="xhigh" ' "$STUB_LOG"
+      else
+        run grep -c -F -- '--model model-y --effort xhigh ' "$STUB_LOG"
+      fi
+      assert_output 2 || exit 1
+      run cat "$OUT-r1-$reviewer-meta.txt"
+      assert_line "model model-y" && assert_line "effort xhigh"
+    ) || fail "$reviewer review did not pass or record REVIEW_MODEL and REVIEW_EFFORT"
   done
 }
 
@@ -138,7 +163,7 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
   done
 }
 
-@test "refuses a stale review worktree, a leftover review-base branch, a relative REVIEW_OUT_DIR and an unknown reviewer, and leaves what exists alone" {
+@test "refuses a stale review worktree, a leftover review-base branch, a relative REVIEW_OUT_DIR, an unknown effort and an unknown reviewer, and leaves what exists alone" {
   local case input message
   cd "$BATS_TEST_TMPDIR" || return
   # Each case: what is in the way | the message of the check that refuses it. For the unknown reviewer that is the
@@ -147,6 +172,7 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
   for case in "stale review worktree|a review worktree already exists" \
     "leftover review-base branch|review-base/plan-k7m2x9qa-git-review-tooling-r2 already exists" \
     "relative REVIEW_OUT_DIR|REVIEW_OUT_DIR must be an absolute path" \
+    "unknown effort|REVIEW_EFFORT must be one of" \
     "unknown reviewer|REVIEWER=codex|claude"; do
     IFS='|' read -r input message <<<"$case"
     (
@@ -162,6 +188,10 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
         "relative REVIEW_OUT_DIR")
           review_repo claude-code || exit 1
           REVIEW_OUT_DIR=out run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+          ;;
+        "unknown effort")
+          review_repo claude-code || exit 1
+          REVIEW_EFFORT=extreme run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
           ;;
         "unknown reviewer")
           review_repo || exit 1
