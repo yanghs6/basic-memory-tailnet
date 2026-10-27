@@ -225,7 +225,7 @@ agent-memory/
 
 **프로젝트 키 (설계 판단):**
 1. Claude 기억 폴더의 원래 작업 폴더는 그 폴더의 세션 `.jsonl`에 있는 `cwd` 값 중, Claude의 폴더 이름 규칙(영문자·숫자·`-` 밖의 문자를 `-`로. 문서에는 없고 이 Mac의 폴더 이름으로 확인했다)으로 바꾸었을 때 폴더 이름과 같아지는 것이다. 기억 폴더는 git 저장소 루트 기준이라(§2) 저장소 루트의 `cwd`가 맞는다. 한 `.jsonl`에도 worktree 경로 같은 여러 `cwd`가 섞여 있으므로(2026-10-22 이 저장소에서 4개 확인) 최신 값을 그대로 쓰지 않는다. 맞는 값이 없으면 4번 규칙을 따른다. 한 번 정한 키는 상태 파일에 적어 두고 다시 계산하지 않는다.
-2. 작업 폴더가 git 저장소이고 `origin`이 있으면 `<owner>-<repo>`를 쓴다. 원격 주소는 호스트를 소문자로 바꾸고, 사용자 정보·포트·`.git`을 빼고, scp 형식(`git@host:path`)을 `host/path`로 바꿔 정규화한다. 예: `yanghs6-basic-memory-tailnet`, `acme_dev-data-pipeline`. 두 Mac에서 같은 값이 나온다.
+2. 작업 폴더가 git 저장소이고 `origin`이 있으면 `<owner>-<repo>`를 쓴다. 원격 주소는 호스트를 소문자로 바꾸고, 사용자 정보·포트·`.git`을 빼고, scp 형식(`git@host:path`)을 `host/path`로 바꿔 정규화한다. 예: `yanghs6-basic-memory-tailnet`, `acme_dev-widget-tools`. 두 Mac에서 같은 값이 나온다.
 3. git이 아니면 `local-<작업 폴더 이름>`을 쓴다. 기기 전용 작업 폴더이므로 두 Mac 사이에서 합쳐지지 않아도 된다.
 4. 작업 폴더가 홈 폴더이거나 `cwd`를 읽지 못하면 각각 `_global`, `local-<Claude 기억 폴더 이름>`을 쓴다.
 5. Codex 기억은 프로젝트별로 나뉘지 않으므로(§2) 모두 `_global`에 둔다.

@@ -21,8 +21,8 @@ setup() {
         && assert_equal "$(project_key_for_dir "$repo/sub")" acme-widget
     ) || fail "remote $url"
   done
-  git -C "$repo" remote set-url origin git@bitbucket.org:acme_dev/data-pipeline.git
-  assert_equal "$(project_key_for_dir "$repo")" acme_dev-data-pipeline
+  git -C "$repo" remote set-url origin git@bitbucket.org:acme_dev/widget-tools.git
+  assert_equal "$(project_key_for_dir "$repo")" acme_dev-widget-tools
 }
 
 @test "the home folder is _global and a folder outside git is local-<name> with other characters turned into -" {
