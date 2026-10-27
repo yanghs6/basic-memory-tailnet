@@ -255,7 +255,7 @@ main() {
   mv "$plan_out$PARTIAL_SUFFIX" "$plan_out"
   printf 'base %s\nhead %s\nmodel %s\neffort %s\ncheck %s\n' "$base_sha" "$head_sha" "$MODEL" "$EFFORT" "$CHECK_RESULT" >"$meta_out"
   log "reviews written: $diff_out and $plan_out"
-  log "Next: verify each finding (make check output: $check_log), then make review-post PR=<number> BRANCH=$BRANCH REVIEWER=$REVIEWER ROUND=$round REVIEW_MODEL=<reviewer model> and make review-record PR=<number> FILE=<findings file>"
+  log "Next: verify each finding (make check output: $check_log), then make review-post PR=<number> BRANCH=$BRANCH REVIEWER=$REVIEWER ROUND=$round and make review-record PR=<number> FILE=<findings file>"
 }
 
 main "$@"

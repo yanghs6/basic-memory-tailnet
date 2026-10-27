@@ -129,7 +129,7 @@ new-script: ## Create a script and its pair test from the templates: NAME=<name>
 review: ## Read-only review by another vendor: BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<sha>] [REVIEW_MODEL=<model>] [REVIEW_EFFORT=low|medium|high|xhigh|max]
 	scripts/review-branch.sh "$(BRANCH)" "$(REVIEWER)" "$(or $(ROUND),1)"
 
-review-post: ## Post a review round's reports to its PR: PR=<number> BRANCH=<branch> REVIEWER=codex|claude [ROUND=1] [REVIEW_MODEL=<model>]
+review-post: ## Post a review round's reports to its PR: PR=<number> BRANCH=<branch> REVIEWER=codex|claude [ROUND=1]
 	scripts/post-review.sh "$(PR)" "$(BRANCH)" "$(REVIEWER)" "$(or $(ROUND),1)"
 
 review-record: ## Create or update the PR's Review record comment: PR=<number> FILE=<findings table file>
