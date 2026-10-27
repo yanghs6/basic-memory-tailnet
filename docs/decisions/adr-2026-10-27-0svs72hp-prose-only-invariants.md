@@ -30,7 +30,7 @@ date: 2026-10-27
 
 ### 목록
 
-**Verified (2026-10-27):** 이 ADR을 더한 커밋의 트리에서 각 행의 테스트와 스크립트를 열어 확인했다. 줄 번호는 그 커밋의 `AGENTS.md`와 파일 기준이다.
+**Verified (2026-10-27):** 이 ADR을 더한 커밋의 트리에서 각 행의 테스트와 스크립트를 열어 확인했다. 줄 번호는 그 커밋의 `AGENTS.md`와 파일 기준이다. **Verified (2026-10-27):** 같은 브랜치가 `origin/main`(`0619c19`, PR #27·#29)을 병합한 뒤 다시 확인해 밀린 인용 두 개(`tests/repo-make.bats:151`, `tests/post-review.bats:41`)를 고쳤다.
 
 | `AGENTS.md` | 규칙 | 상태 | 보는 곳, 또는 검사가 없는 이유 |
 |---|---|---|---|
@@ -53,14 +53,14 @@ date: 2026-10-27
 | `:17` | 비밀값과 세션 id를 출력하지 않음, `mask` | 일부 | 기존 경로마다 동작 테스트가 있다: `tests/lib-common.bats:9`(`mask`), `tests/verify-mcp.bats:12`(세션 id), `tests/lib-sb.bats:28`, `tests/lib-vm.bats:143`, `:208`, `tests/repo-make.bats:55`. 새 출력 경로를 보는 일반 검사는 없다. 값을 모르는 검사는 출력에서 그것을 찾을 수 없다. |
 | `:18` | 짝 테스트 | 검사 있음 | `tests/repo-scripts.bats:73` "every script and library has its pair test, …". |
 | `:18` | 테스트 먼저 | 검사 없음 | 순서는 이력에만 있다. Progress log의 실패 확인 기록과 리뷰가 본다. |
-| `:22` | 비밀값, `.env`, `backups/`, `.local-data/`, 노트 내용을 커밋하지 않음 | 일부 | `.env`: `tests/repo-config.bats:160`(추적 안 됨, ignore됨). `backups/`, `.local-data/`는 `.gitignore`뿐이다. 비밀값은 GitHub push protection과 GitGuardian(저장소 밖 설정, [GitHub 런북](../runbooks/rbk-2026-10-14-ppmby9v6-github.md))이 보고, `make secret-scan`(gitleaks, `tests/repo-make.bats:140`)은 손으로 돌리며 `make check`나 CI에는 없다. 노트 내용은 모양으로 구분할 수 없다. |
+| `:22` | 비밀값, `.env`, `backups/`, `.local-data/`, 노트 내용을 커밋하지 않음 | 일부 | `.env`: `tests/repo-config.bats:160`(추적 안 됨, ignore됨). `backups/`, `.local-data/`는 `.gitignore`뿐이다. 비밀값은 GitHub push protection과 GitGuardian(저장소 밖 설정, [GitHub 런북](../runbooks/rbk-2026-10-14-ppmby9v6-github.md))이 보고, `make secret-scan`(gitleaks, `tests/repo-make.bats:151`)은 손으로 돌리며 `make check`나 CI에는 없다. 노트 내용은 모양으로 구분할 수 없다. |
 | `:23` | 비밀값은 `.env`에만, SSH나 curl stdin으로 전달 | 일부 | 기존 경로의 동작 테스트(`tests/lib-vm.bats:208`, `tests/lib-sb.bats:28`). 명령 인자나 저장소 파일에 넣지 않는 것을 보는 일반 검사는 없다. |
 | `:24` | VM·클라우드를 바꾸기 전에 사용자에게 물음 | 검사 없음 | 에이전트의 행동이다. |
 | `:25` | `backups/`, `/srv/basic-memory.prev-*` 삭제 금지 | 검사 없음 | 에이전트의 행동이다. |
 | `:26` | `.env`와 `backups/`는 main checkout에만 | 일부 | 워크트리의 make가 main checkout의 `.env`를 읽는다(`tests/repo-make.bats:41`). 워크트리에 만들거나 복사하지 않는 것은 행동이다. |
 | `:27` | `gcloud`는 `--configuration=bm-personal`로만 | 일부 | 런북·README·ARCHITECTURE의 명령: `tests/repo-docs.bats:195`. 스크립트와 스킬은 `gcloud`를 아예 쓰지 않는다(`tests/repo-cloud-neutral.bats:28`). 에이전트가 직접 치는 명령은 행동이다. |
 | `:28` | auth key와 restore `yes`는 사용자 터미널에서 | 검사 없음 | 에이전트와 사용자의 행동이다. |
-| `:29` | VM IP를 커밋·PR·코멘트·파일에 쓰지 않음 | 검사 있음 | `scripts/check-public-text.sh`([public-text-guard ADR](adr-2026-10-26-vtmqpsyx-public-text-guard.md)): 파일은 `tests/repo-public-text.bats:6`(`make check`), 커밋 메시지는 `scripts/check-git.sh`(`tests/check-git.bats:83`), PR은 `scripts/check-pr.sh`(`tests/check-pr.bats:109`), 리뷰 게시는 `tests/post-review.bats:36`, `tests/post-review-record.bats:33`. |
+| `:29` | VM IP를 커밋·PR·코멘트·파일에 쓰지 않음 | 검사 있음 | `scripts/check-public-text.sh`([public-text-guard ADR](adr-2026-10-26-vtmqpsyx-public-text-guard.md)): 파일은 `tests/repo-public-text.bats:6`(`make check`), 커밋 메시지는 `scripts/check-git.sh`(`tests/check-git.bats:83`), PR은 `scripts/check-pr.sh`(`tests/check-pr.bats:109`), 리뷰 게시는 `tests/post-review.bats:41`, `tests/post-review-record.bats:33`. |
 | `:32` | 자기 워크트리, `plan/`·`work/` 브랜치, `origin/main`에서 분기 | 일부 | 브랜치 이름과 detached HEAD: `scripts/check-git.sh`(`tests/check-git.bats:47`, pr-rules). 워크트리 하나에 에이전트 하나, 분기 기준은 검사가 없다. |
 | `:33` | `main`에 커밋·push 금지 | 검사 있음 | ruleset이 `main`에 PR, 삭제 금지, fast-forward만을 요구하고(`.github/rulesets/main.json:13-26`, `tests/repo-github.bats:27`), `scripts/check-git.sh`가 `main` 위의 작업을 실패로 본다(`tests/check-git.bats:47`). |
 | `:33` | `main` 밖의 force-push·rebase·이력 재작성, `git gc`, 다른 에이전트 브랜치 삭제 | 검사 없음 | ruleset은 기본 브랜치만 지킨다(`.github/rulesets/main.json:6-11`). 나머지는 로컬 행동이다. |
