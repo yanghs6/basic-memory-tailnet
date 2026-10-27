@@ -267,3 +267,50 @@ add_model_cache() {
   run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
   assert_output "restored"
 }
+
+@test "restore with BM_WEB=on and a missing or malformed setting stops before ssh and names only the variable" {
+  local case name value
+  make_archive "from backup"
+  use_web_env
+  for case in "BM_WEB_JWT_KEY|key with space" "BM_WEB_GITHUB_CLIENT_SECRET|" "BM_WEB_TUNNEL_TOKEN|tok\$en" "BM_WEB_HOST|https://mcp.example.com"; do
+    IFS='|' read -r name value <<<"$case"
+    (
+      : >"$STUB_LOG" || exit 1
+      export "$name=$value"
+      restore_with_answer yes
+      assert_failure && assert_output --partial "$name" && refute_stub_called -E '^(ssh|docker|sudo) ' || exit 1
+      if [[ -n "$value" ]]; then
+        refute_output --partial "$value"
+      fi
+    ) || fail "restore went on with $name='$value'"
+  done
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
+}
+
+@test "restore with BM_WEB=on uploads the gateway runtime files before starting the stack on a VM that never ran the gateway" {
+  local file secret
+  make_archive "from backup"
+  use_web_env
+  [[ ! -e "$BM_REMOTE_APP_DIR/gateway" ]] || fail "the fake VM must start without gateway files"
+  restore_with_answer yes
+  assert_success
+  for secret in test-client-secret 0123456789abcdef0123456789abcdef0123456789abcdef test-tunnel-token; do
+    refute_output --partial "$secret"
+  done
+  for file in boot.py gateway.py requirements.txt; do
+    assert_same_file "$REPO_DIR/gateway/$file" "$BM_REMOTE_APP_DIR/gateway/$file"
+  done
+  assert_log_order "gateway/boot.py" "docker compose up -d --wait --wait-timeout 360"
+  assert_log_order "gateway/gateway.py" "docker compose up -d --wait --wait-timeout 360"
+  assert_log_order "gateway/requirements.txt" "docker compose up -d --wait --wait-timeout 360"
+  run grep -x 'COMPOSE_PROFILES=web,tunnel' "$BM_REMOTE_APP_DIR/.env"
+  assert_success
+}
+
+@test "restore with BM_WEB=off uploads no gateway files" {
+  make_archive "from backup"
+  restore_with_answer yes
+  assert_success
+  [[ ! -e "$BM_REMOTE_APP_DIR/gateway" ]] || fail "a BM_WEB=off restore uploaded the gateway files"
+}

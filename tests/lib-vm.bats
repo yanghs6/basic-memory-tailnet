@@ -114,6 +114,112 @@ setup() {
   assert_line "SB_USER=admin:test-password"
 }
 
+@test "require_vm stops on an unknown BM_WEB before it runs ssh" {
+  BM_WEB=yes run require_vm
+  assert_failure
+  assert_output --partial "BM_WEB must be on or off (got 'yes')"
+  refute_stub_called -F 'ssh '
+}
+
+# shellcheck disable=SC2030,SC2031 # the subshells keep their BM_WEB to themselves
+@test "require_web_settings does nothing while BM_WEB is off or empty, even with broken web settings" {
+  local value
+  for value in "" off; do
+    (
+      export BM_WEB="$value" BM_WEB_HOST=https://bad BM_WEB_JWT_KEY='a b'
+      run require_web_settings
+      assert_success && assert_output ""
+    ) || fail "require_web_settings stopped with BM_WEB='$value'"
+  done
+}
+
+@test "require_web_settings accepts complete settings" {
+  use_web_env
+  run require_web_settings
+  assert_success
+  assert_output ""
+}
+
+@test "require_web_settings names only the variable for a bad host, user id, client id or secret, and prints no value" {
+  local case name value
+  use_web_env
+  # Each case: the variable | its bad value (the secrets: empty, then #, $ and a space).
+  for case in "BM_WEB_HOST|https://mcp.example.com" "BM_WEB_HOST|mcp.example.com/path" "BM_WEB_HOST|mcp.example.com:443" "BM_WEB_HOST|nodots" "BM_WEB_HOST|" \
+    "BM_WEB_GITHUB_USER_ID|octocat" "BM_WEB_GITHUB_USER_ID|42x" "BM_WEB_GITHUB_USER_ID|" \
+    "BM_WEB_GITHUB_CLIENT_ID|" "BM_WEB_GITHUB_CLIENT_ID|id with space" \
+    "BM_WEB_GITHUB_CLIENT_SECRET|" "BM_WEB_GITHUB_CLIENT_SECRET|sec#ret" "BM_WEB_GITHUB_CLIENT_SECRET|sec\$ret" "BM_WEB_GITHUB_CLIENT_SECRET|sec ret" \
+    "BM_WEB_JWT_KEY|" "BM_WEB_JWT_KEY|key#0123" "BM_WEB_JWT_KEY|key\$0123" "BM_WEB_JWT_KEY|key 0123" \
+    "BM_WEB_TUNNEL_TOKEN|" "BM_WEB_TUNNEL_TOKEN|tok#en" "BM_WEB_TUNNEL_TOKEN|tok\$en" "BM_WEB_TUNNEL_TOKEN|tok en"; do
+    IFS='|' read -r name value <<<"$case"
+    (
+      export "$name=$value"
+      run require_web_settings
+      assert_failure && assert_output --partial "$name" || exit 1
+      if [[ -n "$value" ]]; then
+        refute_output --partial "$value"
+      fi
+    ) || fail "require_web_settings did not stop on $name='$value'"
+  done
+}
+
+# shellcheck disable=SC2030,SC2031 # the subshells keep their BM_WEB to themselves
+@test "vm_env with BM_WEB off or empty prints exactly the five lines of a VM without the web connector" {
+  local web
+  for web in "" off; do
+    (
+      export BM_WEB="$web"
+      run vm_env
+      assert_success
+      assert_output "$(printf '%s\n' BM_PORT=8737 "BM_KNOWLEDGE_DIR=$BM_REMOTE_DATA_ROOT/knowledge" "BM_CONFIG_DIR=$BM_REMOTE_DATA_ROOT/config" SB_PORT=3000 SB_USER=admin:test-password)"
+    ) || fail "vm_env changed with BM_WEB='$web'"
+  done
+}
+
+@test "vm_env with BM_WEB on adds the profiles, the gateway data dir and the web settings after the five lines" {
+  use_web_env
+  run vm_env
+  assert_success
+  assert_line --index 0 "BM_PORT=8737"
+  assert_line --index 4 "SB_USER=admin:test-password"
+  assert_line --index 5 "COMPOSE_PROFILES=web,tunnel"
+  assert_line "BM_WEB_PORT=8738"
+  assert_line "BM_WEB_DATA_DIR=$BM_REMOTE_DATA_ROOT/gateway"
+  assert_line "BM_WEB_BASE_URL=https://mcp.example.com"
+  assert_line "BM_WEB_GITHUB_USER_ID=4242"
+  assert_line "BM_WEB_GITHUB_CLIENT_ID=test-client-id"
+  assert_line "BM_WEB_GITHUB_CLIENT_SECRET=test-client-secret"
+  assert_line "BM_WEB_JWT_KEY=0123456789abcdef0123456789abcdef0123456789abcdef"
+  assert_line "BM_WEB_TUNNEL_TOKEN=test-tunnel-token"
+}
+
+@test "vm_env with BM_WEB on uses the default gateway port when BM_WEB_PORT is unset" {
+  use_web_env
+  unset BM_WEB_PORT
+  run vm_env
+  assert_line "BM_WEB_PORT=8738"
+}
+
+@test "upload_gateway_files uploads boot.py, gateway.py and requirements.txt when BM_WEB is on and nothing when it is off" {
+  local file
+  run upload_gateway_files
+  assert_success
+  [[ ! -e "$BM_REMOTE_APP_DIR/gateway" ]] || fail "upload_gateway_files wrote files with BM_WEB unset"
+  use_web_env
+  run upload_gateway_files
+  assert_success
+  for file in boot.py gateway.py requirements.txt; do
+    assert_same_file "$REPO_DIR/gateway/$file" "$BM_REMOTE_APP_DIR/gateway/$file"
+    assert_stub_called -F "cat > $BM_REMOTE_APP_DIR/gateway/$file"
+  done
+}
+
+@test "upload_gateway_files fails with an actionable message when an upload fails" {
+  use_web_env
+  SSH_STUB_FAIL_MATCH="gateway/gateway.py" run upload_gateway_files
+  assert_failure
+  assert_output --partial "gateway/gateway.py"
+}
+
 @test "manifest_cmd lists every file's sha256 sorted by path" {
   setup_stubs sudo
   mkdir -p "$BATS_TEST_TMPDIR/d/b"

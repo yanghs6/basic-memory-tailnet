@@ -4,7 +4,9 @@
 #   access_mode -> tailscale or ssh (BM_ACCESS); dies on any other value
 #   web_mode -> on or off (BM_WEB, the claude.ai web connector); dies on any other value
 #   access_hint -> what to check when SSH to the VM fails, for the current access mode
-#   require_vm [CMD...] -> dies unless the access mode, ssh, every CMD and the VM settings are there
+#   require_vm [CMD...] -> dies unless the access mode, the web mode, ssh, every CMD and the VM settings are there
+#   require_web_host -> with BM_WEB=on, dies unless BM_WEB_HOST is a bare host name (names the variable, never its value)
+#   require_web_settings -> with BM_WEB=on, dies unless the host, the GitHub user id and client id and the three secrets are well formed
 #   local_port_open PORT -> exit 0 when something listens on 127.0.0.1:PORT
 #   require_free_port NAME PORT [HINT] -> dies unless PORT is a free unprivileged port on 127.0.0.1
 #   forward_spec LOCAL_PORT REMOTE_PORT -> an ssh -L argument bound to 127.0.0.1 on both ends
@@ -14,7 +16,8 @@
 #   exists_cmd PATH -> a sh command that prints present or absent for PATH
 #   remote_exists PATH -> present or absent for PATH on the VM; fails when the VM does not answer
 #   vm_tailscale_logged_in -> exit 0 when Tailscale on the VM is logged in, 1 when it is not
-#   vm_env -> the .env content for the VM
+#   vm_env -> the .env content for the VM (with BM_WEB=on also the web connector settings)
+#   upload_gateway_files -> with BM_WEB=on, upload the gateway runtime files to the VM app dir (deploy and restore)
 #   manifest_cmd DIR -> a command printing "<sha256>  ./<path>" for every data file under DIR
 #   sha256_of FILE -> hex digest of a local file
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
@@ -34,6 +37,12 @@ readonly BM_MODEL_CACHE_REL_PATH="config/fastembed_cache"
 readonly SSH_CONNECT_TIMEOUT_SECONDS=10
 # Longer than the compose healthcheck start_period (300s) so `up --wait` can use the whole grace period.
 readonly HEALTH_TIMEOUT_SECONDS=360
+# The gateway files the VM needs next to compose.yaml, relative to gateway/ here and to the app dir there.
+readonly GATEWAY_RUNTIME_FILES="boot.py gateway.py requirements.txt"
+# What a .env value may hold: make and docker compose read the file literally (# starts a comment, $ expands).
+readonly WEB_ENV_VALUE_PATTERN='^[A-Za-z0-9._~+/=-]+$'
+readonly WEB_HOST_PATTERN='^([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$'
+readonly WEB_USER_ID_PATTERN='^[0-9]+$'
 
 # access_mode -> tailscale or ssh: BM_ACCESS, or tailscale when it is unset (.env files from before the ssh mode).
 # Any other value, another case included, stops here so no script falls back to the wrong path.
@@ -74,8 +83,39 @@ access_hint() {
 # shellcheck disable=SC2120  # CMD... is optional: most callers need only ssh
 require_vm() {
   access_mode >/dev/null
+  web_mode >/dev/null
   require_cmd ssh "$@"
   require_env BM_VM_HOST BM_VM_USER
+}
+
+# require_web_host -> with BM_WEB=on, dies unless BM_WEB_HOST is set and a bare host name (no scheme, path or port).
+# Names the variable only: the host name is not printed.
+require_web_host() {
+  local web
+  web="$(web_mode)" || return 1
+  [[ "$web" == on ]] || return 0
+  require_env BM_WEB_HOST
+  [[ "$BM_WEB_HOST" =~ $WEB_HOST_PATTERN ]] \
+    || die "BM_WEB_HOST must be a host name like mcp.<domain>, without https://, a path or a port: fix it in .env in the main checkout"
+}
+
+# require_web_settings -> with BM_WEB=on, dies unless BM_WEB_HOST, BM_WEB_GITHUB_USER_ID (digits), BM_WEB_GITHUB_CLIENT_ID
+# and the three secrets (BM_WEB_GITHUB_CLIENT_SECRET, BM_WEB_JWT_KEY, BM_WEB_TUNNEL_TOKEN) are set and well formed. The
+# secrets and the client id may hold only the characters of WEB_ENV_VALUE_PATTERN, because .env is read literally.
+# Names the variable only, never a value. Deploy and restore call it before any ssh.
+require_web_settings() {
+  local web name
+  web="$(web_mode)" || return 1
+  [[ "$web" == on ]] || return 0
+  require_web_host
+  require_env BM_WEB_GITHUB_USER_ID
+  [[ "$BM_WEB_GITHUB_USER_ID" =~ $WEB_USER_ID_PATTERN ]] \
+    || die "BM_WEB_GITHUB_USER_ID must be the numeric GitHub user id (digits only): fix it in .env in the main checkout"
+  for name in BM_WEB_GITHUB_CLIENT_ID BM_WEB_GITHUB_CLIENT_SECRET BM_WEB_JWT_KEY BM_WEB_TUNNEL_TOKEN; do
+    require_env "$name"
+    [[ "${!name}" =~ $WEB_ENV_VALUE_PATTERN ]] \
+      || die "$name must be made of letters, digits and ._~+/=- (make and docker compose change other characters such as #, \$ and spaces): fix it in .env in the main checkout"
+  done
 }
 
 readonly MIN_LOCAL_PORT=1024
@@ -163,13 +203,40 @@ vm_tailscale_logged_in() {
 }
 
 # vm_env -> the .env content for the VM: loopback ports, absolute data paths and the SilverBullet login (shared by
-# deploy and restore; both run require_sb_user first).
+# deploy and restore; both run require_sb_user and require_web_settings first). With BM_WEB=on it adds the profiles of
+# the gateway and the tunnel, the gateway port, data dir and public base URL, and the web connector settings.
 vm_env() {
+  local web
+  web="$(web_mode)" || return 1
   printf 'BM_PORT=%s\n' "${BM_PORT:-$DEFAULT_BM_PORT}"
   printf 'BM_KNOWLEDGE_DIR=%s/knowledge\n' "$BM_REMOTE_DATA_ROOT"
   printf 'BM_CONFIG_DIR=%s/config\n' "$BM_REMOTE_DATA_ROOT"
   printf 'SB_PORT=%s\n' "${SB_PORT:-$DEFAULT_SB_PORT}"
   printf 'SB_USER=%s\n' "$SB_USER"
+  [[ "$web" == on ]] || return 0
+  printf 'COMPOSE_PROFILES=web,tunnel\n'
+  printf 'BM_WEB_PORT=%s\n' "${BM_WEB_PORT:-$DEFAULT_BM_WEB_PORT}"
+  printf 'BM_WEB_DATA_DIR=%s/gateway\n' "$BM_REMOTE_DATA_ROOT"
+  printf 'BM_WEB_BASE_URL=https://%s\n' "$BM_WEB_HOST"
+  printf 'BM_WEB_GITHUB_USER_ID=%s\n' "$BM_WEB_GITHUB_USER_ID"
+  printf 'BM_WEB_GITHUB_CLIENT_ID=%s\n' "$BM_WEB_GITHUB_CLIENT_ID"
+  printf 'BM_WEB_GITHUB_CLIENT_SECRET=%s\n' "$BM_WEB_GITHUB_CLIENT_SECRET"
+  printf 'BM_WEB_JWT_KEY=%s\n' "$BM_WEB_JWT_KEY"
+  printf 'BM_WEB_TUNNEL_TOKEN=%s\n' "$BM_WEB_TUNNEL_TOKEN"
+}
+
+# upload_gateway_files -> with BM_WEB=on, creates $BM_REMOTE_APP_DIR/gateway on the VM and uploads GATEWAY_RUNTIME_FILES
+# into it (compose mounts the folder read-only into the gateway container). Does nothing while BM_WEB is off.
+upload_gateway_files() {
+  local web file
+  web="$(web_mode)" || return 1
+  [[ "$web" == on ]] || return 0
+  step "upload the gateway runtime files to $BM_VM_HOST:$BM_REMOTE_APP_DIR/gateway"
+  remote "mkdir -p $BM_REMOTE_APP_DIR/gateway" || die "could not create $BM_REMOTE_APP_DIR/gateway on the VM: $(access_hint)"
+  for file in $GATEWAY_RUNTIME_FILES; do
+    remote "cat > $BM_REMOTE_APP_DIR/gateway/$file" <"$REPO_DIR/gateway/$file" \
+      || die "upload of gateway/$file failed: $(access_hint)"
+  done
 }
 
 # manifest_cmd DIR -> a shell command (run it with `remote`) that prints "<sha256>  ./<path>" for every file

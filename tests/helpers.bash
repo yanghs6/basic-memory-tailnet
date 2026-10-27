@@ -28,6 +28,13 @@ use_vm_env() {
   mkdir -p "$BM_REMOTE_APP_DIR" "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config"
 }
 
+# use_web_env: BM_WEB=on with fake web connector settings. The secret values are fixed strings that tests refute in output.
+# Call after use_vm_env.
+use_web_env() {
+  export BM_WEB=on BM_WEB_HOST=mcp.example.com BM_WEB_PORT=8738 BM_WEB_GITHUB_USER_ID=4242 BM_WEB_GITHUB_CLIENT_ID=test-client-id
+  export BM_WEB_GITHUB_CLIENT_SECRET=test-client-secret BM_WEB_JWT_KEY=0123456789abcdef0123456789abcdef0123456789abcdef BM_WEB_TUNNEL_TOKEN=test-tunnel-token
+}
+
 # use_ssh_mode: the ssh access mode over an SSH alias, with 127.0.0.1 ports open only once the verify tunnel started and Tailscale on the VM
 # logged out.
 use_ssh_mode() {

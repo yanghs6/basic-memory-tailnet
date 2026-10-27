@@ -111,6 +111,7 @@ main() {
   [[ -f "$archive.manifest" ]] || die "manifest missing: $archive.manifest (restore only archives made by 'make backup')"
   require_vm
   require_sb_user
+  require_web_settings
   verify_checksum "$archive"
   check_archive_entries "$archive"
   confirm "Replace $ROOT, $COMPOSE_FILE and $ENV_FILE on $BM_VM_HOST with $(basename "$archive") and this repo's compose.yaml? Current data moves to $PREV. Type 'yes': "
@@ -143,6 +144,7 @@ main() {
   step "apply this repo's compose.yaml and the VM .env (previous copies kept until the restore succeeds)"
   upload_vm_file "$COMPOSE_FILE" "$COMPOSE_PREV" <"$REPO_DIR/compose.yaml" || die "could not upload compose.yaml"
   vm_env | upload_vm_file "$ENV_FILE" "$ENV_PREV" || die "could not write $ENV_FILE on the VM"
+  upload_gateway_files
 
   step "swap in the restored data (previous data -> $PREV)"
   remote "if [ -e $ROOT ]; then sudo -n mv $ROOT $PREV; fi" || die "could not move the current data aside"

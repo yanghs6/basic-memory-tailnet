@@ -158,6 +158,89 @@ teardown() {
   assert_output --partial "verify tunnel exited before it opened"
 }
 
+# use_web_checks: BM_WEB=on with the recorded gateway answers served for the public host only (the MCP fixtures keep
+# answering the tailnet URL), a public IPv4 answer for the host and none of the three secrets, which verify never needs.
+use_web_checks() {
+  local dir="$BATS_TEST_TMPDIR/web" file
+  setup_stubs dig
+  use_web_env
+  unset BM_WEB_GITHUB_CLIENT_SECRET BM_WEB_JWT_KEY BM_WEB_TUNNEL_TOKEN
+  rm -rf "$dir" && cp -R "$REPO_DIR/tests/fixtures/verify-web" "$dir" || return 1
+  for file in "$dir"/*; do
+    sed "s#http://127.0.0.1:8738#https://$BM_WEB_HOST#g" "$file" >"$file.tmp" && mv "$file.tmp" "$file" || return 1
+  done
+  export CURL_WEB_FIXTURES="$dir" CURL_WEB_HOST="$BM_WEB_HOST" DIG_STUB_ANSWER=198.51.100.7
+}
+
+@test "verify and probe with BM_WEB=on run the public web checks, check the gateway port on loopback and from outside, and print neither the host nor its address" {
+  local args
+  use_web_checks
+  for args in "" "--read-only"; do
+    (
+      : >"$STUB_LOG" || exit 1
+      run "$REPO_DIR/scripts/verify-vm.sh" ${args:+"$args"}
+      assert_success \
+        && assert_output --partial "OK: the host resolves only to public IPv4 addresses" \
+        && assert_output --partial "OK: web connector OAuth checks passed" \
+        && assert_output --partial "port 8738 listens on 127.0.0.1 only" \
+        && assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8443 8737 3000 8738" \
+        && refute_output --partial "$BM_WEB_HOST" \
+        && refute_output --partial "$DIG_STUB_ANSWER" \
+        && assert_stub_called -F "https://$BM_WEB_HOST/mcp" \
+        && assert_stub_called -F 'https://agent-hub.example.ts.net/mcp' \
+        && assert_stub_called -F "ss -Hltn sport = :8738" \
+        && assert_stub_called -Fx 'nc -z -w 5 203.0.113.10 8738' || exit 1
+      run grep -c '^nc ' "$STUB_LOG"
+      assert_output 7
+    ) || fail "verify ${args:-(full)} with BM_WEB=on"
+  done
+}
+
+@test "verify with BM_WEB=off or unset checks no web connector: no web request, no DNS lookup, no gateway port" {
+  local web
+  for web in "" off; do
+    (
+      export BM_WEB="$web"
+      : >"$STUB_LOG" || exit 1
+      run "$REPO_DIR/scripts/verify-vm.sh"
+      assert_success && assert_output --partial "refuses ports 22 80 443 8443 8737 3000" || exit 1
+      refute_output --partial "8738"
+      refute_stub_called -E '^dig ' && refute_stub_called -F '8738' && refute_stub_called -F 'mcp.example.com'
+    ) || fail "verify checked the web connector with BM_WEB='$web'"
+  done
+}
+
+@test "verify with BM_WEB=on fails when the gateway port is exposed beyond loopback" {
+  use_web_checks
+  # shellcheck disable=SC2016 # the fake command expands its own variables
+  fake_cmd ss 'printf "ss %s\n" "$*" >>"$STUB_LOG"; case "$*" in *:8738*) echo "LISTEN 0 4096 0.0.0.0:8738 0.0.0.0:*" ;; *) echo "LISTEN 0 4096 127.0.0.1:8737 0.0.0.0:*" ;; esac'
+  run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "port 8738 is exposed beyond loopback"
+}
+
+@test "verify with BM_WEB=on stops before ssh, curl and nc when BM_WEB_HOST is missing or not a bare host name" {
+  local host
+  use_web_checks
+  for host in "" "https://mcp.example.com" "mcp.example.com/mcp"; do
+    (
+      : >"$STUB_LOG" || exit 1
+      export BM_WEB_HOST="$host"
+      run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+      assert_failure && assert_output --partial "BM_WEB_HOST" && refute_stub_called -E '^(ssh|curl|nc|dig) ' || exit 1
+    ) || fail "verify went on with BM_WEB_HOST='$host'"
+  done
+}
+
+@test "verify with BM_WEB=on fails when the web connector checks fail" {
+  use_web_checks
+  echo 200 >"$CURL_WEB_FIXTURES/mcp.status"
+  run "$REPO_DIR/scripts/verify-vm.sh" --read-only
+  assert_failure
+  assert_output --partial "expected HTTP 401"
+  refute_output --partial "$BM_WEB_HOST"
+}
+
 @test "verify fails when the public IP accepts a connection or nc rejects its options, and treats refused, timed out and ICMP-rejected probes as closed" {
   local case code stderr expected
   # Each case: nc exit | nc stderr | the failure verify must report (empty: verify passes, the port counts as closed).

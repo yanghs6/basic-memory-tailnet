@@ -8,7 +8,7 @@
 # Web mode (CURL_WEB_FIXTURES set): answers from <name>.status (default 200), <name>.headers and <name>.body in that
 #   directory, where <name> is the URL path without its leading / and . and with each / turned into _ (for example
 #   /.well-known/oauth-authorization-server -> well-known_oauth-authorization-server). -d payloads are appended to
-#   $STUB_LOG.requests.
+#   $STUB_LOG.requests. With CURL_WEB_HOST set, only URLs containing it are answered this way (MCP mode can run beside it).
 # Download mode: writes "stub" to the -o file, or prints $CURL_STUB_SCRIPT (default "true") for `curl | sh`; with
 #   -w '%{http_code}' it also prints CURL_STUB_HTTP_CODE (default 200), like a reachability probe.
 # CURL_STUB_FAIL_MATCH=<substring>: calls whose arguments contain it fail with CURL_STUB_FAIL_EXIT (default 28 =
@@ -125,7 +125,7 @@ web_response() {
   fi
 }
 
-if [[ -n "${CURL_WEB_FIXTURES:-}" ]]; then
+if [[ -n "${CURL_WEB_FIXTURES:-}" && (-z "${CURL_WEB_HOST:-}" || "$url" == *"$CURL_WEB_HOST"*) ]]; then
   web_response
   exit 0
 fi

@@ -14,6 +14,14 @@ memory_swap_summary() {
   remote "free -m" | awk '/^Mem:/ { if ($2 > 0) mem = int(($2 - $7) * 100 / $2) } /^Swap:/ { swap_total = $2; swap_used = $3 } END { if (mem == "" || swap_total == "") exit 1; printf "%d %d %d\n", mem, swap_used, swap_total }'
 }
 
+# gateway_store_summary -> "<KiB> <registrations>": the size of the gateway store on the VM and the number of files in its
+# mcp-oauth-proxy-clients folders (one per registered client). "0 0" while the gateway has not run yet.
+# The store is the one thing a client without a login can grow (spec web-connector, section 3.4).
+gateway_store_summary() {
+  local dir="$BM_REMOTE_DATA_ROOT/gateway"
+  remote "set -o pipefail; if [ -d $dir ]; then kib=\$(sudo -n du -sk $dir | cut -f1) && clients=\$(sudo -n find $dir -type f -path '*mcp-oauth-proxy-clients*' | wc -l | tr -d ' ') && echo \"\$kib \$clients\"; else echo '0 0'; fi"
+}
+
 # show_access MODE -> the Serve config (tailscale), or whether Tailscale is still logged in on the VM (ssh).
 show_access() {
   if [[ "$1" == ssh ]]; then
@@ -32,9 +40,10 @@ show_access() {
 }
 
 main() {
-  local summary used swap_used swap_total mode
+  local summary used swap_used swap_total mode web store_kib store_clients
   require_vm
   mode="$(access_mode)" || exit 1
+  web="$(web_mode)" || exit 1
 
   step "containers"
   remote_compose "ps" || die "could not query containers on $BM_VM_HOST: $(access_hint)"
@@ -47,6 +56,14 @@ main() {
   log "swap used: ${swap_used}/${swap_total} MB"
   if ((swap_total == 0)); then
     log "WARNING: no active swap on this 1GB VM; it can run out of memory: rerun 'make vm-bootstrap' (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md)"
+  fi
+
+  if [[ "$web" == on ]]; then
+    step "web connector"
+    summary="$(gateway_store_summary)" \
+      || die "could not read the gateway store on $BM_VM_HOST: run 'ssh $BM_VM_USER@$BM_VM_HOST sudo -n du -sk $BM_REMOTE_DATA_ROOT/gateway' and check it; if SSH fails, $(access_hint)"
+    read -r store_kib store_clients <<<"$summary"
+    log "gateway store: ${store_kib} KiB, ${store_clients} client registrations"
   fi
 
   show_access "$mode"
