@@ -161,7 +161,7 @@ ssh_forward_problems() {
       if (!context) next
       for (i = 1; i <= NF; i++) {
         word = $i
-        sub(/^\(/, "", word)
+        sub(/^([A-Za-z_][A-Za-z0-9_]*\+?=)?\(/, "", word)
         gsub(/["\047]/, "", word)
         if (word == "-L") {
           if (i == NF || $(i + 1) != "\"$(forward_spec") report("-L not followed by \"$(forward_spec")
