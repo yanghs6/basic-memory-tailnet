@@ -143,23 +143,23 @@ Open question 1이 B이면 이 Task를 빼고 Follow-ups에 남긴다. 시작 �
 - Consumes: `remote_exists PATH`(`scripts/lib/vm.sh:133`, `present`나 `absent`를 출력하고 VM이 답하지 않으면 실패), `fake_cmd NAME BODY`(`tests/helpers.bash:112`), `make_archive`·`restore_with_answer`(`tests/restore-notes.bats:15`, `:36`)
 - Produces: 없음
 
-- [ ] **Step 1: 실패하는 테스트 작성.** `@test "restore stops before it stops the container when the VM answers neither present nor absent"`.
+- [x] **Step 1: 실패하는 테스트 작성.** `@test "restore stops before it stops the container when the VM answers neither present nor absent"`.
   - `make_archive "restored"`를 만든다.
   - 두 답을 반복문으로 시험한다([test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 3). 하나는 배너 한 줄 뒤의 `present`, 하나는 빈 답이다. 각 경우는 `$STUB_LOG`를 비운 서브셸 `( ... ) || fail "<답>"`에서 돌린다(`script-authoring` 규칙).
   - 답마다 `fake_cmd ssh`로 가짜 ssh를 만든다. 원격 명령(마지막 인자)에 `then echo present; else echo absent`가 들어 있으면 그 답을 출력하고 0으로 끝나고, 아니면 `exec "$REPO_DIR/tests/stubs/ssh" "$@"`로 넘긴다.
   - `restore_with_answer yes`를 실행하고 확인한다: `assert_failure`, `refute_stub_called -F 'docker compose stop'`, `$BM_REMOTE_DATA_ROOT/knowledge/a.md`가 그대로 `original`, 데이터 루트의 부모 폴더에 `basic-memory.prev-*`·`basic-memory.restore-*`가 없음.
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `make test`
 Expected: 새 테스트만 실패한다. restore가 답을 "이전 데이터 없음"으로 읽고 데이터를 바꾼 뒤 exit 0으로 끝나므로 `assert_failure`가 실패한다.
 
-- [ ] **Step 3: 최소 구현.** `:120-122`의 `if`를 `case "$present" in`으로 바꾼다. `present`는 `HAD_PREVIOUS_DATA=1`, `absent`는 아무것도 하지 않는다. 그 밖의 답이면 `die`로 멈춘다. 메시지에는 기대한 답(`present` 또는 `absent`), 아무것도 바꾸지 않았다는 사실, 다음 할 일(비대화형 `ssh`가 다른 출력을 내지 않는지 확인한 뒤 다시 실행)을 담는다. 이 분기는 `trap rollback EXIT`(`:124`)보다 앞에 있으므로 롤백도 실행되지 않는다.
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 3: 최소 구현.** `:120-122`의 `if`를 `case "$present" in`으로 바꾼다. `present`는 `HAD_PREVIOUS_DATA=1`, `absent`는 아무것도 하지 않는다. 그 밖의 답이면 `die`로 멈춘다. 메시지에는 기대한 답(`present` 또는 `absent`), 아무것도 바꾸지 않았다는 사실, 다음 할 일(비대화형 `ssh`가 다른 출력을 내지 않는지 확인한 뒤 다시 실행)을 담는다. 이 분기는 `trap rollback EXIT`(`:124`)보다 앞에 있으므로 롤백도 실행되지 않는다.
+- [x] **Step 4: 통과 확인**
 
 Run: `make check`
 Expected: exit 0, 커버리지 80% 이상
 
-- [ ] **Step 5: 커밋.** `fix: stop a restore when the VM gives an unexpected answer`, 트레일러 `Plan: zw0shxee`, `Task: 3`.
+- [x] **Step 5: 커밋.** `fix: stop a restore when the VM gives an unexpected answer`, 트레일러 `Plan: zw0shxee`, `Task: 3`.
 
 ### Task 4: Rollback drill on the VM
 
@@ -214,6 +214,7 @@ Expected: `make check`는 exit 0이고, 두 번째 명령은 아무것도 출력
 - 실제 VM에서 restore의 자동 롤백 분기를 일부러 실패시켜 보는 시험은 하지 않는다. 그 분기는 bats 테스트 `tests/restore-notes.bats:191`이 다룬다.
 - **Verified (2026-10-26, Task 2 리뷰):** `make probe`가 함께 돌리는 `scripts/verify-sb.sh`도 `curl -sS -m 15`를 써서, SilverBullet이 늦으면 `curl: (28)` 뒤에 `SilverBullet does not answer at <url>/.ping (HTTP 000)`이 찍힌다(`scripts/verify-sb.sh:12`, `:36`). `bm-diagnose` 실패 목록에는 이 경우의 행이 없다.
 - **Verified (2026-10-26, Task 1):** `.agents/skills/bm-recover/SKILL.md:53`은 Incident log 행의 칸을 "date, cause, backup used, data loss window"로만 적어, Task 1이 더한 후속 조치 열이 빠져 있다. 이 계획의 범위 밖이므로 따로 고친다.
+- **Verified (2026-10-27, Task 3 리뷰, 기존 코드):** PR #24(`4c1b993`)의 `scripts/restore-notes.sh`에서 INT trap이 `rollback()` 안에서도 살아 있다(`:170`, `:74-98`). 롤백 중 두 번째 Ctrl-C가 오면 롤백이 중간에 끝나 컨테이너가 내려간 채 남을 수 있다. 또 `trap - EXIT` 뒤 정리(`:209-214`) 중 중단되면 VM에 `gateway.backup-*`나 `.prev` 파일이 남는다(`:207-208` 주석이 허용함). 둘 다 P3이고 이 계획에서는 고치지 않는다.
 
 ## Progress log
 
@@ -225,3 +226,7 @@ Expected: `make check`는 exit 0이고, 두 번째 명령은 아무것도 출력
 | 2026-10-26 | Verified | Task 1 리뷰(서브에이전트, 읽기 전용): P0·P1·P2 없음. P3 두 건을 반영했다. 원인 칸의 "모든 백업"을 "모델 캐시가 생긴 뒤 만든 백업"으로 좁혔고, ssh 모드 이전의 코드 PR #8을 함께 적었다. |
 | 2026-10-26 | Verified | Task 2: `bm-diagnose` 실패 목록의 MCP 표에 `curl: (28)` 행을, `SKILL.md:34`에 원인·후속 조치 구절을 더했다. 메시지 형식과 30초 제한은 `scripts/verify-mcp.sh:13`, `:57`, `:89`와 맞다. |
 | 2026-10-26 | Verified | Task 2 리뷰(서브에이전트, 읽기 전용): P0·P1·P2 없음. P3 하나를 반영했다. ssh 모드에서는 VM이 멈춰도 로컬 터널이 연결을 받으므로 "경로가 열렸다"를 "연결은 받아들여졌다"로 고쳤다. 다른 P3(SilverBullet 시간 초과 행)는 Follow-ups에 남겼다. |
+| 2026-10-27 | Command | 감독 세션의 Task 3 시작 신호(PR #24 병합 `01eb909`) 뒤 `git merge origin/main`, `make check` → exit 0, `make check-git` → OK. #24가 `scripts/restore-notes.sh`를 바꿔 Task 3의 줄 번호는 `:157-166`으로 옮겨졌다. |
+| 2026-10-27 | Verified | Task 3 Step 2(RED): `make test`에서 새 테스트 하나만 `not ok`. restore가 배너 + `present` 답을 "이전 데이터 없음"으로 읽고 stop → extract → swap → start까지 진행해 exit 0으로 끝났다. |
+| 2026-10-27 | Verified | Task 3 Step 3·4: 답 확인을 `case`로 바꿔 `present`·`absent`가 아니면 `die`로 멈춘다(`trap rollback EXIT`와 INT trap보다 앞). `make check` → exit 0, 줄 커버리지 89.21%. 테스트는 `docker compose stop`만이 아니라 모든 원격 명령(`ssh`·`docker`·`sudo`)이 없음을 확인하도록 계획보다 넓혔다. |
+| 2026-10-27 | Verified | Task 3 리뷰(서브에이전트, 읽기 전용, trap·롤백·#24 gateway 백업과의 상호작용 포함): 이번 변경의 지적 없음, `make test` 210개 모두 ok. 확인 시점에 gateway 백업은 아직 없고(`GATEWAY_BACKUP_DIR` 빈 값) 롤백도 걸려 있지 않다. 기존 코드의 P3 두 건은 Follow-ups에 남겼다. |

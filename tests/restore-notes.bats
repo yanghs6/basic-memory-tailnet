@@ -268,6 +268,30 @@ add_model_cache() {
   assert_output "restored"
 }
 
+@test "restore stops before it stops the container when the VM answers neither present nor absent" {
+  local answer
+  make_archive "restored"
+  # The ssh fake answers only the existence check of the data root; every other remote command goes to the ssh stub.
+  # shellcheck disable=SC2016 # the fake command expands its variables when it runs
+  fake_cmd ssh 'if [[ "${*: -1}" == *"then echo present; else echo absent"* ]]; then printf "%s" "$FAKE_ANSWER"; exit 0; fi
+exec "$REPO_DIR/tests/stubs/ssh" "$@"'
+  # Each case: a shell startup file printing a banner before the answer, and an empty answer.
+  for answer in $'Welcome to agent-hub\npresent' ""; do
+    (
+      : >"$STUB_LOG" || exit 1
+      export FAKE_ANSWER="$answer"
+      restore_with_answer yes
+      assert_failure && assert_output --partial "expected present or absent" || exit 1
+      # Nothing ran on the VM after the check: no stop, no extract, no gateway backup, no rollback.
+      refute_stub_called -E '^(ssh|docker|sudo) ' || exit 1
+      run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+      assert_output "original" || exit 1
+      run ls -A "$(dirname "$BM_REMOTE_DATA_ROOT")"
+      refute_line --regexp '^basic-memory\.(prev|restore)-' || exit 1
+    ) || fail "restore went on with the answer '$answer'"
+  done
+}
+
 @test "restore with BM_WEB=on and a missing or malformed setting stops before ssh and names only the variable" {
   local case name value
   make_archive "from backup"
