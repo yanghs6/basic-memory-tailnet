@@ -61,6 +61,11 @@ Base \`$base\`, reviewed head \`$head\`."
   # Check both before posting either, so a failure never leaves half a round on the pull request.
   check_size "$change_body" "the change review comment"
   check_size "$plan_body" "the plan review comment"
+  # The pull request is public: refuse to post an address, ts.net name or session link (the header holds REVIEW_MODEL).
+  add_public_text_problems "the comment header" "check REVIEW_MODEL" "$header" || true
+  add_public_text_problems "$prefix-diff.md" "fix it in that report" "$(cat "$prefix-diff.md")" || true
+  add_public_text_problems "$prefix-plan.md" "fix it in that report" "$(cat "$prefix-plan.md")" || true
+  report_problems "posted nothing: the round carries public text; replace the host with agent-hub and a tailnet IP with <agent-hub tailnet IP>, delete session links and Generated with lines, then rerun make review-post PR=$pr BRANCH=$branch REVIEWER=$reviewer ROUND=$round"
   gh pr comment "$pr" --body-file "$change_body" || die "gh pr comment failed for the change review of PR #$pr"
   gh pr comment "$pr" --body-file "$plan_body" || die "gh pr comment failed for the plan review of PR #$pr; the change review is already posted, so post only the plan review: gh pr comment $pr --body-file $plan_body"
   rm -f "$change_body" "$plan_body"

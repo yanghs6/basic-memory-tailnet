@@ -33,19 +33,24 @@ write_reports() {
   assert_line "Verdict: blocked (1 P0/P1)"
 }
 
-@test "posts nothing when a file of the round is missing or too long" {
-  local case problem message
+@test "posts nothing when a file of the round is missing, too long or carries public text" {
+  local case problem message cgnat
+  # A CGNAT (tailnet range) address never sits in a repo file, so build it here; tests/lib-git.bats covers the check.
+  cgnat="$(printf '%s.%s' 100.101 102.103)"
   # Each case: what is wrong with the plan report | the message of the check that stops before any gh call.
-  for case in "missing|missing $PREFIX-plan.md" "too long|over GitHub's 65536 limit"; do
+  for case in "missing|missing $PREFIX-plan.md" "too long|over GitHub's 65536 limit" \
+    "public text|$PREFIX-plan.md:2: IPv4 address"; do
     IFS='|' read -r problem message <<<"$case"
     (
       write_reports && : >"$STUB_LOG" || exit 1
       case "$problem" in
         missing) rm "$PREFIX-plan.md" || exit 1 ;;
         "too long") head -c 70000 /dev/zero | tr '\0' x >"$PREFIX-plan.md" || exit 1 ;;
+        "public text") printf 'Reach %s.\n' "$cgnat" >>"$PREFIX-plan.md" || exit 1 ;;
       esac
       run "$POST" 12 plan/n3q8d5vb-review-posting codex
-      assert_failure && assert_output --partial "$message" && refute_stub_called '^gh '
-    ) || fail "post-review did not stop before gh with a plan report that is $problem"
+      assert_failure && assert_output --partial "$message" && refute_stub_called '^gh ' \
+        && refute_output --partial "$cgnat"
+    ) || fail "post-review did not stop before gh on a plan report: $problem"
   done
 }
