@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Test stub for claude: logs "claude <args> :: cwd=<dir> git_config_global=<v> git_config_nosystem=<v>"
-# (v is "unset" when the variable is not set) and prints a review.
+# (v is "unset" when the variable is not set) and prints a review. STUB_LOG_STDIN=1 also logs
+# "claude stdin_bytes=<n>", the bytes it read from stdin.
 set -euo pipefail
 printf 'claude %s :: cwd=%s git_config_global=%s git_config_nosystem=%s\n' \
   "$*" "$PWD" "${GIT_CONFIG_GLOBAL-unset}" "${GIT_CONFIG_NOSYSTEM-unset}" >>"$STUB_LOG"
+if [[ "${STUB_LOG_STDIN:-}" == 1 ]]; then
+  printf 'claude stdin_bytes=%s\n' "$(wc -c | tr -d ' ')" >>"$STUB_LOG"
+fi
 echo "claude review"

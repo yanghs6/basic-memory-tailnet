@@ -54,6 +54,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 | `scripts/remote/provision-vm.sh` | VM (root) | 스왑 파일 1GB, Docker·Tailscale 설치, 데이터 디렉터리, Serve 설정 |
 | `compose.yaml` | Mac(로컬 검증)·VM | Basic Memory와 SilverBullet(웹 UI), `BM_WEB=on`일 때만 뜨는 `gateway`(프로필 `web`)·`cloudflared`(프로필 `tunnel`) 컨테이너 정의 (같은 파일) |
 | `silverbullet/` + `scripts/sync-sb-space.sh`·`upload-sb-fonts.sh`·`verify-sb.sh` | Mac → 노트 폴더 | SilverBullet 공간 파일(노트 `.gitignore`, 관리 페이지 `Library/agent-hub/agent-hub.md`, 대시보드 `index.md`)과 글꼴을 쓰고, 로그인·셸 꺼짐을 검사. [web-ui-silverbullet ADR](decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md) |
+| `scripts/check-local-stack.sh` | Mac | `make local-up`·`local-down`이 compose를 부르기 전에 실행. compose project(`compose.yaml`의 `name:`)의 컨테이너가 다른 worktree에서 시작됐으면(라벨 `com.docker.compose.project.working_dir`) 멈춤. 그 디렉터리가 이미 없으면 경고만 남김. `docker ps`만 부름 |
 | `make access-check` | Mac | 지금 네트워크에서 Tailscale 조정 서버·터널 엔드포인트·SSH 별칭이 되는지 보고하고 모드를 추천 (`scripts/check-access.sh`) |
 | `gateway/` + `gateway` 서비스 | VM·Mac(로컬 검증) | `BM_WEB=on`일 때만 도는 OAuth 게이트웨이(FastMCP). GitHub 로그인 한 계정(숫자 id)만 통과시키고 허용한 도구 18개만 Basic Memory `/mcp`로 넘김. 감사 로그는 표준 출력, 저장소는 `/srv/basic-memory/gateway/`. [web-connector ADR](decisions/adr-2026-10-22-fcvznmdc-web-connector.md), [런북](runbooks/rbk-2026-10-27-x9h4zzdh-web-connector.md) |
 | `cloudflared` 서비스 | VM | `BM_WEB=on`일 때만. Cloudflare로 아웃바운드 터널을 열고 `gateway`에만 닿음 |
