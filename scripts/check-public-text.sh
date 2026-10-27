@@ -108,10 +108,10 @@ function has_ts_net(line,   rest, name, after) {
 }
 function has_session_link(line) {
   line = tolower(line)
-  return line ~ /claude[.]ai\/code\/session_[a-z0-9]/ || line ~ /^[ \t]*claude-session[:]/
+  return line ~ /claude[.]ai\/code\/session_[a-z0-9]/ || line ~ /^[+-]?[ \t]*claude-session[:]/
 }
-# Only whitespace, list and quote marks and non-ASCII symbols (emoji) may come before it.
-function has_generated_with(line) { return line ~ /^([ \t>*-]|[0-9]+[.]|[^ -~])*Generated with/ }
+# Only a diff mark (git log -p), whitespace, list and quote marks and non-ASCII symbols (emoji) may come before it.
+function has_generated_with(line) { return line ~ /^[+-]?([ \t>*-]|[0-9]+[.]|[^ -~])*Generated with/ }
 function report(path, label, line_no, id) {
   if ((path, id) in exempt) return
   print label ":" line_no ": " kind_name[id]

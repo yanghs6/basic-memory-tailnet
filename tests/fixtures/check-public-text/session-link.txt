@@ -2,3 +2,4 @@
 https://claude.ai/code/session_0fake0fake0fake0fake
   Claude-Session: 0fake-session
 HTTPS://Claude.AI/code/session_0FAKE0FAKE0FAKE0FAKE
++Claude-Session: 0fake-session-in-a-diff

@@ -24,9 +24,11 @@ to_crlf() {
     "session-link|2|session link" \
     "session-link|3|session link" \
     "session-link|4|session link" \
+    "session-link|5|session link" \
     "generated-with|2|Generated with line" \
     "generated-with|3|Generated with line" \
-    "generated-with|4|Generated with line"; do
+    "generated-with|4|Generated with line" \
+    "generated-with|5|Generated with line"; do
     (
       IFS='|' read -r name line kind <<<"$case" \
         && crlf="$BATS_TEST_TMPDIR/$name-crlf.txt" \
