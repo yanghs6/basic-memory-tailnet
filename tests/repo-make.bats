@@ -52,10 +52,10 @@ make_in() {
   assert_output "[]"
 }
 
-@test "make local-up stops before any compose call on an SB_USER that require_sb_user rejects, without printing it, and starts the stack with a valid one" {
+@test "make local-up stops before any compose call on an SB_USER that require_sb_user rejects, without printing it, and starts the stack with a valid one; local-up and local-down refuse a stack another worktree started" {
   linked_worktree_with_makefile
   setup_stubs docker
-  cp -R "$REPO_DIR/scripts" "$REPO_DIR/silverbullet" "$LINKED_WT/"
+  cp -R "$REPO_DIR/scripts" "$REPO_DIR/silverbullet" "$REPO_DIR/compose.yaml" "$LINKED_WT/"
   # make reads .env as makefile text, so # starts a comment and it passes on admin:Tr4mp.
   printf 'SB_USER=admin:Tr4mp#oline\n' >"$MAIN_REPO/.env"
   run make_in "$LINKED_WT" local-up
@@ -69,6 +69,17 @@ make_in() {
   refute_output --partial "Tr4mp"
   run grep -c '^docker compose -f compose.yaml up -d --wait$' "$STUB_LOG"
   assert_output 1
+
+  : >"$STUB_LOG"
+  mkdir -p "$BATS_TEST_TMPDIR/other-worktree"
+  export DOCKER_STUB_STACK_DIRS="$BATS_TEST_TMPDIR/other-worktree"
+  local target
+  for target in local-up local-down; do
+    run make_in "$LINKED_WT" "$target"
+    assert_failure
+    assert_output --partial "make local-down"
+  done
+  refute_stub_called '^docker compose'
 }
 
 @test "make verify hands SB_USER and the env file path to the VM check; make probe hands neither" {
@@ -94,7 +105,7 @@ make_in() {
   # shellcheck disable=SC2016 # the fake command expands its variables when it runs
   fake_cmd docker 'printf "docker %s\n" "$*" >>"$STUB_LOG"
 printf "env [%s] [%s]\n" "${COMPOSE_PROFILES-unset}" "${BM_WEB_BASE_URL-unset}" >>"$STUB_LOG"'
-  cp -R "$REPO_DIR/scripts" "$REPO_DIR/silverbullet" "$LINKED_WT/"
+  cp -R "$REPO_DIR/scripts" "$REPO_DIR/silverbullet" "$REPO_DIR/compose.yaml" "$LINKED_WT/"
   printf 'SB_USER=admin:Tr4mpoline\nBM_WEB=on\n' >"$MAIN_REPO/.env"
   run make_in "$LINKED_WT" local-up
   assert_success

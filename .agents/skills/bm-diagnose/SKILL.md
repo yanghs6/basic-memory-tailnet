@@ -31,7 +31,7 @@ Work top-down and stop at the first layer that fails. Look up every error messag
 5. Serve: `make status` ends with `tailscale serve status`; it must show `proxy http://127.0.0.1:8737` (`BM_PORT`).
    In ssh mode there is no Serve: `make status` must show `tailscale: not installed or logged out`.
 6. MCP: `make probe` (initialize and tools/list only; writes nothing). Read the failing step.
-7. Report the failing layer, the evidence (command and output excerpt), the proposed fix and who runs it. If the incident was real, suggest a row in "Incident log" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md.
+7. Report the failing layer, the evidence (command and output excerpt), the proposed fix and who runs it. If the incident was real, suggest a row in "Incident log" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md with the cause (prefixed `Assumption:` if unconfirmed) and the follow-up.
 
 ## Gotchas
 

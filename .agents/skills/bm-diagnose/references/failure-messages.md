@@ -22,6 +22,7 @@ Find the first error you saw. "The user" runs or approves the step; you only pro
 | Message or symptom | Meaning | Next step |
 |---|---|---|
 | `initialize: request to <url> failed` | tailscale mode: DNS or HTTPS. ssh mode: the tunnel is not running. | tailscale mode: check MagicDNS and HTTPS certificates in the Tailscale admin console. ssh mode: is `make tunnel` running? Run `make access-check`. |
+| `curl: (28) Operation timed out after N milliseconds` printed before `<step>: request to <url> failed` | The connection was accepted (tunnel or tailnet), but no answer came within `REQUEST_TIMEOUT_SECONDS` (30 seconds, scripts/verify-mcp.sh). Seen right after a deploy on 2026-10-21. | Wait 1-2 minutes, run `make status` (both containers `(healthy)`, memory and swap use), then `make probe`. If the probe passes, propose `make verify` to the user. If it repeats, report the first error in `make logs` and the memory numbers (see the "Sustained swap use" row) and suggest an Incident log row. |
 | `initialize: HTTP 4xx` | Host header or path. | Propose comparing against a local container: `make local-up local-verify` starts a container and writes a test note, so the user decides. |
 | `tools/list: missing tool` | The image changed. | See `bm-upgrade`. |
 | `Funnel is on for this node` or `accepts connections on port N` | Exposure problem. | Point the user to "Exposure audit" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md. Do not try to fix it yourself. |
