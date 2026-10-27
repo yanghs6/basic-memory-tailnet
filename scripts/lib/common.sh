@@ -28,6 +28,9 @@ readonly REPO_DIR
 readonly DEFAULT_BM_PORT=8737
 readonly DEFAULT_SB_PORT=3000
 readonly DEFAULT_BM_WEB_PORT=8738
+# ssh access mode: local ends of make tunnel (Basic Memory, web UI) when .env sets no BM_TUNNEL_*_PORT.
+readonly DEFAULT_TUNNEL_MCP_PORT=18737
+readonly DEFAULT_TUNNEL_WEB_PORT=13000
 # Suffix of a file still being written; it gets its final name only when complete.
 readonly PARTIAL_SUFFIX=".partial"
 

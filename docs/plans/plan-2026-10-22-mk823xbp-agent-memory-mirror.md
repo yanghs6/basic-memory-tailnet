@@ -254,9 +254,9 @@ git commit -m "refactor: move the MCP client of verify-mcp into scripts/lib/mcp.
   - `memory_state_dir` → `${XDG_STATE_HOME:-$HOME/.local/state}/bm-agent-memory`
   - `memory_mcp_url` → `BM_MEMORY_MCP_URL`, 없으면 `http://127.0.0.1:${BM_TUNNEL_MCP_PORT:-$DEFAULT_TUNNEL_MCP_PORT}/mcp`
 
-- [ ] **Step 1: `make new-script NAME=agent-memory KIND=lib`**
+- [x] **Step 1: `make new-script NAME=agent-memory KIND=lib`**
 
-- [ ] **Step 2: 실패하는 테스트 작성 (`tests/lib-agent-memory.bats`)**
+- [x] **Step 2: 실패하는 테스트 작성 (`tests/lib-agent-memory.bats`)**
 
 ```bash
 setup() {
@@ -321,21 +321,21 @@ setup() {
 }
 ```
 
-- [ ] **Step 3: 실패 확인**
+- [x] **Step 3: 실패 확인**
 
 Run: `make test`
 Expected: `lib-agent-memory.bats`의 네 테스트만 실패한다(함수가 없다).
 
-- [ ] **Step 4: 구현**
+- [x] **Step 4: 구현**
 
 Interfaces의 함수를 파일 머리의 함수 색인과 함께 쓴다. `DEFAULT_TUNNEL_MCP_PORT=18737`과 그 짝인 `DEFAULT_TUNNEL_WEB_PORT`를 `open-tunnel.sh`에서 `common.sh`의 `DEFAULT_SB_PORT` 아래로 옮긴다. 두 상수를 함께 두려는 것이고, `open-tunnel.sh`는 이미 `common.sh` 계열을 source한다. `scripts/verify-vm.sh:20-21`의 주석 "`(scripts/open-tunnel.sh)`"는 "`(scripts/lib/common.sh)`"로 고친다. Libraries 목록에 한 줄을 더한다: `scripts/lib/agent-memory.sh`: the project, device and state rules of the agent memory mirror.
 
-- [ ] **Step 5: 통과 확인**
+- [x] **Step 5: 통과 확인**
 
 Run: `make check`
 Expected: exit 0, 커버리지 80% 이상.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add scripts/lib/agent-memory.sh tests/lib-agent-memory.bats scripts/lib/common.sh scripts/open-tunnel.sh scripts/verify-vm.sh .agents/skills/script-authoring/SKILL.md
@@ -983,3 +983,4 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 | 2026-10-26 | Verified | 같은 확인에서 permalink가 키를 바꾸는 것을 찾았다. 노트 경로 `agent-memory/_global/codex/<기기>/memory_summary`의 permalink는 `main/agent-memory/global/codex/<기기>/memory-summary`다. 키의 `_`와 `--`는 `-`가 되고, 대문자는 소문자, 한글은 로마자가 된다. `file_path`는 원래 이름 그대로다. permalink에서 키를 읽으면 `_global` 노트와 `_`가 든 키의 노트가 모두 색인에서 빠지고, 테스트는 가짜 permalink로 통과한다. 그래서 스펙 §3.4와 이 계획(Global Constraints 색인 규칙, Task 4 fixture·테스트·Step 5)을 `file_path`에서 키·에이전트·기기를 읽도록 고쳤다. permalink는 중복 제거, 출력, `read_note`에만 쓴다. 키 `_global`과 `global`, `a_b`와 `a-b`는 permalink가 같아져 뒤의 쓰기가 409로 거부된다(스펙 §3.2의 실패 처리 그대로). |
 | 2026-10-27 | Verified | 시작. 웹 커넥터 PR #24가 `01eb909`로 병합된 뒤 supervisor 세션이 시작 신호를 보냈다. `git fetch origin` 뒤 `git branch -r --list 'origin/plan/mk823xbp-*'`의 출력이 없었고, `01eb909`에서 브랜치를 만들었다. PR #24로 밀린 줄 번호를 `01eb909`에 맞췄다: `scripts/lib/vm.sh:18,170-177` → `:26,341-348`, `scripts/verify-vm.sh:20-21` → `:22-23`, `Makefile:15` → `:16`, `Makefile:32` → `:46`, `Makefile:8-15` → `:8-17`, `docs/ARCHITECTURE.md:43` → `:53`. `scripts/verify-mcp.sh`, `scripts/open-tunnel.sh`, `AGENTS.md:10`은 그대로다. 스펙 §2의 `docs/ARCHITECTURE.md:96`(지금 `:110`)은 2026-10-22의 증거 문장이라 고치지 않았다. |
 | 2026-10-27 | Verified | Task 1: `scripts/lib/mcp.sh`를 만들고 `verify-mcp.sh`의 MCP 클라이언트(`mcp_` 이름)를 옮겼으며, `sha256_of`를 `vm.sh`에서 `common.sh`로 옮겼다. RED: 구현 전 `make test`에서 not ok 3개였다. `lib-mcp.bats`의 두 테스트는 `mcp_open: command not found`로, 템플릿 빈칸 검사(`scripts and tests hold no unfilled template blank`)는 `new-script`가 만든 빈 라이브러리의 `{{...}}` 때문에 실패했다. GREEN: `make check` 종료 코드 0, 211개 테스트 모두 ok이고 not ok 0개, 총 줄 커버리지 89.19%(최소 80%). `tests/verify-mcp.bats`와 `tests/fixtures/verify-mcp`는 `origin/main`과 차이가 없다. |
+| 2026-10-27 | Verified | Task 2: `scripts/lib/agent-memory.sh`와 `tests/lib-agent-memory.bats`를 만들고, `DEFAULT_TUNNEL_MCP_PORT`·`DEFAULT_TUNNEL_WEB_PORT`를 `open-tunnel.sh`에서 `common.sh`로 옮겼다(`verify-vm.sh` 주석과 `script-authoring`의 Libraries 목록도 고침). RED: 구현 전 `make test`는 exit 2, `lib-agent-memory.bats`의 네 테스트(47~50)가 함수가 없어 실패했고, 빈칸 검사 테스트(148)도 새 파일의 템플릿 빈칸 때문에 실패했다. GREEN: 구현 뒤 `make check` exit 0, 215개 테스트 모두 ok, not ok 0, total line coverage 89.44%(`scripts/lib/agent-memory.sh` 96.77%). |

@@ -62,6 +62,7 @@ Each library starts with a function index, one line per function. Read it before
 - `scripts/lib/common.sh`: core helpers every script needs (logging, `die`, required commands and settings, `mask`), the repo root and shared constants.
 - `scripts/lib/vm.sh`: the VM layout, the access mode, SSH and compose on the VM, the data manifest.
 - `scripts/lib/mcp.sh`: the MCP client (streamable HTTP, session, tool calls) of verify-mcp and the agent memory scripts.
+- `scripts/lib/agent-memory.sh`: the project, device and state rules of the agent memory mirror.
 - `scripts/lib/sb.sh`: the SilverBullet space in the notes folder and the SilverBullet login.
 - `scripts/lib/git.sh`: commit trailer rules, problem lists, review report paths.
 - `scripts/lib/docs.sh`: the document type registry and document ids.
