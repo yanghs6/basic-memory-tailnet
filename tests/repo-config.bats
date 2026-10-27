@@ -31,11 +31,15 @@ compose_services() {
 
 # makefile_image_problems -> one "  Makefile:line: ..." line for each image the Makefile names without a digest: an
 # *_IMAGE value without @sha256:<digest> (a value read from compose.yaml with $(shell ...) is checked there; an image a
-# recipe builds with docker build -t $(VAR) has no registry digest), and a $(DOCKER_RUN) recipe whose next word is not
-# a $(..._IMAGE) variable.
+# recipe builds with docker build -t $(VAR) has no registry digest), a $(DOCKER_RUN) recipe whose next word is not
+# a $(..._IMAGE) variable, and a bare docker run recipe that names no $(..._IMAGE) variable. A Makefile with no
+# *_IMAGE variable or no $(DOCKER_RUN) recipe is a problem too, so the check cannot pass on nothing.
 makefile_image_problems() {
-  local built line name value
+  local built images line name value
   built="$(grep -oE '^'$'\t''.*docker build .*-t \$\([A-Z_]+\)' "$REPO_DIR/Makefile" | sed -E 's/.*-t \$\(([A-Z_]+)\)$/\1/')" || true
+  images="$(grep -nE '^[A-Z_]+_IMAGE[[:space:]]*[:?]?=' "$REPO_DIR/Makefile")" \
+    || echo "  Makefile: found no *_IMAGE variable"
+  grep -qE '^'$'\t''.*\$\(DOCKER_RUN\)' "$REPO_DIR/Makefile" || echo "  Makefile: found no \$(DOCKER_RUN) recipe"
   while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     name="${line#*:}"
@@ -46,12 +50,16 @@ makefile_image_problems() {
     # shellcheck disable=SC2016 # $(shell is make text, matched literally
     [[ "$value" == '$(shell '*compose.yaml')' || "$value" =~ $DIGEST$ ]] \
       || echo "  Makefile:${line%%:*}: $name is '$value', expected <name>:<version>@sha256:<64 hex>"
-  done <<<"$(grep -nE '^[A-Z_]+_IMAGE[[:space:]]*[:?]?=' "$REPO_DIR/Makefile")"
+  done <<<"$images"
   grep -nE '^'$'\t''.*\$\(DOCKER_RUN\)' "$REPO_DIR/Makefile" | while IFS= read -r line; do
     value="${line#*\$(DOCKER_RUN) }"
     value="${value%% *}"
     [[ "$value" =~ ^\$\([A-Z_]+_IMAGE\)$ ]] \
       || echo "  Makefile:${line%%:*}: \$(DOCKER_RUN) runs '$value', expected a \$(<NAME>_IMAGE) variable pinned above"
+  done
+  grep -nE '^'$'\t''.*docker run ' "$REPO_DIR/Makefile" | while IFS= read -r line; do
+    [[ "$line" =~ \$\([A-Z_]+_IMAGE\) ]] \
+      || echo "  Makefile:${line%%:*}: docker run names no image variable, expected a \$(<NAME>_IMAGE) variable pinned above"
   done
 }
 
