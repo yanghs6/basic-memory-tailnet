@@ -1,5 +1,5 @@
 ---
-status: backlog
+status: completed
 id: zw0shxee
 spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 ---
@@ -48,6 +48,8 @@ spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
   - B: 다음 실제 업그레이드 때까지 Task 4를 미룬다. 계획은 Task 4만 남긴 채 열어 둔다.
   - C: 이미지는 그대로 두고 설정만 바꾼 배포를 되돌린다. `image:` 롤백은 시험하지 못한다.
   - **Assumption:** 2026-10-22 기준 `compose.yaml:14`의 0.23.2보다 새 릴리스가 있는지는 확인하지 않았다. 새 릴리스가 없으면 A는 쓸 수 없고 B가 된다.
+  - **Verified (2026-10-26):** `gh release list -R basicmachines-co/basic-memory`에 v0.24.0과 v0.24.1(2026-10-23, Latest)이 있다. A를 쓸 수 있다.
+- **결정 (2026-10-26):** 사용자가 이 계획을 승인하고 Open question 1은 A(Task 3에서 E1을 고침), Open question 2는 A(시험할 때의 최신 릴리스로 올렸다가 되돌림)를 골랐다.
 
 ## Global Constraints
 
@@ -85,30 +87,30 @@ spec: docs/specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/zw0shxee-recovery-drill` 브랜치를 만든다(`git-workflow` 스킬의 Start).
-- [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
+- [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/zw0shxee-recovery-drill` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: Incident log follow-up column and past incidents
 
 **Files:**
 - Modify: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:152-156`
 
-- [ ] **Step 1: 테스트 없음.** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2. Step 4의 명령으로 확인한다.
-- [ ] **Step 2: 열과 정의**
+- [x] **Step 1: 테스트 없음.** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2. Step 4의 명령으로 확인한다.
+- [x] **Step 2: 열과 정의**
   - 머리 행 끝에 `후속 조치` 열을 더한다. 2026-10-15 행에는 끝에 `해당 없음(장애 아님)` 칸만 붙인다.
   - `## Incident log` 바로 아래에 정의 한 줄을 둔다. 장애는 실제 VM에서 서비스, 접속 경로, 복구 경로를 해친 계획에 없던 사건이고, 실패한 검증·시험도 포함한다. 원인을 확인하지 못했으면 원인 칸을 `Assumption:`으로 시작한다. 후속 조치 칸에는 커밋·PR·계획을 적고, 없으면 `없음`과 이유를 적는다.
   - **Assumption:** 이 정의는 평가의 D10 판정 기준을 옮긴 것이다. 사용자가 다르게 정하면 그에 따른다.
-- [ ] **Step 3: 행 추가.** 날짜순으로 넣고, 출처 줄은 비고 칸에 적는다.
+- [x] **Step 3: 행 추가.** 날짜순으로 넣고, 출처 줄은 비고 칸에 적는다.
   - 2026-10-13, 콜드 스타트 `unhealthy`([vm-rollout 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md) `:289`, `:292`). 백업: 사용 안 함. 손실: 없음. 후속: `56d3ab4`(`start_period: 300s`, `HEALTH_TIMEOUT_SECONDS` 360초), `tests/repo-config.bats:63`. 늘어나는 콜드 스타트는 vm-rollout 계획 Follow-ups에 남아 있다.
   - 2026-10-13, 모든 백업이 복원 거부됨(`:308`, `:310`). 백업: `bm-20261013T050026Z.tgz`(거부됨). 손실: 없음(VM에 손대기 전에 거부). 후속: `a5781a4`(모델 캐시 제외), `tests/restore-notes.bats:48`. 같은 날 2회차 복원이 통과했다.
   - 2026-10-13, 접속 경로: 사무실 네트워크가 HTTPS `controlplane.tailscale.com`만 막음(`:285-287`). 백업: 사용 안 함. 손실: 없음. 후속: 사용자가 IT에 허용을 요청했고, [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md)에서 VM을 `ssh` 모드로 옮겼다(`ef67732`, PR #12).
   - 2026-10-21, 배포 직후 첫 `make verify`가 `tools/list`에서 `curl: (28)`로 끝남([script-cleanup 계획](plan-2026-10-20-c2vxa7kp-script-cleanup.md) `:498-500`). 원인 칸은 `Assumption:`(재색인)으로 시작한다. 백업: 사용 안 함. 손실: 없음. 비고: 2분 뒤 `make probe`·`make verify` 통과. 후속: Task 2의 실패 목록 행. 원인 확인은 Follow-ups로 남긴다.
-- [ ] **Step 4: 확인**
+- [x] **Step 4: 확인**
 
 Run: `make check`; `awk '/^## Incident log/,/^### 점검 기록/' docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md | grep '^|' | awk -F'|' '{ print NF - 2 }' | sort -u`; `awk '/^## Incident log/,/^### 점검 기록/' docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md | grep -nE '([0-9]{1,3}\.){3}[0-9]{1,3}'`
 Expected: `make check`는 exit 0이다. 두 번째 명령은 `6` 한 줄만 출력한다(모든 행이 여섯 칸). 세 번째 명령은 아무것도 출력하지 않는다(grep exit 1).
 
-- [ ] **Step 5: 커밋.** `docs: give the Incident log a follow-up column and the past incidents`, 트레일러 `Plan: zw0shxee`, `Task: 1`.
+- [x] **Step 5: 커밋.** `docs: give the Incident log a follow-up column and the past incidents`, 트레일러 `Plan: zw0shxee`, `Task: 1`.
 
 ### Task 2: bm-diagnose curl timeout entry
 
@@ -116,18 +118,18 @@ Expected: `make check`는 exit 0이다. 두 번째 명령은 `6` 한 줄만 출�
 - Modify: `.agents/skills/bm-diagnose/references/failure-messages.md:20-30` (MCP 표, `:24` 행 다음)
 - Modify: `.agents/skills/bm-diagnose/SKILL.md:34`
 
-- [ ] **Step 1: 테스트 없음.** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2. 새 행에도 `tests/repo-skills.bats`의 번들 파일 검사와 `tests/repo-docs.bats`의 경로 검사가 그대로 적용된다.
-- [ ] **Step 2: 행 추가(영어).**
+- [x] **Step 1: 테스트 없음.** [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 2. 새 행에도 `tests/repo-skills.bats`의 번들 파일 검사와 `tests/repo-docs.bats`의 경로 검사가 그대로 적용된다.
+- [x] **Step 2: 행 추가(영어).**
   - 메시지: `curl: (28) Operation timed out after N milliseconds`가 `<step>: request to <url> failed` 앞에 찍힌다.
   - 뜻: 서버까지의 경로(터널이나 tailnet)는 열렸지만, Basic Memory가 `REQUEST_TIMEOUT_SECONDS`(30초, `scripts/verify-mcp.sh`) 안에 답하지 않았다. 2026-10-21 배포 직후에 나왔다.
   - 다음 단계(읽기 전용): 1~2분 기다린 뒤 `make status`로 두 컨테이너가 healthy인지와 메모리·스왑을 보고, `make probe`를 돌린다. probe가 통과하면 `make verify`를 사용자에게 제안한다. 다시 나면 `make logs`의 첫 오류와 메모리 수치를 보고하고("Sustained swap use" 행), Incident log 행을 제안한다.
-- [ ] **Step 3: `SKILL.md:34`.** Incident log 행을 제안할 때 원인(확인하지 못했으면 Assumption)과 후속 조치를 함께 적으라고 한 구절을 더한다.
-- [ ] **Step 4: 확인**
+- [x] **Step 3: `SKILL.md:34`.** Incident log 행을 제안할 때 원인(확인하지 못했으면 Assumption)과 후속 조치를 함께 적으라고 한 구절을 더한다.
+- [x] **Step 4: 확인**
 
 Run: `make check`; `grep -n 'curl: (28)' .agents/skills/bm-diagnose/references/failure-messages.md`
 Expected: `make check`는 exit 0이다. grep은 MCP 표 안의 한 줄을 찾는다.
 
-- [ ] **Step 5: 커밋.** `docs: add the curl timeout to the bm-diagnose failure catalog`, 트레일러 `Plan: zw0shxee`, `Task: 2`.
+- [x] **Step 5: 커밋.** `docs: add the curl timeout to the bm-diagnose failure catalog`, 트레일러 `Plan: zw0shxee`, `Task: 2`.
 
 ### Task 3: restore stops on an unexpected VM answer (E1)
 
@@ -141,23 +143,23 @@ Open question 1이 B이면 이 Task를 빼고 Follow-ups에 남긴다. 시작 �
 - Consumes: `remote_exists PATH`(`scripts/lib/vm.sh:133`, `present`나 `absent`를 출력하고 VM이 답하지 않으면 실패), `fake_cmd NAME BODY`(`tests/helpers.bash:112`), `make_archive`·`restore_with_answer`(`tests/restore-notes.bats:15`, `:36`)
 - Produces: 없음
 
-- [ ] **Step 1: 실패하는 테스트 작성.** `@test "restore stops before it stops the container when the VM answers neither present nor absent"`.
+- [x] **Step 1: 실패하는 테스트 작성.** `@test "restore stops before it stops the container when the VM answers neither present nor absent"`.
   - `make_archive "restored"`를 만든다.
   - 두 답을 반복문으로 시험한다([test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 결정 3). 하나는 배너 한 줄 뒤의 `present`, 하나는 빈 답이다. 각 경우는 `$STUB_LOG`를 비운 서브셸 `( ... ) || fail "<답>"`에서 돌린다(`script-authoring` 규칙).
   - 답마다 `fake_cmd ssh`로 가짜 ssh를 만든다. 원격 명령(마지막 인자)에 `then echo present; else echo absent`가 들어 있으면 그 답을 출력하고 0으로 끝나고, 아니면 `exec "$REPO_DIR/tests/stubs/ssh" "$@"`로 넘긴다.
   - `restore_with_answer yes`를 실행하고 확인한다: `assert_failure`, `refute_stub_called -F 'docker compose stop'`, `$BM_REMOTE_DATA_ROOT/knowledge/a.md`가 그대로 `original`, 데이터 루트의 부모 폴더에 `basic-memory.prev-*`·`basic-memory.restore-*`가 없음.
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `make test`
 Expected: 새 테스트만 실패한다. restore가 답을 "이전 데이터 없음"으로 읽고 데이터를 바꾼 뒤 exit 0으로 끝나므로 `assert_failure`가 실패한다.
 
-- [ ] **Step 3: 최소 구현.** `:120-122`의 `if`를 `case "$present" in`으로 바꾼다. `present`는 `HAD_PREVIOUS_DATA=1`, `absent`는 아무것도 하지 않는다. 그 밖의 답이면 `die`로 멈춘다. 메시지에는 기대한 답(`present` 또는 `absent`), 아무것도 바꾸지 않았다는 사실, 다음 할 일(비대화형 `ssh`가 다른 출력을 내지 않는지 확인한 뒤 다시 실행)을 담는다. 이 분기는 `trap rollback EXIT`(`:124`)보다 앞에 있으므로 롤백도 실행되지 않는다.
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 3: 최소 구현.** `:120-122`의 `if`를 `case "$present" in`으로 바꾼다. `present`는 `HAD_PREVIOUS_DATA=1`, `absent`는 아무것도 하지 않는다. 그 밖의 답이면 `die`로 멈춘다. 메시지에는 기대한 답(`present` 또는 `absent`), 아무것도 바꾸지 않았다는 사실, 다음 할 일(비대화형 `ssh`가 다른 출력을 내지 않는지 확인한 뒤 다시 실행)을 담는다. 이 분기는 `trap rollback EXIT`(`:124`)보다 앞에 있으므로 롤백도 실행되지 않는다.
+- [x] **Step 4: 통과 확인**
 
 Run: `make check`
 Expected: exit 0, 커버리지 80% 이상
 
-- [ ] **Step 5: 커밋.** `fix: stop a restore when the VM gives an unexpected answer`, 트레일러 `Plan: zw0shxee`, `Task: 3`.
+- [x] **Step 5: 커밋.** `fix: stop a restore when the VM gives an unexpected answer`, 트레일러 `Plan: zw0shxee`, `Task: 3`.
 
 ### Task 4: Rollback drill on the VM
 
@@ -168,22 +170,22 @@ Expected: exit 0, 커버리지 80% 이상
 - Modify: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md:4` (`reviewed`), `:152-156` (Incident log 행)
 - Modify: `docs/plans/plan-2026-10-22-zw0shxee-recovery-drill.md` (Progress log)
 
-- [ ] **Step 1: 준비(OK 불필요).**
+- [x] **Step 1: 준비(OK 불필요).**
   - `git diff origin/main -- compose.yaml`이 비어 있는지 본다.
   - `make access-check probe status`를 돌리고, `make status`의 IMAGE가 `grep 'image:' compose.yaml`과 같은지 본다(런북 "배포·복원 전 이미지 점검").
   - 옛 `image:` 줄을 기록한다.
   - 사용자에게 시험 창 동안 노트 쓰기를 멈춰 달라고 한다.
-- [ ] **Step 2: 시험 이미지.** `bm-upgrade` 2~6단계를 따른다: 릴리스 노트 요약, digest와 두 아키텍처 확인, `image:` 줄만 변경, `make check local-up local-verify`, `make local-down`. 하나라도 실패하면 멈춘다.
-- [ ] **Step 3: 롤백 지점.** `make backup`을 한다(컨테이너가 잠깐 멈춘다고 알린다). 출력의 `backup saved: <main>/backups/bm-<stamp>.tgz` 절대 경로를 기록한다.
-- [ ] **Step 4: 잘못된 배포(사용자 OK).** `make deploy verify status`를 한다. Expected: IMAGE가 시험 이미지이고 두 컨테이너가 healthy이다. 첫 verify가 `curl: (28)`로 끝나면 Task 2의 행대로 기다렸다가 `make probe`, 그다음 `make verify`를 다시 한다.
-- [ ] **Step 5: 표시 노트.** `make tunnel`을 띄우고 MCP `write_note`로 `rollback-drill` 노트를 쓴 뒤 `read_note`로 확인한다. 백업 뒤에 생긴 변경이다.
-- [ ] **Step 6: 롤백(`rollback.md`, 사용자 OK).** 옛 `image:` 줄을 되돌린다. 그 뒤 `git diff origin/main -- compose.yaml`은 비어 있다. 사용자가 자기 터미널에서 이 worktree로 가서 `make restore BACKUP=<Step 3의 절대 경로>`를 실행하고 `yes`를 입력한다. 이것은 런북 첫 단락이 말하는 `bm-upgrade` 사용자 승인 배포의 예외에 해당한다. `make restore`는 끝나면 `scripts/verify-vm.sh`를 실행한다(`Makefile:123-125`).
+- [x] **Step 2: 시험 이미지.** `bm-upgrade` 2~6단계를 따른다: 릴리스 노트 요약, digest와 두 아키텍처 확인, `image:` 줄만 변경, `make check local-up local-verify`, `make local-down`. 하나라도 실패하면 멈춘다.
+- [x] **Step 3: 롤백 지점.** `make backup`을 한다(컨테이너가 잠깐 멈춘다고 알린다). 출력의 `backup saved: <main>/backups/bm-<stamp>.tgz` 절대 경로를 기록한다.
+- [x] **Step 4: 잘못된 배포(사용자 OK).** `make deploy verify status`를 한다. Expected: IMAGE가 시험 이미지이고 두 컨테이너가 healthy이다. 첫 verify가 `curl: (28)`로 끝나면 Task 2의 행대로 기다렸다가 `make probe`, 그다음 `make verify`를 다시 한다.
+- [x] **Step 5: 표시 노트.** `make tunnel`을 띄우고 MCP `write_note`로 `rollback-drill` 노트를 쓴 뒤 `read_note`로 확인한다. 백업 뒤에 생긴 변경이다.
+- [x] **Step 6: 롤백(`rollback.md`, 사용자 OK).** 옛 `image:` 줄을 되돌린다. 그 뒤 `git diff origin/main -- compose.yaml`은 비어 있다. 사용자가 자기 터미널에서 이 worktree로 가서 `make restore BACKUP=<Step 3의 절대 경로>`를 실행하고 `yes`를 입력한다. 이것은 런북 첫 단락이 말하는 `bm-upgrade` 사용자 승인 배포의 예외에 해당한다. `make restore`는 끝나면 `scripts/verify-vm.sh`를 실행한다(`Makefile:123-125`).
   Expected: restore 출력이 manifest 대조, `compose.yaml`·`.env` 업로드, 교체, 시작을 거쳐 `restored bm-<stamp>.tgz; previous data kept at /srv/basic-memory.prev-<stamp>`로 끝나고, 이어진 verify가 통과한다.
-- [ ] **Step 7: 확인.**
+- [x] **Step 7: 확인.**
   - `make status`의 IMAGE가 main의 `image:`와 같고 두 컨테이너가 healthy이다.
   - `read_note`로 찾으면 `rollback-drill`이 없다. 백업 이후의 변경이 사라진 것이다(스펙 §1 완료 조건 3).
   - `make probe`가 통과한다.
-- [ ] **Step 8: 기록.**
+- [x] **Step 8: 기록.**
   - Progress log에 단계마다 명령과 결과(시각, exit, 걸린 시간)를 `Verified`로 적는다. IP와 세션 id는 빼고, restore를 어느 체크아웃에서 실행했는지 적는다.
   - Incident log에 "장애 아님: 롤백 시험(recovery-drill 계획 Task 4)" 행을 더한다(2026-10-15 행이 선례). 사용한 백업은 Step 3의 파일, 데이터 손실 구간은 백업 시각부터 복원 시각까지(`.prev-*`에 남음)다. 후속 조치에는 `.prev-*` 삭제를 사람이 정한다고 적는다.
   - 런북 `reviewed`를 그날로 바꾼다.
@@ -192,7 +194,7 @@ Expected: exit 0, 커버리지 80% 이상
 Run: `make check`; `git diff origin/main -- compose.yaml`
 Expected: `make check`는 exit 0이고, 두 번째 명령은 아무것도 출력하지 않는다.
 
-- [ ] **Step 9: 커밋.** `docs: record the rollback drill on the VM`, 트레일러 `Plan: zw0shxee`, `Task: 4`.
+- [x] **Step 9: 커밋.** `docs: record the rollback drill on the VM`, 트레일러 `Plan: zw0shxee`, `Task: 4`.
 
 ### Finish: review and hand-off
 
@@ -210,8 +212,31 @@ Expected: `make check`는 exit 0이고, 두 번째 명령은 아무것도 출력
 - **Verified (2026-10-22):** E1과 같은 꼴이 `scripts/sync-sb-space.sh:38`에도 있다. 표시 파일에 대한 답이 `present`가 아니면 모두 "변경 없음"으로 읽어, `.gitignore`가 바뀌었는데도 Basic Memory를 다시 만들지 않을 수 있다. 공용 도우미(`remote_exists`, `notes_file_state`)에서 답을 검사할지는 따로 정한다.
 - 반복 시험(`bm-upgrade` 때마다 롤백 경로를 시험할지, 정기 시험을 둘지)은 이 계획 밖이다.
 - 실제 VM에서 restore의 자동 롤백 분기를 일부러 실패시켜 보는 시험은 하지 않는다. 그 분기는 bats 테스트 `tests/restore-notes.bats:191`이 다룬다.
+- **Verified (2026-10-26, Task 2 리뷰):** `make probe`가 함께 돌리는 `scripts/verify-sb.sh`도 `curl -sS -m 15`를 써서, SilverBullet이 늦으면 `curl: (28)` 뒤에 `SilverBullet does not answer at <url>/.ping (HTTP 000)`이 찍힌다(`scripts/verify-sb.sh:12`, `:36`). `bm-diagnose` 실패 목록에는 이 경우의 행이 없다.
+- **Verified (2026-10-26, Task 1):** `.agents/skills/bm-recover/SKILL.md:53`은 Incident log 행의 칸을 "date, cause, backup used, data loss window"로만 적어, Task 1이 더한 후속 조치 열이 빠져 있다. 이 계획의 범위 밖이므로 따로 고친다.
+- **Verified (2026-10-27, Task 3 리뷰, 기존 코드):** PR #24(`4c1b993`)의 `scripts/restore-notes.sh`에서 INT trap이 `rollback()` 안에서도 살아 있다(`:170`, `:74-98`). 롤백 중 두 번째 Ctrl-C가 오면 롤백이 중간에 끝나 컨테이너가 내려간 채 남을 수 있다. 또 `trap - EXIT` 뒤 정리(`:209-214`) 중 중단되면 VM에 `gateway.backup-*`나 `.prev` 파일이 남는다(`:207-208` 주석이 허용함). 둘 다 P3이고 이 계획에서는 고치지 않는다.
+- **Verified (2026-10-27, Task 4):** 0.24.1 시험 배포 직후 `make verify`가 6분 동안 세 번 실패했다(Incident log 2026-10-27 행). 원인은 Assumption(첫 기동의 마이그레이션과 재색인)으로 남는다. 다음 실제 업그레이드에서 `bm-upgrade` 7단계가 `make deploy` 직후 바로 `make verify`를 돌릴지, 몇 분 기다린 뒤 `make probe`부터 할지 정한다.
 
 ## Progress log
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
+| 2026-10-26 | Verified | 사용자가 계획을 승인하고 Open question 1·2에 A·A를 골랐다(배경 끝의 결정). worktree `.claude/worktrees/recovery-drill`, 브랜치 `plan/zw0shxee-recovery-drill`을 `origin/main`(`ad6f8f3`)에서 만들었다. |
+| 2026-10-26 | Verified | Task 1: 운영 런북 Incident log에 `후속 조치` 열, 장애 정의 한 줄, 2026-10-13 3건과 2026-10-21 1건을 더했다. 기존 행 2개(2026-10-15, 2026-10-26)에는 끝에 `해당 없음(장애 아님)` 칸만 붙였다. 2026-10-26 행은 계획을 쓴 뒤 생긴 행이다. 근거 줄은 계획 Step 3과 한 줄씩 다른 곳이 있어(vm-rollout `:291`, `:309-311`) 실제 줄을 적었다. |
+| 2026-10-26 | Command | Task 1 Step 4: `make check` → exit 0. 칸 수 명령 → `6` 한 줄. IPv4 grep → 출력 없음(exit 1). |
+| 2026-10-26 | Verified | Task 1 리뷰(서브에이전트, 읽기 전용): P0·P1·P2 없음. P3 두 건을 반영했다. 원인 칸의 "모든 백업"을 "모델 캐시가 생긴 뒤 만든 백업"으로 좁혔고, ssh 모드 이전의 코드 PR #8을 함께 적었다. |
+| 2026-10-26 | Verified | Task 2: `bm-diagnose` 실패 목록의 MCP 표에 `curl: (28)` 행을, `SKILL.md:34`에 원인·후속 조치 구절을 더했다. 메시지 형식과 30초 제한은 `scripts/verify-mcp.sh:13`, `:57`, `:89`와 맞다. |
+| 2026-10-26 | Verified | Task 2 리뷰(서브에이전트, 읽기 전용): P0·P1·P2 없음. P3 하나를 반영했다. ssh 모드에서는 VM이 멈춰도 로컬 터널이 연결을 받으므로 "경로가 열렸다"를 "연결은 받아들여졌다"로 고쳤다. 다른 P3(SilverBullet 시간 초과 행)는 Follow-ups에 남겼다. |
+| 2026-10-27 | Command | 감독 세션의 Task 3 시작 신호(PR #24 병합 `01eb909`) 뒤 `git merge origin/main`, `make check` → exit 0, `make check-git` → OK. #24가 `scripts/restore-notes.sh`를 바꿔 Task 3의 줄 번호는 `:157-166`으로 옮겨졌다. |
+| 2026-10-27 | Verified | Task 3 Step 2(RED): `make test`에서 새 테스트 하나만 `not ok`. restore가 배너 + `present` 답을 "이전 데이터 없음"으로 읽고 stop → extract → swap → start까지 진행해 exit 0으로 끝났다. |
+| 2026-10-27 | Verified | Task 3 Step 3·4: 답 확인을 `case`로 바꿔 `present`·`absent`가 아니면 `die`로 멈춘다(`trap rollback EXIT`와 INT trap보다 앞). `make check` → exit 0, 줄 커버리지 89.21%. 테스트는 `docker compose stop`만이 아니라 모든 원격 명령(`ssh`·`docker`·`sudo`)이 없음을 확인하도록 계획보다 넓혔다. |
+| 2026-10-27 | Verified | Task 3 리뷰(서브에이전트, 읽기 전용, trap·롤백·#24 gateway 백업과의 상호작용 포함): 이번 변경의 지적 없음, `make test` 210개 모두 ok. 확인 시점에 gateway 백업은 아직 없고(`GATEWAY_BACKUP_DIR` 빈 값) 롤백도 걸려 있지 않다. 기존 코드의 P3 두 건은 Follow-ups에 남겼다. |
+| 2026-10-27 | Verified | Task 4 Step 1: 감독 세션의 VM 작업 신호 뒤 `git diff origin/main -- compose.yaml` 비어 있음. `make access-check probe status` 통과(권장 접속 방식 ssh). VM은 main의 `basic-memory:0.23.2@sha256:939f1173…`와 SilverBullet 2.12.1로 두 컨테이너 healthy, 4일 전 생성(PR #10 로그 상한 배포와 맞음). 사용자가 main checkout `.env`의 `BM_WEB=on` 줄 수를 직접 세어 `0`을 확인했다(에이전트의 `.env` grep은 자동 모드가 막음). 사용자가 시험 창 동안 노트 쓰기를 멈췄다. |
+| 2026-10-27 | Verified | Task 4 Step 2: v0.24.1(2026-10-23, Latest) 릴리스 노트 요약을 사용자에게 보고했다. `--host 0.0.0.0`을 명시하므로 #1697(기본 loopback 바인딩)은 영향 없음. Alembic 마이그레이션(#1444, #1447)과 필수 permalink(#1477), `created_by` frontmatter(#1608)가 데이터를 바꾼다. digest `sha256:61b168d6211a52c028fe70b5eaf5af814b2d11622d66482adefd02b4cac60b89`, `linux/amd64`·`linux/arm64` 포함. `image:` 줄만 바꾸고 `make check` exit 0, `make local-up local-verify` 통과(MCP 왕복 2회, SilverBullet), `make local-down`. local-up 슬롯을 감독 세션에 반납했다. |
+| 2026-10-27 | Command | Task 4 Step 3(사용자 OK): `make backup` 05:02:39Z → `backup saved: <main>/backups/bm-20261027T050239Z.tgz`(+ .sha256, .manifest), 컨테이너 재시작 healthy. |
+| 2026-10-27 | Verified | Task 4 Step 4(사용자 OK): `make deploy` 05:04:22Z → 05:15:33Z. 이미지 pull 약 7분, healthy 대기 약 3분. 이 배포로 VM이 #24(웹 커넥터)의 off 모드 코드를 처음 받았고, 웹 컨테이너 정리 단계는 "No stopped containers". 이어진 `make verify`는 세 번 실패했다: 05:16:50Z Tailscale 검사의 ssh banner 시간 초과, 05:18Z 검증 터널이 열리지 않음(포트 점유 없음), 05:19:42Z `write_note`가 `curl: (28) … after 30001 milliseconds`. Task 2의 실패 목록 행대로 `make status`(두 컨테이너 healthy, 메모리 64%, 스왑 487/1023MB)와 `make probe`(통과)를 거쳐 05:22:12Z `make verify` exit 0. IMAGE는 `basic-memory:0.24.1@sha256:61b168d6…`. |
+| 2026-10-27 | Verified | Task 4 Step 5: 이미 열려 있던 `make tunnel`(포트 18737)로 MCP `write_note` → `verify/rollback-drill` 생성, `read_note`로 내용 확인. |
+| 2026-10-27 | Verified | Task 4 Step 6(사용자 OK): worktree `compose.yaml`을 0.23.2로 되돌림(`git diff origin/main -- compose.yaml` 비어 있음). 사용자가 자기 터미널에서 이 worktree(`.claude/worktrees/recovery-drill`)로 가서 `make restore BACKUP=<main>/backups/bm-20261027T050239Z.tgz`를 실행하고 `yes`를 입력했으며 완료를 알렸다. 복원 시각은 05:29:08Z에 컨테이너가 "Up 2 minutes"여서 약 05:27Z다. |
+| 2026-10-27 | Verified | Task 4 Step 7: `make status` IMAGE `basic-memory:0.23.2@sha256:939f1173…`(main과 같음), healthy, 메모리 68%, 스왑 402/1023MB. `read_note main/verify/rollback-drill` → Note Not Found, 제목 검색도 결과 없음(백업 이후 변경이 사라짐, 스펙 §1 완료 조건 3). `make probe` 통과(05:30:29Z). 시험 창은 05:02:39Z → 약 05:27Z이고, 그 사이 데이터는 VM `/srv/basic-memory.prev-*`(이번 복원분)에만 남는다. |
+| 2026-10-27 | Verified | Task 4 Step 8: Incident log에 2026-10-27 행 두 개(시험 배포 직후 verify 실패, 장애 아님: 롤백 시험)를 더하고 런북 `reviewed`를 2026-10-27로 바꿨다. 칸 수 명령 → `6`, IPv4 grep → 0건. |
+| 2026-10-27 | Command | Finish: `make check` → exit 0, 테스트 210개 중 not ok 0개, 줄 커버리지 89.21%(최소 80%). `git log -p origin/main..HEAD -- compose.yaml` → 비어 있음(시험 pin이 이력에 없음). |

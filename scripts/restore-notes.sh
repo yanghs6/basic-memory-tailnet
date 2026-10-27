@@ -156,9 +156,13 @@ main() {
 
   present="$(remote_exists "$ROOT")" \
     || die "could not reach $BM_VM_HOST: $(access_hint)"
-  if [[ "$present" == present ]]; then
-    HAD_PREVIOUS_DATA=1
-  fi
+  # Any other answer (for example a shell startup file printing a banner) must not read as a VM without data, so stop
+  # here, before the traps: nothing has changed and nothing is rolled back. The answer is not printed.
+  case "$present" in
+    present) HAD_PREVIOUS_DATA=1 ;;
+    absent) ;;
+    *) die "unexpected answer from $BM_VM_HOST when checking $ROOT (expected present or absent); nothing was changed. Next: check that a non-interactive ssh to $BM_VM_HOST prints nothing else (for example from a shell startup file), then rerun 'make restore BACKUP=$archive'" ;;
+  esac
 
   trap rollback EXIT
   # Ctrl-C exits through the rollback with a failure status: without this trap bash 5 runs the EXIT trap with $? = 0
