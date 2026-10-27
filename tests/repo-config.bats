@@ -8,12 +8,16 @@ AGENTS_MD_MAX_BYTES=24000
 MIN_START_PERIOD_SECONDS=240
 # An image line with a version tag and a sha256 digest.
 PINNED_IMAGE='^ +image: [a-z0-9./_-]+:[0-9.]+(-[a-z]+)?@sha256:[0-9a-f]{64}$'
+# The end of an image reference pinned by digest (Makefile *_IMAGE values, tools/Dockerfile FROM lines).
+DIGEST='@sha256:[0-9a-f]{64}'
 # The 18 Basic Memory tools the web gateway opens (spec web-connector 3.4): the 21 of the VM tools/list without
 # delete_note, create_memory_project and delete_project.
 WEB_ALLOWED_TOOLS="basic_memory_diagnostics build_context edit_note fetch list_directory list_memory_projects list_workspaces
 move_note read_content read_note recent_activity schema_diff schema_infer schema_validate search search_notes view_note write_note"
 # The web services: compose starts them only in their profiles, so their variables must not stop other compose calls.
 WEB_SERVICES="gateway cloudflared"
+# The docker run options that take their value as the next word, so that word is not the image.
+DOCKER_RUN_VALUE_OPTIONS=" -e -p -u -v -w --entrypoint --env --env-file --mount --name --network --platform --publish --user --volume --workdir "
 # The first --hash line under a requirement in a pip-compile --generate-hashes file.
 HASH_LINE='^ +--hash=sha256:[0-9a-f]{64}'
 
@@ -27,8 +31,60 @@ compose_services() {
   awk '/^[^ ]/ { inside = ($0 == "services:"); next } inside && /^  [a-z0-9-]+:$/ { sub(/^ +/, ""); sub(/:$/, ""); print }' "$REPO_DIR/compose.yaml"
 }
 
-@test "every compose image is pinned by digest" {
-  local services service images line bad=""
+# docker_run_image ARGS -> the image of a docker run argument list: the first word that is neither an option nor the
+# value of an option in DOCKER_RUN_VALUE_OPTIONS. Globbing is off, so make text such as $(CURDIR) stays as it is.
+docker_run_image() (
+  set -f
+  local word wants_value=false
+  for word in $1; do
+    if [[ "$wants_value" == true ]]; then
+      wants_value=false
+    elif [[ "$word" == -* ]]; then
+      [[ "$DOCKER_RUN_VALUE_OPTIONS" != *" $word "* ]] || wants_value=true
+    else
+      printf '%s\n' "$word"
+      return 0
+    fi
+  done
+)
+
+# makefile_image_problems -> one "  Makefile:line: ..." line for each image the Makefile names without a digest: an
+# *_IMAGE value without @sha256:<digest> (a value read from compose.yaml with $(shell ...) is checked there; an image a
+# recipe builds with docker build -t $(VAR) has no registry digest), a $(DOCKER_RUN) recipe whose next word is not
+# a $(..._IMAGE) variable, and a bare docker run recipe whose image (docker_run_image) is not one. A Makefile with no
+# *_IMAGE variable or no $(DOCKER_RUN) recipe is a problem too, so the check cannot pass on nothing.
+makefile_image_problems() {
+  local built images line name value
+  built="$(grep -oE '^'$'\t''.*docker build .*-t \$\([A-Z_]+\)' "$REPO_DIR/Makefile" | sed -E 's/.*-t \$\(([A-Z_]+)\)$/\1/')" || true
+  images="$(grep -nE '^[A-Z_]+_IMAGE[[:space:]]*[:?]?=' "$REPO_DIR/Makefile")" \
+    || echo "  Makefile: found no *_IMAGE variable"
+  grep -qE '^'$'\t''.*\$\(DOCKER_RUN\)' "$REPO_DIR/Makefile" || echo "  Makefile: found no \$(DOCKER_RUN) recipe"
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    name="${line#*:}"
+    name="${name%%[ :?=]*}"
+    value="${line#*=}"
+    value="${value# }"
+    grep -qxF "$name" <<<"$built" && continue
+    # shellcheck disable=SC2016 # $(shell is make text, matched literally
+    [[ "$value" == '$(shell '*compose.yaml')' || "$value" =~ $DIGEST$ ]] \
+      || echo "  Makefile:${line%%:*}: $name is '$value', expected <name>:<version>@sha256:<64 hex>"
+  done <<<"$images"
+  grep -nE '^'$'\t''.*\$\(DOCKER_RUN\)' "$REPO_DIR/Makefile" | while IFS= read -r line; do
+    value="${line#*\$(DOCKER_RUN) }"
+    value="${value%% *}"
+    [[ "$value" =~ ^\$\([A-Z_]+_IMAGE\)$ ]] \
+      || echo "  Makefile:${line%%:*}: \$(DOCKER_RUN) runs '$value', expected a \$(<NAME>_IMAGE) variable pinned above"
+  done
+  grep -nE '^'$'\t''.*docker run ' "$REPO_DIR/Makefile" | while IFS= read -r line; do
+    value="$(docker_run_image "${line#*docker run }")"
+    [[ "$value" =~ ^\$\([A-Z_]+_IMAGE\)$ ]] \
+      || echo "  Makefile:${line%%:*}: docker run runs '$value', expected a \$(<NAME>_IMAGE) variable pinned above"
+  done
+}
+
+@test "every image in compose.yaml, the Makefile and tools/Dockerfile is pinned by digest" {
+  local services service images line froms bad=""
   services="$(compose_services)"
   [[ -n "$services" ]] || fail "compose.yaml defines no services"
   for service in $services; do
@@ -40,6 +96,13 @@ compose_services() {
     [[ "${line#*:}" =~ $PINNED_IMAGE ]] || bad="$bad"$'\n'"  compose.yaml:$line"
   done <<<"$images"
   [[ -z "$bad" ]] || fail "pin every image by digest (image: <name>:<version>@sha256:<digest>):$bad"
+  bad="$(makefile_image_problems)"
+  froms="$(grep -niE '^[[:space:]]*FROM[[:space:]]' "$REPO_DIR/tools/Dockerfile")" || fail "tools/Dockerfile has no FROM line"
+  while IFS= read -r line; do
+    [[ "${line#*:}" =~ ^FROM[[:space:]]+[^[:space:]@]+$DIGEST([[:space:]]+AS[[:space:]]+[A-Za-z0-9_-]+)?$ ]] \
+      || bad="$bad"$'\n'"  tools/Dockerfile:$line"
+  done <<<"$froms"
+  [[ -z "$bad" ]] || fail "pin every image by digest (<name>:<version>@sha256:<digest>; read the release notes, then pass make check local-up local-verify, AGENTS.md Invariants) in the Makefile *_IMAGE variables, the \$(DOCKER_RUN) recipes and tools/Dockerfile:"$'\n'"${bad#$'\n'}"
 }
 
 @test "compose publishes ports on 127.0.0.1 only" {
