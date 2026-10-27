@@ -11,6 +11,7 @@
 #   mask VALUE -> first 4 characters + ****, for printing secrets and ids
 #   utc_stamp -> the current UTC time as YYYYMMDDTHHMMSSZ
 #   main_checkout_root [DIR] -> the main checkout that DIR belongs to
+#   sha256_of FILE -> hex digest of a local file
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
 
 [ -n "${_BM_LIB_COMMON:-}" ] && return 0
@@ -73,4 +74,13 @@ main_checkout_root() {
   local common
   common="$(git -C "${1:-$COMMON_LIB_DIR}" rev-parse --path-format=absolute --git-common-dir)" || return 1
   dirname "$common"
+}
+
+# sha256_of FILE -> hex digest (sha256sum on Linux, shasum on macOS).
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{ print $1 }'
+  else
+    shasum -a 256 "$1" | awk '{ print $1 }'
+  fi
 }

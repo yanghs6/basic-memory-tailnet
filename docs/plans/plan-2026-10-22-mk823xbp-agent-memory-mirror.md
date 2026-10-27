@@ -118,7 +118,7 @@ spec: docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md
 ### Start: branch, worktree, draft PR
 
 - [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/mk823xbp-agent-memory-mirror` 브랜치를 만든다(`git-workflow` 스킬의 Start).
-- [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
+- [x] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: MCP client library and server checks
 
@@ -143,9 +143,9 @@ spec: docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md
   - 에이전트 조회용 `text` 검색의 지연과 한국어 명사 일치
   - 없는 노트를 지울 때의 응답
 
-- [ ] **Step 1: `make new-script NAME=mcp KIND=lib`**
+- [x] **Step 1: `make new-script NAME=mcp KIND=lib`**
 
-- [ ] **Step 2: 실패하는 테스트 작성 (`tests/lib-mcp.bats`)**
+- [x] **Step 2: 실패하는 테스트 작성 (`tests/lib-mcp.bats`)**
 
 ```bash
 setup() {
@@ -178,12 +178,12 @@ teardown() { mcp_close; }
 }
 ```
 
-- [ ] **Step 3: 실패 확인**
+- [x] **Step 3: 실패 확인**
 
 Run: `make test`
 Expected: `lib-mcp.bats`의 두 테스트만 실패한다(`mcp_open: command not found`).
 
-- [ ] **Step 4: 구현**
+- [x] **Step 4: 구현**
 
 - `verify-mcp.sh`의 `post`·`extract_message`·`rpc`·`notify`·`call_tool`·`initialize`를 `mcp_` 이름으로 옮긴다. 상수 `PROTOCOL_VERSION`, `REQUEST_TIMEOUT_SECONDS`, `RESPONSE_PREVIEW_BYTES`도 옮긴다.
 - 세션 id는 전역 변수 대신 `$MCP_WORK_DIR/session` 파일에 둔다. 클라이언트 이름은 `mcp_initialize`의 인자다. `verify-mcp.sh`는 `bm-verify`를 넘긴다.
@@ -191,7 +191,7 @@ Expected: `lib-mcp.bats`의 두 테스트만 실패한다(`mcp_open: command not
 - `sha256_of`를 `vm.sh`에서 `common.sh`로 옮기고, 두 파일의 함수 색인을 고친다. `vm.sh`는 `common.sh`를 source하므로 `backup-notes.sh`·`restore-notes.sh`는 그대로 돈다.
 - `script-authoring` 스킬의 Libraries에 한 줄을 더한다: `scripts/lib/mcp.sh`: the MCP client (streamable HTTP, session, tool calls) of verify-mcp and the agent memory scripts.
 
-- [ ] **Step 5: 통과 확인**
+- [x] **Step 5: 통과 확인**
 
 Run: `make check && git diff --exit-code origin/main -- tests/verify-mcp.bats tests/fixtures/verify-mcp`
 Expected: exit 0, 커버리지 80% 이상. 두 번째 명령은 아무것도 출력하지 않는다(스펙 §5 호환).
@@ -227,7 +227,7 @@ Expected: exit 0, 커버리지 80% 이상. 두 번째 명령은 아무것도 출
 
 Progress log에 1~5와 판단 결과를 `Verified`로 적는다. permalink와 세션 id는 적지 않는다.
 
-- [ ] **Step 7: 커밋**
+- [x] **Step 7: 커밋**
 
 ```bash
 git add scripts/lib/mcp.sh tests/lib-mcp.bats scripts/verify-mcp.sh scripts/lib/common.sh scripts/lib/vm.sh .agents/skills/script-authoring/SKILL.md docs/plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md
@@ -982,3 +982,4 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 | 2026-10-26 | Verified | Task 1 Step 6 서버 확인(Basic Memory 0.23.2, `make tunnel`로 연 엔드포인트). `scripts/lib/mcp.sh`가 아직 없고 세션의 `basic-memory` MCP 연결이 끊겨 있어서, `verify-mcp.sh`와 같은 요청을 보내는 확인용 curl 스크립트(세션 scratch 폴더, 커밋하지 않음)로 모든 호출을 했다. 시험 노트는 `verify/` 아래에만 쓰고 지웠다. (1) `write_note`의 `action`은 `created`이고, `read_note`의 frontmatter에 `name`·`description`·`mirror`·`device`·`project`·`type: agent_memory`가 모두 있다. (2) 검색어 없이 `metadata_filters: {project, mirror: true}`로 부른 `search_notes`가 5초 기다린 첫 시도에 시험 노트 하나만 준다. 목록은 `results[]`이고, 결과마다 `title`·`permalink`·`file_path`·`content`·`updated_at`·`type`·`entity`·`entity_id`·`external_id`·`score`·`metadata.note_type`이 있다. 최상위는 `current_page`·`page_size`·`total`·`total_is_exact`·`has_more`다. 노트 둘을 `page_size: 1`로 부르면 1쪽 `has_more: true`, 2쪽 `false`, 3쪽은 빈 목록이다. Task 4의 목록 호출은 계획대로 이것을 쓴다. (3) `search_notes(query="경로", search_type="text")`가 본문 `경로를`의 시험 노트를 찾고, 첫 호출을 뺀 5번의 중앙값은 0.516초다(기준 2초). (4) 첫 삭제는 `deleted: true`이고, 같은 노트를 다시 지우면 `deleted: false`, `error` 없음, `isError: false`다. Task 3의 지우기 규칙 그대로다. (5) `make logs \| grep -c 'plan24 marker'`는 0이다. VM의 앱 로그 파일은 Make 타깃으로 읽을 수 없어 보지 않았다(스펙 §2: 검색어는 DEBUG에서만 남고 VM은 INFO). 마지막 `list_directory("verify")`에 확인 노트가 남지 않았다. 판단: 다섯 모두 스펙 §2와 같아 멈출 일이 없다. |
 | 2026-10-26 | Verified | 같은 확인에서 permalink가 키를 바꾸는 것을 찾았다. 노트 경로 `agent-memory/_global/codex/<기기>/memory_summary`의 permalink는 `main/agent-memory/global/codex/<기기>/memory-summary`다. 키의 `_`와 `--`는 `-`가 되고, 대문자는 소문자, 한글은 로마자가 된다. `file_path`는 원래 이름 그대로다. permalink에서 키를 읽으면 `_global` 노트와 `_`가 든 키의 노트가 모두 색인에서 빠지고, 테스트는 가짜 permalink로 통과한다. 그래서 스펙 §3.4와 이 계획(Global Constraints 색인 규칙, Task 4 fixture·테스트·Step 5)을 `file_path`에서 키·에이전트·기기를 읽도록 고쳤다. permalink는 중복 제거, 출력, `read_note`에만 쓴다. 키 `_global`과 `global`, `a_b`와 `a-b`는 permalink가 같아져 뒤의 쓰기가 409로 거부된다(스펙 §3.2의 실패 처리 그대로). |
 | 2026-10-27 | Verified | 시작. 웹 커넥터 PR #24가 `01eb909`로 병합된 뒤 supervisor 세션이 시작 신호를 보냈다. `git fetch origin` 뒤 `git branch -r --list 'origin/plan/mk823xbp-*'`의 출력이 없었고, `01eb909`에서 브랜치를 만들었다. PR #24로 밀린 줄 번호를 `01eb909`에 맞췄다: `scripts/lib/vm.sh:18,170-177` → `:26,341-348`, `scripts/verify-vm.sh:20-21` → `:22-23`, `Makefile:15` → `:16`, `Makefile:32` → `:46`, `Makefile:8-15` → `:8-17`, `docs/ARCHITECTURE.md:43` → `:53`. `scripts/verify-mcp.sh`, `scripts/open-tunnel.sh`, `AGENTS.md:10`은 그대로다. 스펙 §2의 `docs/ARCHITECTURE.md:96`(지금 `:110`)은 2026-10-22의 증거 문장이라 고치지 않았다. |
+| 2026-10-27 | Verified | Task 1: `scripts/lib/mcp.sh`를 만들고 `verify-mcp.sh`의 MCP 클라이언트(`mcp_` 이름)를 옮겼으며, `sha256_of`를 `vm.sh`에서 `common.sh`로 옮겼다. RED: 구현 전 `make test`에서 not ok 3개였다. `lib-mcp.bats`의 두 테스트는 `mcp_open: command not found`로, 템플릿 빈칸 검사(`scripts and tests hold no unfilled template blank`)는 `new-script`가 만든 빈 라이브러리의 `{{...}}` 때문에 실패했다. GREEN: `make check` 종료 코드 0, 211개 테스트 모두 ok이고 not ok 0개, 총 줄 커버리지 89.19%(최소 80%). `tests/verify-mcp.bats`와 `tests/fixtures/verify-mcp`는 `origin/main`과 차이가 없다. |
