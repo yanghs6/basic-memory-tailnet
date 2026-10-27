@@ -51,6 +51,26 @@ git log -p <ref> | grep -cF '<GCP 프로젝트 ID>'
 - **실제 값이 걸리면 push하지 않습니다.** 현재 파일만 고쳐도 과거 커밋에는 값이 남습니다. 공개를 허용할지, 이력을 정리할지를 사용자가 정합니다(스펙 11절). 실제 자격증명이면 공개 여부와 관계없이 폐기하고 교체합니다.
 - `plan/qtvzskgx-vm-rollout`은 push하지 않습니다. 커밋 하나에 VM Tailscale IP가 있습니다. [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)은 스펙 11절의 `plan/qtvzskgx-vm-rollout-public` 절차로 공개합니다.
 
+### 2.1 전체 이력 비밀값 스캔
+
+**Command:** `git fetch origin` 뒤 `make secret-scan`을 실행합니다.
+
+- digest로 고정한 gitleaks 이미지(`Makefile`의 `GITLEAKS_IMAGE`)가 `gitleaks git --redact --log-opts=--all /repo`로 로컬의 모든 ref(브랜치, 원격 추적 브랜치, 태그)의 모든 커밋을 봅니다. `make test`와 같은 마운트를 쓰고, git common dir은 읽기 전용입니다. worktree에서 실행해도 같은 이력을 봅니다.
+- 통과는 exit 0이고 `no leaks found`가 출력되는 것입니다. 걸리면 exit 1로 끝나고, `--redact` 때문에 값 대신 `REDACTED`가 출력됩니다. 규칙 id, 파일, 커밋, `Fingerprint`는 그대로 나옵니다.
+- PR에만 남은 커밋(`refs/pull/<N>/head`)은 로컬 ref가 아니므로 보지 않습니다. 보려면 그 ref를 따로 받습니다(스펙 5절의 Assumption).
+- 걸린 값이 테스트용 가짜 키(예: `tests/` fixture)이면 저장소 루트의 `.gitleaksignore`에 그 결과의 `Fingerprint`를 한 줄씩 적고 다시 실행합니다. 형식은 `<커밋>:<파일>:<규칙 id>:<줄>`입니다. gitleaks는 작업 디렉터리(`/repo`)의 `.gitleaksignore`를 기본으로 읽습니다.
+- **실제 자격증명이 걸리면** `.gitleaksignore`에 적지 않습니다. 폐기하고 교체한 뒤, 이력 처리는 사용자가 정합니다(위의 2절 규칙).
+- 결과는 진행 중인 계획의 Progress log에 `Verified`로 적습니다. 스캐너 버전, digest, 범위, 커밋 수, 규칙별 건수만 적고 값은 적지 않습니다.
+
+### 2.2 GitGuardian 오탐 처리
+
+GitGuardian GitHub App이 PR의 check run이나 대시보드에 테스트용 가짜 키를 incident로 올렸을 때 사용자가 처리합니다. 대시보드와 workspace 설정은 사용자만 바꿉니다.
+
+- **Verified (https://docs.gitguardian.com/internal-monitoring/prevent/detect-secrets-in-real-time-in-github):** 대시보드에서 incident를 test credential이나 false positive로 닫으면 check run이 같은 값을 다시 올리지 않습니다. PR의 check run에서 "Skip: test credential"(또는 "Skip: false positive")을 눌러도 됩니다.
+- **Verified (https://docs.gitguardian.com/secrets-detection/customize-detection/exclusion-rules):** 범위를 넓히려면 workspace 설정에서 filepath exclusion `tests/**`를 만들고 이 저장소에만 연결합니다. 선택 사항입니다. `tests/` 밖의 파일은 계속 검사합니다.
+- **Verified (https://docs.gitguardian.com/ggshield-docs/configuration):** `.gitguardian.yaml`은 ggshield CLI의 설정 파일입니다. 이 문서는 GitHub App이 이 파일을 읽는다고 말하지 않으므로 저장소에 두지 않습니다.
+- 처리한 incident와 방법(닫음, Skip, exclusion)은 진행 중인 계획의 Progress log에 적습니다. 값은 적지 않습니다.
+
 ## 3. 처음 push
 
 원격 `main`에는 `LICENSE` 커밋 하나가 있고, 로컬 이력과 공통 조상이 없습니다. main 체크아웃에서 한 번만 실행합니다. force push는 쓰지 않습니다.
