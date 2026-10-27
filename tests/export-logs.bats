@@ -26,7 +26,7 @@ case "$args" in
 esac'
 }
 
-@test "export-logs writes every running service's lines since 24h as one JSON Lines file in time order" {
+@test "export-logs writes every running service's lines since 24h as one JSON Lines file in time order, without the lines ssh printed itself" {
   run "$SCRIPT"
   assert_success
   assert_stub_called -F 'docker logs --timestamps --since 24h id-basic-memory'
@@ -52,6 +52,8 @@ EOF
   assert_success
   refute_output --partial 'read_note'
   refute_output --partial 'Started server process'
+  # The count of dropped ssh lines shows that the ssh notice was not taken for a log line.
+  assert_output --partial "skipped 1 line"
 }
 
 @test "export-logs refuses a SINCE that is not a number of seconds, minutes or hours, and reaches no VM" {
