@@ -11,7 +11,7 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 **Goal:** 어떤 에이전트 역할도 lethal trifecta의 세 다리(자격증명, 신뢰할 수 없는 입력, 외부 통신)를 사람의 확인 없이 동시에 쥐지 않는다. deny는 되돌릴 수 없는 두 가지(비밀값·노트 내용 읽기, `backups`·`.prev-*` 삭제)만 막고, 나머지 파괴적·외부 명령은 설정과 훅이 ask로 묻는다.
 
 **Architecture:**
-- Claude Code 셸 명령은 sandbox 안에서 돈다. Docker·ssh·자격증명 CLI를 쓰는 명령만 `excludedCommands`로 밖에서 돈다. 파일 읽기는 `blockReadsOutsideWorkingDirectories`로 worktree 안으로 제한한다.
+- Claude Code 셸 명령은 sandbox 안에서 돈다. Docker·ssh·자격증명 CLI를 쓰는 명령만 `excludedCommands`로 밖에서 돈다. main checkout `.env`와 자격증명 경로 읽기는 `denyRead`와 `Read(~/**/.env)` 등으로 막는다(Task 1에서 1-C 대신 1-B).
 - 커밋한 `permissions.deny`/`ask`와 PreToolUse 가드 훅(`scripts/guard-agent-bash.sh`)이 문자열 규칙과 그 우회 형태를 처리하고, `tests/repo-config.bats`와 훅의 bats가 이를 지킨다.
 - 외부 글(릴리스 노트)은 WebFetch만 가진 독자 서브에이전트가 읽는다. Codex 리뷰어는 토큰 환경 변수 없이, 자격증명 경로를 읽지 못하게 돈다.
 
@@ -70,8 +70,8 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 
 동작: 코드는 바꾸지 않고, 이 worktree에서 sandbox와 `blockReads…`를 켰을 때 무엇이 깨지는지 기록한다. 시험 설정을 두기 전에 사용자 OK를 받는다. 실패하는 테스트는 없다(조사 Task).
 
-- [ ] **Step 1:** 시험 설정: `sandbox.enabled: true`, `allowUnsandboxedCommands: false`, scratch 미끼 파일을 `denyRead`에, `allowedDomains`에 `github.com`, `api.github.com`, `permissions.blockReadsOutsideWorkingDirectories: true`. 새 세션을 이 worktree에서 연다.
-- [ ] **Step 2:** 다음을 차례로 실행하고, 명령마다 성공·실패, 오류 첫 줄, 필요한 제외 항목을 적는다.
+- [x] **Step 1:** 시험 설정: `sandbox.enabled: true`, `allowUnsandboxedCommands: false`, scratch 미끼 파일을 `denyRead`에, `allowedDomains`에 `github.com`, `api.github.com`, `permissions.blockReadsOutsideWorkingDirectories: true`. 새 세션을 이 worktree에서 연다.
+- [x] **Step 2:** 다음을 차례로 실행하고, 명령마다 성공·실패, 오류 첫 줄, 필요한 제외 항목을 적는다.
   - `git status`, `git log -1`, `git fetch origin`(worktree의 git이 main `.git`을 읽는지)
   - `make help`, `make new-id`(main `.env`의 `-include`)
   - `make check`: 제외 없이 한 번, `excludedCommands: ["make check"]`로 한 번. 컨테이너 안 `script` 존재(`docker run --rm <tools image> which script`), `--network none`으로 이미지 pull이 되는지
@@ -85,8 +85,8 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
     - 작업 디렉터리 밖에서 Read·Edit·Write·Bash가 되는지: auto memory 폴더(`~/.claude/projects/<project>/memory/`)와 세션 scratchpad. 다른 세션 transcript(`~/.claude/projects/*/*.jsonl`) 읽기가 막히면 스펙 영향(3.10)에 적는다.
     - mk823xbp(PR #30) memory hook(SessionStart·Stop의 `make memory-sync`, SessionStart의 `make memory-index`)이 새 설정에서 돌고 `make tunnel`로 Basic Memory에 닿는지. 커밋한 가드 훅과 사용자 hook의 순서·timeout이 서로 방해하지 않는지. hook이 메모리 폴더와 Codex memories를 읽는지. #30이 먼저 병합되면 이 확인을 #32 병합 전에 실제 설치 상태로 다시 한다.
     - worktree에서 도는 make 타깃이 main checkout을 쓰는 경로: `.env` `-include`(VM 타깃), `backups/`(`make backup`), `.review-out/`(`review-post`, `review-record`), `log-exports/`(`export-logs`). 제외된 make 타깃은 sandbox 밖에서 돌므로 영향이 없어야 한다. sandbox 안에서 도는 타깃에서 깨지는 곳을 적는다.
-- [ ] **Step 3:** 결과로 정한다: 1-C 유지 또는 1-B, 8-B 또는 8-A, `excludedCommands`·`allowedDomains` 최종 목록, `export-logs` 출력 위치. Progress log에 `Verified`로 남긴다.
-- [ ] **Step 4:** 시험 키를 `.claude/settings.local.json`에서 지운다.
+- [x] **Step 3:** 결과로 정한다: 1-C 유지 또는 1-B, 8-B 또는 8-A, `excludedCommands`·`allowedDomains` 최종 목록, `export-logs` 출력 위치. Progress log에 `Verified`로 남긴다.
+- [x] **Step 4:** 시험 키를 `.claude/settings.local.json`에서 지운다.
 
 커밋: `docs: record the sandbox spike`, 트레일러 `Plan: k3bd8k47`, `Task: 1`.
 
@@ -99,7 +99,7 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 동작: 스펙 3.2의 키를 Task 1이 정한 목록으로 넣는다. `permissions.allow` 8개는 그대로 둔다.
 
 - [ ] **Step 1: 실패하는 테스트 작성:** `the Claude Code settings keep the sandbox on, deny only secret reads and backup deletion, and ask before outward or VM commands`. `jq`로 검사한다.
-  - `.sandbox.enabled == true`, `.sandbox.allowUnsandboxedCommands == false`, `.permissions.blockReadsOutsideWorkingDirectories == true`(1-B로 물러섰으면 그 대신 main `.env` 상대 경로 deny)
+  - `.sandbox.enabled == true`, `.sandbox.allowUnsandboxedCommands == false`, `.permissions.blockReadsOutsideWorkingDirectories`가 없음(Task 1에서 1-B로 물러섬), sandbox `denyRead`에 `../../../.env`, `permissions.deny`에 `Read(~/**/.env)`
   - `denyRead`에 `~/.ssh`, `~/.config/gcloud`, `~/.config/gh`. `allowedDomains`가 비어 있지 않음
   - `excludedCommands`의 `*` 항목이 테스트에 고정한 목록 안에만 있음
   - `permissions.deny`의 모든 항목이 비밀값·노트 읽기 또는 `backups`·`basic-memory.prev` 삭제 규칙임
@@ -232,3 +232,12 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 |---|---|---|
 | 2026-10-27 | Reported | 스펙 승인 전 사실 재확인(b64b86e)과 문서 확인은 스펙 2절에 있다. 원래 계획(2026-10-22)의 Facts와 Design questions는 스펙 1·2절로 옮겼다. |
 | 2026-10-27 | Verified | Start: `make check` exit 0(total line coverage 89.06%), `make check-git` OK, `scripts/check-public-text.sh`(스펙·계획·PR 본문) 0건. dfbdd82 push, 초안 PR #32. |
+| 2026-10-27 | Command | Task 1 spike: 이 worktree의 `.claude/settings.local.json`(사용자 OK, 커밋 안 함)에 시험 설정을 두고 `claude -p --model sonnet --no-session-persistence`로 3회(1차 1-C, 2차·3차 1-B), `codex exec`·`codex sandbox --permission-profile`로 2회 실행했다. 미끼 파일은 worktree의 `spike-decoy/`와 scratchpad에 두었다. 시험 파일과 설정은 끝난 뒤 지웠다. |
+| 2026-10-27 | Verified | 1-C(`blockReadsOutsideWorkingDirectories: true` + sandbox): Read 도구의 scratchpad 읽기가 "blocks reads outside the working directories"로 거부됐다. sandbox 안 Bash는 홈 디렉터리를 읽지 못해 auto memory 폴더 `ls`가 `Operation not permitted`였고, transcript glob도 맞지 않았다. Read 도구의 `MEMORY.md` 읽기만 됐다. 감독 세션 운영(scratchpad 프롬프트 파일, transcript 확인)이 깨지므로 결정 1·11의 대체안 **1-B로 물러선다.** |
+| 2026-10-27 | Verified | 1-B(`blockReads…` 없음, sandbox `denyRead`에 `../../../.env`, `excludedCommands: ["make check", "gh *", "git push *"]`): `git status`·`git fetch --dry-run`이 성공했다. `git push --dry-run`은 "Everything up-to-date", `gh api user`는 머신 계정을 출력했다. `make check`는 sandbox 밖에서 Docker(shellcheck)를 실행했다. auto memory 폴더(`ls` 35개, Read 34줄), transcript(`*.jsonl` 34개), scratchpad 미끼(Read)를 모두 읽었다. 반면 다음은 막혔다: worktree 미끼(`cat`, sandbox), main `.env`(`test -r` 실패, `make help`의 `-include`는 `stat: … Operation not permitted` 경고만 내고 성공), `curl https://example.com`(proxy 403). |
+| 2026-10-27 | Verified | Read 도구로 main `.env`를 읽을 때 `Read(../../../.env)` deny는 맞지 않아 권한 프롬프트가 떴다. `Read(~/**/.env)`로 바꾸자 "denied by your permission settings"로 거부됐다. Task 2는 `Read(~/**/.env)`를 쓴다. |
+| 2026-10-27 | Verified | 1-C 시험에서 제외하지 않은 `gh`는 `~/.config/gh/config.yml: operation not permitted`(denyRead)로, `git push`는 "could not read Username"으로 실패했다. 두 명령은 제외 목록이 필요하다. sandbox 안에서는 `/tmp`에 쓸 수 없고(`operation not permitted: /tmp/…`), scratchpad에는 쓸 수 있다. 1-C에서는 변수가 든 Bash 명령 일부가 "A variable in this command can't be checked before it runs"로 거부됐다. |
+| 2026-10-27 | Verified | Codex 8-B: `codex sandbox --permission-profile spike`에 `-c 'permissions.spike.extends=":read-only"'`과 인라인 테이블 `-c 'permissions.spike.filesystem={"<scratch>/spike-outside"="deny", "~/.ssh"="deny"}'`, `shell_environment_policy`의 `inherit="core"`·`ignore_default_excludes=false`를 주었다. 결과: 미끼 `cat`=1, `ls ~/.ssh`=1, 저장소 `head`=0, 토큰 계열 변수 0개(미끼 `SPIKE_GH_TOKEN` 포함). 경로가 든 dotted key(`permissions.spike.filesystem."/…"`)는 "must be absolute" 오류로 거부되므로 인라인 테이블만 쓴다. `codex exec`에도 같은 `-c`가 받아들여졌다(쓰기 `touch` 거부, 네트워크 해석 실패). 8-B로 진행한다. |
+| 2026-10-27 | Verified | 테스트 이미지 `bm-tools:local`에 `script from util-linux 2.38.1`이 있다(Task 6). |
+| 2026-10-27 | Reported | 이 worktree에서 연 `claude -p`가 main checkout의 추적되지 않는 `.claude/settings.local.json`(`../../settings.local.json`)도 읽었다. 시작 시 그 파일의 allow 규칙에 대한 경고가 나왔다. Claude worktree가 main checkout 안(`.claude/worktrees/`)에 있어 생기는 일이고, 이 계획의 범위 밖이므로 사용자에게 알린다. |
+| 2026-10-27 | Open question | Claude Code `!` 모드에 tty가 붙는지는 사용자 대화형 세션에서 확인한다. `-p`에서는 `no-tty`였다. VM 명령(`make probe`, `gcloud describe`)은 정확한 문자열로 제외되면 지금과 같이 sandbox 밖에서 돌므로 따로 VM에 닿아 시험하지 않는다. 제외 패턴이 맞는지는 Task 2에서 VM에 닿지 않는 `gcloud --version`으로 확인한다. mk823xbp memory hook은 #30이 병합된 뒤 확인한다. |
