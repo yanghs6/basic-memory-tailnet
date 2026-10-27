@@ -179,6 +179,10 @@ printf "env [%s] [%s]\n" "${COMPOSE_PROFILES-unset}" "${BM_WEB_BASE_URL-unset}" 
       if [[ "$target" == fmt ]]; then
         touch "$LINKED_WT/probe.sh" || exit 1
       fi
+      # local-down first runs scripts/check-local-stack.sh, which reads compose.yaml; the stub reports no stack.
+      if [[ "$target" == local-down ]]; then
+        cp -R "$REPO_DIR/scripts" "$REPO_DIR/compose.yaml" "$LINKED_WT/" || exit 1
+      fi
       run make_in "$LINKED_WT" "$target"
       assert_success || exit 1
       case "$target" in
