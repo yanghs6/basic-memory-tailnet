@@ -2,7 +2,7 @@
 # Stops when the local compose project's containers were started from another directory (another worktree), so that
 # make local-up does not silently recreate, and make local-down does not stop, a stack that another worktree uses.
 # Changes nothing: it only lists containers with docker ps.
-# Usage: scripts/check-local-stack.sh (make local-up and make local-down run it first; no target of its own)
+# Usage: scripts/check-local-stack.sh (make local-up runs it before any compose call, make local-down first; no target of its own)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

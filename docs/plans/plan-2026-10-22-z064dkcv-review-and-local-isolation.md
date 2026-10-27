@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 id: z064dkcv
 spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 ---
@@ -225,3 +225,5 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 | 2026-10-27 | Verified | Open question 3: (a)를 골랐다. 다른 worktree가 띄운 스택이면 `local-up`·`local-down`이 거부한다. |
 | 2026-10-27 | Verified | 계획 작성 뒤 PR #24(`01eb909`)가 `Makefile`의 `local-up`·`local-down` 위치를 81–89행으로 옮겼고, PR #25가 `scripts/post-review.sh:64-65`에 코멘트 머리 공개 텍스트 검사를 넣었다. 각 Task는 이 줄 번호가 아니라 현재 코드 기준으로 고친다. |
 | 2026-10-27 | Verified | Task 1 Step 0: Codex config reference는 `model_reasoning_effort` 값으로 `low`, `medium`, `high`, `xhigh`, `max`, `ultra`를 들고 "Available levels depend on the model and client"라고 적는다. Claude Code 2.1.311의 `claude --help`는 `--effort`에 `low, medium, high, xhigh, max`를 받는다. 공통 집합 `low medium high xhigh max`를 `REVIEW_EFFORTS`로 정했다. 계획의 Assumption(`low medium high xhigh`)과 달리 `max`도 두 쪽에 모두 있어 넣었다. 모델이 지원하지 않는 강도는 리뷰어 CLI가 거부한다. |
+| 2026-10-27 | Verified | Task 4 Step 0: 다른 로컬 스택이 없을 때(감독 세션의 슬롯 OK 후) `0f79c08`의 임시 worktree에서 `make local-up`을 돌렸다. `basic-memory-server`·`silverbullet-server`가 healthy였고, 두 컨테이너의 `com.docker.compose.project.working_dir` 라벨과 `docker ps --format`의 같은 라벨이 그 worktree 경로와 일치했다(`pwd -P`로 비교). `make local-down` 후 컨테이너는 0개였다. 서브에이전트가 plan worktree의 `Makefile`을 고치던 중이라 임시 worktree를 썼다. |
+| 2026-10-27 | Verified | Task 1~4 완료 후 `make check`: exit 0, bats `1..213` 중 `not ok` 0개, total line coverage 89.26%(최소 80%). Task 커밋은 `9bbd9b9`(Task 1), `5b3fe47`(Task 2), `0f79c08`(Task 3), `ec9f154`(Task 4)이다. |
