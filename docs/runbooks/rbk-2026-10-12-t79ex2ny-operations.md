@@ -128,6 +128,11 @@ VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 �
    `direction`이 `INGRESS`, `disabled`가 `False`이면서 소스가 `10.128.0.0/9`가 아닌 행이 없어야 합니다(`ssh` 모드는 예외로 `allow-iap-ssh` 행(`35.235.240.0/20`, `tcp:22`) 하나가 있습니다. `default-allow-ssh`는 부트스트랩이 끝나면 지워져 있어야 함).
    - **Assumption:** 기본 `default` 네트워크 하나만 쓰는 프로젝트입니다.
 2. Tailscale admin console → Access controls의 정책 `nodeAttrs`에 **`"funnel"`이 없는지** 확인합니다(`tailscale` 모드만).
+3. `BM_WEB=on`이면 웹 커넥터 쪽도 점검합니다([web-connector 런북](rbk-2026-10-27-x9h4zzdh-web-connector.md)):
+   - Cloudflare Zero Trust의 tunnel에 **공개 호스트명이 하나뿐**이고 서비스가 `http://gateway:8080`인지.
+   - GitHub OAuth App이 하나이고 콜백이 `https://<BM_WEB_HOST>/auth/callback` 하나인지.
+   - claude.ai의 커넥터 목록에 이 커넥터만 있고 쓰기 도구에 "Always allow"가 없는지.
+   - `make status`의 `gateway store: <N> KiB, <M> client registrations`를 점검 기록에 남기고, 지난번보다 이상하게 늘었으면 런북의 "게이트웨이 저장소 비우기"를 검토합니다.
 
 스크립트가 `Funnel is on for this node`라고 하면 먼저 정책의 `funnel` 속성을 지워 Funnel을 끄고, VM의 Serve 상태를 확인합니다(`ssh ubuntu@agent-hub sudo tailscale serve status`). 그다음 Serve를 다시 설정합니다.
 

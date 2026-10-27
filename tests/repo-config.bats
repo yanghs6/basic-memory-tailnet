@@ -8,6 +8,14 @@ AGENTS_MD_MAX_BYTES=24000
 MIN_START_PERIOD_SECONDS=240
 # An image line with a version tag and a sha256 digest.
 PINNED_IMAGE='^ +image: [a-z0-9./_-]+:[0-9.]+(-[a-z]+)?@sha256:[0-9a-f]{64}$'
+# The 18 Basic Memory tools the web gateway opens (spec web-connector 3.4): the 21 of the VM tools/list without
+# delete_note, create_memory_project and delete_project.
+WEB_ALLOWED_TOOLS="basic_memory_diagnostics build_context edit_note fetch list_directory list_memory_projects list_workspaces
+move_note read_content read_note recent_activity schema_diff schema_infer schema_validate search search_notes view_note write_note"
+# The web services: compose starts them only in their profiles, so their variables must not stop other compose calls.
+WEB_SERVICES="gateway cloudflared"
+# The first --hash line under a requirement in a pip-compile --generate-hashes file.
+HASH_LINE='^ +--hash=sha256:[0-9a-f]{64}'
 
 # service_block NAME -> the lines of service NAME in compose.yaml, up to the next service or top-level key.
 service_block() {
@@ -173,4 +181,102 @@ reviewer_hook_command() {
   assert_failure 2
   CLAUDE_PROJECT_DIR="$REPO_DIR" run sh -c "$hook" <<<"$input"
   assert_success
+}
+
+@test "cloudflared runs a pinned cloudflared image as a remotely managed tunnel in the tunnel profile, publishes no port and joins only the web network" {
+  local cf command
+  cf="$(service_block cloudflared)"
+  [[ -n "$cf" ]] || fail "compose.yaml must define the cloudflared service"
+  grep -qE '^ +image: cloudflare/cloudflared:' <<<"$cf" || fail "cloudflared must run the cloudflare/cloudflared image"
+  command="$(grep -E '^ +command: \[' <<<"$cf")" || fail "cloudflared has no command list"
+  [[ "$command" == *'"tunnel"'* && "$command" == *'"run"'* ]] \
+    || fail "cloudflared must run 'tunnel run', a tunnel managed in the Cloudflare dashboard"
+  # A quick tunnel (--url) publishes an unauthenticated trycloudflare.com address.
+  if grep -qF -- '--url' <<<"$cf"; then
+    fail "cloudflared must not use --url (a quick tunnel)"
+  fi
+  # shellcheck disable=SC2016 # the compose text ${BM_WEB_TUNNEL_TOKEN:-} is matched literally
+  grep -qxF '      TUNNEL_TOKEN: ${BM_WEB_TUNNEL_TOKEN:-}' <<<"$cf" \
+    || fail 'cloudflared must read its token from the environment: TUNNEL_TOKEN: ${BM_WEB_TUNNEL_TOKEN:-}'
+  if grep -qE '^ +ports:' <<<"$cf"; then
+    fail "cloudflared must publish no port: it only dials out"
+  fi
+  grep -qxF '    networks: [web]' <<<"$cf" || fail "cloudflared must use only the web network"
+  grep -qxF '    profiles: [tunnel]' <<<"$cf" || fail "cloudflared must be in the tunnel profile"
+  grep -qE '^ +restart: unless-stopped$' <<<"$cf" || fail "cloudflared must set restart: unless-stopped"
+  grep -qE '^ +test: \[' <<<"$cf" || fail "cloudflared has no healthcheck test"
+}
+
+@test "gateway runs the pinned python slim image in the web profile, joins basic-memory and web and mounts its code read-only" {
+  local gw healthcheck
+  gw="$(service_block gateway)"
+  [[ -n "$gw" ]] || fail "compose.yaml must define the gateway service"
+  grep -qE '^ +image: python:[0-9.]+-slim@' <<<"$gw" || fail "gateway must run the python -slim image"
+  grep -qxF '    profiles: [web]' <<<"$gw" || fail "gateway must be in the web profile"
+  grep -qxF '    networks: [basic-memory, web]' <<<"$gw" || fail "gateway must use exactly the basic-memory and web networks"
+  grep -qxF '      - "./gateway:/app:ro"' <<<"$gw" || fail "gateway must mount ./gateway read-only at /app"
+  grep -qE '^ +restart: unless-stopped$' <<<"$gw" || fail "gateway must set restart: unless-stopped"
+  healthcheck="$(grep -E '^ +test: \[' <<<"$gw")" || fail "gateway has no healthcheck test"
+  [[ "$healthcheck" == *oauth-authorization-server* ]] \
+    || fail "the gateway healthcheck must read the OAuth authorization server metadata"
+}
+
+@test "web services never use a required-variable default" {
+  local service block bad=""
+  # shellcheck disable=SC2086 # WEB_SERVICES is a list of words
+  for service in $WEB_SERVICES; do
+    block="$(service_block "$service")"
+    [[ -n "$block" ]] || fail "compose.yaml must define the $service service"
+    # compose expands the variables of services in disabled profiles too, so ${VAR:?} would stop every compose call.
+    if grep -qE '\$\{[A-Za-z_][A-Za-z0-9_]*:?\?' <<<"$block"; then
+      bad="$bad $service"
+    fi
+  done
+  [[ -z "$bad" ]] || fail "use \${VAR:-} instead of \${VAR:?...} in:$bad (BM_WEB=off installs would stop at every compose call)"
+}
+
+@test "nothing starts a quick tunnel" {
+  local file
+  for file in compose.yaml Makefile; do
+    if grep -qi 'trycloudflare' "$REPO_DIR/$file"; then
+      fail "$file names trycloudflare: a quick tunnel publishes an unauthenticated address"
+    fi
+  done
+  refute_matches "$REPO_DIR/scripts" 'trycloudflare' -i
+}
+
+@test "gateway requirements pin every package with a hash" {
+  local req="$REPO_DIR/gateway/requirements.txt" line previous="" count=0 bad=""
+  [[ -f "$req" ]] || fail "gateway/requirements.txt is missing: run make gateway-lock"
+  # A requirement line starts with neither a space nor #; the line right after it must be its first --hash line.
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ -n "$previous" ]]; then
+      [[ "$line" =~ $HASH_LINE ]] || bad="$bad"$'\n'"  $previous"
+      previous=""
+    fi
+    case "$line" in
+      "" | " "* | "#"*) ;;
+      *)
+        count=$((count + 1))
+        [[ "$line" == *==* ]] || bad="$bad"$'\n'"  $line"
+        previous="$line"
+        ;;
+    esac
+  done <"$req"
+  [[ -z "$previous" ]] || bad="$bad"$'\n'"  $previous"
+  ((count > 0)) || fail "gateway/requirements.txt has no requirement lines: run make gateway-lock"
+  [[ -z "$bad" ]] || fail "pin each requirement with == and a --hash=sha256 line (make gateway-lock):$bad"
+}
+
+@test "gateway.py strips client headers, opens only the allowed tools, checks the owner by numeric id and culls its store" {
+  local py="$REPO_DIR/gateway/gateway.py" text names expected
+  [[ -f "$py" ]] || fail "gateway/gateway.py is missing"
+  for text in 'forward_incoming_headers=False' 'only=True' '"sub"' 'cull('; do
+    grep -qF -- "$text" "$py" || fail "gateway/gateway.py must contain $text"
+  done
+  names="$(awk '/^ALLOWED_TOOLS = frozenset\(/ { inside = 1 } inside { print } inside && /\)/ { exit }' "$py" \
+    | grep -oE '"[a-z_]+"' | tr -d '"' | sort)"
+  expected="$(tr ' ' '\n' <<<"$WEB_ALLOWED_TOOLS" | sort)"
+  [[ "$names" == "$expected" ]] \
+    || fail "ALLOWED_TOOLS in gateway/gateway.py must be exactly the 18 tools of the spec:"$'\n'"$(diff <(echo "$expected") <(echo "$names"))"
 }

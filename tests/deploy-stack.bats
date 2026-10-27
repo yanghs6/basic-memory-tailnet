@@ -66,3 +66,63 @@ setup() {
   assert_failure
   assert_stub_called -Fx 'docker compose up -d --wait --wait-timeout 360'
 }
+
+@test "deploy with BM_WEB=on uploads the gateway runtime files and writes the web settings into the VM .env without printing a secret" {
+  local file secret
+  use_web_env
+  run "$REPO_DIR/scripts/deploy-stack.sh"
+  assert_success
+  for secret in test-client-secret fake-jwt-key-fake-jwt-key-fake-jwt-key test-tunnel-token; do
+    refute_output --partial "$secret"
+    refute_stub_called -F "$secret"
+  done
+  for file in boot.py gateway.py requirements.txt; do
+    assert_stub_called -F "cat > $BM_REMOTE_APP_DIR/gateway/.$file.new"
+    assert_same_file "$REPO_DIR/gateway/$file" "$BM_REMOTE_APP_DIR/gateway/$file"
+  done
+  run grep -x 'COMPOSE_PROFILES=web,tunnel' "$BM_REMOTE_APP_DIR/.env"
+  assert_success
+  run grep -c '^BM_WEB_' "$BM_REMOTE_APP_DIR/.env"
+  assert_output 9
+  # The gateway code hash: compose recreates the gateway when only its bind-mounted code or dependencies changed.
+  run grep -cE '^BM_WEB_CODE_SHA256=[0-9a-f]{64}$' "$BM_REMOTE_APP_DIR/.env"
+  assert_output 1
+  run stat -c '%a' "$BM_REMOTE_APP_DIR/.env"
+  assert_output "600"
+  refute_stub_called -F 'rm --stop --force'
+}
+
+@test "deploy with BM_WEB=on and a missing or malformed setting stops before ssh and names only the variable" {
+  local case name value
+  use_web_env
+  for case in "BM_WEB_JWT_KEY|" "BM_WEB_TUNNEL_TOKEN|tok en" "BM_WEB_HOST|https://mcp.example.com" "BM_WEB_GITHUB_USER_ID|octocat"; do
+    IFS='|' read -r name value <<<"$case"
+    (
+      : >"$STUB_LOG" || exit 1
+      export "$name=$value"
+      run "$REPO_DIR/scripts/deploy-stack.sh"
+      assert_failure && assert_output --partial "$name" && refute_stub_called -E '^(ssh|docker) ' || exit 1
+      if [[ -n "$value" ]]; then
+        refute_output --partial "$value"
+      fi
+    ) || fail "deploy went on with $name='$value'"
+  done
+}
+
+@test "deploy stops on an unknown BM_WEB before it runs ssh" {
+  BM_WEB=yes run "$REPO_DIR/scripts/deploy-stack.sh"
+  assert_failure
+  assert_output --partial "BM_WEB must be on or off (got 'yes')"
+  refute_stub_called -E '^(ssh|docker) '
+}
+
+@test "deploy with BM_WEB=off removes leftover web containers after the stack is up and uploads no gateway files" {
+  run "$REPO_DIR/scripts/deploy-stack.sh"
+  assert_success
+  assert_stub_called -Fx 'docker compose rm --stop --force gateway cloudflared'
+  run awk '/^docker compose up -d --wait --wait-timeout 360$/ { u = NR } /^docker compose rm --stop --force gateway cloudflared$/ { r = NR } END { exit !(u && r && u < r) }' "$STUB_LOG"
+  assert_success
+  [[ ! -e "$BM_REMOTE_APP_DIR/gateway" ]] || fail "a BM_WEB=off deploy uploaded the gateway files"
+  run grep -c COMPOSE_PROFILES "$BM_REMOTE_APP_DIR/.env"
+  assert_output 0
+}

@@ -1,0 +1,6 @@
+HTTP/1.1 401 Unauthorized
+date: Mon, 26 Oct 2026 08:20:00 GMT
+server: uvicorn
+content-length: 0
+www-authenticate: Bearer scope="user", resource_metadata="http://127.0.0.1:8738/.well-known/oauth-protected-resource/mcp"
+
