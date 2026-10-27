@@ -1,5 +1,5 @@
 ---
-status: backlog
+status: active
 id: mk823xbp
 spec: docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md
 ---
@@ -61,7 +61,8 @@ spec: docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md
     - `cwd`가 `${CODEX_HOME:-$HOME/.codex}/memories`로 시작한다(`memories_v2` 포함)
     - 제외 프로젝트(`<키>` 또는 `<키>--<폴더 이름>`)
   - 목록 받기: 프로젝트 키와 `_global`에 대해 `search_notes`를 한 번씩 부른다(키가 `_global`이면 한 번). 인자는 검색어 없이 `metadata_filters: {"project": <키>, "mirror": true}`, `project: "main"`, `page_size: 50`, `output_format: "json"`이다. 요청마다 시간 제한 3초다. Task 1이 다른 호출을 정했으면 그것을 쓴다.
-  - 뺄 노트: `MEMORY_AGENT=claude-code`이면 `agent-memory/<키>/claude-code/<BM_MEMORY_DEVICE>/`, `codex`이면 `agent-memory/_global/codex/<BM_MEMORY_DEVICE>/`. `BM_MEMORY_DEVICE`가 없으면 빼지 않는다.
+  - 키·에이전트·기기: 결과의 `file_path`에서 `.md`를 뗀 값의 `agent-memory/<키>/<에이전트>/<기기>/` 마디에서 읽는다. permalink는 소문자가 되고 `_`와 `--`가 `-`로(`_global` → `global`) 바뀌므로 비교에 쓰지 않는다(Progress log 2026-10-26). permalink는 중복 제거와 출력에만 쓴다.
+  - 뺄 노트: `file_path`가 `MEMORY_AGENT=claude-code`이면 `agent-memory/<키>/claude-code/<BM_MEMORY_DEVICE>/`, `codex`이면 `agent-memory/_global/codex/<BM_MEMORY_DEVICE>/`로 시작하는 노트. `BM_MEMORY_DEVICE`가 없으면 빼지 않는다.
   - 출력:
     - 2,500자 이하이고, 프로젝트 노트 먼저, 각 묶음 안은 갱신이 최근인 순서다. permalink로 중복을 지운다. 넘치는 줄은 빼고 뺀 수를 적는다.
     - 첫 글자는 `{`나 `[`가 아니다. 제목과 본문 첫 100자는 공백 문자를 하나로 줄이고 `<`·`>`를 지운다.
@@ -116,14 +117,14 @@ spec: docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/mk823xbp-agent-memory-mirror` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/mk823xbp-agent-memory-mirror` 브랜치를 만든다(`git-workflow` 스킬의 Start).
 - [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: MCP client library and server checks
 
 **Files:**
 - Create: `scripts/lib/mcp.sh`, `tests/lib-mcp.bats` (`make new-script NAME=mcp KIND=lib`)
-- Modify: `scripts/verify-mcp.sh:12-17,21-26,55-131,172-186`, `scripts/lib/vm.sh:18,170-177`, `scripts/lib/common.sh`(색인과 함수), `.agents/skills/script-authoring/SKILL.md`(Libraries)
+- Modify: `scripts/verify-mcp.sh:12-17,21-26,55-131,172-186`, `scripts/lib/vm.sh:26,341-348`, `scripts/lib/common.sh`(색인과 함수), `.agents/skills/script-authoring/SKILL.md`(Libraries)
 
 **Interfaces:**
 - Produces (`scripts/lib/mcp.sh`. `common.sh`를 source한다):
@@ -195,7 +196,7 @@ Expected: `lib-mcp.bats`의 두 테스트만 실패한다(`mcp_open: command not
 Run: `make check && git diff --exit-code origin/main -- tests/verify-mcp.bats tests/fixtures/verify-mcp`
 Expected: exit 0, 커버리지 80% 이상. 두 번째 명령은 아무것도 출력하지 않는다(스펙 §5 호환).
 
-- [ ] **Step 6: 서버 확인 (메인 세션, 사용자가 `make tunnel`을 띄운 뒤)**
+- [x] **Step 6: 서버 확인 (메인 세션, 사용자가 `make tunnel`을 띄운 뒤)**
 
 아래 호출은 세션의 `basic-memory` MCP 도구로 한다. 지연 측정(3)만은 세션 scratch 폴더(커밋하지 않음)에 둔 확인용 스크립트로 한다. 그 스크립트는 `scripts/lib/mcp.sh`를 source하고 `MCP_URL=http://127.0.0.1:18737/mcp`로 `search_notes`만 부른다. 사용자의 터널 포트가 다르면 그 값을 쓴다.
 
@@ -237,7 +238,7 @@ git commit -m "refactor: move the MCP client of verify-mcp into scripts/lib/mcp.
 
 **Files:**
 - Create: `scripts/lib/agent-memory.sh`, `tests/lib-agent-memory.bats` (`make new-script NAME=agent-memory KIND=lib`)
-- Modify: `scripts/lib/common.sh`(`DEFAULT_TUNNEL_MCP_PORT=18737`, `DEFAULT_TUNNEL_WEB_PORT`), `scripts/open-tunnel.sh:11-12`(정의 삭제), `scripts/verify-vm.sh:20-21`(상수 위치를 가리키는 주석), `.agents/skills/script-authoring/SKILL.md`(Libraries)
+- Modify: `scripts/lib/common.sh`(`DEFAULT_TUNNEL_MCP_PORT=18737`, `DEFAULT_TUNNEL_WEB_PORT`), `scripts/open-tunnel.sh:11-12`(정의 삭제), `scripts/verify-vm.sh:22-23`(상수 위치를 가리키는 주석), `.agents/skills/script-authoring/SKILL.md`(Libraries)
 
 **Interfaces:**
 - Produces (`scripts/lib/agent-memory.sh`. `common.sh`를 source한다):
@@ -345,7 +346,7 @@ git commit -m "feat: add the project key rules of the agent memory mirror" --tra
 
 **Files:**
 - Create: `scripts/sync-agent-memory.sh`, `tests/sync-agent-memory.bats` (`make new-script NAME=sync-agent-memory`)
-- Modify: `tests/stubs/curl`(MCP 모드), `Makefile:15,32` 과 새 타깃, `.env.example`(끝에 세 변수)
+- Modify: `tests/stubs/curl`(MCP 모드), `Makefile:16,46` 과 새 타깃, `.env.example`(끝에 세 변수)
 
 **Interfaces:**
 - Consumes: Task 1의 `mcp_open`·`mcp_close`·`mcp_initialize`·`mcp_call_tool`·`sha256_of`, Task 2의 함수 전부, Task 1 Progress log의 삭제 응답.
@@ -619,7 +620,7 @@ git commit -m "feat: mirror Claude Code and Codex memory to Basic Memory (make m
 
 **Files:**
 - Create: `scripts/show-memory-index.sh`, `tests/show-memory-index.bats` (`make new-script NAME=show-memory-index`), `tests/fixtures/show-memory-index/list.body`, `tests/fixtures/show-memory-index/empty.body`
-- Modify: `Makefile:32` 과 새 타깃
+- Modify: `Makefile:46` 과 새 타깃
 
 **Interfaces:**
 - Consumes: Task 1의 `mcp_*`와 Progress log의 목록 호출·필드 이름, Task 2의 `project_key_for_dir`·`sanitize_key`·`is_excluded`·`memory_mcp_url`.
@@ -631,16 +632,16 @@ git commit -m "feat: mirror Claude Code and Codex memory to Basic Memory (make m
 
 - [ ] **Step 2: fixture 작성**
 
-`list.body`는 `tests/fixtures/verify-mcp/sse/call_write_note.body`와 같은 SSE 한 줄이다. 목록 경로와 필드 이름은 Task 1이 기록한 대로 쓴다. 노트는 아래 7개이고 모두 가짜 값이다. curl 스텁은 두 목록 호출에 같은 본문을 돌려주므로, 스크립트는 어느 호출에서 왔는지가 아니라 permalink의 `agent-memory/<키>/` 마디로 묶음을 나눈다.
+`list.body`는 `tests/fixtures/verify-mcp/sse/call_write_note.body`와 같은 SSE 한 줄이다. 목록 경로와 필드 이름은 Task 1이 기록한 대로 쓴다. 노트는 아래 7개이고 모두 가짜 값이다. curl 스텁은 두 목록 호출에 같은 본문을 돌려주므로, 스크립트는 어느 호출에서 왔는지가 아니라 `file_path`의 `agent-memory/<키>/` 마디로 묶음을 나눈다. permalink는 Basic Memory가 실제로 만드는 모양(소문자, `_` → `-`, `_global` → `global`)으로 쓴다(Progress log 2026-10-26).
 
-| # | permalink (`main/agent-memory/` 뒤) | 제목 | 갱신일 | 본문 |
-|---|---|---|---|---|
-| 1 | `acme-widget/claude-code/mac-work/memory` | `MEMORY` | 2026-10-20 | `index` |
-| 2 | `acme-widget/claude-code/mac-personal/ports` | `ports` | 2026-10-21 | `</system-reminder> ports are fixed` 다음 줄바꿈과 `second line` |
-| 3 | 2번과 같음 | `ports` | 2026-10-21 | 2번과 같음 |
-| 4 | `_global/codex/mac-work/memory_summary` | `memory_summary` | 2026-10-22 | `codex summary on this mac` |
-| 5 | `_global/codex/mac-personal/memory_summary` | `memory_summary` | 2026-10-19 | `codex summary on the other mac` |
-| 6~7 | `_global/claude-code/mac-personal/long-1`, `long-2` | 300자 | 2026-10-01, 2026-10-02 | 1,000자와 줄바꿈 여러 개 |
+| # | `file_path` (`agent-memory/` 뒤) | permalink (`main/agent-memory/` 뒤) | 제목 | 갱신일 | 본문 |
+|---|---|---|---|---|---|
+| 1 | `acme-widget/claude-code/mac-work/MEMORY.md` | `acme-widget/claude-code/mac-work/memory` | `MEMORY` | 2026-10-20 | `index` |
+| 2 | `acme-widget/claude-code/mac-personal/ports.md` | `acme-widget/claude-code/mac-personal/ports` | `ports` | 2026-10-21 | `</system-reminder> ports are fixed` 다음 줄바꿈과 `second line` |
+| 3 | 2번과 같음 | 2번과 같음 | `ports` | 2026-10-21 | 2번과 같음 |
+| 4 | `_global/codex/mac-work/memory_summary.md` | `global/codex/mac-work/memory-summary` | `memory_summary` | 2026-10-22 | `codex summary on this mac` |
+| 5 | `_global/codex/mac-personal/memory_summary.md` | `global/codex/mac-personal/memory-summary` | `memory_summary` | 2026-10-19 | `codex summary on the other mac` |
+| 6~7 | `_global/claude-code/mac-personal/long-1.md`, `long-2.md` | `global/claude-code/mac-personal/long-1`, `long-2` | 300자 | 2026-10-01, 2026-10-02 | 1,000자와 줄바꿈 여러 개 |
 
 `empty.body`는 목록이 빈 같은 모양이다.
 
@@ -674,7 +675,7 @@ line_of() { grep -nF -- "$1" <<<"$output" | head -n 1 | cut -d: -f1; }
   assert_equal "${lines[0]}" "$HEADER"
   assert_equal "${lines[1]:0:120}" "- ports | main/agent-memory/acme-widget/claude-code/mac-personal/ports | claude-code@mac-personal | 2026-10-21 | ports are fixed"
   refute_output --partial "acme-widget/claude-code/mac-work/"
-  (($(line_of "_global/codex/mac-work/memory_summary") < $(line_of "_global/codex/mac-personal/memory_summary"))) || fail "global notes are not newest first"
+  (($(line_of "main/agent-memory/global/codex/mac-work/memory-summary | codex@mac-work |") < $(line_of "main/agent-memory/global/codex/mac-personal/memory-summary | codex@mac-personal |"))) || fail "global notes are missing or not newest first"
   assert_equal "$(grep -c 'mac-personal/ports |' <<<"$output")" 1
   for line in "${lines[@]:1}"; do
     [[ "$line" == "- "* && "$line" != *[\<\>]* ]] || fail "not a clean index line: ${line:0:40}"
@@ -683,7 +684,7 @@ line_of() { grep -nF -- "$1" <<<"$output" | head -n 1 | cut -d: -f1; }
   (($(jq -Rs length <<<"$output") <= 2500)) || fail "index longer than 2,500 characters"
   run "$INDEX" codex <<<"$(hook_input "$WIDGET")"
   assert_success
-  refute_output --partial "_global/codex/mac-work/"
+  refute_output --partial "global/codex/mac-work/"
   assert_output --partial "acme-widget/claude-code/mac-work/memory"
 }
 
@@ -752,7 +753,7 @@ Expected: `show-memory-index.bats`의 세 테스트가 `not implemented`로 실�
    - 키마다 목록 호출(Global Constraints, Task 1의 결정)을 한다. 하나라도 실패하거나 목록이 배열이 아니면 unavailable 줄을 출력하고 0으로 끝난다.
 5. 출력은 jq 하나로 만든다.
    - 두 목록을 합치고 permalink로 중복을 지운다.
-   - permalink에서 `agent-memory` 뒤의 키·에이전트·기기 마디를 읽는다. 키가 프로젝트 키면 프로젝트 묶음, `_global`이면 전역 묶음이고, 그 밖은 버린다.
+   - `file_path`에서 `.md`를 떼고 `agent-memory/` 뒤의 키·에이전트·기기 마디를 읽는다. 키가 프로젝트 키면 프로젝트 묶음, `_global`이면 전역 묶음이고, 그 밖(`agent-memory/`로 시작하지 않는 노트 포함)은 버린다. permalink는 키를 바꾸므로 여기에 쓰지 않는다(Global Constraints).
    - 이 에이전트가 이 Mac에서 이미 읽는 노트를 뺀다(Global Constraints).
    - 묶음마다 갱신 시각이 최근인 순서로 줄을 만든다: `- <제목> | <permalink> | <agent>@<device> | <갱신 시각 앞 10자> | <본문 첫 100자>`. 제목과 본문은 공백 문자를 하나로 줄이고 `<`·`>`를 지운다.
    - 머리 줄과 줄을 차례로 붙인다. 뺀 줄 수를 적는 마지막 줄 자리를 남겨 두고 2,500자를 넘기는 줄부터 뺀다. 뺀 줄이 있으면 마지막 줄을 붙이고, 남은 줄이 없으면 아무것도 쓰지 않는다.
@@ -777,7 +778,7 @@ git commit -m "feat: print a Basic Memory index of other Macs' memory at session
 
 **Files:**
 - Create: `scripts/install-memory-hooks.sh`, `tests/install-memory-hooks.bats` (`make new-script NAME=install-memory-hooks`)
-- Modify: `.agents/skills/script-authoring/SKILL.md`(Verbs), `Makefile:32` 과 새 타깃, `docs/ARCHITECTURE.md:43` 과 구성 요소·데이터 경로·신뢰 경계·주요 흐름, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`("에이전트 연결" 아래), `README.md`(에이전트 연결 문장 다음), `AGENTS.md:10`(사용자 승인)
+- Modify: `.agents/skills/script-authoring/SKILL.md`(Verbs), `Makefile:46` 과 새 타깃, `docs/ARCHITECTURE.md:53` 과 구성 요소·데이터 경로·신뢰 경계·주요 흐름, `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`("에이전트 연결" 아래), `README.md`(에이전트 연결 문장 다음), `AGENTS.md:10`(사용자 승인)
 
 **Interfaces:**
 - Consumes: Task 3·4의 Make 타깃, `common.sh`의 `main_checkout_root`·`utc_stamp`.
@@ -978,3 +979,6 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 | 2026-10-22 | Reported | 사용자 요청으로 웹·소스 조사(조사 에이전트 다섯: Claude Code hooks 문서, Codex `rust-v0.163.0` 소스, Basic Memory `v0.23.2` 소스, gitleaks와 토큰 형식, 기억 hook 선례 memsearch·hermes-basic-memory·claude-mem). 결과는 스펙 §2에 있다. 스펙 §3.2~3.5·§4·§6과 이 계획을 고쳤다. `note_type` 값, Codex V2 폴더, 쓰기 충돌, 비밀값 패턴, 키워드 검색어, 건너뛰기, 같은 세션 반복 제거, 느린 실패 뒤 대기, 사실로 쓴 머리 줄, Codex `/hooks` 다시 보기가 바뀐 곳이다. |
 | 2026-10-22 | Verified | 기억 파일 56개 중 frontmatter가 있는 파일은 41개이고, 최상위 `type:`·`permalink:`가 있는 파일은 0개다. 새 비밀값 패턴에 걸리는 파일도 0개다. |
 | 2026-10-23 | Verified | 사용자 결정 8(조회 방식 A)로 계획을 고쳤다. 바뀐 곳은 다음과 같다. Task 4는 질문별 조회(`recall-agent-memory.sh`)에서 세션 시작 색인(`show-memory-index.sh`, `make memory-index`)으로 바뀌었다. 그에 따라 Task 1의 목록 호출 확인, Task 5의 hook 명령과 테스트·문서, Task 6의 지침과 에이전트 조회 확인도 바뀌었다. 근거는 임베딩 모델 조사(1GB VM에 맞는 한국어 모델 없음), 주류 메모리 계층 조사, Codex `gpt-6.1-sol` 교차 검토(색인에 `_global` 포함, 한국어 기억은 한국어 검색, 색인 크기·최신성)다. 모두 스펙 §1·§2에 있다. |
+| 2026-10-26 | Verified | Task 1 Step 6 서버 확인(Basic Memory 0.23.2, `make tunnel`로 연 엔드포인트). `scripts/lib/mcp.sh`가 아직 없고 세션의 `basic-memory` MCP 연결이 끊겨 있어서, `verify-mcp.sh`와 같은 요청을 보내는 확인용 curl 스크립트(세션 scratch 폴더, 커밋하지 않음)로 모든 호출을 했다. 시험 노트는 `verify/` 아래에만 쓰고 지웠다. (1) `write_note`의 `action`은 `created`이고, `read_note`의 frontmatter에 `name`·`description`·`mirror`·`device`·`project`·`type: agent_memory`가 모두 있다. (2) 검색어 없이 `metadata_filters: {project, mirror: true}`로 부른 `search_notes`가 5초 기다린 첫 시도에 시험 노트 하나만 준다. 목록은 `results[]`이고, 결과마다 `title`·`permalink`·`file_path`·`content`·`updated_at`·`type`·`entity`·`entity_id`·`external_id`·`score`·`metadata.note_type`이 있다. 최상위는 `current_page`·`page_size`·`total`·`total_is_exact`·`has_more`다. 노트 둘을 `page_size: 1`로 부르면 1쪽 `has_more: true`, 2쪽 `false`, 3쪽은 빈 목록이다. Task 4의 목록 호출은 계획대로 이것을 쓴다. (3) `search_notes(query="경로", search_type="text")`가 본문 `경로를`의 시험 노트를 찾고, 첫 호출을 뺀 5번의 중앙값은 0.516초다(기준 2초). (4) 첫 삭제는 `deleted: true`이고, 같은 노트를 다시 지우면 `deleted: false`, `error` 없음, `isError: false`다. Task 3의 지우기 규칙 그대로다. (5) `make logs \| grep -c 'plan24 marker'`는 0이다. VM의 앱 로그 파일은 Make 타깃으로 읽을 수 없어 보지 않았다(스펙 §2: 검색어는 DEBUG에서만 남고 VM은 INFO). 마지막 `list_directory("verify")`에 확인 노트가 남지 않았다. 판단: 다섯 모두 스펙 §2와 같아 멈출 일이 없다. |
+| 2026-10-26 | Verified | 같은 확인에서 permalink가 키를 바꾸는 것을 찾았다. 노트 경로 `agent-memory/_global/codex/<기기>/memory_summary`의 permalink는 `main/agent-memory/global/codex/<기기>/memory-summary`다. 키의 `_`와 `--`는 `-`가 되고, 대문자는 소문자, 한글은 로마자가 된다. `file_path`는 원래 이름 그대로다. permalink에서 키를 읽으면 `_global` 노트와 `_`가 든 키의 노트가 모두 색인에서 빠지고, 테스트는 가짜 permalink로 통과한다. 그래서 스펙 §3.4와 이 계획(Global Constraints 색인 규칙, Task 4 fixture·테스트·Step 5)을 `file_path`에서 키·에이전트·기기를 읽도록 고쳤다. permalink는 중복 제거, 출력, `read_note`에만 쓴다. 키 `_global`과 `global`, `a_b`와 `a-b`는 permalink가 같아져 뒤의 쓰기가 409로 거부된다(스펙 §3.2의 실패 처리 그대로). |
+| 2026-10-27 | Verified | 시작. 웹 커넥터 PR #24가 `01eb909`로 병합된 뒤 supervisor 세션이 시작 신호를 보냈다. `git fetch origin` 뒤 `git branch -r --list 'origin/plan/mk823xbp-*'`의 출력이 없었고, `01eb909`에서 브랜치를 만들었다. PR #24로 밀린 줄 번호를 `01eb909`에 맞췄다: `scripts/lib/vm.sh:18,170-177` → `:26,341-348`, `scripts/verify-vm.sh:20-21` → `:22-23`, `Makefile:15` → `:16`, `Makefile:32` → `:46`, `Makefile:8-15` → `:8-17`, `docs/ARCHITECTURE.md:43` → `:53`. `scripts/verify-mcp.sh`, `scripts/open-tunnel.sh`, `AGENTS.md:10`은 그대로다. 스펙 §2의 `docs/ARCHITECTURE.md:96`(지금 `:110`)은 2026-10-22의 증거 문장이라 고치지 않았다. |
