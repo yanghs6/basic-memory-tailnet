@@ -85,28 +85,28 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/m97w7hqe-invariant-enforcement` 브랜치를 만든다(`git-workflow` 스킬의 Start).
-- [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
+- [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/m97w7hqe-invariant-enforcement` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: Make target tests
 
 **Files:**
 - Modify: `tests/repo-make.bats` (새 테스트 두 개를 `:88` 뒤에)
 
-- [ ] **Step 1: 테스트 작성.** `linked_worktree_with_makefile`(`:6-9`), `make_in`(`:21-24`), `setup_stubs docker`를 쓴다. 이미지 이름 같은 기대값은 `Makefile`에서 읽는다(상수 되풀이 금지).
+- [x] **Step 1: 테스트 작성.** `linked_worktree_with_makefile`(`:6-9`), `make_in`(`:21-24`), `setup_stubs docker`를 쓴다. 이미지 이름 같은 기대값은 `Makefile`에서 읽는다(상수 되풀이 금지).
   - "make help prints each target with its ## description": `make_in "$LINKED_WT" help`가 성공하고, 출력에 `check` 줄과 `Makefile`의 `check:` 줄에서 읽은 설명이 있다. 타깃 전체를 세지 않는다(배경의 [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md) 대체 범위).
   - "make fmt, test, local-down and local-logs run their docker command in the checkout they run from": 경우마다 하위 셸에서 fixture를 새로 만들고 `make_in` 뒤 stub log를 본다.
     - `fmt`: fixture에 추적되지 않은 `probe.sh`를 둔다. 한 줄에 `-v <LINKED_WT>:/repo`, `SHFMT_IMAGE` 값, `-w probe.sh`가 있다. docker는 stub이고 마운트는 fixture라서 실제 트리는 바뀌지 않는다.
     - `test`: `docker build -q -t <TOOLS_IMAGE> tools`가 `<TOOLS_IMAGE> bats tests`보다 먼저다(`assert_log_order`).
     - `local-down`은 정확히 `docker compose -f compose.yaml down`, `local-logs`는 정확히 `docker compose -f compose.yaml logs --tail=200`이다.
-- [ ] **Step 2: 실패 확인(심은 결함, 커밋하지 않음).** `Makefile`에 결함을 하나씩 심는다: `help`의 awk `FS`를 깨뜨림, `fmt`의 `-w`를 `-d`로, `local-down`의 `down`을 `stop`으로, `local-logs`의 `--tail=200` 삭제, `test`의 `tools-image` 의존 삭제.
+- [x] **Step 2: 실패 확인(심은 결함, 커밋하지 않음).** `Makefile`에 결함을 하나씩 심는다: `help`의 awk `FS`를 깨뜨림, `fmt`의 `-w`를 `-d`로, `local-down`의 `down`을 `stop`으로, `local-logs`의 `--tail=200` 삭제, `test`의 `tools-image` 의존 삭제.
   Run: `make test`
   Expected: 경우마다 새 테스트만 not ok이고 메시지가 그 경우를 말한다. 되돌린 뒤 `git status --short`가 비어 있다.
-- [ ] **Step 3: 최소 구현.** 없음. 테스트가 이미 있는 레시피를 실행한다.
-- [ ] **Step 4: 통과 확인.**
+- [x] **Step 3: 최소 구현.** 없음. 테스트가 이미 있는 레시피를 실행한다.
+- [x] **Step 4: 통과 확인.**
   Run: `make check`
   Expected: exit 0, ok 211, not ok 0, 커버리지 80% 이상
-- [ ] **Step 5: 커밋.** `git commit -m "test: run the help, fmt, test, local-down and local-logs targets" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 1"`
+- [x] **Step 5: 커밋.** `git commit -m "test: run the help, fmt, test, local-down and local-logs targets" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 1"`
 
 ### Task 2: Test integrity guard
 
@@ -128,21 +128,21 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 4. 수가 줄었거나 새 `skip`이 있으면 PR 본문 트레일러 문단의 `Tests-Removed`에 빈 값이 아닌 이유가 있어야 한다. 없으면 "N -> M", `skip` 줄, 고칠 방법("PR 본문 마지막 문단에 `Tests-Removed: <reason>`을 더한다. 본문을 고치면 `pr-rules`가 다시 돈다")을 출력한다.
 5. `pr-rules.yml`의 새 단계 "Test count and skips"는 "PR title and trailers" 단계(`:27-31`)처럼 `env:`로 `PR_TITLE`과 `PR_BODY`를 받고 `scripts/check-tests.sh origin/main`을 실행한다.
 
-- [ ] **Step 1: 실패하는 테스트 작성.** `tests/check-tests.bats`는 `tests/check-git.bats:4-7`처럼 `init_git_repo`로 시작하고, main에 `@test` 두 개짜리 `tests/a.bats`를 커밋한다.
+- [x] **Step 1: 실패하는 테스트 작성.** `tests/check-tests.bats`는 `tests/check-git.bats:4-7`처럼 `init_git_repo`로 시작하고, main에 `@test` 두 개짜리 `tests/a.bats`를 커밋한다.
   - "passes when the branch keeps or adds tests, also after it merges a main that removed one": 경우 반복문(그대로, 하나 더함, main이 하나 지운 뒤 브랜치가 main을 병합).
   - "fails when the branch removes a @test or adds a skip unless the PR body's trailer paragraph carries Tests-Removed with a reason": 지움 → 실패하고 출력에 `2 -> 1`; `skip "x"` 더함 → 실패하고 출력에 `tests/a.bats:<줄>`; 지움 + 트레일러 문단의 `Tests-Removed: merged into a loop` → 통과; 빈 `Tests-Removed:` → 실패; 본문 중간 문단의 표지 → 실패.
   - `tests/lib-git.bats`: `tests/check-pr.bats:12`의 파싱 경우(CRLF, 가로줄 위의 트레일러, 트레일러만 있는 본문)를 옮긴 파서에 대해 검사한다(레이아웃 스펙 §7.2: 라이브러리 함수 동작은 그 짝 테스트에서 한 번). `check-pr.bats:12`는 대표 경우 하나만 남긴다.
-- [ ] **Step 2: 실패 확인.**
+- [x] **Step 2: 실패 확인.**
   Run: `make test`
   Expected: `check-tests.bats`의 두 테스트는 템플릿의 `die "not implemented"`로, `lib-git.bats`의 새 테스트는 파서가 아직 없어서 not ok다.
-- [ ] **Step 3: 최소 구현.** 위 동작 1~5. 파서를 옮긴 뒤 `check-pr.sh`가 그것을 부른다. ADR에는 표지 이름, merge-base 기준, `@test` 감소와 `skip`을 한 표지로 덮는 이유, 알려진 한계(지우고 같은 수를 더함, 단언 약화)를 적고 PR 워크플로 스펙 §6을 일부 대체한다고 쓴다. 같은 커밋에서 스펙에 `amended-by`를 단다. `git-workflow` 스킬 `:32`의 `pr-rules` 설명과 `docs/ARCHITECTURE.md:53`의 도구 목록에 새 검사를 더한다.
-- [ ] **Step 4: 통과 확인.**
+- [x] **Step 3: 최소 구현.** 위 동작 1~5. 파서를 옮긴 뒤 `check-pr.sh`가 그것을 부른다. ADR에는 표지 이름, merge-base 기준, `@test` 감소와 `skip`을 한 표지로 덮는 이유, 알려진 한계(지우고 같은 수를 더함, 단언 약화)를 적고 PR 워크플로 스펙 §6을 일부 대체한다고 쓴다. 같은 커밋에서 스펙에 `amended-by`를 단다. `git-workflow` 스킬 `:32`의 `pr-rules` 설명과 `docs/ARCHITECTURE.md:53`의 도구 목록에 새 검사를 더한다.
+- [x] **Step 4: 통과 확인.**
   Run: `make check`
   Expected: exit 0, not ok 0, 커버리지 80% 이상(`scripts/check-tests.sh`도 실행됨)
   Run: `PR_TITLE='test: probe' PR_BODY="$(printf 'Assisted-by: <tool> <model>\nPlan: m97w7hqe\n')" scripts/check-tests.sh origin/main` (값은 실제 도구로)
   Expected: exit 0, `OK:` 줄에 늘어난 수
   push 뒤: 이 PR에서 `pr-rules`가 새 단계와 함께 통과한다.
-- [ ] **Step 5: 커밋.** `git commit -m "ci: fail pull requests that remove or skip tests without a Tests-Removed reason" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 2"`. 파서 이동을 따로 커밋하면 `refactor:`로 같은 트레일러를 단다.
+- [x] **Step 5: 커밋.** `git commit -m "ci: fail pull requests that remove or skip tests without a Tests-Removed reason" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 2"`. 파서 이동을 따로 커밋하면 `refactor:`로 같은 트레일러를 단다.
 
 ### Task 3: Static invariant checks
 
@@ -156,17 +156,17 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 3. "every ssh -L in scripts/ and the Makefile goes through forward_spec": 주석이 아닌 줄에서 (가) ssh 명령이나 그 연속 줄에서 `"$(forward_spec `이 바로 뒤에 오지 않는 단독 `-L`(`[[ -L "$path" ]]` 같은 파일 검사는 제외), (나) `ssh`가 있는 줄의 `L`을 포함한 묶음 옵션(`-NL`), (다) `LocalForward`를 위반으로 보고 파일:줄과 "`forward_spec`이나 `tunnel_args`(`scripts/lib/vm.sh:89-106`)로 만든다"를 출력한다.
 4. "every image in compose.yaml, the Makefile and tools/Dockerfile is pinned by digest": compose는 지금 검사 그대로다. `Makefile`의 `^[A-Z_]+_IMAGE := ` 값은 `@sha256:<64 hex>`로 끝난다. 단, `docker build … -t $(VAR)` 레시피가 빌드하는 변수는 빼고, 그 변수는 `Makefile`에서 읽는다. `$(DOCKER_RUN)` 다음 단어는 `$(…_IMAGE)` 변수다. `tools/Dockerfile`의 `FROM`은 모두 `<image>@sha256:<64 hex>`다.
 
-- [ ] **Step 1: 검사 작성.** 위 1~4.
-- [ ] **Step 2: 실패 확인(심은 위반, 커밋하지 않음).**
+- [x] **Step 1: 검사 작성.** 위 1~4.
+- [x] **Step 2: 실패 확인(심은 위반, 커밋하지 않음).**
   - 평가의 주입: `scripts/show-status.sh`에 `ssh -N -L 0.0.0.0:18737:127.0.0.1:8737 "$BM_VM_HOST"`를 부르는 함수, 짝 테스트까지 갖춘 새 `scripts/show-uptime.sh`(source 없음), `Makefile:26`의 digest 삭제
   - 더하는 위반: `ssh -NL …` 한 줄, `-o LocalForward=…` 한 줄, `scripts/show-logs.sh` 첫 줄을 `#!/bin/bash`로, 없는 `lib/nope.sh`를 source하는 스크립트, `tools/Dockerfile`의 `FROM debian:13`, 레시피에 변수 없이 쓴 이미지
   Run: `make test`
   Expected: 네 검사가 모두 not ok이고, 메시지가 심은 파일:줄을 하나씩 말한다. `scripts/remote/provision-vm.sh:96,119`는 나오지 않는다. 되돌린 뒤 `git status --short`가 비어 있다.
-- [ ] **Step 3: 최소 구현.** 없음. 지금 트리는 네 규칙을 지킨다(배경).
-- [ ] **Step 4: 통과 확인.**
+- [x] **Step 3: 최소 구현.** 없음. 지금 트리는 네 규칙을 지킨다(배경).
+- [x] **Step 4: 통과 확인.**
   Run: `make check`
   Expected: exit 0, ok 213(Task 2의 테스트 수 별도), not ok 0, 커버리지 80% 이상
-- [ ] **Step 5: 커밋.** `git commit -m "test: check shebangs, script sources, ssh forwards and tool image digests" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 3"`
+- [x] **Step 5: 커밋.** `git commit -m "test: check shebangs, script sources, ssh forwards and tool image digests" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 3"`
 
 ### Task 4: AGENTS.md heading and prose-only invariants
 
@@ -215,3 +215,8 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 
 | 날짜 | 표기 | 내용 |
 |---|---|---|
+| 2026-10-27 | Verified | Start `f45b193`: `make check` exit 0, 커버리지 89.25%. `make check-git` OK. draft PR #28. |
+| 2026-10-27 | Verified | Task 1 `6f25695`: 심은 결함 다섯 개(help awk `FS`, fmt `-d`, `local-down` `stop`, `local-logs`의 `--tail` 삭제, `test`의 `tools-image` 의존 삭제)마다 새 테스트만 not ok. `make check` exit 0, 1..211, 커버리지 89.25%. |
+| 2026-10-27 | Verified | Task 2 `09a2699`: 구현 전 `make test`에서 새 테스트 not ok(template `die`, `pr_trailers` 없음). `make check` exit 0, 214 ok, 커버리지 89.13%. `scripts/check-tests.sh origin/main` → `OK: … @test 209 -> 214, 0 new skip line(s)`. PR #28의 `pr-rules`가 새 단계 "Test count and skips"와 함께 통과. |
+| 2026-10-27 | Verified | Task 3 `1c83789`: 심은 위반(평가의 주입 셋, `-NL`, `LocalForward`, `#!/bin/bash`, 없는 `lib/nope.sh`, `FROM debian:13`, 변수 없는 이미지)에 네 검사 모두 not ok, 메시지에 심은 파일:줄. `scripts/remote/provision-vm.sh`, `scripts/check-public-text.sh`는 나오지 않음. `make test` 1..216 ok. |
+| 2026-10-27 | Verified | 리뷰 수정: `dddeef2`(SDD-T2-F1, `then`·`{`·`(` 뒤의 `skip`), `23377a3`(SDD-T3-F1, 한 줄 배열과 따옴표 친 `-L`), `016acf8`(SDD-T3-F2, `docker run` 레시피 이미지와 빈 Makefile 방지). 심은 위반 3개가 각각 파일:줄로 not ok. `make check` exit 0, 커버리지 89.08%. 남긴 P3: Task 1 테스트 이름의 "checkout"(fmt만 봄), ssh 검사의 `-oX…L` 같은 큰소리 오탐, source 검사가 함수·heredoc 안 source를 받음, Dockerfile `FROM --platform`·`scratch` 거부. |
