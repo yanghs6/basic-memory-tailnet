@@ -2,8 +2,12 @@
 # Test stub for codex: logs "codex <args> :: cwd=<dir>". With -o FILE it writes a plan review to FILE,
 # otherwise it prints a diff review. CODEX_STUB_EXIT=<n> makes every call fail;
 # CODEX_STUB_PLAN_EXIT=<n> makes only the plan review (the call with -o) fail.
+# STUB_LOG_STDIN=1 also logs "codex stdin_bytes=<n>", the bytes it read from stdin.
 set -euo pipefail
 printf 'codex %s :: cwd=%s\n' "$*" "$PWD" >>"$STUB_LOG"
+if [[ "${STUB_LOG_STDIN:-}" == 1 ]]; then
+  printf 'codex stdin_bytes=%s\n' "$(wc -c | tr -d ' ')" >>"$STUB_LOG"
+fi
 if [[ -n "${CODEX_STUB_EXIT:-}" ]]; then
   echo "codex stub: simulated failure" >&2
   exit "$CODEX_STUB_EXIT"

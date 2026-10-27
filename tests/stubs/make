@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Test stub for make: logs "make <args> :: cwd=<dir>", prints one line and exits with MAKE_STUB_EXIT (default 0).
+set -euo pipefail
+printf 'make %s :: cwd=%s\n' "$*" "$PWD" >>"$STUB_LOG"
+echo "make stub: check output"
+exit "${MAKE_STUB_EXIT:-0}"

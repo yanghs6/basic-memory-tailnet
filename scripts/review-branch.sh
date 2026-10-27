@@ -3,8 +3,10 @@
 # (docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md, section 5). Writes two reports:
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-diff.md   bugs introduced since the base
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-plan.md   plan conformance per AGENTS.md Code Review Rules
-# It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs, the model and
-# the reasoning effort that post-review.sh puts in the comment header.
+# Before the review it runs make check on the reviewed head in the review worktree, keeps its output in
+# <out>/<branch-slug>-r<ROUND>-<reviewer>-check.log and tells the reviewer the result; a failed check does not stop the review.
+# It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs, the model, the
+# reasoning effort and the check result that post-review.sh puts in the comment header.
 # Usage: make review BRANCH=<plan/<ID>-<slug>|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]
 #   REVIEW_BASE=<ref>            base for the review (default main; the reviewed head for round 2)
 #   REVIEW_ALLOW_SAME_VENDOR=1   allow a reviewer from the author's vendor (prints a warning)
@@ -22,6 +24,8 @@ readonly DEFAULT_CLAUDE_MODEL=claude-opus-5-5
 readonly DEFAULT_REVIEW_EFFORT=low
 # The reasoning efforts both reviewer CLIs accept (codex model_reasoning_effort, claude --effort).
 readonly REVIEW_EFFORTS="low medium high xhigh max"
+# How many lines from the end of a failed make check's log the reviewer gets.
+readonly CHECK_TAIL_LINES=20
 
 BRANCH=""
 REVIEWER=""
@@ -31,6 +35,8 @@ WT=""
 SAME_VENDOR_ALLOWED=""
 MODEL=""
 EFFORT=""
+CHECK_RESULT=""
+CHECK_SUMMARY=""
 
 usage() {
   die "usage: make review BRANCH=<plan/<ID>-<slug>|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]"
@@ -119,9 +125,27 @@ prepare_base() {
   BASE_BRANCH="$TEMP_BASE"
 }
 
-# prompt_footer: the read-only rule and the report format shared by every review prompt.
+# run_check CHECK_LOG: runs make check in the review worktree with its output in CHECK_LOG, sets CHECK_RESULT to
+# "passed" or "failed (exit N)" and CHECK_SUMMARY to CHECK_RESULT, followed on failure by the last CHECK_TAIL_LINES
+# lines of CHECK_LOG.
+run_check() {
+  local check_log="$1" status=0
+  (cd "$WT" && make check) >"$check_log" 2>&1 </dev/null || status=$?
+  if [[ "$status" -eq 0 ]]; then
+    CHECK_RESULT=passed
+    CHECK_SUMMARY="$CHECK_RESULT"
+    return 0
+  fi
+  log "WARNING: make check failed on the reviewed head (exit $status); the review goes on, see $check_log"
+  CHECK_RESULT="failed (exit $status)"
+  CHECK_SUMMARY="$CHECK_RESULT
+$(tail -n "$CHECK_TAIL_LINES" "$check_log")"
+}
+
+# prompt_footer: the make check result, the read-only rule and the report format shared by every review prompt.
 prompt_footer() {
   cat <<EOF
+make check on the reviewed head: $CHECK_SUMMARY
 Read-only: do not modify, create or delete files and do not commit.
 Answer with one line "Verdict: mergeable" or "Verdict: blocked (<n> P0/P1)", then one finding per line:
 [P0|P1|P2|P3] path:line - failure scenario - suggested fix
@@ -158,10 +182,10 @@ run_codex() {
   local diff_out="$1" plan_out="$2"
   # codex exec review defaults to a workspace-write sandbox; force read-only for the change review.
   (cd "$WT" && codex exec review -m "$MODEL" -c "model_reasoning_effort=\"$EFFORT\"" -c 'sandbox_mode="read-only"' \
-    --base "$BASE_BRANCH") >"$diff_out" \
+    --base "$BASE_BRANCH") >"$diff_out" </dev/null \
     || die "codex change review failed; see $diff_out"
   (cd "$WT" && codex exec -m "$MODEL" -c "model_reasoning_effort=\"$EFFORT\"" --sandbox read-only \
-    -o "$plan_out" "$(plan_prompt)") >/dev/null \
+    -o "$plan_out" "$(plan_prompt)") >/dev/null </dev/null \
     || die "codex plan review failed"
 }
 
@@ -172,7 +196,7 @@ run_codex() {
 claude_review() {
   (cd "$WT" && GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 \
     claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence \
-    --model "$MODEL" --effort "$EFFORT" "$1")
+    --model "$MODEL" --effort "$EFFORT" "$1") </dev/null
 }
 
 run_claude() {
@@ -182,7 +206,7 @@ run_claude() {
 }
 
 main() {
-  local round slug wt_path diff_out plan_out base_sha head_sha meta_out out_dir wt_parent prefix
+  local round slug wt_path diff_out plan_out base_sha head_sha meta_out check_log out_dir wt_parent prefix
   [[ $# -ge 2 ]] || usage
   out_dir="$(review_out_dir)" || exit 1
   # Codex writes its plan report after cd into the review worktree, so a relative path would land there and be deleted.
@@ -216,8 +240,11 @@ main() {
   diff_out="$prefix-diff.md"
   plan_out="$prefix-plan.md"
   meta_out="$prefix-meta.txt"
+  check_log="$prefix-check.log"
   # A failed run must not leave an earlier run's report next to a new one: drop both, publish both on success.
-  rm -f "$diff_out" "$plan_out" "$meta_out" "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
+  rm -f "$diff_out" "$plan_out" "$meta_out" "$check_log" "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
+  step "make check on the reviewed head of $BRANCH"
+  run_check "$check_log"
   step "$REVIEWER review of $BRANCH against $BASE_BRANCH (round $round)"
   if [[ "$REVIEWER" == codex ]]; then
     run_codex "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
@@ -226,9 +253,9 @@ main() {
   fi
   mv "$diff_out$PARTIAL_SUFFIX" "$diff_out"
   mv "$plan_out$PARTIAL_SUFFIX" "$plan_out"
-  printf 'base %s\nhead %s\nmodel %s\neffort %s\n' "$base_sha" "$head_sha" "$MODEL" "$EFFORT" >"$meta_out"
+  printf 'base %s\nhead %s\nmodel %s\neffort %s\ncheck %s\n' "$base_sha" "$head_sha" "$MODEL" "$EFFORT" "$CHECK_RESULT" >"$meta_out"
   log "reviews written: $diff_out and $plan_out"
-  log "Next: verify each finding, then make review-post PR=<number> BRANCH=$BRANCH REVIEWER=$REVIEWER ROUND=$round REVIEW_MODEL=<reviewer model> and make review-record PR=<number> FILE=<findings file>"
+  log "Next: verify each finding (make check output: $check_log), then make review-post PR=<number> BRANCH=$BRANCH REVIEWER=$REVIEWER ROUND=$round REVIEW_MODEL=<reviewer model> and make review-record PR=<number> FILE=<findings file>"
 }
 
 main "$@"

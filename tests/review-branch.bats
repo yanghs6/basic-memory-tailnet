@@ -2,7 +2,7 @@
 load helpers
 
 setup() {
-  setup_stubs codex claude
+  setup_stubs codex claude make
   init_git_repo
   git switch -q -c plan/k7m2x9qa-git-review-tooling
   export REVIEW_OUT_DIR="$BATS_TEST_TMPDIR/out" REVIEW_WORKTREE_PARENT="$BATS_TEST_TMPDIR/wt"
@@ -42,13 +42,14 @@ review_repo() {
       assert_output "$diff_report" || exit 1
       run cat "$OUT-r1-$reviewer-plan.md"
       assert_output "$plan_report" || exit 1
-      # Both reviewer calls run in the review worktree, which is gone afterwards.
+      # Both reviewer calls and make check run in the review worktree, which is gone afterwards.
       run grep -c -F ":: cwd=$REVIEW_WT" "$STUB_LOG"
-      assert_output 2 || exit 1
+      assert_output 3 || exit 1
       run worktree_count
       assert_output 1 || exit 1
       run ls "$REVIEW_OUT_DIR"
-      assert_output "plan-k7m2x9qa-git-review-tooling-r1-$reviewer-diff.md
+      assert_output "plan-k7m2x9qa-git-review-tooling-r1-$reviewer-check.log
+plan-k7m2x9qa-git-review-tooling-r1-$reviewer-diff.md
 plan-k7m2x9qa-git-review-tooling-r1-$reviewer-meta.txt
 plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
       run cat "$OUT-r1-$reviewer-meta.txt"
@@ -91,6 +92,55 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
       run cat "$OUT-r1-$reviewer-meta.txt"
       assert_line "model model-y" && assert_line "effort xhigh"
     ) || fail "$reviewer review did not pass or record REVIEW_MODEL and REVIEW_EFFORT"
+  done
+}
+
+@test "gives the reviewer the make check result of the reviewed head and keeps the log" {
+  local case reviewer exit_code result prompt_calls
+  cd "$BATS_TEST_TMPDIR" || return
+  # Each case: the reviewer | the exit code of make check | the result line in the meta file and the prompt | how many
+  # reviewer calls carry it (codex exec review --base takes no prompt, so only the codex plan review gets it).
+  for case in "codex|0|passed|1" "codex|2|failed (exit 2)|1" "claude|0|passed|2" "claude|2|failed (exit 2)|2"; do
+    IFS='|' read -r reviewer exit_code result prompt_calls <<<"$case"
+    (
+      if [[ "$reviewer" == codex ]]; then
+        review_repo claude-code || exit 1
+      else
+        review_repo codex || exit 1
+      fi
+      MAKE_STUB_EXIT="$exit_code" run "$REVIEW" plan/k7m2x9qa-git-review-tooling "$reviewer"
+      assert_success || exit 1
+      run grep -c -F "make check :: cwd=$REVIEW_WT" "$STUB_LOG"
+      assert_output 1 || exit 1
+      run cat "$OUT-r1-$reviewer-check.log"
+      assert_output "make stub: check output" || exit 1
+      run cat "$OUT-r1-$reviewer-meta.txt"
+      assert_line "check $result" || exit 1
+      run grep -c -F "make check on the reviewed head: $result" "$STUB_LOG"
+      assert_output "$prompt_calls" || exit 1
+      # A failed check also hands the reviewer the end of its log.
+      if [[ "$exit_code" != 0 ]]; then
+        run grep -c -x -F "make stub: check output" "$STUB_LOG"
+        assert_output "$prompt_calls"
+      fi
+    ) || fail "$reviewer review with make check exiting $exit_code"
+  done
+}
+
+@test "closes stdin for every reviewer call" {
+  local reviewer author
+  cd "$BATS_TEST_TMPDIR" || return
+  for reviewer in codex claude; do
+    author=codex
+    [[ "$reviewer" == codex ]] && author=claude-code
+    (
+      review_repo "$author" || exit 1
+      STUB_LOG_STDIN=1 run "$REVIEW" plan/k7m2x9qa-git-review-tooling "$reviewer" <<<"leaked input"
+      assert_success || exit 1
+      run grep -c -x "$reviewer stdin_bytes=0" "$STUB_LOG"
+      assert_output 2 || exit 1
+      refute_stub_called -E "^$reviewer stdin_bytes=[1-9]"
+    ) || fail "$reviewer review passed stdin on to the reviewer"
   done
 }
 
