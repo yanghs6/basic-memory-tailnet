@@ -44,6 +44,7 @@ This table is the canonical verb list: `make new-script` and the repo checks rea
 | deploy | Deploys or restarts the services | `deploy-stack` |
 | backup | Downloads data and keeps it | `backup-notes` |
 | restore | Puts a kept copy back | `restore-notes` |
+| export | Downloads records such as logs into local files in a format for other tools | `export-logs` |
 | show | Prints state or logs and changes nothing | `show-status`, `show-logs` |
 | verify | Checks a running service end to end | `verify-mcp`, `verify-sb`, `verify-vm` |
 | check | Checks rules or the environment and only reports; changes nothing | `check-git`, `check-pr`, `check-access` |
