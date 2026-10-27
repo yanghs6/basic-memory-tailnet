@@ -137,7 +137,8 @@ tool_calls() { jq -r --arg name "$1" 'select(.params.name == $name) | .id' "$STU
   rm -f "$STUB_LOG.requests"
   printf 'data: %s\n' "$(jq -cn '{jsonrpc: "2.0", id: 2, result: {isError: false, structuredContent: {result: {has_more: false, results: [
     {title: "MEMORY", permalink: "main/agent-memory/acme-widget/claude-code/mac-test/memory", file_path: "agent-memory/acme-widget/claude-code/mac-test/MEMORY.md"},
-    {title: "old", permalink: "main/agent-memory/acme-widget/claude-code/mac-test/old", file_path: "agent-memory/acme-widget/claude-code/mac-test/old.md"}]}}}}')" \
+    {title: "old", permalink: "main/agent-memory/acme-widget/claude-code/mac-test/old", file_path: "agent-memory/acme-widget/claude-code/mac-test/old.md"},
+    {title: "MEMORY", permalink: "main/agent-memory/acme-widget/claude-code/mac-other/memory", file_path: "agent-memory/acme-widget/claude-code/mac-other/MEMORY.md"}]}}}}')" \
     >"$CURL_FIXTURES/call_search_notes.body"
   run "$SYNC" --full
   assert_success
@@ -194,4 +195,47 @@ tool_calls() { jq -r --arg name "$1" 'select(.params.name == $name) | .id' "$STU
   assert_output --partial "project key acme-widget is taken"
   assert_equal "$(written_notes | grep -c '^agent-memory/acme-widget--widget/claude-code/mac-test/MEMORY$')" 1
   assert_equal "$(written_notes | grep -c -E '^agent-memory/acme-widget--widget-[0-9a-f]{6}/claude-code/mac-test/MEMORY$')" 1
+}
+
+@test "stops before any request and keeps the state when a Claude or Codex memory folder cannot be listed in full" {
+  local root
+  mkdir -p "$CLAUDE_MEM/memory/locked" "$CODEX_MEM/locked"
+  echo a >"$CLAUDE_MEM/memory/locked/a.md"
+  echo b >"$CODEX_MEM/locked/b.md"
+  "$SYNC" 2>/dev/null
+  cp "$STATE_DIR/state.tsv" "$BATS_TEST_TMPDIR/state.before"
+  # The tests run as root, which reads folders of mode 000, so this find fails the way it does for a user on an
+  # unreadable subfolder: it lists the other files, reports the folder and exits 1.
+  REAL_FIND="$(command -v find)"
+  export REAL_FIND
+  # shellcheck disable=SC2016 # the fake expands its arguments when it runs
+  fake_cmd find 'if [[ "$1" == "$LOCKED_ROOT" ]]; then
+  "$REAL_FIND" "$1" -path "$1/locked" -prune -o "${@:2}"
+  echo "find: $1/locked: Permission denied" >&2
+  exit 1
+fi
+exec "$REAL_FIND" "$@"'
+  for root in "$CLAUDE_MEM/memory" "$CODEX_MEM"; do
+    (
+      : >"$STUB_LOG" && export LOCKED_ROOT="$root" || exit 1
+      run "$SYNC"
+      assert_failure && assert_output --partial "cannot list every file under" && refute_stub_called '^curl ' \
+        && assert_same_file "$BATS_TEST_TMPDIR/state.before" "$STATE_DIR/state.tsv"
+    ) || fail "unlistable folder ${root#"$HOME"/}"
+  done
+}
+
+@test "writes a file again on the next run after its --full write failed, although the file did not change" {
+  "$SYNC" 2>/dev/null
+  printf 'data: %s\n' '{"jsonrpc":"2.0","id":2,"result":{"isError":false,"structuredContent":{"result":{"has_more":false,"results":[]}}}}' \
+    >"$CURL_FIXTURES/call_search_notes.body"
+  export CURL_STUB_FAIL_MATCH='"title":"MEMORY"'
+  run "$SYNC" --full
+  assert_failure
+  unset CURL_STUB_FAIL_MATCH
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC"
+  assert_success
+  assert_equal "$(written_notes)" \
+    "$(printf '%s\n' agent-memory/_global/codex/mac-test/v2/MEMORY agent-memory/acme-widget/claude-code/mac-test/MEMORY)"
 }

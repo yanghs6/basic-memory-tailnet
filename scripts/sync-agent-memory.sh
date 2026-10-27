@@ -47,7 +47,7 @@ STATE_FILE=""
 KEYS_FILE=""
 LOCK_DIR=""
 # Work files of one run: desired (file, note path, sha256, key, agent, repo), old-state (a copy of state.tsv),
-# next-state (the lines of the new state.tsv), write (desired lines plus the old sha256 and permalink), delete (state lines).
+# next-state (the lines of the new state.tsv), write (desired lines plus the old permalink), delete (state lines).
 WORK_DIR=""
 REQUEST_ID=1
 WROTE=0
@@ -159,14 +159,20 @@ add_source() {
   printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$file" "$2" "$sha" "$3" "$4" "$5" >>"$WORK_DIR/desired"
 }
 
+# cannot_list FOLDER -> dies before any request or state change: a file missing from a listing would delete its note.
+cannot_list() {
+  die "cannot list every file under $(tilde_path "$1"): fix its permissions, then run make memory-sync again; nothing was changed"
+}
+
 # add_sources ROOT KEY AGENT REPO PREFIX -> the desired lines of the memory files under ROOT; PREFIX starts their path
-# below the device folder.
+# below the device folder. The listing goes to a file first, so a find that fails stops the run.
 add_sources() {
   local root="$1" key="$2" agent="$3" repo="$4" prefix="$5" file rel
+  md_files "$root" "$agent" >"$WORK_DIR/files" || cannot_list "$root"
   while IFS= read -r -d '' file; do
     rel="${file#"$root"/}"
     add_source "$file" "$NOTE_ROOT/$key/$agent/$BM_MEMORY_DEVICE/$prefix${rel%.md}" "$key" "$agent" "$repo"
-  done < <(md_files "$root" "$agent")
+  done <"$WORK_DIR/files"
 }
 
 # collect_claude -> the desired lines of every Claude Code memory folder, in folder name order, except temporary
@@ -174,6 +180,8 @@ add_sources() {
 collect_claude() {
   local projects="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" folder key cwd repo
   [[ -d "$projects" ]] || return 0
+  find "$projects" -mindepth 1 -maxdepth 1 -type d >"$WORK_DIR/folders.found" || cannot_list "$projects"
+  LC_ALL=C sort "$WORK_DIR/folders.found" >"$WORK_DIR/folders"
   while IFS= read -r folder; do
     if [[ "${folder##*/}" == "$TMP_FOLDER_PREFIX"* || ! -d "$folder/$CLAUDE_MEMORY_FOLDER" ]]; then
       continue
@@ -187,7 +195,7 @@ collect_claude() {
       repo="$(repo_for_dir "$cwd")" || exit 1
     fi
     add_sources "$folder/$CLAUDE_MEMORY_FOLDER" "$key" "$AGENT_CLAUDE" "$repo" ""
-  done < <(find "$projects" -mindepth 1 -maxdepth 1 -type d | LC_ALL=C sort)
+  done <"$WORK_DIR/folders"
 }
 
 # collect_codex -> the desired lines of the Codex memory (and memory V2 under v2/), all under the _global key.
@@ -205,8 +213,9 @@ collect_codex() {
 }
 
 # plan_changes -> next-state (state lines whose file, note path and sha256 are still desired), write (the other desired
-# lines, with the old sha256 and permalink) and delete (state lines whose file and note path are no longer desired).
-# With --full every desired line is written and the deletions come from plan_full_deletes.
+# lines, with the old permalink) and delete (state lines whose file and note path are no longer desired). With --full
+# every desired line is written and the deletions come from plan_full_deletes. A state line with an empty sha256 (a
+# failed write) never matches a file, so its file is written again.
 plan_changes() {
   : >"$WORK_DIR/next-state"
   : >"$WORK_DIR/write"
@@ -216,8 +225,8 @@ plan_changes() {
     {
       pair = $1 FS $2
       wanted[pair] = 1
-      if (full == "" && (pair in old) && old_sha[pair] == $3) print old[pair] > (dir "/next-state")
-      else print $0, old_sha[pair], old_link[pair] > (dir "/write")
+      if (full == "" && (pair in old) && old_sha[pair] != "" && old_sha[pair] == $3) print old[pair] > (dir "/next-state")
+      else print $0, old_link[pair] > (dir "/write")
     }
     END { if (full == "") for (pair in old) if (!(pair in wanted)) print old[pair] > (dir "/delete") }
   ' "$WORK_DIR/old-state" "$WORK_DIR/desired"
@@ -249,12 +258,14 @@ list_device_notes() {
   done
 }
 
-# plan_full_deletes -> delete: a state-like line (no file, no sha256) for each listed note under agent-memory/ whose
-# file_path without .md is no desired note path. Permalinks are lowercased and romanized, so they are never compared.
+# plan_full_deletes -> delete: a state-like line (no file, no sha256) for each listed note whose file_path is
+# agent-memory/<key>/<agent>/<this device>/... and, without .md, no desired note path. The device segment is checked
+# here too, so a server that ignored the device filter could not make this delete other Macs' notes. Permalinks are
+# lowercased and romanized, so they are never compared.
 plan_full_deletes() {
-  awk -F'\t' -v OFS='\t' -v root="$NOTE_ROOT/" '
+  awk -F'\t' -v OFS='\t' -v root="$NOTE_ROOT" -v device="$BM_MEMORY_DEVICE" '
     FILENAME == ARGV[1] { wanted[$2] = 1; next }
-    index($1, root) == 1 && $2 != "" {
+    split($1, part, "/") > 4 && part[1] == root && part[4] == device && $2 != "" {
       path = $1
       sub(/\.md$/, "", path)
       if (!(path in wanted)) print "", path, "", $2
@@ -262,9 +273,9 @@ plan_full_deletes() {
   ' "$WORK_DIR/desired" "$WORK_DIR/remote" >"$WORK_DIR/delete"
 }
 
-# unit_fields FILE -> FILE with each tab turned into the unit separator, which read splits on without merging empty
-# fields (it merges runs of tabs).
-unit_fields() { LC_ALL=C tr '\t' '\037' <"$1"; }
+# unit_fields FILE -> FILE.fields: FILE with each tab turned into the unit separator, which read splits on without
+# merging empty fields (it merges runs of tabs). A file, not a process substitution, so a failure stops the run.
+unit_fields() { LC_ALL=C tr '\t' '\037' <"$1" >"$1.fields"; }
 
 # delete_one PERMALINK -> deletes the note; fails when the result holds an error. A note that is already gone counts as
 # deleted (deleted: false and no error).
@@ -279,6 +290,7 @@ delete_one() {
 # send_deletes -> delete_one for each line of delete; the line of a failed delete stays in the state.
 send_deletes() {
   local source note sha permalink
+  unit_fields "$WORK_DIR/delete"
   while IFS=$'\037' read -r source note sha permalink; do
     REQUEST_ID=$((REQUEST_ID + 1))
     if (delete_one "$permalink"); then
@@ -288,7 +300,7 @@ send_deletes() {
       FAILED=$((FAILED + 1))
       printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$sha" "$permalink" >>"$WORK_DIR/next-state"
     fi
-  done < <(unit_fields "$WORK_DIR/delete")
+  done <"$WORK_DIR/delete.fields"
 }
 
 # write_args FILE NOTE KEY AGENT REPO -> the write_note arguments: the file as it is, the note path and the mirror
@@ -314,11 +326,13 @@ write_one() {
   jq -r '.permalink // empty' <<<"$result"
 }
 
-# send_writes -> write_one for each line of write; a written note's line goes to the state with its permalink, and a
-# failed update keeps the old line, so the note can still be deleted if the file goes away.
+# send_writes -> write_one for each line of write; a written note's line goes to the state with its permalink. A failed
+# write of a file sent before keeps its old permalink with an empty sha256: the note can still be deleted if the file
+# goes away, and the next run writes the file again (also after --full, where the old sha256 is the current one).
 send_writes() {
-  local source note sha key agent repo old_sha old_link permalink
-  while IFS=$'\037' read -r source note sha key agent repo old_sha old_link; do
+  local source note sha key agent repo old_link permalink
+  unit_fields "$WORK_DIR/write"
+  while IFS=$'\037' read -r source note sha key agent repo old_link; do
     REQUEST_ID=$((REQUEST_ID + 1))
     if permalink="$(write_one "$source" "$note" "$key" "$agent" "$repo")" && [[ -n "$permalink" ]]; then
       WROTE=$((WROTE + 1))
@@ -327,10 +341,10 @@ send_writes() {
       log "WARNING: could not write $note; the next memory-sync tries again"
       FAILED=$((FAILED + 1))
       if [[ -n "$old_link" ]]; then
-        printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$old_sha" "$old_link" >>"$WORK_DIR/next-state"
+        printf '%s\t%s\t\t%s\n' "$source" "$note" "$old_link" >>"$WORK_DIR/next-state"
       fi
     fi
-  done < <(unit_fields "$WORK_DIR/write")
+  done <"$WORK_DIR/write.fields"
 }
 
 # write_state -> state.tsv replaced by next-state through a .partial file in the same folder.
