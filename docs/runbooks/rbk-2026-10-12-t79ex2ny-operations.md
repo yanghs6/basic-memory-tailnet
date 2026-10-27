@@ -18,12 +18,13 @@ reviewed: 2026-10-27
 | 읽기 전용 검사 (노트를 쓰지 않음) | `make probe` |
 | 종단 검증 (테스트 노트를 쓰고 지움) | `make verify` |
 | 로그 | `make logs` |
+| 로그를 JSON Lines로 내려받기 (장애 조사, 기본 최근 24시간) | `make export-logs [SINCE=6h]` → main 체크아웃의 `log-exports/`. 예: `jq -c 'select(.stream == "stderr")' log-exports/logs-*.jsonl` |
 | 배포 (compose 변경 후) | `make deploy verify` |
 | 웹 UI 글꼴 (새 VM이나 글꼴을 바꿀 때) | `make sb-fonts` |
 | 백업 (주 1회 + 업그레이드 전) | `make backup` |
 | 복원 | `make restore BACKUP=<백업 파일의 절대 경로>` (사용자가 자기 터미널에서 `yes` 입력. 저장소의 compose.yaml도 함께 적용하고, 실패하면 이전 상태로 자동 롤백, 끝나면 verify 실행) |
 
-에이전트는 `vm-bootstrap`, `deploy`, `restore`, `sb-fonts` 전에 사용자의 OK를 받습니다. `probe`, `status`, `logs`, `verify`, `backup`, `access-check`, `tunnel`은 OK 없이 실행할 수 있습니다(`verify`는 테스트 노트를 쓰고 지우며 SilverBullet에 로그인했다가 로그아웃하고, `backup`은 컨테이너를 잠깐 멈춥니다).
+에이전트는 `vm-bootstrap`, `deploy`, `restore`, `sb-fonts` 전에 사용자의 OK를 받습니다. `probe`, `status`, `logs`, `export-logs`, `verify`, `backup`, `access-check`, `tunnel`은 OK 없이 실행할 수 있습니다(`verify`는 테스트 노트를 쓰고 지우며 SilverBullet에 로그인했다가 로그아웃하고, `backup`은 컨테이너를 잠깐 멈춥니다). `export-logs`는 VM에서 읽기만 하지만, 내려받은 파일에 노트 식별자와 client 주소가 들어갈 수 있으므로 그 내용을 채팅·PR·저장소에 붙이지 않습니다. 개수와 형식 같은 요약만 남깁니다.
 
 **배포·복원 전 이미지 점검:** `make status`의 컨테이너 이미지와 `grep 'image:' compose.yaml`이 같은지 확인합니다. 다르면 멈추고 사용자에게 묻습니다. 업그레이드 리뷰 중에는 VM이 main이 고정하지 않은 이미지로 돌 수 있고, 이때 옛 이미지를 새 버전이 손댄 데이터 위에 배포하면 안 되기 때문입니다([bm-upgrade 스킬](../../.agents/skills/bm-upgrade/SKILL.md)). 새로 만든 VM처럼 아직 아무것도 배포하지 않았다면 `make status`가 `could not query containers`로 끝납니다. 정상이므로 이미지 비교는 건너뜁니다. 이때 에이전트는 `git diff main -- compose.yaml`이 아무것도 출력하지 않는지만 확인하고, 사람은 main 체크아웃에서 실행하는지 확인합니다.
 
