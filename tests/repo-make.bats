@@ -111,3 +111,28 @@ printf "env [%s] [%s]\n" "${COMPOSE_PROFILES-unset}" "${BM_WEB_BASE_URL-unset}" 
   assert_output --partial "BM_WEB must be on or off (got 'yes')"
   refute_stub_called '^docker '
 }
+
+@test "make local-verify with BM_WEB=on runs the gateway unit tests as uid 1000, and without it touches no container" {
+  linked_worktree_with_makefile
+  setup_stubs docker
+  mkdir -p "$LINKED_WT/scripts"
+  local name
+  for name in verify-mcp verify-sb verify-web; do
+    # shellcheck disable=SC2016 # the generated script expands $* and $STUB_LOG when it runs
+    printf '#!/usr/bin/env bash\necho "%s $*" >>"$STUB_LOG"\n' "$name" >"$LINKED_WT/scripts/$name.sh"
+    chmod +x "$LINKED_WT/scripts/$name.sh"
+  done
+  printf 'SB_USER=admin:Tr4mpoline\nBM_WEB=on\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" local-verify
+  assert_success
+  assert_stub_called -Fx 'verify-web http://127.0.0.1:8738'
+  # The gateway serves the public path as uid 1000; its tests run as the same user, never as root.
+  assert_stub_called -Fx 'docker compose -f compose.yaml exec -T --user 1000:1000 gateway python -m unittest -v test_gateway'
+
+  : >"$STUB_LOG"
+  printf 'SB_USER=admin:Tr4mpoline\n' >"$MAIN_REPO/.env"
+  run make_in "$LINKED_WT" local-verify
+  assert_success
+  refute_stub_called '^verify-web '
+  refute_stub_called '^docker '
+}

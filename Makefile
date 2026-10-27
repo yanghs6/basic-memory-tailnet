@@ -72,6 +72,9 @@ endif
 # The gateway image is named once, in its compose.yaml service; gateway-lock compiles the lock file inside it.
 GATEWAY_IMAGE = $(shell awk '$$0 == "  gateway:" { inside = 1; next } inside && /^  [^ ]/ { exit } inside && $$1 == "image:" { print $$2; exit }' compose.yaml)
 PIP_TOOLS_VERSION := 7.6.2
+# The user that serves the gateway's public path (APP_UID in gateway/boot.py, BM_CONTAINER_UID in scripts/lib/vm.sh);
+# local-verify runs the gateway tests as this user too, never as root.
+GATEWAY_USER := 1000:1000
 
 local-up: ## Start Basic Memory and SilverBullet locally (127.0.0.1:BM_PORT, SB_PORT) and wait until healthy; BM_WEB=on adds the gateway (BM_WEB_PORT)
 	@. scripts/lib/vm.sh && web_mode >/dev/null
@@ -92,7 +95,7 @@ local-verify: ## Verify the local MCP endpoint (plain and *.ts.net Host header) 
 	scripts/verify-sb.sh "http://127.0.0.1:$(SB_PORT)"
 ifeq ($(BM_WEB),on)
 	scripts/verify-web.sh "http://127.0.0.1:$(BM_WEB_PORT)"
-	$(COMPOSE) exec -T gateway python -m unittest -v test_gateway
+	$(COMPOSE) exec -T --user $(GATEWAY_USER) gateway python -m unittest -v test_gateway
 endif
 
 gateway-lock: ## Pin gateway/requirements.in and every dependency with hashes into gateway/requirements.txt (pip-compile in the gateway image)

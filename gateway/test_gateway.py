@@ -236,6 +236,47 @@ class GatewayToolsTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("time", line)
         self.assertNotIn("BODY-7f3a", "\n".join(captured.output))
 
+    async def test_refused_calls_are_audited_with_the_caller_and_without_content(self) -> None:
+        for token, user in (("other", "5151"), ("no-sub", None)):
+            with self.subTest(token=token):
+                with self.assertLogs(gateway.AUDIT_LOGGER_NAME, "INFO") as captured:
+                    async with self.client(token) as client:
+                        arguments = {"title": "T", "directory": "d", "content": "BODY-9c4e"}
+                        self.assertTrue(await is_refused(client, "write_note", arguments))
+                lines = [json.loads(record.getMessage()) for record in captured.records]
+                self.assertEqual(len(lines), 1)
+                self.assertEqual(lines[0]["user"], user)
+                self.assertEqual(lines[0]["tool"], "write_note")
+                self.assertEqual(lines[0]["note"], {"title": "T", "directory": "d"})
+                self.assertNotIn("BODY-9c4e", "\n".join(captured.output))
+        self.assertEqual(self.backend.calls, [])
+
+
+class RunRecorder:
+    """Stands in for the FastMCP server in gateway._serve: records the run_http_async arguments and returns."""
+
+    def __init__(self) -> None:
+        self.kwargs: dict[str, Any] = {}
+
+    async def run_http_async(self, **kwargs: Any) -> None:
+        self.kwargs = kwargs
+
+
+class IdleTree:
+    """Stands in for the client store in gateway._serve: cull deletes nothing."""
+
+    async def cull(self) -> None:
+        return None
+
+
+class ServeTest(unittest.IsolatedAsyncioTestCase):
+    async def test_serve_turns_the_uvicorn_access_log_off(self) -> None:
+        # The access log prints each request path with its query string, so /auth/callback?code=... would put the
+        # one-time GitHub authorization code into the container log.
+        recorder = RunRecorder()
+        await gateway._serve(recorder, IdleTree())
+        self.assertIs(recorder.kwargs.get("uvicorn_config", {}).get("access_log"), False)
+
 
 class GatewayMetadataTest(unittest.IsolatedAsyncioTestCase):
     async def test_metadata_answers_while_backend_is_down(self) -> None:

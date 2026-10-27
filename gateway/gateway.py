@@ -183,7 +183,8 @@ async def cull_forever(store: FileTreeStore, interval_seconds: int) -> None:
 
 
 class AuditMiddleware(Middleware):
-    """One JSON line per tool call that passed the owner check: time, user, tool, note identifiers and duration."""
+    """One JSON line per tool call, refused ones included: time, user (the token's "sub", null without one), tool,
+    note identifiers and duration (the owner check plus the backend call)."""
 
     async def on_call_tool(self, context: MiddlewareContext, call_next: CallNext):
         started = time.monotonic()
@@ -212,7 +213,8 @@ def build_gateway(settings: Settings, auth: AuthProvider) -> FastMCP:
         ProxyClient(settings.backend_url, forward_incoming_headers=False),
         name=GATEWAY_NAME,
         auth=auth,
-        middleware=[AuthMiddleware(auth=owner_only), AuditMiddleware()],
+        # The first middleware is the outermost, so calls the owner check refuses are audited too.
+        middleware=[AuditMiddleware(), AuthMiddleware(auth=owner_only)],
     )
     gateway.enable(names=set(ALLOWED_TOOLS), components={"tool"}, only=True)
     return gateway
@@ -234,7 +236,11 @@ def github_auth(settings: Settings, client_storage: AsyncKeyValue) -> GitHubProv
 async def _serve(gateway: FastMCP, tree: FileTreeStore) -> None:
     culler = asyncio.create_task(cull_forever(tree, CULL_INTERVAL_SECONDS))
     try:
-        await gateway.run_http_async(host=LISTEN_HOST, port=LISTEN_PORT, show_banner=False)
+        # No uvicorn access log: it prints each path with its query string, and /auth/callback carries the one-time
+        # GitHub authorization code there. Tool calls still get their audit line.
+        await gateway.run_http_async(
+            host=LISTEN_HOST, port=LISTEN_PORT, show_banner=False, uvicorn_config={"access_log": False}
+        )
     finally:
         culler.cancel()
 
