@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 id: v9whrbs6
 spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 ---
@@ -8,7 +8,7 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 
 > 2026-10-22 에이전트 개발 시스템 평가(저장소 밖 기록)에서 나온 백로그 초안입니다. 실행하려면 먼저 사용자가 이 계획을 승인하고 배경 끝의 Open question 1~3을 정해야 합니다. 설계 범위가 작아서 새 스펙을 쓰지 않고, Task 1의 ADR로 스펙 6절과 11절을 보완합니다. 사용자가 스펙을 원하면 brainstorming → 스펙 → 계획 순서로 다시 씁니다.
 
-> **For agentic workers:** Task를 순서대로 하나씩 구현한다. 도구가 서브에이전트를 지원하면 Task마다 새 서브에이전트와 리뷰를 쓰고, 아니면 한 세션에서 실행한다. VM이나 클라우드를 바꾸는 Step은 메인 세션에서 사용자와 함께, 단계마다 OK를 받고 한다. Step은 체크박스(`- [ ]`)로 추적한다.
+> **For agentic workers:** Task를 순서대로 하나씩 구현한다. 도구가 서브에이전트를 지원하면 Task마다 새 서브에이전트와 리뷰를 쓰고, 아니면 한 세션에서 실행한다. VM이나 클라우드를 바꾸는 Step은 메인 세션에서 사용자와 함께, 단계마다 OK를 받고 한다. Step은 체크박스(`- [x]`)로 추적한다.
 
 **Goal:** 저장소 밖으로 나가는 텍스트를 기계적으로 검사해서, VM IP 주소, tailnet 호스트 이름, 세션 링크, `Generated with` 줄이 있으면 막는다. 대상은 tracked 파일, 커밋 메시지, PR 제목과 본문, PR에 올리는 리뷰 보고서다.
 
@@ -104,8 +104,8 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/v9whrbs6-public-text-guard` 브랜치를 만든다(`git-workflow` 스킬의 Start).
-- [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
+- [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/v9whrbs6-public-text-guard` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: Public text checker and ADR
 
@@ -121,7 +121,7 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
   - 걸리면 `<NAME 또는 경로>:<줄>: <종류>`를 한 줄씩 stderr로 출력하고, 가리는 방법을 한 줄 안내한 뒤 exit 1로 끝난다. 종류는 `IPv4 address`, `tailnet IPv6 address`, `ts.net host name`, `session link`, `Generated with line`이다.
   - 인자가 없으면 현재 디렉터리의 저장소(`git rev-parse --show-toplevel`)에서 tracked 파일과 새 파일 가운데 일반 텍스트 파일만 검사하고, 예외 목록을 적용한다.
 
-- [ ] **Step 1: 실패하는 테스트 작성.** `tests/check-public-text.bats`에 테스트 세 개를 둔다.
+- [x] **Step 1: 실패하는 테스트 작성.** `tests/check-public-text.bats`에 테스트 세 개를 둔다.
   - "flags every kind and prints no matched value": must-fail 파일마다 실패하는지, 종류와 줄 번호가 나오는지, `refute_output --partial`로 값 전체가 출력되지 않는지 확인한다. 각 사례는 서브셸 반복으로 돌린다.
   - "passes the allowed forms": 통과 파일이 통과해야 한다. 이 파일에는 다음을 넣는다.
     - 허용 주소: loopback, `0.0.0.0`, 문서용 대역(`203.0.113.10`), IAP 대역(`docs/specs/spec-2026-10-15-jr59pvyf-access-modes.md:70`가 인용한 대역), RFC 1918, link-local, 대역 표기
@@ -130,14 +130,14 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
     - 규칙을 설명하는 문장: 줄 중간의 `Generated with`, id 없는 `claude.ai/code/session`
     - CRLF 줄
   - "applies the exemption list only without arguments": `init_git_repo`로 만든 임시 저장소에서 예외 목록에 있는 파일은 인자 없는 모드로 통과하고, 같은 파일을 인자로 주거나 `-`로 넘기면 실패해야 한다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 위 세 테스트만 템플릿의 `not implemented: write tests/check-public-text.bats first`로 실패한다.
-- [ ] **Step 3: 최소 구현.**
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 위 세 테스트만 템플릿의 `not implemented: write tests/check-public-text.bats first`로 실패한다.
+- [x] **Step 3: 최소 구현.**
   - 허용 대역과 자리표시자 라벨은 이름 있는 상수로 둔다.
   - 패턴이 이 파일 자신에 걸리지 않게 `[.]`이나 `[ ]`처럼 쓴다.
   - 대역 판정은 `scripts/verify-vm.sh:130-143`(`validate_public_ip`)처럼 옥텟을 `10#`으로 읽는다.
   - ADR에는 Open question 1의 결정, 검토한 대안(문자열 그대로 검사, 바뀐 줄만 검사, 비밀값 스캐너에 맡기기), 확인 방법(Task 2의 repo 테스트)을 적는다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋** `feat: add a public text checker for IPs, tailnet names and session links` (`Plan: v9whrbs6`, `Task: 1`).
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋** `feat: add a public text checker for IPs, tailnet names and session links` (`Plan: v9whrbs6`, `Task: 1`).
 
 ### Task 2: Scan tracked files in make check
 
@@ -146,11 +146,11 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 - Modify: `docs/ARCHITECTURE.md:53` (구성 요소 표에 `scripts/check-public-text.sh`)
 - Modify: `docs/runbooks/rbk-2026-10-14-ppmby9v6-github.md:34-48` (2절 공개 전 점검. IP·ts.net은 `git log -p <ref> | scripts/check-public-text.sh -`로 본다. 기존 grep은 `tskey-`·개인키·메일 주소용으로 남긴다)
 
-- [ ] **Step 1: 실패하는 테스트 작성.** 빈 예외 목록 파일을 만들고, `tests/repo-public-text.bats`에 테스트 하나를 둔다. 이름은 "tracked and new files carry no public text outside the exemption list, and every exemption names an existing file"이다. 인자 없이 `scripts/check-public-text.sh`를 실행해 exit 0인지 확인하고, 예외 목록의 경로가 모두 실제 파일인지 확인한다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 실패한다. 걸리는 곳은 오탐 조사 표에 있는 [vm-rollout](plan-2026-10-07-qtvzskgx-vm-rollout.md)·[ipv6-egress](plan-2026-10-13-gaewewkf-ipv6-egress.md) 계획의 IPv4, `tests/check-pr.bats:90`의 세션 링크, `tests/fixtures/check-public-text/`이다. 값은 가려져서 출력된다.
-- [ ] **Step 3: 최소 구현.** Open question 1에서 정한 방식으로 예외를 넣는다. 다른 파일이 걸리면 자리표시자로 고친다. 기록 파일이라면 고치지 말고 사용자에게 묻는다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋** `test: scan tracked files for public text in make check` (`Plan: v9whrbs6`, `Task: 2`).
+- [x] **Step 1: 실패하는 테스트 작성.** 빈 예외 목록 파일을 만들고, `tests/repo-public-text.bats`에 테스트 하나를 둔다. 이름은 "tracked and new files carry no public text outside the exemption list, and every exemption names an existing file"이다. 인자 없이 `scripts/check-public-text.sh`를 실행해 exit 0인지 확인하고, 예외 목록의 경로가 모두 실제 파일인지 확인한다.
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 실패한다. 걸리는 곳은 오탐 조사 표에 있는 [vm-rollout](plan-2026-10-07-qtvzskgx-vm-rollout.md)·[ipv6-egress](plan-2026-10-13-gaewewkf-ipv6-egress.md) 계획의 IPv4, `tests/check-pr.bats:90`의 세션 링크, `tests/fixtures/check-public-text/`이다. 값은 가려져서 출력된다.
+- [x] **Step 3: 최소 구현.** Open question 1에서 정한 방식으로 예외를 넣는다. 다른 파일이 걸리면 자리표시자로 고친다. 기록 파일이라면 고치지 말고 사용자에게 묻는다.
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋** `test: scan tracked files for public text in make check` (`Plan: v9whrbs6`, `Task: 2`).
 
 ### Task 3: Check commit messages and the PR text in pr-rules
 
@@ -162,13 +162,13 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 - Test: `tests/check-git.bats:75`, `tests/check-pr.bats:49`
 - **Verified (2026-10-22):** `.github/workflows/pr-rules.yml:26,31`이 이미 두 스크립트를 실행하므로 워크플로는 바꾸지 않는다. push 전에 돌리는 `make check-git`도 같은 검사를 하게 된다(`.agents/skills/git-workflow/SKILL.md:27`).
 
-- [ ] **Step 1: 실패하는 테스트 작성.**
+- [x] **Step 1: 실패하는 테스트 작성.**
   - `tests/check-git.bats:75`의 반복에 "public" 사례를 더한다. 커밋 제목과 본문에 fixture의 tailnet 대역 주소를 넣고 트레일러 `Claude-Session: x`(링크 없음)를 단다. 그러면 그 커밋의 짧은 SHA 뒤에 `agents never add 'Claude-Session'`과 IPv4 hit이 함께 나와야 하고, `refute_output --partial`로 주소가 출력에 없음을 확인한다.
   - `tests/check-pr.bats:49`에 사례를 더한다. 본문에 IP, ts.net 이름, `Generated with` 줄을 각각 넣고, CRLF 본문과 제목에 IP가 있는 경우도 넣는다. 제목에 IP가 있는 사례는 제목 형식도 어기게 해서, 제목 형식 위반 메시지에도 주소가 없음을 `refute_output --partial`로 확인한다. 세션 링크 사례는 실패를 그대로 확인하고, 기대 메시지만 새 검사의 것으로 바꾼다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 사례만 실패한다. 지금 `check-git.sh`는 메시지를 보지 않고, `check-pr.sh`는 세션 링크만 본다.
-- [ ] **Step 3: 최소 구현.** 걸린 곳은 `add_problem`으로 모아서, 다른 위반과 함께 한 번에 보고한다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. 이어서 Run: `make check-git`. Expected: 둘 다 exit 0. PR의 `pr-rules`도 pass.
-- [ ] **Step 5: 커밋** `feat: check commit messages and PR text for public text and forbid Claude-Session` (`Plan: v9whrbs6`, `Task: 3`).
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 사례만 실패한다. 지금 `check-git.sh`는 메시지를 보지 않고, `check-pr.sh`는 세션 링크만 본다.
+- [x] **Step 3: 최소 구현.** 걸린 곳은 `add_problem`으로 모아서, 다른 위반과 함께 한 번에 보고한다.
+- [x] **Step 4: 통과 확인.** Run: `make check`. 이어서 Run: `make check-git`. Expected: 둘 다 exit 0. PR의 `pr-rules`도 pass.
+- [x] **Step 5: 커밋** `feat: check commit messages and PR text for public text and forbid Claude-Session` (`Plan: v9whrbs6`, `Task: 3`).
 
 ### Task 4: Refuse to post review text with a hit
 
@@ -178,13 +178,13 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 - Modify: `.agents/skills/git-workflow/references/review-and-merge.md:13` (수동 가리기 문장을 "`make review-post`는 걸리면 게시를 거부한다. 보고서 파일을 고친 뒤 다시 실행한다"로 바꾼다)
 - Test: `tests/post-review.bats:36`, `tests/post-review-record.bats:33`
 
-- [ ] **Step 1: 실패하는 테스트 작성.**
+- [x] **Step 1: 실패하는 테스트 작성.**
   - `tests/post-review.bats:36`의 반복에 "public text" 사례를 더한다. plan 보고서에 fixture hit을 넣으면 실패해야 하고, 메시지에 그 보고서 경로가 나와야 하며, `refute_stub_called '^gh '`여야 한다.
   - `tests/post-review-record.bats:33`의 반복에도 같은 사례를 더한다. 이 사례는 `gh api user`도 부르지 않아야 한다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 두 사례가 실패한다. 지금은 게시되기 때문이다.
-- [ ] **Step 3: 최소 구현.** `die` 메시지에는 어느 보고서인지 적는다. 그리고 값을 `agent-hub`나 `<agent-hub tailnet IP>`로 바꾸거나 세션 링크와 `Generated with` 줄을 지운 뒤, 같은 `make review-post`·`make review-record` 명령을 다시 실행하라고 안내한다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋** `feat: refuse to post review text that carries public text` (`Plan: v9whrbs6`, `Task: 4`).
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 두 사례가 실패한다. 지금은 게시되기 때문이다.
+- [x] **Step 3: 최소 구현.** `die` 메시지에는 어느 보고서인지 적는다. 그리고 값을 `agent-hub`나 `<agent-hub tailnet IP>`로 바꾸거나 세션 링크와 `Generated with` 줄을 지운 뒤, 같은 `make review-post`·`make review-record` 명령을 다시 실행하라고 안내한다.
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋** `feat: refuse to post review text that carries public text` (`Plan: v9whrbs6`, `Task: 4`).
 
 ### Task 5: Secret-scanning hygiene
 
@@ -200,16 +200,16 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
   - check run의 "Skip: false positive"나 "Skip: test credential"을 쓸 수 있다.
   - workspace 설정의 filepath exclusion은 저장소별로 연결할 수 있다.
 
-- [ ] **Step 1: 실패하는 테스트 작성(A안).** `tests/repo-make.bats`에 테스트를 더한다. docker stub을 두고 `make_in`으로 `make secret-scan`을 실행한다. stub 로그에 `@sha256:`으로 고정된 gitleaks 이미지, git common dir의 `:ro` 마운트, `git --redact`가 있어야 한다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 타깃이 없어서 새 테스트만 실패한다.
-- [ ] **Step 3: 구현과 1회 스캔.**
+- [x] **Step 1: 실패하는 테스트 작성(A안).** `tests/repo-make.bats`에 테스트를 더한다. docker stub을 두고 `make_in`으로 `make secret-scan`을 실행한다. stub 로그에 `@sha256:`으로 고정된 gitleaks 이미지, git common dir의 `:ro` 마운트, `git --redact`가 있어야 한다.
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 타깃이 없어서 새 테스트만 실패한다.
+- [x] **Step 3: 구현과 1회 스캔.**
   - 타깃을 더한다.
   - 사용자에게 OK를 받고 `git fetch origin` 뒤 `make secret-scan`을 실행한다. PR에만 남은 커밋(`refs/pull/<N>/head`, 스펙 5절의 Assumption)까지 보려면 그 ref를 받을지도 사용자에게 묻는다.
   - 이어서 `git log -p origin/main | scripts/check-public-text.sh -`로 이력의 공개 텍스트 hit을 종류별 개수로만 센다. 옛 세션 링크 커밋 4개는 이미 알려진 AP10이다.
   - 가짜 키 fixture가 걸리면 `.gitleaksignore`에 fingerprint를 적는다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`, `make secret-scan`. Expected: 둘 다 exit 0. 스캔 결과는 Progress log에 `Verified`로 남긴다. 스캐너 버전, digest, 범위, 커밋 수, 규칙별 건수를 적고 값은 적지 않는다.
-- [ ] **Step 5: GitGuardian(사용자).** Open question 3에서 정한 방법으로 `tests/bootstrap-vm.bats:54`의 incident를 정리한다. 그 결과를 런북과 Progress log에 적는다.
-- [ ] **Step 6: 커밋** `chore: add a pinned full-history secret scan and record the result` (`Plan: v9whrbs6`, `Task: 5`).
+- [x] **Step 4: 통과 확인.** Run: `make check`, `make secret-scan`. Expected: 둘 다 exit 0. 스캔 결과는 Progress log에 `Verified`로 남긴다. 스캐너 버전, digest, 범위, 커밋 수, 규칙별 건수를 적고 값은 적지 않는다.
+- [x] **Step 5: GitGuardian(사용자).** Open question 3에서 정한 방법으로 `tests/bootstrap-vm.bats:54`의 incident를 정리한다. 그 결과를 런북과 Progress log에 적는다.
+- [x] **Step 6: 커밋** `chore: add a pinned full-history secret scan and record the result` (`Plan: v9whrbs6`, `Task: 5`).
 
 ### Finish: review and hand-off
 
@@ -240,3 +240,4 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 | 2026-10-27 | Verified | Task 5 스캔(사용자 OK, 범위는 로컬 ref와 PR ref): `git fetch origin '+refs/pull/*/head:refs/pr-scan/*'`(PR ref 27개) 뒤 `make secret-scan`을 돌렸다. gitleaks v8.30.1로 커밋 504개를 봤고 exit 1(make exit 2), `generic-api-key` 2건이었다. 둘 다 web-connector 브랜치 커밋 `15da288`의 `tests/helpers.bash:35`, `tests/lib-vm.bats:191`에 있는 가짜 테스트 값(이름 그대로 test 문자열, 반복 hex)이다. 이 브랜치와 `main`에는 걸린 곳이 없다. squash 병합 뒤 커밋 SHA가 바뀌므로 `.gitleaksignore`에 적지 않고, 그 브랜치에서 `gitleaks:allow`로 처리하도록 감독 세션에 넘겼다. `refs/pr-scan/*`는 스캔 뒤 지웠다. 처음에 `refs/remotes/origin/pr/*`로 받은 ref는 다른 worktree의 `fetch --prune`이 지워서 두 번째 실행은 163개만 봤다. 그래서 런북에 별도 namespace 절차를 적었다. |
 | 2026-10-27 | Verified | Task 5 공개 텍스트 이력 집계: `git log -p origin/main \| scripts/check-public-text.sh -`(`67401d2`, 커밋 162개)는 IPv4 7건, 세션 링크 6건이었다. 값은 보지 않았다. 세션 링크는 이미 알려진 AP10(Follow-ups)이다. IPv4는 예외 목록에 오른 기록 계획들의 증거 줄이 이력에 남은 것으로 추정한다(**Assumption**, stdin에는 예외 목록이 적용되지 않는다). |
 | 2026-10-27 | Verified | Task 5 GitGuardian(사용자): 사용자가 대시보드에 열린 incident가 없다고 확인했다. 이 PR의 GitGuardian check도 pass다. |
+| 2026-10-27 | Verified | Finish: `origin/main`(`67401d2`)을 병합한 뒤 `55dc6e6`에서 `make check`는 exit 0, 157개 ok, `not ok` 0개, 줄 커버리지 88.00%(최소 80%)였다. `make check-git`은 OK였다(커밋 7개). 계획 Task 1~5를 모두 끝냈다. |
