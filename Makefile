@@ -81,11 +81,13 @@ GATEWAY_USER := 1000:1000
 local-up: ## Start Basic Memory and SilverBullet locally (127.0.0.1:BM_PORT, SB_PORT) and wait until healthy; BM_WEB=on adds the gateway (BM_WEB_PORT)
 	@. scripts/lib/vm.sh && web_mode >/dev/null
 	. scripts/lib/sb.sh && require_sb_user
+	scripts/check-local-stack.sh
 	mkdir -p $(LOCAL_DATA_DIRS)
 	. scripts/lib/sb.sh && sb_space_apply local "rerun 'make local-up'" $(COMPOSE) up -d --wait --force-recreate basic-memory
 	$(COMPOSE) up -d --wait
 
 local-down: ## Stop the local containers (data in .local-data/ is kept)
+	scripts/check-local-stack.sh
 	$(COMPOSE) down
 
 local-logs: ## Show recent local container logs
