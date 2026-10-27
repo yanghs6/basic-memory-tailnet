@@ -295,7 +295,7 @@ add_model_cache() {
   [[ ! -e "$BM_REMOTE_APP_DIR/gateway" ]] || fail "the fake VM must start without gateway files"
   restore_with_answer yes
   assert_success
-  for secret in test-client-secret 0123456789abcdef0123456789abcdef0123456789abcdef test-tunnel-token; do
+  for secret in test-client-secret fake-jwt-key-fake-jwt-key-fake-jwt-key test-tunnel-token; do
     refute_output --partial "$secret"
   done
   for file in boot.py gateway.py requirements.txt; do
@@ -313,4 +313,52 @@ add_model_cache() {
   restore_with_answer yes
   assert_success
   [[ ! -e "$BM_REMOTE_APP_DIR/gateway" ]] || fail "a BM_WEB=off restore uploaded the gateway files"
+}
+
+@test "restore with BM_WEB=on succeeds once the note services are healthy, and only warns without a rollback when the web services are not" {
+  local case failing warned
+  make_archive "from backup"
+  use_web_env
+  # Each case: the compose call that fails (none: every service healthy) | warned when the restore must warn about the
+  # web services. The restore waits for the note services, starts the rest with a plain up -d, then waits once for all.
+  for case in "|" "compose up -d|warned" "compose up -d --wait --wait-timeout 360|warned"; do
+    IFS='|' read -r failing warned <<<"$case"
+    (
+      : >"$STUB_LOG" || exit 1
+      rm -rf "$BM_REMOTE_DATA_ROOT" "$BM_REMOTE_DATA_ROOT".* || exit 1
+      mkdir -p "$BM_REMOTE_DATA_ROOT/knowledge" "$BM_REMOTE_DATA_ROOT/config" || exit 1
+      echo "original" >"$BM_REMOTE_DATA_ROOT/knowledge/a.md" || exit 1
+      export DOCKER_STUB_FAIL_EXACT="$failing"
+      restore_with_answer yes
+      assert_success && assert_output --partial "restored $(basename "$ARCHIVE")" && refute_output --partial "rolling back" || exit 1
+      if [[ "$warned" == warned ]]; then
+        assert_output --partial "WARNING: the web connector services" || exit 1
+      else
+        refute_output --partial "WARNING" || exit 1
+      fi
+      refute_stub_called -F -- '--force-recreate' || exit 1
+      run awk '$0 == "docker compose up -d --wait --wait-timeout 360 basic-memory silverbullet" && !n { n = NR } $0 == "docker compose up -d" && !p { p = NR } END { exit !(n && p && n < p) }' "$STUB_LOG"
+      assert_success || exit 1
+      run cat "$BM_REMOTE_DATA_ROOT/knowledge/restored.md"
+      assert_output "from backup"
+    ) || fail "restore with BM_WEB=on and a failing '$failing'"
+  done
+}
+
+@test "restore with BM_WEB=on rolls back by the same rule: it waits only for the note services and only warns about the web services" {
+  make_archive "bad"
+  use_web_env
+  echo "previous compose" >"$BM_REMOTE_APP_DIR/compose.yaml"
+  echo "PREVIOUS=env" >"$BM_REMOTE_APP_DIR/.env"
+  # The restore's start of the note services fails, the rollback's succeeds; the web services stay unhealthy.
+  export DOCKER_STUB_FAIL_EXACT=$'compose up -d --wait --wait-timeout 360 basic-memory silverbullet\ncompose up -d --wait --wait-timeout 360'
+  restore_with_answer yes
+  assert_failure
+  assert_output --partial "container did not become healthy with the restored data"
+  assert_output --partial "rolled back: the previous data is live again"
+  assert_output --partial "WARNING: the web connector services"
+  assert_stub_called -Fx 'docker compose up -d --force-recreate --wait --wait-timeout 360 basic-memory silverbullet'
+  refute_stub_called -Fx 'docker compose up -d --force-recreate --wait --wait-timeout 360'
+  run cat "$BM_REMOTE_DATA_ROOT/knowledge/a.md"
+  assert_output "original"
 }

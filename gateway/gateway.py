@@ -83,12 +83,17 @@ AUDIT_ARG_KEYS = (
     "dir_name",
     "project",
 )
+# The longest note value an audit line keeps whole. A longer one (a string, or anything else as its JSON text) is cut to
+# this length and ends with AUDIT_CUT_MARKER, so no call, refused ones included, can fill the container log.
+AUDIT_VALUE_MAX_CHARS = 200
+AUDIT_CUT_MARKER = "...[cut]"
 AUDIT_LOGGER_NAME = "gateway.audit"
 # Basic Memory on the compose network; the gateway reaches nothing else.
 BACKEND_URL = "http://basic-memory:8000/mcp"
 LISTEN_HOST = "0.0.0.0"
 LISTEN_PORT = 8080
 GATEWAY_NAME = "basic-memory-web"
+# scripts/lib/vm.sh checks the same minimum (MIN_WEB_JWT_KEY_LENGTH) before deploy and restore.
 MIN_JWT_KEY_LENGTH = 32
 NUMERIC_ID = re.compile(r"[0-9]+")
 # FastMCP's own key derivation and store layout (fastmcp/server/auth/oauth_proxy/proxy.py), so the store is the one
@@ -182,9 +187,18 @@ async def cull_forever(store: FileTreeStore, interval_seconds: int) -> None:
         await asyncio.sleep(interval_seconds)
 
 
+def audit_value(value: object) -> object:
+    """value as an audit line keeps it: unchanged while its text (a string itself, anything else as JSON) has at most
+    AUDIT_VALUE_MAX_CHARS characters, else that text cut to AUDIT_VALUE_MAX_CHARS characters plus AUDIT_CUT_MARKER."""
+    text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, default=str)
+    if len(text) <= AUDIT_VALUE_MAX_CHARS:
+        return value
+    return text[:AUDIT_VALUE_MAX_CHARS] + AUDIT_CUT_MARKER
+
+
 class AuditMiddleware(Middleware):
     """One JSON line per tool call, refused ones included: time, user (the token's "sub", null without one), tool,
-    note identifiers and duration (the owner check plus the backend call)."""
+    note identifiers (each cut by audit_value) and duration (the owner check plus the backend call)."""
 
     async def on_call_tool(self, context: MiddlewareContext, call_next: CallNext):
         started = time.monotonic()
@@ -197,7 +211,7 @@ class AuditMiddleware(Middleware):
                 "time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 "user": token.claims.get("sub") if token is not None else None,
                 "tool": context.message.name,
-                "note": {key: arguments[key] for key in AUDIT_ARG_KEYS if key in arguments},
+                "note": {key: audit_value(arguments[key]) for key in AUDIT_ARG_KEYS if key in arguments},
                 "ms": round((time.monotonic() - started) * 1000),
             }
             AUDIT_LOG.info(json.dumps(line, ensure_ascii=False, default=str))

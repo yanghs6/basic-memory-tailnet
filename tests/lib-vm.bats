@@ -143,12 +143,13 @@ setup() {
 @test "require_web_settings names only the variable for a bad host, user id, client id or secret, and prints no value" {
   local case name value
   use_web_env
-  # Each case: the variable | its bad value (the secrets: empty, then #, $ and a space).
+  # Each case: the variable | its bad value (the secrets: empty, then #, $ and a space; the JWT key also one character
+  # shorter than the gateway accepts).
   for case in "BM_WEB_HOST|https://mcp.example.com" "BM_WEB_HOST|mcp.example.com/path" "BM_WEB_HOST|mcp.example.com:443" "BM_WEB_HOST|nodots" "BM_WEB_HOST|" \
     "BM_WEB_GITHUB_USER_ID|octocat" "BM_WEB_GITHUB_USER_ID|42x" "BM_WEB_GITHUB_USER_ID|" \
     "BM_WEB_GITHUB_CLIENT_ID|" "BM_WEB_GITHUB_CLIENT_ID|id with space" \
     "BM_WEB_GITHUB_CLIENT_SECRET|" "BM_WEB_GITHUB_CLIENT_SECRET|sec#ret" "BM_WEB_GITHUB_CLIENT_SECRET|sec\$ret" "BM_WEB_GITHUB_CLIENT_SECRET|sec ret" \
-    "BM_WEB_JWT_KEY|" "BM_WEB_JWT_KEY|key#0123" "BM_WEB_JWT_KEY|key\$0123" "BM_WEB_JWT_KEY|key 0123" \
+    "BM_WEB_JWT_KEY|" "BM_WEB_JWT_KEY|key#0123" "BM_WEB_JWT_KEY|key\$0123" "BM_WEB_JWT_KEY|key 0123" "BM_WEB_JWT_KEY|fake-jwt-key-fake-jwt-key-fake-" \
     "BM_WEB_TUNNEL_TOKEN|" "BM_WEB_TUNNEL_TOKEN|tok#en" "BM_WEB_TUNNEL_TOKEN|tok\$en" "BM_WEB_TUNNEL_TOKEN|tok en"; do
     IFS='|' read -r name value <<<"$case"
     (
@@ -188,7 +189,7 @@ setup() {
   assert_line "BM_WEB_GITHUB_USER_ID=4242"
   assert_line "BM_WEB_GITHUB_CLIENT_ID=test-client-id"
   assert_line "BM_WEB_GITHUB_CLIENT_SECRET=test-client-secret"
-  assert_line "BM_WEB_JWT_KEY=0123456789abcdef0123456789abcdef0123456789abcdef"
+  assert_line "BM_WEB_JWT_KEY=fake-jwt-key-fake-jwt-key-fake-jwt-key"
   assert_line "BM_WEB_TUNNEL_TOKEN=test-tunnel-token"
 }
 
@@ -197,6 +198,25 @@ setup() {
   unset BM_WEB_PORT
   run vm_env
   assert_line "BM_WEB_PORT=8738"
+}
+
+@test "vm_env with BM_WEB on writes the sha256 of the gateway runtime files, which changes when any one of them changes" {
+  local hash file
+  use_web_env
+  run vm_env
+  assert_success
+  hash="$(sed -n 's/^BM_WEB_CODE_SHA256=//p' <<<"$output")"
+  [[ "$hash" =~ ^[0-9a-f]{64}$ ]] || fail "vm_env printed no BM_WEB_CODE_SHA256 line"
+  run gateway_code_sha256 "$REPO_DIR/gateway"
+  assert_output "$hash"
+  for file in $GATEWAY_RUNTIME_FILES; do
+    (
+      rm -rf "$BATS_TEST_TMPDIR/gateway" && cp -R "$REPO_DIR/gateway" "$BATS_TEST_TMPDIR/gateway" || exit 1
+      printf '\n' >>"$BATS_TEST_TMPDIR/gateway/$file" || exit 1
+      run gateway_code_sha256 "$BATS_TEST_TMPDIR/gateway"
+      assert_success && assert_output --regexp '^[0-9a-f]{64}$' && refute_output "$hash"
+    ) || fail "the gateway code hash did not change with gateway/$file"
+  done
 }
 
 @test "upload_gateway_files uploads boot.py, gateway.py and requirements.txt when BM_WEB is on and nothing when it is off" {

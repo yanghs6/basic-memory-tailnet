@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import fnmatch
 import json
 import socket
 import tempfile
@@ -69,6 +70,10 @@ PROBE_HEADER = "x-forward-probe"
 # claude.ai gives the discovery endpoints 10 seconds.
 DISCOVERY_LIMIT_SECONDS = 10
 SERVER_START_TIMEOUT_SECONDS = 20
+# The files make status counts as client registrations, one per registered client: scripts/show-status.sh states the
+# same pattern as GATEWAY_CLIENT_FILES_PATTERN (tests/show-status.bats checks that both are equal) and matches it with
+# `find -path`, whose * also matches / like fnmatch's.
+CLIENT_FILES_PATTERN = "*/oauth-proxy/*/S_mcp_oauth_proxy_clients-*/*"
 FAKE_ENV = {
     "BM_WEB_BASE_URL": "http://127.0.0.1:8738",
     "BM_WEB_GITHUB_USER_ID": OWNER_ID,
@@ -251,6 +256,28 @@ class GatewayToolsTest(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn("BODY-9c4e", "\n".join(captured.output))
         self.assertEqual(self.backend.calls, [])
 
+    async def test_audit_line_cuts_long_note_values(self) -> None:
+        limit = gateway.AUDIT_VALUE_MAX_CHARS
+        long_title = "T" * (limit + 50)
+        # Not a string: a refused call can carry any JSON, which is cut as its JSON text.
+        long_identifier = ["x" * limit]
+        cases = (
+            ("owner", "title", long_title, long_title[:limit]),
+            ("other", "identifier", long_identifier, json.dumps(long_identifier)[:limit]),
+        )
+        for token, key, value, kept in cases:
+            with self.subTest(token=token, key=key):
+                with self.assertLogs(gateway.AUDIT_LOGGER_NAME, "INFO") as captured:
+                    async with self.client(token) as client:
+                        await client.call_tool("write_note", {key: value}, raise_on_error=False)
+                line = json.loads(captured.records[0].getMessage())
+                self.assertEqual(line["note"][key], kept + gateway.AUDIT_CUT_MARKER)
+        # A value at the limit stays whole.
+        with self.assertLogs(gateway.AUDIT_LOGGER_NAME, "INFO") as captured:
+            async with self.client("owner") as client:
+                await client.call_tool("write_note", {"title": "T" * limit})
+        self.assertEqual(json.loads(captured.records[0].getMessage())["note"]["title"], "T" * limit)
+
 
 class RunRecorder:
     """Stands in for the FastMCP server in gateway._serve: records the run_http_async arguments and returns."""
@@ -301,6 +328,47 @@ class GatewayMetadataTest(unittest.IsolatedAsyncioTestCase):
     def metadata_status(base_url: str) -> int:
         url = f"{base_url}/.well-known/oauth-authorization-server"
         with urllib.request.urlopen(url, timeout=DISCOVERY_LIMIT_SECONDS) as response:
+            return response.status
+
+
+class RegistrationStoreTest(unittest.IsolatedAsyncioTestCase):
+    async def test_status_pattern_counts_one_file_per_registered_client(self) -> None:
+        server = ServerThread()
+        settings = dataclasses.replace(
+            gateway.Settings.from_env({**FAKE_ENV, "BM_WEB_BASE_URL": server.base_url}),
+            backend_url=f"http://127.0.0.1:{closed_port()}/mcp",
+        )
+        with tempfile.TemporaryDirectory() as data_dir:
+            storage, _ = gateway.make_storage(Path(data_dir), settings.jwt_key)
+            server.start(gateway.build_gateway(settings, auth=gateway.github_auth(settings, storage)).http_app())
+            try:
+                status = await asyncio.to_thread(self.register, server.base_url)
+            finally:
+                server.stop()
+            files = [path for path in Path(data_dir).rglob("*") if path.is_file()]
+            counted = [path for path in files if fnmatch.fnmatchcase(str(path), CLIENT_FILES_PATTERN)]
+            # The collection's metadata file sits next to its directory and must not count as a registration.
+            metadata = [path for path in files if path.name.startswith("S_mcp_oauth_proxy_clients-")]
+        self.assertEqual(status, 201)
+        self.assertEqual(len(counted), 1, [str(path.relative_to(data_dir)) for path in files])
+        self.assertEqual(len(metadata), 1)
+
+    @staticmethod
+    def register(base_url: str) -> int:
+        body = {
+            "client_name": "test-registration",
+            "redirect_uris": [gateway.CLAUDE_CALLBACK],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "token_endpoint_auth_method": "none",
+        }
+        request = urllib.request.Request(
+            f"{base_url}/register",
+            data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=DISCOVERY_LIMIT_SECONDS) as response:
             return response.status
 
 

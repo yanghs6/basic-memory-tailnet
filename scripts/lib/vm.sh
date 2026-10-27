@@ -16,7 +16,8 @@
 #   exists_cmd PATH -> a sh command that prints present or absent for PATH
 #   remote_exists PATH -> present or absent for PATH on the VM; fails when the VM does not answer
 #   vm_tailscale_logged_in -> exit 0 when Tailscale on the VM is logged in, 1 when it is not
-#   vm_env -> the .env content for the VM (with BM_WEB=on also the web connector settings)
+#   vm_env -> the .env content for the VM (with BM_WEB=on also the web connector settings and the gateway code hash)
+#   gateway_code_sha256 DIR -> one sha256 over the GATEWAY_RUNTIME_FILES in DIR, in their listed order
 #   upload_gateway_files -> with BM_WEB=on, upload the gateway runtime files to the VM app dir (deploy and restore)
 #   manifest_cmd DIR -> a command printing "<sha256>  ./<path>" for every data file under DIR
 #   sha256_of FILE -> hex digest of a local file
@@ -43,6 +44,9 @@ readonly GATEWAY_RUNTIME_FILES="boot.py gateway.py requirements.txt"
 readonly WEB_ENV_VALUE_PATTERN='^[A-Za-z0-9._~+/=-]+$'
 readonly WEB_HOST_PATTERN='^([A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$'
 readonly WEB_USER_ID_PATTERN='^[0-9]+$'
+# The shortest BM_WEB_JWT_KEY: the same value as MIN_JWT_KEY_LENGTH in gateway/gateway.py, which refuses a shorter key
+# at start, so deploy and restore stop on it before they touch the VM.
+readonly MIN_WEB_JWT_KEY_LENGTH=32
 
 # access_mode -> tailscale or ssh: BM_ACCESS, or tailscale when it is unset (.env files from before the ssh mode).
 # Any other value, another case included, stops here so no script falls back to the wrong path.
@@ -101,8 +105,9 @@ require_web_host() {
 
 # require_web_settings -> with BM_WEB=on, dies unless BM_WEB_HOST, BM_WEB_GITHUB_USER_ID (digits), BM_WEB_GITHUB_CLIENT_ID
 # and the three secrets (BM_WEB_GITHUB_CLIENT_SECRET, BM_WEB_JWT_KEY, BM_WEB_TUNNEL_TOKEN) are set and well formed. The
-# secrets and the client id may hold only the characters of WEB_ENV_VALUE_PATTERN, because .env is read literally.
-# Names the variable only, never a value. Deploy and restore call it before any ssh.
+# secrets and the client id may hold only the characters of WEB_ENV_VALUE_PATTERN, because .env is read literally, and
+# BM_WEB_JWT_KEY needs at least MIN_WEB_JWT_KEY_LENGTH characters. Names the variable only, never a value. Deploy and
+# restore call it before any ssh.
 require_web_settings() {
   local web name
   web="$(web_mode)" || return 1
@@ -116,6 +121,8 @@ require_web_settings() {
     [[ "${!name}" =~ $WEB_ENV_VALUE_PATTERN ]] \
       || die "$name must be made of letters, digits and ._~+/=- (make and docker compose change other characters such as #, \$ and spaces): fix it in .env in the main checkout"
   done
+  ((${#BM_WEB_JWT_KEY} >= MIN_WEB_JWT_KEY_LENGTH)) \
+    || die "BM_WEB_JWT_KEY must be at least $MIN_WEB_JWT_KEY_LENGTH characters (make one with 'openssl rand -hex 32'): fix it in .env in the main checkout"
 }
 
 readonly MIN_LOCAL_PORT=1024
@@ -204,9 +211,11 @@ vm_tailscale_logged_in() {
 
 # vm_env -> the .env content for the VM: loopback ports, absolute data paths and the SilverBullet login (shared by
 # deploy and restore; both run require_sb_user and require_web_settings first). With BM_WEB=on it adds the profiles of
-# the gateway and the tunnel, the gateway port, data dir and public base URL, and the web connector settings.
+# the gateway and the tunnel, the gateway port, data dir and public base URL, the web connector settings, and
+# BM_WEB_CODE_SHA256 (gateway_code_sha256): compose.yaml passes it to the gateway, so a change of the bind-mounted gateway
+# code or its pinned dependencies changes the service and `up -d` recreates the container.
 vm_env() {
-  local web
+  local web code_sha256
   web="$(web_mode)" || return 1
   printf 'BM_PORT=%s\n' "${BM_PORT:-$DEFAULT_BM_PORT}"
   printf 'BM_KNOWLEDGE_DIR=%s/knowledge\n' "$BM_REMOTE_DATA_ROOT"
@@ -214,6 +223,7 @@ vm_env() {
   printf 'SB_PORT=%s\n' "${SB_PORT:-$DEFAULT_SB_PORT}"
   printf 'SB_USER=%s\n' "$SB_USER"
   [[ "$web" == on ]] || return 0
+  code_sha256="$(gateway_code_sha256 "$REPO_DIR/gateway")" || return 1
   printf 'COMPOSE_PROFILES=web,tunnel\n'
   printf 'BM_WEB_PORT=%s\n' "${BM_WEB_PORT:-$DEFAULT_BM_WEB_PORT}"
   printf 'BM_WEB_DATA_DIR=%s/gateway\n' "$BM_REMOTE_DATA_ROOT"
@@ -223,6 +233,18 @@ vm_env() {
   printf 'BM_WEB_GITHUB_CLIENT_SECRET=%s\n' "$BM_WEB_GITHUB_CLIENT_SECRET"
   printf 'BM_WEB_JWT_KEY=%s\n' "$BM_WEB_JWT_KEY"
   printf 'BM_WEB_TUNNEL_TOKEN=%s\n' "$BM_WEB_TUNNEL_TOKEN"
+  printf 'BM_WEB_CODE_SHA256=%s\n' "$code_sha256"
+}
+
+# gateway_code_sha256 DIR -> one sha256 over the GATEWAY_RUNTIME_FILES in DIR, in their listed order: the digest of the
+# "<sha256>  <name>" lines of the files, so a change in any one of them, or bytes moved between them, changes it.
+gateway_code_sha256() {
+  local dir="$1" file digest lines=""
+  for file in $GATEWAY_RUNTIME_FILES; do
+    digest="$(sha256_of "$dir/$file")" || return 1
+    lines="$lines$digest  $file"$'\n'
+  done
+  printf '%s' "$lines" | sha256_of /dev/stdin
 }
 
 # upload_gateway_files -> with BM_WEB=on, creates $BM_REMOTE_APP_DIR/gateway on the VM and uploads GATEWAY_RUNTIME_FILES

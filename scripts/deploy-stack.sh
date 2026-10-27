@@ -24,17 +24,23 @@ recreate_basic_memory() {
 }
 
 main() {
-  local env_file="$BM_REMOTE_APP_DIR/.env"
+  local env_file="$BM_REMOTE_APP_DIR/.env" web env_holds="SB_USER" services="Basic Memory and SilverBullet"
   require_vm
   require_sb_user
   require_web_settings
+  web="$(web_mode)" || exit 1
+  # With BM_WEB off the steps say exactly what they said before the web connector.
+  if [[ "$web" == on ]]; then
+    env_holds="SB_USER and the web settings"
+    services="Basic Memory, SilverBullet and the web connector"
+  fi
 
   step "upload compose.yaml to $BM_VM_HOST:$BM_REMOTE_APP_DIR"
   remote "cat > $BM_REMOTE_APP_DIR/compose.yaml" <"$REPO_DIR/compose.yaml" \
     || die "upload failed: $(access_hint)"
   upload_gateway_files
 
-  step "write $env_file (owner only: it holds SB_USER and the web settings)"
+  step "write $env_file (owner only: it holds $env_holds)"
   # umask covers only new files, so an existing .env is made owner-only before the login goes in.
   vm_env | remote "touch $env_file && chmod 600 $env_file && cat > $env_file" \
     || die "could not write $env_file on the VM"
@@ -45,11 +51,11 @@ main() {
   step "write the SilverBullet space files"
   sb_space_apply vm "run 'make deploy' again" recreate_basic_memory
 
-  step "start Basic Memory and SilverBullet (waits up to ${HEALTH_TIMEOUT_SECONDS}s for healthy)"
+  step "start $services (waits up to ${HEALTH_TIMEOUT_SECONDS}s for healthy)"
   remote_compose "up -d --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS" \
     || die "containers did not become healthy within ${HEALTH_TIMEOUT_SECONDS}s: run 'make logs'"
 
-  if [[ "$(web_mode)" == off ]]; then
+  if [[ "$web" == off ]]; then
     step "remove web connector containers left by an earlier deploy"
     remote_compose "rm --stop --force $WEB_SERVICES" || die "could not remove the web connector containers: run 'make logs'"
   fi

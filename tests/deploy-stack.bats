@@ -72,7 +72,7 @@ setup() {
   use_web_env
   run "$REPO_DIR/scripts/deploy-stack.sh"
   assert_success
-  for secret in test-client-secret 0123456789abcdef0123456789abcdef0123456789abcdef test-tunnel-token; do
+  for secret in test-client-secret fake-jwt-key-fake-jwt-key-fake-jwt-key test-tunnel-token; do
     refute_output --partial "$secret"
     refute_stub_called -F "$secret"
   done
@@ -83,7 +83,10 @@ setup() {
   run grep -x 'COMPOSE_PROFILES=web,tunnel' "$BM_REMOTE_APP_DIR/.env"
   assert_success
   run grep -c '^BM_WEB_' "$BM_REMOTE_APP_DIR/.env"
-  assert_output 8
+  assert_output 9
+  # The gateway code hash: compose recreates the gateway when only its bind-mounted code or dependencies changed.
+  run grep -cE '^BM_WEB_CODE_SHA256=[0-9a-f]{64}$' "$BM_REMOTE_APP_DIR/.env"
+  assert_output 1
   run stat -c '%a' "$BM_REMOTE_APP_DIR/.env"
   assert_output "600"
   refute_stub_called -F 'rm --stop --force'

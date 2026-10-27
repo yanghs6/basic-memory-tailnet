@@ -93,6 +93,9 @@ services:
       BM_WEB_GITHUB_CLIENT_ID: ${BM_WEB_GITHUB_CLIENT_ID:-}
       BM_WEB_GITHUB_CLIENT_SECRET: ${BM_WEB_GITHUB_CLIENT_SECRET:-}
       BM_WEB_JWT_KEY: ${BM_WEB_JWT_KEY:-}
+      # The sha256 of the gateway runtime files (vm_env in scripts/lib/vm.sh writes it into the VM .env). The code is
+      # bind-mounted, so without it a deploy that changed only the code or its dependencies keeps the old container.
+      BM_WEB_CODE_SHA256: ${BM_WEB_CODE_SHA256:-}
       # The client registration and token store (FastMCP's default layout under FASTMCP_HOME).
       FASTMCP_HOME: /data
       PYTHONPATH: /deps/site

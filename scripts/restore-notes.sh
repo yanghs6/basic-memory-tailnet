@@ -5,6 +5,8 @@
 # touched. Current data is moved aside, never deleted. This repo's SilverBullet space files are written into the
 # restored notes folder while the containers are stopped, so Basic Memory starts with the current notes .gitignore.
 # Any failure after the stop puts the previous data, compose.yaml and .env back and restarts the container.
+# With BM_WEB=on only Basic Memory and SilverBullet decide success (and the rollback); the web connector starts after
+# them and only warns when it is not healthy.
 # Usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz   (asks the user to type yes)
 set -euo pipefail
 
@@ -26,6 +28,12 @@ ENV_PREV="$ENV_FILE.prev-$STAMP"
 STOP_ATTEMPTED=""
 # Set when the VM had data before this restore; without it (a recreated VM) there is nothing to roll back to.
 HAD_PREVIOUS_DATA=""
+# The services the restored notes need.
+readonly NOTE_SERVICES="basic-memory silverbullet"
+# The services whose health decides the restore and its rollback: empty (every service, as before the web connector)
+# with BM_WEB off; NOTE_SERVICES with BM_WEB=on, so a web connector service that does not come up never fails the
+# restore or rolls the notes back (start_web_services starts the rest). Set in main.
+WAIT_SERVICES=""
 
 verify_checksum() {
   local archive="$1" expected actual
@@ -72,8 +80,9 @@ rollback() {
   fi
   # --force-recreate: with an unchanged compose.yaml and .env, plain `up -d` keeps the running container, whose
   # bind mount still points at the restored data now renamed to .failed-*.
-  if remote_compose --if-deployed "up -d --force-recreate --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS"; then
+  if remote_compose --if-deployed "up -d --force-recreate --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS${WAIT_SERVICES:+ $WAIT_SERVICES}"; then
     log "rolled back: the previous data is live again"
+    start_web_services --if-deployed
   else
     log "WARNING: the container did not come back after rollback; run 'make status' and 'make logs'"
   fi
@@ -94,6 +103,22 @@ report_no_previous_data() {
   log "nothing rolled back: $BM_VM_HOST had no data before this restore; $where. Next: run 'make status' and 'make logs', fix the cause, then rerun 'make restore BACKUP=<archive>'"
 }
 
+# start_web_services [--if-deployed]: with BM_WEB=on, once the note services are healthy, start the rest (the web
+# connector) with a plain `up -d`, then wait up to HEALTH_TIMEOUT_SECONDS once for every service to be healthy. It only
+# warns: the notes are restored whether or not the web connector comes up. The wait names no service, so after a
+# rollback to an .env without the web profiles it starts nothing new. Does nothing with BM_WEB off.
+# shellcheck disable=SC2317  # also invoked from the rollback trap
+start_web_services() {
+  local deployed="${1:-}"
+  if [[ -n "$WAIT_SERVICES" ]]; then
+    step "start the web connector services (waits up to ${HEALTH_TIMEOUT_SECONDS}s; the notes do not depend on them)"
+    if ! { remote_compose ${deployed:+"$deployed"} "up -d" \
+      && remote_compose ${deployed:+"$deployed"} "up -d --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS"; }; then
+      log "WARNING: the web connector services are not healthy; the notes are not affected: run 'make status' and 'make logs'"
+    fi
+  fi
+}
+
 # upload_vm_file TARGET PREV: keep a copy of TARGET at PREV, then replace TARGET with stdin. Both writes go to
 # a temp name first and are moved into place only when complete, so a partial copy never replaces a good file
 # or becomes the rollback source; on failure the temp files are removed. Files are written owner-only, because
@@ -104,7 +129,7 @@ upload_vm_file() {
 }
 
 main() {
-  local archive="${1:-}" actual expected present
+  local archive="${1:-}" actual expected present web
   [[ -n "$archive" ]] || die "usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz"
   [[ -f "$archive" ]] || die "backup not found: $archive (archives from 'make backup' are in <main checkout>/backups/; pass the full path if you are in another checkout)"
   [[ -f "$archive.sha256" ]] || die "checksum file missing: $archive.sha256 (restore only archives made by 'make backup')"
@@ -112,6 +137,10 @@ main() {
   require_vm
   require_sb_user
   require_web_settings
+  web="$(web_mode)" || exit 1
+  if [[ "$web" == on ]]; then
+    WAIT_SERVICES="$NOTE_SERVICES"
+  fi
   verify_checksum "$archive"
   check_archive_entries "$archive"
   confirm "Replace $ROOT, $COMPOSE_FILE and $ENV_FILE on $BM_VM_HOST with $(basename "$archive") and this repo's compose.yaml? Current data moves to $PREV. Type 'yes': "
@@ -156,10 +185,13 @@ main() {
   sb_space_apply vm "rerun 'make restore BACKUP=$archive'"
 
   step "start container"
-  remote_compose "up -d --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS" \
+  remote_compose "up -d --wait --wait-timeout $HEALTH_TIMEOUT_SECONDS${WAIT_SERVICES:+ $WAIT_SERVICES}" \
     || die "container did not become healthy with the restored data"
   remote "rm -f $COMPOSE_PREV $ENV_PREV" || log "WARNING: could not remove $COMPOSE_PREV and $ENV_PREV"
   log "restored $(basename "$archive"); previous data kept at $PREV"
+  # The notes are restored: nothing after this rolls them back, not even an interrupted wait for the web connector.
+  trap - EXIT
+  start_web_services
 }
 
 main "$@"

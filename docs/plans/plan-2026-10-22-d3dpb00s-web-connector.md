@@ -165,7 +165,7 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
     - "with BM_WEB=on and a malformed secret stops before ssh".
     - "with BM_WEB=on uploads the gateway runtime files before starting the stack": 게이트웨이 코드가 없는 VM(웹으로 배포한 적이 없는 재생성 VM)을 흉내 내고, ssh 스텁 로그에서 세 파일의 업로드가 `up -d --wait`보다 앞에 있는지 본다.
   - `verify-vm.bats`: `BM_WEB=on`이면 `verify-web.sh --public "https://<host>"`를 `verify`와 `probe` 모두에서 부르고, `BM_WEB_PORT`의 loopback 검사와 공인 IP 검사를 한다. `off`면 셋 다 하지 않는다.
-  - `show-status.bats`: `BM_WEB=on`이면 `gateway store: <N> KiB, <M> client registrations` 줄이 나온다. 원격 명령은 `du -sk`와, `mcp-oauth-proxy-clients`가 들어간 경로의 파일 수다. `off`면 그 줄이 없다.
+  - `show-status.bats`: `BM_WEB=on`이면 `gateway store: <N> KiB, <M> client registrations` 줄이 나온다. 원격 명령은 `du -sk`와, `oauth-proxy/` 아래 모든 키 지문 디렉터리의 `S_mcp_oauth_proxy_clients-<8 hex>/` 안 파일 수다. FastMCP의 컬렉션 이름 `mcp-oauth-proxy-clients`를 py-key-value-aio 0.4.6의 FileTreeV1 전략이 이 디렉터리 이름으로 바꾸고, 옆의 `S_mcp_oauth_proxy_clients-<8 hex>-info.json` 메타데이터 파일은 세지 않는다. `off`면 그 줄이 없다.
 - [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패하고 기존 테스트는 통과한다.
 - [ ] **Step 3: 최소 구현.**
   - `deploy-stack.sh`: `require_sb_user` 다음에 `require_web_settings`를 부른다. `compose.yaml`을 올린 뒤 `upload_gateway_files`를 부른다. `up` 뒤 `off`면 `remote_compose "rm --stop --force $WEB_SERVICES"`(Step 0 결과대로)를 부른다.
