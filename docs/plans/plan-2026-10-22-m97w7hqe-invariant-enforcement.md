@@ -1,5 +1,5 @@
 ---
-status: backlog
+status: active
 id: m97w7hqe
 spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 ---
@@ -43,6 +43,12 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 - **Open question 2:** Task 4의 prose-only 목록 위치.
   - A(추천): 새 ADR에 두고 `AGENTS.md` 제목 아래 한 줄로 가리킨다. 네 도구가 매 세션 읽는 `AGENTS.md`를 짧게 두고, 검사가 생겨 목록이 바뀌어도 `AGENTS.md`를 고칠 필요가 없다. 크기 한도 때문은 아니다(9,841/24,000바이트).
   - B: `AGENTS.md` Invariants 아래 절. 한 파일에서 보이지만 매 세션 컨텍스트가 늘고, 목록이 바뀔 때마다 `AGENTS.md` 수정 OK가 필요하다.
+- **Verified (2026-10-27):** 사용자가 이 계획을 승인하고 Open question 1은 A(`Tests-Removed` 하나), Open question 2는 A(새 ADR과 `AGENTS.md`의 한 줄)로 정했다.
+- **Verified (2026-10-27, `01eb909`):** 계획을 쓴 뒤 바뀐 점과 그에 따른 계획 수정이다.
+  - `git grep -c '^@test '`의 합은 209다. Task 1·3의 기대 테스트 수는 이 값을 기준으로 고쳤다. 앞 배경의 줄 번호도 밀렸다(예: `-L`은 `scripts/lib/vm.sh:195-196`). 구현은 그날 트리의 줄을 다시 연다.
+  - `tests/check-public-text.bats:112`에 `[ "$(id -u)" -eq 0 ] && skip "…"`가 있다. 계획의 정규식 `^\+[[:space:]]*skip`은 이 모양을 놓치므로, Task 2는 명령 위치의 `skip`(줄 처음이나 `&&`, `||`, `;` 뒤)을 잡는다.
+  - `scripts/check-public-text.sh:183`의 `[[ ! -L "$path" ]]`는 파일 검사다. Task 3 규칙 (가)를 그대로 쓰면 이 줄이 걸리므로 (가)도 ssh 명령과 그 연속 줄로 한정하고, 이 줄을 통과 경우로 고정한다.
+  - `AGENTS.md`는 11,012바이트다. 이미지는 compose 4개, `Makefile`의 `*_IMAGE` 3개, `tools/Dockerfile`의 `FROM` 2개가 모두 digest로 고정돼 있고, `TOOLS_IMAGE := bm-tools:local`만 직접 빌드한다.
 
 ## Global Constraints
 
@@ -99,7 +105,7 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 - [ ] **Step 3: 최소 구현.** 없음. 테스트가 이미 있는 레시피를 실행한다.
 - [ ] **Step 4: 통과 확인.**
   Run: `make check`
-  Expected: exit 0, ok 141, not ok 0, 커버리지 80% 이상
+  Expected: exit 0, ok 211, not ok 0, 커버리지 80% 이상
 - [ ] **Step 5: 커밋.** `git commit -m "test: run the help, fmt, test, local-down and local-logs targets" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 1"`
 
 ### Task 2: Test integrity guard
@@ -118,7 +124,7 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 동작:
 1. `git merge-base BASE HEAD`가 기준점이다. 없으면 고칠 방법과 함께 `die`.
 2. 기준점과 `HEAD`에서 `tests/*.bats`의 `^@test ` 수를 센다(`git grep -c`; 맞는 줄이 없는 리비전은 0, git 오류는 `die`).
-3. `git diff -U0 <기준점> HEAD -- 'tests/*.bats' tests/helpers.bash`에서 더해진 `skip` 줄(`^\+[[:space:]]*skip([[:space:]]|$)`)을 파일:줄로 모은다.
+3. `git diff -U0 <기준점> HEAD -- 'tests/*.bats' tests/helpers.bash`에서 더해진 줄 가운데 명령 위치(줄 처음이나 `&&`, `||`, `;` 뒤)에 `skip`이 있는 줄을 파일:줄로 모은다.
 4. 수가 줄었거나 새 `skip`이 있으면 PR 본문 트레일러 문단의 `Tests-Removed`에 빈 값이 아닌 이유가 있어야 한다. 없으면 "N -> M", `skip` 줄, 고칠 방법("PR 본문 마지막 문단에 `Tests-Removed: <reason>`을 더한다. 본문을 고치면 `pr-rules`가 다시 돈다")을 출력한다.
 5. `pr-rules.yml`의 새 단계 "Test count and skips"는 "PR title and trailers" 단계(`:27-31`)처럼 `env:`로 `PR_TITLE`과 `PR_BODY`를 받고 `scripts/check-tests.sh origin/main`을 실행한다.
 
@@ -147,7 +153,7 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 동작:
 1. "every executable shell file starts with #!/usr/bin/env bash and enables strict mode": `:44-55`와 같은 파일 집합에서 첫 줄이 정확히 `#!/usr/bin/env bash`다.
 2. "every script in scripts/ sources common.sh or a scripts/lib library": `scripts/*.sh`마다 주석이 아닌 source 줄이 있고, 그 경로가 `/lib/<topic>.sh`로 끝나며 `scripts/lib/<topic>.sh`가 있다. `:99-108`(라이브러리는 `common.sh`를 source)과 합쳐 전이적으로 성립한다.
-3. "every ssh -L in scripts/ and the Makefile goes through forward_spec": 주석이 아닌 줄에서 (가) `"$(forward_spec `이 바로 뒤에 오지 않는 단독 `-L`, (나) `ssh`가 있는 줄의 `L`을 포함한 묶음 옵션(`-NL`), (다) `LocalForward`를 위반으로 보고 파일:줄과 "`forward_spec`이나 `tunnel_args`(`scripts/lib/vm.sh:89-106`)로 만든다"를 출력한다.
+3. "every ssh -L in scripts/ and the Makefile goes through forward_spec": 주석이 아닌 줄에서 (가) ssh 명령이나 그 연속 줄에서 `"$(forward_spec `이 바로 뒤에 오지 않는 단독 `-L`(`[[ -L "$path" ]]` 같은 파일 검사는 제외), (나) `ssh`가 있는 줄의 `L`을 포함한 묶음 옵션(`-NL`), (다) `LocalForward`를 위반으로 보고 파일:줄과 "`forward_spec`이나 `tunnel_args`(`scripts/lib/vm.sh:89-106`)로 만든다"를 출력한다.
 4. "every image in compose.yaml, the Makefile and tools/Dockerfile is pinned by digest": compose는 지금 검사 그대로다. `Makefile`의 `^[A-Z_]+_IMAGE := ` 값은 `@sha256:<64 hex>`로 끝난다. 단, `docker build … -t $(VAR)` 레시피가 빌드하는 변수는 빼고, 그 변수는 `Makefile`에서 읽는다. `$(DOCKER_RUN)` 다음 단어는 `$(…_IMAGE)` 변수다. `tools/Dockerfile`의 `FROM`은 모두 `<image>@sha256:<64 hex>`다.
 
 - [ ] **Step 1: 검사 작성.** 위 1~4.
@@ -159,7 +165,7 @@ spec: docs/specs/spec-2026-10-15-d8q0b7bt-script-test-layout.md
 - [ ] **Step 3: 최소 구현.** 없음. 지금 트리는 네 규칙을 지킨다(배경).
 - [ ] **Step 4: 통과 확인.**
   Run: `make check`
-  Expected: exit 0, ok 143(Task 2의 테스트 수 별도), not ok 0, 커버리지 80% 이상
+  Expected: exit 0, ok 213(Task 2의 테스트 수 별도), not ok 0, 커버리지 80% 이상
 - [ ] **Step 5: 커밋.** `git commit -m "test: check shebangs, script sources, ssh forwards and tool image digests" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: m97w7hqe" --trailer "Task: 3"`
 
 ### Task 4: AGENTS.md heading and prose-only invariants
