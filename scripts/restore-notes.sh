@@ -72,7 +72,7 @@ rollback() {
     exit "$exit_code"
   fi
   log "restore failed; rolling back"
-  remote "if [ -e $PREV ]; then if [ -e $ROOT ]; then sudo -n mv $ROOT $ROOT.failed-$STAMP; fi; sudo -n mv $PREV $ROOT; fi; if [ -e $COMPOSE_PREV ]; then mv $COMPOSE_PREV $COMPOSE_FILE; fi; if [ -e $ENV_PREV ]; then mv $ENV_PREV $ENV_FILE; fi; sudo -n rm -rf $STAGE" \
+  remote "if [ -e $PREV ]; then if [ -e $ROOT ]; then sudo -n mv $ROOT $ROOT.failed-$STAMP; fi; sudo -n mv $PREV $ROOT; fi; if [ -e $COMPOSE_PREV ]; then mv $COMPOSE_PREV $COMPOSE_FILE; fi; if [ -e $ENV_PREV ]; then mv $ENV_PREV $ENV_FILE; fi;${GATEWAY_SWAP_ATTEMPTED:+ $(gateway_rollback_cmd);} sudo -n rm -rf $STAGE" \
     || log "WARNING: rollback could not restore the directories; check $ROOT, $PREV, $COMPOSE_FILE and $ENV_FILE on the VM by hand"
   if [[ -z "$HAD_PREVIOUS_DATA" ]]; then
     report_no_previous_data

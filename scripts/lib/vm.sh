@@ -18,7 +18,8 @@
 #   vm_tailscale_logged_in -> exit 0 when Tailscale on the VM is logged in, 1 when it is not
 #   vm_env -> the .env content for the VM (with BM_WEB=on also the web connector settings and the gateway code hash)
 #   gateway_code_sha256 DIR -> one sha256 over the GATEWAY_RUNTIME_FILES in DIR, in their listed order
-#   upload_gateway_files -> with BM_WEB=on, upload the gateway runtime files to the VM app dir (deploy and restore)
+#   upload_gateway_files -> with BM_WEB=on, upload the gateway runtime files to a staging folder on the VM and swap it in (deploy and restore)
+#   gateway_rollback_cmd -> a command for `remote` that puts the previous gateway folder back (restore's rollback)
 #   manifest_cmd DIR -> a command printing "<sha256>  ./<path>" for every data file under DIR
 #   sha256_of FILE -> hex digest of a local file
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
@@ -247,18 +248,40 @@ gateway_code_sha256() {
   printf '%s' "$lines" | sha256_of /dev/stdin
 }
 
-# upload_gateway_files -> with BM_WEB=on, creates $BM_REMOTE_APP_DIR/gateway on the VM and uploads GATEWAY_RUNTIME_FILES
-# into it (compose mounts the folder read-only into the gateway container). Does nothing while BM_WEB is off.
+# Suffixes of the gateway folder's neighbours on the VM: the staging copy an upload fills, and the one backup copy of
+# the folder a swap replaced.
+readonly GATEWAY_STAGE_SUFFIX=.new
+readonly GATEWAY_BACKUP_SUFFIX=.prev
+# Set to 1 as soon as upload_gateway_files starts the swap, so a rollback knows the backup copy may be the live folder.
+GATEWAY_SWAP_ATTEMPTED=""
+
+# upload_gateway_files -> with BM_WEB=on, uploads GATEWAY_RUNTIME_FILES into a fresh staging folder next to
+# $BM_REMOTE_APP_DIR/gateway and only when every file arrived swaps it in with renames, keeping the previous folder as
+# the one backup copy (an older backup copy is replaced). A failed upload leaves the live folder untouched. Compose
+# mounts the folder read-only into the gateway container. Does nothing, and prints nothing, while BM_WEB is off.
 upload_gateway_files() {
-  local web file
+  local web file live stage backup
   web="$(web_mode)" || return 1
   [[ "$web" == on ]] || return 0
-  step "upload the gateway runtime files to $BM_VM_HOST:$BM_REMOTE_APP_DIR/gateway"
-  remote "mkdir -p $BM_REMOTE_APP_DIR/gateway" || die "could not create $BM_REMOTE_APP_DIR/gateway on the VM: $(access_hint)"
+  live="$BM_REMOTE_APP_DIR/gateway"
+  stage="$live$GATEWAY_STAGE_SUFFIX"
+  backup="$live$GATEWAY_BACKUP_SUFFIX"
+  step "upload the gateway runtime files to $BM_VM_HOST:$live (staged, then swapped in)"
+  remote "rm -rf $stage && mkdir -p $stage" || die "could not create $stage on the VM: $(access_hint)"
   for file in $GATEWAY_RUNTIME_FILES; do
-    remote "cat > $BM_REMOTE_APP_DIR/gateway/$file" <"$REPO_DIR/gateway/$file" \
-      || die "upload of gateway/$file failed: $(access_hint)"
+    remote "cat > $stage/$file" <"$REPO_DIR/gateway/$file" \
+      || die "upload of gateway/$file failed; the live $live was not touched: $(access_hint)"
   done
+  GATEWAY_SWAP_ATTEMPTED=1
+  remote "rm -rf $backup && { [ ! -e $live ] || mv $live $backup; } && mv $stage $live" \
+    || die "could not swap the staged gateway files into $live on the VM: $(access_hint)"
+}
+
+# gateway_rollback_cmd -> a shell command (run it with `remote`) that puts the backup copy back as the gateway folder
+# and does nothing when there is no backup copy. For restore's rollback after upload_gateway_files swapped.
+gateway_rollback_cmd() {
+  local live="$BM_REMOTE_APP_DIR/gateway"
+  printf 'if [ -e %s ]; then rm -rf %s && mv %s %s; fi' "$live$GATEWAY_BACKUP_SUFFIX" "$live" "$live$GATEWAY_BACKUP_SUFFIX" "$live"
 }
 
 # manifest_cmd DIR -> a shell command (run it with `remote`) that prints "<sha256>  ./<path>" for every file

@@ -77,7 +77,7 @@ setup() {
     refute_stub_called -F "$secret"
   done
   for file in boot.py gateway.py requirements.txt; do
-    assert_stub_called -F "cat > $BM_REMOTE_APP_DIR/gateway/$file"
+    assert_stub_called -F "cat > $BM_REMOTE_APP_DIR/gateway.new/$file"
     assert_same_file "$REPO_DIR/gateway/$file" "$BM_REMOTE_APP_DIR/gateway/$file"
   done
   run grep -x 'COMPOSE_PROFILES=web,tunnel' "$BM_REMOTE_APP_DIR/.env"
