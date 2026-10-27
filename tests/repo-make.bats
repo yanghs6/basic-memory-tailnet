@@ -92,6 +92,6 @@ make_in() {
   setup_stubs docker
   run make_in "$LINKED_WT" secret-scan
   assert_success
-  run grep -cE "^docker run --rm -v $LINKED_WT:/repo -v $MAIN_REPO/\.git:$MAIN_REPO/\.git:ro -w /repo zricethezav/gitleaks:v[0-9.]+@sha256:[0-9a-f]{64} git --redact --log-opts=--all /repo$" "$STUB_LOG"
+  run grep -cE "^docker run --rm -v $LINKED_WT:/repo -v $MAIN_REPO/\.git:$MAIN_REPO/\.git:ro -w /repo zricethezav/gitleaks:v[0-9.]+@sha256:[0-9a-f]{64} git --redact --verbose --log-opts=--all /repo$" "$STUB_LOG"
   assert_output 1
 }

@@ -85,7 +85,7 @@ check-git: ## Check the git policy for the current branch against origin/main (n
 
 # git log reads every ref through the read-only common dir mount, which also resolves a linked worktree's .git file.
 secret-scan: ## Scan every commit of every local ref for secrets with gitleaks (values redacted; run git fetch origin first)
-	$(DOCKER_RUN) $(GITLEAKS_IMAGE) git --redact --log-opts=--all /repo
+	$(DOCKER_RUN) $(GITLEAKS_IMAGE) git --redact --verbose --log-opts=--all /repo
 
 new-doc: ## Create a document from its template: TYPE=<type> SLUG=<slug> [ID=<id>] (types and rules: docs/README.md)
 	scripts/create-doc.sh "$(TYPE)" "$(SLUG)" "$(ID)"

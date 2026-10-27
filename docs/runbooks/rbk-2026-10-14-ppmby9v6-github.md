@@ -1,7 +1,7 @@
 ---
 status: current
 id: ppmby9v6
-reviewed: 2026-10-14
+reviewed: 2026-10-27
 ---
 
 # GitHub 운영: 머신 계정, 첫 push, 저장소 설정
@@ -55,10 +55,17 @@ git log -p <ref> | grep -cF '<GCP 프로젝트 ID>'
 
 **Command:** `git fetch origin` 뒤 `make secret-scan`을 실행합니다.
 
-- digest로 고정한 gitleaks 이미지(`Makefile`의 `GITLEAKS_IMAGE`)가 `gitleaks git --redact --log-opts=--all /repo`로 로컬의 모든 ref(브랜치, 원격 추적 브랜치, 태그)의 모든 커밋을 봅니다. `make test`와 같은 마운트를 쓰고, git common dir은 읽기 전용입니다. worktree에서 실행해도 같은 이력을 봅니다.
+- digest로 고정한 gitleaks 이미지(`Makefile`의 `GITLEAKS_IMAGE`)가 `gitleaks git --redact --verbose --log-opts=--all /repo`로 로컬의 모든 ref(브랜치, 원격 추적 브랜치, 태그)의 모든 커밋을 봅니다. `make test`와 같은 마운트를 쓰고, git common dir은 읽기 전용입니다. worktree에서 실행해도 같은 이력을 봅니다.
 - 통과는 exit 0이고 `no leaks found`가 출력되는 것입니다. 걸리면 exit 1로 끝나고, `--redact` 때문에 값 대신 `REDACTED`가 출력됩니다. 규칙 id, 파일, 커밋, `Fingerprint`는 그대로 나옵니다.
-- PR에만 남은 커밋(`refs/pull/<N>/head`)은 로컬 ref가 아니므로 보지 않습니다. 보려면 그 ref를 따로 받습니다(스펙 5절의 Assumption).
-- 걸린 값이 테스트용 가짜 키(예: `tests/` fixture)이면 저장소 루트의 `.gitleaksignore`에 그 결과의 `Fingerprint`를 한 줄씩 적고 다시 실행합니다. 형식은 `<커밋>:<파일>:<규칙 id>:<줄>`입니다. gitleaks는 작업 디렉터리(`/repo`)의 `.gitleaksignore`를 기본으로 읽습니다.
+- PR에만 남은 커밋(`refs/pull/<N>/head`)은 로컬 ref가 아니므로 보지 않습니다. 보려면 그 ref를 따로 받습니다(스펙 5절의 Assumption). `refs/remotes/origin/` 아래로 받으면 다른 worktree의 `git fetch --prune`이 지우므로, 따로 받아 스캔하고 바로 지웁니다.
+
+  ```bash
+  git fetch origin '+refs/pull/*/head:refs/pr-scan/*'
+  make secret-scan
+  git for-each-ref --format='delete %(refname)' refs/pr-scan | git update-ref --stdin
+  ```
+
+- 걸린 값이 테스트용 가짜 키(예: `tests/` fixture)이면 그 줄을 쓴 브랜치에서 줄 끝에 `gitleaks:allow` 주석을 붙이거나 값을 탐지되지 않는 모양으로 바꿉니다. 이미 `main`에 들어간 커밋이면 저장소 루트의 `.gitleaksignore`에 그 결과의 `Fingerprint`를 한 줄씩 적고 다시 실행합니다. 형식은 `<커밋>:<파일>:<규칙 id>:<줄>`이고, squash 병합 전 PR 커밋의 SHA는 병합 뒤 바뀌므로 그런 커밋은 적지 않습니다. gitleaks는 작업 디렉터리(`/repo`)의 `.gitleaksignore`를 기본으로 읽습니다.
 - **실제 자격증명이 걸리면** `.gitleaksignore`에 적지 않습니다. 폐기하고 교체한 뒤, 이력 처리는 사용자가 정합니다(위의 2절 규칙).
 - 결과는 진행 중인 계획의 Progress log에 `Verified`로 적습니다. 스캐너 버전, digest, 범위, 커밋 수, 규칙별 건수만 적고 값은 적지 않습니다.
 
