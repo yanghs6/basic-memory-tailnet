@@ -2,12 +2,17 @@
 # Test stub for docker: logs the call. DOCKER_STUB_FAIL_MATCH=<substring> makes matching calls fail.
 # DOCKER_STUB_FAIL_EXACT=<arguments>[<newline><arguments>...] makes the calls whose whole argument list is one of those
 # lines fail (for a call that is a prefix of another, such as "compose up -d").
+# A call that asks for the compose working_dir label prints DOCKER_STUB_STACK_DIRS (default empty, one directory per line).
 set -euo pipefail
 printf 'docker %s\n' "$*" >>"$STUB_LOG"
 if [[ -n "${DOCKER_STUB_FAIL_MATCH:-}" && "$*" == *"$DOCKER_STUB_FAIL_MATCH"* ]] \
   || { [[ -n "${DOCKER_STUB_FAIL_EXACT:-}" ]] && grep -qxF -- "$*" <<<"$DOCKER_STUB_FAIL_EXACT"; }; then
   echo "docker stub: simulated failure for: $*" >&2
   exit 1
+fi
+if [[ "$*" == *com.docker.compose.project.working_dir* ]]; then
+  [[ -z "${DOCKER_STUB_STACK_DIRS:-}" ]] || printf '%s\n' "$DOCKER_STUB_STACK_DIRS"
+  exit 0
 fi
 if [[ " $* " == *" ps "* ]]; then
   echo "NAME                  STATUS"
