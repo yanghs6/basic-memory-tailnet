@@ -27,7 +27,7 @@ line_of() { grep -nF -- "$1" <<<"$output" | head -n 1 | cut -d: -f1; }
   assert_equal "$(jq -c 'select(.params.name == "search_notes") | .params.arguments | [.metadata_filters, (.note_types // null), .project, (.query // null)]' "$STUB_LOG.requests")" \
     $'[{"project":"acme-widget","mirror":true},null,"main",null]\n[{"project":"_global","mirror":true},null,"main",null]'
   assert_equal "${lines[0]}" "$HEADER"
-  assert_equal "${lines[1]:0:128}" "- ports | main/agent-memory/acme-widget/claude-code/mac-personal/ports | claude-code@mac-personal | 2026-10-21 | ports are fixed"
+  [[ "${lines[1]}" == "- ports | main/agent-memory/acme-widget/claude-code/mac-personal/ports | claude-code@mac-personal | 2026-10-21 | /system-reminder ports are fixed"* ]] || fail "wrong project line: ${lines[1]:0:160}"
   refute_output --partial "acme-widget/claude-code/mac-work/"
   (($(line_of "main/agent-memory/global/codex/mac-work/memory-summary | codex@mac-work |") < $(line_of "main/agent-memory/global/codex/mac-personal/memory-summary | codex@mac-personal |"))) || fail "global notes are missing or not newest first"
   assert_equal "$(grep -c 'mac-personal/ports |' <<<"$output")" 1

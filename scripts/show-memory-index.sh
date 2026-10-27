@@ -30,8 +30,7 @@ readonly UNAVAILABLE_MESSAGE="basic-memory index unavailable; search_notes may s
 # lowercases the key and turns _ into -); the permalink only de-duplicates and is printed.
 INDEX_JQ=""
 read -r -d '' INDEX_JQ <<'JQ' || true
-# Whole tags go first (a "</system-reminder>" must not survive as "/system-reminder"), then any stray < or >.
-def clean: gsub("<[^>]*>"; "") | gsub("[<>]"; "") | gsub("\\s+"; " ") | sub("^ "; "") | sub(" $"; "");
+def clean: gsub("\\s+"; " ") | gsub("[<>]"; "") | sub("^ "; "") | sub(" $"; "");
 def is_mine: $device != "" and .device == $device and .agent == $agent
   and ($agent == "claude-code" or .key == $global);
 def newest: sort_by(.updated_at) | reverse;
