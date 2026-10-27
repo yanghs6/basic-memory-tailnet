@@ -15,12 +15,6 @@ readonly TITLE_FORMAT="'<type>: <description>' with type feat, fix, refactor, do
 readonly ASSISTED_BY_FORMAT="'Assisted-by: <claude-code|codex|antigravity|gemini-cli> <model>'"
 readonly PUBLIC_TEXT_HINT="the squash commit would publish it: mask it as scripts/check-public-text.sh suggests, then edit the pull request"
 
-# trailer_values KEY TRAILERS -> the values of KEY (matched case-insensitively, like git), one per line.
-trailer_values() {
-  awk -v key="$1" 'BEGIN { key = tolower(key) }
-    { i = index($0, ":"); if (i && tolower(substr($0, 1, i - 1)) == key) { v = substr($0, i + 1); sub(/^ +/, "", v); print v } }' <<<"$2"
-}
-
 # check_assisted_by TRAILERS [HIDE]: with HIDE set, a malformed value is not printed.
 check_assisted_by() {
   local hide="${2:-}" value count=0
@@ -68,11 +62,7 @@ main() {
   local title="${PR_TITLE:-}" trailers key hide=""
   require_cmd git
   [[ -n "$title" ]] || die "PR_TITLE is empty: pass the pull request title and body in PR_TITLE and PR_BODY"
-  # The squash commit is the PR title, a blank line and the body, and git log reads its trailers without the
-  # '---' divider rule, so parse the same text the same way. GitHub sends bodies with CRLF line ends, which
-  # git interpret-trailers does not parse.
-  trailers="$(printf '%s\n\n%s\n' "$title" "${PR_BODY:-}" | tr -d '\r' | git interpret-trailers --parse --no-divider)" \
-    || die "git interpret-trailers could not parse the PR body"
+  trailers="$(pr_trailers "$title" "${PR_BODY:-}")" || exit 1
   # A hit in either text keeps the title and the trailer values out of every other message.
   add_public_text_problems "PR title" "$PUBLIC_TEXT_HINT" "$title" || hide=1
   add_public_text_problems "PR body" "$PUBLIC_TEXT_HINT" "${PR_BODY:-}" || hide=1

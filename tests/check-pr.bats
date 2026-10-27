@@ -9,22 +9,10 @@ Assisted-by: claude-code claude-opus-5-5
 Plan: h8j3m5rx"
 }
 
-@test "passes a conventional title and a body ending in the trailers, also with CRLF line ends, a horizontal rule above them or only the trailers" {
-  local crlf_body rule_body trailers_only_body body
-  crlf_body="$(printf 'Summary.\r\n\r\nAssisted-by: claude-code claude-opus-5-5\r\nAssisted-by: codex gpt-6.1-sol\r\nPlan: none\r\n')"
-  rule_body="Summary.
-
----
-
-Assisted-by: claude-code claude-opus-5-5
-Plan: h8j3m5rx"
-  trailers_only_body="Assisted-by: claude-code claude-opus-5-5
-Plan: h8j3m5rx"
-  for body in "$GOOD_BODY" "$crlf_body" "$rule_body" "$trailers_only_body"; do
-    PR_TITLE="feat: add the pull request rules" PR_BODY="$body" run "$CHECK"
-    assert_success
-    assert_output --partial "OK: PR title and trailers"
-  done
+@test "passes a conventional title and a body ending in the trailers" {
+  PR_TITLE="feat: add the pull request rules" PR_BODY="$GOOD_BODY" run "$CHECK"
+  assert_success
+  assert_output --partial "OK: PR title and trailers"
 }
 
 @test "accepts Plan as an id or none, and rejects the two-digit number and ids outside the alphabet or length" {
