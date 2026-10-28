@@ -296,16 +296,16 @@ add_claude_files() {
   for ((i = 1; i <= $1; i++)); do echo "extra $i" >"$CLAUDE_MEM/memory/extra-$i.md"; done
 }
 
-@test "sends at most 10 write_note calls per run with a 3 second pause between two of them, says how many wait, and the next run sends the rest" {
-  add_claude_files 7
+@test "sends at most 5 write_note calls per run with a 3 second pause between two of them, says how many wait, and the next run sends the rest" {
+  add_claude_files 2
   run "$SYNC"
   assert_success
-  assert_output --partial "synced: wrote 10, deleted 0, failed 0, deferred 2"
-  assert_output --partial "2 notes wait for the next memory-sync (at most 10 writes per run)"
-  assert_equal "$(tool_calls write_note)" 10
-  assert_equal "$(grep -c '^sleep 3$' "$STUB_LOG")" 9
-  assert_equal "$(grep -c '^sleep ' "$STUB_LOG")" 9
-  assert_equal "$(wc -l <"$STATE_DIR/state.tsv" | tr -d ' ')" 10
+  assert_output --partial "synced: wrote 5, deleted 0, failed 0, deferred 2"
+  assert_output --partial "2 notes wait for the next memory-sync (at most 5 writes per run)"
+  assert_equal "$(tool_calls write_note)" 5
+  assert_equal "$(grep -c '^sleep 3$' "$STUB_LOG")" 4
+  assert_equal "$(grep -c '^sleep ' "$STUB_LOG")" 4
+  assert_equal "$(wc -l <"$STATE_DIR/state.tsv" | tr -d ' ')" 5
   rm -f "$STUB_LOG.requests"
   : >"$STUB_LOG"
   run "$SYNC"
@@ -315,7 +315,7 @@ add_claude_files() {
   assert_equal "$(tool_calls write_note)" 2
   assert_equal "$(tool_calls delete_note)" 0
   assert_equal "$(grep -c '^sleep 3$' "$STUB_LOG")" 1
-  assert_equal "$(wc -l <"$STATE_DIR/state.tsv" | tr -d ' ')" 12
+  assert_equal "$(wc -l <"$STATE_DIR/state.tsv" | tr -d ' ')" 7
 }
 
 @test "stops after 2 failed requests in a row, warns, counts the unsent writes as deferred and exits 1, and the next run writes everything" {
@@ -332,8 +332,8 @@ add_claude_files() {
   assert_equal "$(tool_calls write_note)" 5
 }
 
-@test "--full writes 10 of 12 files, keeps the others with an empty sha256, and the next normal run writes the rest" {
-  add_claude_files 7
+@test "--full writes 5 of 7 files, keeps the others with an empty sha256, and the next normal run writes the rest" {
+  add_claude_files 2
   "$SYNC" 2>/dev/null
   "$SYNC" 2>/dev/null
   printf 'data: %s\n' '{"jsonrpc":"2.0","id":2,"result":{"isError":false,"structuredContent":{"result":{"has_more":false,"results":[]}}}}' \
@@ -342,7 +342,7 @@ add_claude_files() {
   run "$SYNC" --full
   assert_success
   assert_output --partial "2 notes wait for the next memory-sync"
-  assert_equal "$(tool_calls write_note)" 10
+  assert_equal "$(tool_calls write_note)" 5
   assert_equal "$(awk -F'\t' '$3 == ""' "$STATE_DIR/state.tsv" | wc -l | tr -d ' ')" 2
   rm -f "$STUB_LOG.requests"
   run "$SYNC"
@@ -351,12 +351,12 @@ add_claude_files() {
   assert_equal "$(awk -F'\t' '$3 == ""' "$STATE_DIR/state.tsv" | wc -l | tr -d ' ')" 0
 }
 
-@test "starts the next run's writes at the first note a run did not send, so ten notes that always conflict cannot block the rest, and clears that cursor once a run sends everything" {
-  add_claude_files 8
+@test "starts the next run's writes at the first note a run did not send, so five notes that always conflict cannot block the rest, and clears that cursor once a run sends everything" {
+  add_claude_files 3
   export CURL_STUB_CONFLICT_MATCH='"directory":"agent-memory/acme-widget'
   run "$SYNC"
   assert_failure
-  assert_output --partial "failed 10, deferred 3"
+  assert_output --partial "failed 5, deferred 3"
   assert_equal "$(cut -d/ -f1-3 "$STATE_DIR/next-write.txt")" agent-memory/_global/codex
   rm -f "$STUB_LOG.requests"
   run "$SYNC"
@@ -367,6 +367,18 @@ add_claude_files() {
   unset CURL_STUB_CONFLICT_MATCH
   run "$SYNC"
   assert_success
-  assert_equal "$(wc -l <"$STATE_DIR/state.tsv" | tr -d ' ')" 13
+  assert_equal "$(wc -l <"$STATE_DIR/state.tsv" | tr -d ' ')" 8
   [[ ! -e "$STATE_DIR/next-write.txt" ]] || fail "the cursor is still there after a run that sent every write"
+}
+
+@test "waits longer for write_note than for the other requests, so a write Basic Memory answers after 45 seconds counts as written" {
+  export CURL_STUB_SLOW_MATCH='"name":"write_note"' CURL_STUB_SLOW_SECONDS=45
+  run "$SYNC"
+  assert_success
+  assert_output --partial "synced: wrote 5, deleted 0, failed 0, deferred 0"
+  echo changed >>"$CLAUDE_MEM/memory/MEMORY.md"
+  export CURL_STUB_SLOW_MATCH='"method":"initialize"'
+  run "$SYNC"
+  assert_failure
+  assert_output --partial "basic-memory unreachable"
 }

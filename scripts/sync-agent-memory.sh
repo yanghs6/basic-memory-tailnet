@@ -42,7 +42,10 @@ readonly CURSOR_FILE_NAME=next-write.txt
 readonly LOG_FILE_NAME=sync.log
 readonly LOCK_DIR_NAME=lock
 # Pacing for the 1 GB VM, which indexes every note it receives: at most this many write_note calls per run, the rest wait.
-readonly WRITE_LIMIT_PER_RUN=10
+readonly WRITE_LIMIT_PER_RUN=5
+# Seconds a write_note request may take (other requests keep the MCP library's default). The VM finished writes after up to
+# 56 seconds, and a write the client gave up on was sent and indexed again by the next run.
+readonly WRITE_TIMEOUT_SECONDS=90
 # Pause in seconds between two write_note calls (not before the first one).
 readonly WRITE_PAUSE_SECONDS=3
 # After this many requests in a row (writes or deletes) that got no answer ("request to <URL> failed") a run sends nothing more.
@@ -393,7 +396,7 @@ write_args() {
 write_one() {
   local args result action
   args="$(write_args "$@")" || exit 1
-  result="$(mcp_call_tool "$REQUEST_ID" write_note "$args")" || exit 1
+  result="$(MCP_TIMEOUT_SECONDS="$WRITE_TIMEOUT_SECONDS" mcp_call_tool "$REQUEST_ID" write_note "$args")" || exit 1
   action="$(jq -r '.action' <<<"$result")" || exit 1
   [[ "$action" == created || "$action" == updated ]] || die "write_note: action $action for $2"
   jq -r '.permalink // empty' <<<"$result"

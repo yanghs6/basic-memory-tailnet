@@ -931,7 +931,7 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
   - 메인 체크아웃을 `origin/main`으로 맞춘다: `! git -C <main> pull --ff-only`. hook은 메인 체크아웃의 스크립트를 부른다.
   - `.env`에 `BM_MEMORY_DEVICE=mac-work`를 넣는다.
   - `make tunnel`을 띄운다.
-- [ ] **Step 2: 첫 동기화 (완료 조건 2).** `make -C <main> memory-sync`를 실행한다. 한 번에 최대 10개만 쓰므로(속도 조절, 스펙 §3.3) `synced: wrote <n>, deleted 0, failed 0, deferred <m>`이 나온다. `... wait for the next memory-sync` 줄이 더 나오지 않을 때까지 `make -C <main> memory-sync`를 다시 실행한다(실행 사이에 `make status`로 1 GB VM을 본다). 그 실행들의 `wrote` 합이 원본 파일 수와 같아야 한다. 그다음 한 번 더 실행하면 아무 줄도 남기지 않는다. `list_directory("agent-memory", depth 4)`로 폴더가 §3.2 경로대로인지 본다. 숫자와 키 목록만 Progress log에 적고, 회사 프로젝트 이름은 `<회사 키>`로 가린다.
+- [ ] **Step 2: 첫 동기화 (완료 조건 2).** `make -C <main> memory-sync`를 실행한다. 한 번에 최대 5개만 쓰므로(속도 조절, 스펙 §3.3) `synced: wrote <n>, deleted 0, failed 0, deferred <m>`이 나온다. `... wait for the next memory-sync` 줄이 더 나오지 않을 때까지 `make -C <main> memory-sync`를 다시 실행한다(실행 사이에 `make status`로 1 GB VM을 본다). 그 실행들의 `wrote` 합이 원본 파일 수와 같아야 한다. 그다음 한 번 더 실행하면 아무 줄도 남기지 않는다. `list_directory("agent-memory", depth 4)`로 폴더가 §3.2 경로대로인지 본다. 숫자와 키 목록만 Progress log에 적고, 회사 프로젝트 이름은 `<회사 키>`로 가린다.
 - [ ] **Step 3: hook 등록 (사용자 OK).** `make -C <main> memory-hooks`를 실행한다. 사용자는 Codex에서 `/hooks`로 신뢰한다. 새 Claude Code 세션과 Codex 세션을 연다.
 - [ ] **Step 4: 변경·삭제 반영 (완료 조건 3, 스펙 §2 Assumption 4).**
   - 사용자 OK를 받고 이 저장소 기억 폴더에 시험 파일 `rollout-check.md`를 만든다.
