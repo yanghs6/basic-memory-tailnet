@@ -8,8 +8,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/vm.sh
 . "$SCRIPT_DIR/lib/vm.sh"
 
-readonly DEFAULT_TUNNEL_MCP_PORT=18737
-readonly DEFAULT_TUNNEL_WEB_PORT=13000
 readonly SERVER_ALIVE_INTERVAL_SECONDS=30
 readonly SERVER_ALIVE_COUNT_MAX=3
 # Exit code when ssh ended with 0: a tunnel that ends is still a failure.

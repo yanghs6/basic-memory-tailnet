@@ -3,6 +3,7 @@
 # MCP mode (CURL_FIXTURES set): answers JSON-RPC requests from fixture files named after the method:
 #   initialize, notifications_initialized, tools_list, call_<tool> (.body and optional .status).
 #   Request payloads are appended to $STUB_LOG.requests. CURL_STUB_EXIT=<n> simulates a transport error.
+#   A request with an id gets an answer with that id: each "id":<number> in the body becomes it (an escaped \"id\": stays).
 # SilverBullet mode (URL path /.ping, /.fs/..., /.auth, /.shell or /.logout): answers like a server with a login and
 #   the shell off; see sb_response for the overrides.
 # Web mode (CURL_WEB_FIXTURES set): answers from <name>.status (default 200), <name>.headers and <name>.body in that
@@ -152,7 +153,10 @@ key="$(jq -r 'if .method == "tools/call" then "call_" + .params.name else (.meth
 if [[ -n "$headers_file" ]]; then
   cp "$CURL_FIXTURES/headers.txt" "$headers_file"
 fi
-if [[ -f "$CURL_FIXTURES/$key.body" ]]; then
+request_id="$(jq -r '.id // empty' <<<"$data")"
+if [[ -f "$CURL_FIXTURES/$key.body" && -n "$request_id" ]]; then
+  sed -E 's/(^|[^\\])"id":[0-9]+/\1"id":'"$request_id"'/g' "$CURL_FIXTURES/$key.body" >"$body_file"
+elif [[ -f "$CURL_FIXTURES/$key.body" ]]; then
   cp "$CURL_FIXTURES/$key.body" "$body_file"
 else
   : >"$body_file"

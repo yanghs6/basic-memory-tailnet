@@ -165,6 +165,8 @@ Basic Memory 서버 (0.23.2, 터널 경유 `tools/list`):
 - Claude Code에서 hook이 띄운 백그라운드 동기화가 hook이 끝난 뒤에도 돈다(Task 6에서 확인). Codex는 소스로 확인됐다.
 - 에이전트가 색인을 보고 실제로 MCP를 부른다(Task 6에서 확인).
 
+**Verified (2026-10-26):** 위 처음 세 항목(frontmatter 합치기, 목록 호출과 `has_more`, `text` 검색의 지연과 한국어 명사)은 서버에서 소스대로였다. 결과는 계획 Progress log에 있다. 같은 확인에서 permalink가 키를 바꾸는 것을 찾아 §3.4를 고쳤다.
+
 ## 3. 설계
 
 ### 3.1 흐름
@@ -223,7 +225,7 @@ agent-memory/
 
 **프로젝트 키 (설계 판단):**
 1. Claude 기억 폴더의 원래 작업 폴더는 그 폴더의 세션 `.jsonl`에 있는 `cwd` 값 중, Claude의 폴더 이름 규칙(영문자·숫자·`-` 밖의 문자를 `-`로. 문서에는 없고 이 Mac의 폴더 이름으로 확인했다)으로 바꾸었을 때 폴더 이름과 같아지는 것이다. 기억 폴더는 git 저장소 루트 기준이라(§2) 저장소 루트의 `cwd`가 맞는다. 한 `.jsonl`에도 worktree 경로 같은 여러 `cwd`가 섞여 있으므로(2026-10-22 이 저장소에서 4개 확인) 최신 값을 그대로 쓰지 않는다. 맞는 값이 없으면 4번 규칙을 따른다. 한 번 정한 키는 상태 파일에 적어 두고 다시 계산하지 않는다.
-2. 작업 폴더가 git 저장소이고 `origin`이 있으면 `<owner>-<repo>`를 쓴다. 원격 주소는 호스트를 소문자로 바꾸고, 사용자 정보·포트·`.git`을 빼고, scp 형식(`git@host:path`)을 `host/path`로 바꿔 정규화한다. 예: `yanghs6-basic-memory-tailnet`, `acme_dev-data-pipeline`. 두 Mac에서 같은 값이 나온다.
+2. 작업 폴더가 git 저장소이고 `origin`이 있으면 `<owner>-<repo>`를 쓴다. 원격 주소는 호스트를 소문자로 바꾸고, 사용자 정보·포트·`.git`을 빼고, scp 형식(`git@host:path`)을 `host/path`로 바꿔 정규화한다. 예: `yanghs6-basic-memory-tailnet`, `acme_dev-widget-tools`. 두 Mac에서 같은 값이 나온다.
 3. git이 아니면 `local-<작업 폴더 이름>`을 쓴다. 기기 전용 작업 폴더이므로 두 Mac 사이에서 합쳐지지 않아도 된다.
 4. 작업 폴더가 홈 폴더이거나 `cwd`를 읽지 못하면 각각 `_global`, `local-<Claude 기억 폴더 이름>`을 쓴다.
 5. Codex 기억은 프로젝트별로 나뉘지 않으므로(§2) 모두 `_global`에 둔다.
@@ -311,7 +313,8 @@ agent-memory/
   ```
   - 정렬과 자르기: 프로젝트 노트 먼저, 그다음 `_global`이다. 각 묶음 안에서는 갱신이 최근인 순서다. permalink로 중복을 지운다. 2,500자를 넘기는 줄부터 빼고, 뺀 수를 마지막 줄에 적는다.
   - 다듬기: 제목과 본문 첫 100자는 공백 문자를 하나로 줄이고 `<`·`>`를 지운다.
-  - `<agent>@<device>`는 permalink의 `agent-memory/<키>/<에이전트>/<기기>/` 마디에서 읽는다.
+  - 묶음(프로젝트 키, `_global`), 뺄 노트, `<agent>@<device>`는 결과의 `file_path`(`.md`를 뗀 값)의 `agent-memory/<키>/<에이전트>/<기기>/` 마디에서 읽는다. permalink는 중복 제거와 출력에만 쓴다(2026-10-27 개정).
+  - **Verified (2026-10-26):** permalink는 키를 바꾼다. 소문자가 되고 `_`와 `--`가 `-`가 되어 `_global`은 `global`이 된다. `file_path`는 원래 이름 그대로다. 그래서 permalink로는 키를 비교할 수 없다(계획 Progress log).
   - 남는 노트가 없으면 아무것도 쓰지 않는다.
 - **실패:** 어느 경우든 0으로 끝난다.
   - 엔드포인트에 닿지 못하면 `basic-memory unreachable at session start: run make tunnel, then reconnect basic-memory with /mcp to use shared memory` 한 줄을 쓴다. 터널 없이 시작한 세션에는 MCP 도구가 없기 때문이다.
@@ -330,16 +333,17 @@ agent-memory/
 
   | 이벤트 | 명령 |
   |---|---|
-  | SessionStart, Stop | `make -s --no-print-directory -C <메인 체크아웃> memory-sync HOOK=1` |
-  | SessionStart | `make -s --no-print-directory -C <메인 체크아웃> memory-index MEMORY_AGENT=<claude-code 또는 codex>` |
+  | SessionStart, Stop | `make -s --no-print-directory -C <메인 체크아웃> memory-sync HOOK=1 \|\| exit 1` |
+  | SessionStart | `make -s --no-print-directory -C <메인 체크아웃> memory-index MEMORY_AGENT=<claude-code 또는 codex> \|\| exit 1` |
 
-- hook은 메인 체크아웃의 Make 타깃을 부른다. `.env`는 지금처럼 Makefile이 읽는다(`Makefile:8-15`).
+- hook은 메인 체크아웃의 Make 타깃을 부른다. `.env`는 지금처럼 Makefile이 읽는다(`Makefile:8-17`).
+- 명령 끝의 `|| exit 1`(2026-10-27 개정): make는 자기 오류(메인 체크아웃이 옮겨졌거나 지워짐, 타깃이 없음)에 2로 끝나고, Claude Code의 Stop hook이 2로 끝나면 멈춤을 막고 stderr를 Claude에게 넘기므로, 그런 실패를 사용자에게만 보이는 비차단 오류(1)로 바꾼다. 설치기는 `|| exit 1`이 없는 옛 형태도 이 타깃의 항목으로 보고 새 형태로 바꾼다.
 - 다시 실행해도 같은 결과다. 이미 있는 항목은 더하지 않는다. 바꾸기 전에 원본을 `<파일>.bak-<UTC 시각>`으로 남기고, 무엇을 더했는지 출력한다. JSON 편집에는 `jq`를 쓴다.
 - `REMOVE=1`이면 이 타깃이 더한 항목만 지운다.
 - 사용자 설정 파일을 바꾸므로 사람의 OK를 받고 실행한다. Codex는 등록 뒤 `/hooks`에서 한 번 신뢰해야 한다.
 - Codex는 hook을 위치와 명령 해시로 신뢰한다(§2). 그래서 새 항목은 이벤트 목록 끝에 더하고, 바뀐 것이 없으면 파일을 다시 쓰지 않는다. `REMOVE=1`로 앞쪽 항목이 빠지면 뒤 hook의 위치가 바뀌므로, 설치나 해제 뒤에는 Codex `/hooks`를 다시 본다(런북).
 - 새 `hooks.json`을 만들 때는 최상위에 `hooks`만 둔다. Codex가 모르는 최상위 키를 거부하기 때문이다.
-- 시간 제한은 10초다. 색인의 최악 경우(초기화와 목록 두 번, 요청마다 3초)보다 길다. Claude Code는 시간을 넘긴 hook의 출력을 버린다.
+- 시간 제한은 15초다(2026-10-27 개정, 전에는 10초). 색인의 최악 경우는 요청 네 번(`initialize`, `notifications/initialized`, 목록 두 번)에 요청마다 3초로 12초이고, 시간 제한은 그보다 길다. Claude Code는 시간을 넘긴 hook의 출력을 버린다.
 
 ### 3.6 설정 (`.env`)
 
@@ -349,7 +353,7 @@ agent-memory/
 | `BM_MEMORY_MCP_URL` | `http://127.0.0.1:${BM_TUNNEL_MCP_PORT}/mcp` | 동기화와 색인이 쓰는 MCP 주소 |
 | `BM_MEMORY_EXCLUDE` | 비어 있음 | 올리지 않을 프로젝트 키, 쉼표로 구분. `.env.example`이 값에 공백을 쓰지 말라고 하므로 공백 대신 쉼표를 쓴다(설계 판단). Codex 기억은 모두 `_global`이라 프로젝트 키로는 빠지지 않는다(§4.2) |
 
-`.env.example`과 `Makefile:15`의 export 줄에 더한다.
+`.env.example`과 `Makefile:16`의 export 줄에 더한다.
 
 ### 3.7 MCP 클라이언트 라이브러리 (설계 판단)
 

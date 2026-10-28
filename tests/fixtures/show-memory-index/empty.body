@@ -1,0 +1,2 @@
+event: message
+data: {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"{\"results\":[],\"has_more\":false}"}],"isError":false,"structuredContent":{"result":{"results":[],"current_page":1,"page_size":50,"has_more":false}}}}

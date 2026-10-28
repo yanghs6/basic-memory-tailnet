@@ -50,6 +50,7 @@ This table is the canonical verb list: `make new-script` and the repo checks rea
 | check | Checks rules or the environment and only reports; changes nothing | `check-git`, `check-pr`, `check-access` |
 | open | Holds a connection open in the foreground and exits with its exit code | `open-tunnel` |
 | sync | Brings files to the wanted state; running it again gives the same result | `sync-sb-space` |
+| install | Adds this repo's entries to a user's tool settings; running it again gives the same result | `install-memory-hooks` |
 | upload | Uploads built files to the VM | `upload-sb-fonts` |
 | review | Runs a review | `review-branch` |
 | post | Posts to a pull request | `post-review`, `post-review-record` |
@@ -62,6 +63,8 @@ Each library starts with a function index, one line per function. Read it before
 
 - `scripts/lib/common.sh`: core helpers every script needs (logging, `die`, required commands and settings, `mask`), the repo root and shared constants.
 - `scripts/lib/vm.sh`: the VM layout, the access mode, SSH and compose on the VM, the data manifest.
+- `scripts/lib/mcp.sh`: the MCP client (streamable HTTP, session, tool calls) of verify-mcp and the agent memory scripts.
+- `scripts/lib/agent-memory.sh`: the project, device and state rules of the agent memory mirror.
 - `scripts/lib/sb.sh`: the SilverBullet space in the notes folder and the SilverBullet login.
 - `scripts/lib/git.sh`: commit trailer rules, problem lists, review report paths.
 - `scripts/lib/docs.sh`: the document type registry and document ids.

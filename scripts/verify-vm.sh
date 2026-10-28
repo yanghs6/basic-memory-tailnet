@@ -20,7 +20,7 @@ readonly SB_HTTPS_PORT=8443
 readonly PUBLIC_PROBE_PORTS="22 80 443 $SB_HTTPS_PORT"
 
 # ssh access mode: local ends of the verify tunnel, apart from make tunnel's DEFAULT_TUNNEL_MCP_PORT and
-# DEFAULT_TUNNEL_WEB_PORT (scripts/open-tunnel.sh) so both can run at once.
+# DEFAULT_TUNNEL_WEB_PORT (scripts/lib/common.sh) so both can run at once.
 readonly VERIFY_TUNNEL_MCP_PORT=28737
 readonly VERIFY_TUNNEL_WEB_PORT=23000
 readonly TUNNEL_READY_TIMEOUT_SECONDS=20
