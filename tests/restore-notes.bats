@@ -33,6 +33,7 @@ local_manifest() {
   bash -c "$(. "$REPO_DIR/scripts/lib/vm.sh" && manifest_cmd "$1")"
 }
 
+# The two helpers below need util-linux script and setsid (present in the Linux test image only, not on macOS).
 # restore_with_answer ANSWER -> runs the restore on a pty (util-linux script) and types ANSWER there, because the script
 # reads its confirmation from /dev/tty only. script -e passes the exit status of the restore on.
 restore_with_answer() {

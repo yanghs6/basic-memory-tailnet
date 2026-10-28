@@ -98,7 +98,7 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 
 동작: 스펙 3.2의 키를 Task 1이 정한 목록으로 넣는다. `permissions.allow` 8개는 그대로 둔다.
 
-- [ ] **Step 1: 실패하는 테스트 작성:** `the Claude Code settings keep the sandbox on, deny only secret reads and backup deletion, and ask before outward or VM commands`. `jq`로 검사한다.
+- [x] **Step 1: 실패하는 테스트 작성:** `the Claude Code settings keep the sandbox on, deny only secret reads and backup deletion, and ask before outward or VM commands`. `jq`로 검사한다.
   - `.sandbox.enabled == true`, `.sandbox.allowUnsandboxedCommands == false`, `.permissions.blockReadsOutsideWorkingDirectories`가 없음(Task 1에서 1-B로 물러섬), sandbox `denyRead`에 `../../../.env`, `permissions.deny`에 `Read(~/**/.env)`
   - `denyRead`에 `~/.ssh`, `~/.config/gcloud`, `~/.config/gh`. `allowedDomains`가 비어 있지 않음
   - `excludedCommands`의 `*` 항목이 테스트에 고정한 목록 안에만 있음
@@ -106,10 +106,10 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
   - 스펙 3.2의 ask 항목이 모두 있음
   - 파일에 홈 디렉터리 절대 경로가 없음
   - 검사 함수가 키 하나를 지운 사본과 `make *`를 더한 사본에서 실패함
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: `.sandbox`가 null이라 새 테스트가 실패한다.
-- [ ] **Step 3: 최소 구현:** `.claude/settings.json`에 키를 넣는다.
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋:** `feat: enable the Claude Code sandbox and ask before outward and VM commands`, `Task: 2`.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: `.sandbox`가 null이라 새 테스트가 실패한다.
+- [x] **Step 3: 최소 구현:** `.claude/settings.json`에 키를 넣는다.
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋:** `feat: enable the Claude Code sandbox and ask before outward and VM commands`, `Task: 2`.
 
 ### Task 3: Bash guard hook
 
@@ -123,11 +123,11 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 - 그 밖에는 exit 0, 출력 없음.
 - 오류나 잘못된 입력에서는 exit 2(fail closed, `guard-reviewer-bash.sh`와 같은 방식).
 
-- [ ] **Step 1: 실패하는 테스트 작성:** 표 형식으로 deny·ask·통과 사례. 우회 형태(`sh -c '...'`, `env git push --force`, `git -C . push -f`, `git push origin +main`)와 정상 사례(`git push origin plan/x`, `rm -rf .review-out`, 평범한 `git log`), 잘못된 JSON.
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 스크립트가 없어 실패한다.
-- [ ] **Step 3: 최소 구현:** 스크립트와 `hooks.PreToolUse` 등록(`"$CLAUDE_PROJECT_DIR"/scripts/guard-agent-bash.sh || exit 2`).
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
-- [ ] **Step 5: 커밋:** `feat: add the agent Bash guard hook for backup deletion and force-push`, `Task: 3`.
+- [x] **Step 1: 실패하는 테스트 작성:** 표 형식으로 deny·ask·통과 사례. 우회 형태(`sh -c '...'`, `env git push --force`, `git -C . push -f`, `git push origin +main`)와 정상 사례(`git push origin plan/x`, `rm -rf .review-out`, 평범한 `git log`), 잘못된 JSON.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 스크립트가 없어 실패한다.
+- [x] **Step 3: 최소 구현:** 스크립트와 `hooks.PreToolUse` 등록(`"$CLAUDE_PROJECT_DIR"/scripts/guard-agent-bash.sh || exit 2`).
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `feat: add the agent Bash guard hook for backup deletion and force-push`, `Task: 3`.
 
 ### Task 4: Test containers without network
 
@@ -135,11 +135,11 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 - Modify: `Makefile:43`(`DOCKER_RUN`)
 - Test: `tests/repo-make.bats`(`DOCKER_RUN`에 `--network none`이 있음)
 
-- [ ] **Step 1: 실패하는 테스트 작성:** `test containers run without network`.
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 테스트가 실패한다.
-- [ ] **Step 3: 최소 구현:** `DOCKER_RUN`에 `--network none`.
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0(lint, test, coverage, secret-scan이 네트워크 없이 돈다).
-- [ ] **Step 5: 커밋:** `feat: run the test containers without network`, `Task: 4`.
+- [x] **Step 1: 실패하는 테스트 작성:** `test containers run without network`.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 테스트가 실패한다.
+- [x] **Step 3: 최소 구현:** `DOCKER_RUN`에 `--network none`.
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0(lint, test, coverage, secret-scan이 네트워크 없이 돈다).
+- [x] **Step 5: 커밋:** `feat: run the test containers without network`, `Task: 4`.
 
 ### Task 5: Release-notes reader and PR comment filter
 
@@ -150,11 +150,11 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 
 동작(스펙 3.5): 독자는 `tools: WebFetch`, `disallowedTools: Bash, Write, Edit, NotebookEdit`이고 고정 형식으로 답한다. 3단계는 Claude Code에서는 독자에게, 다른 도구에서는 사용자에게 같은 형식을 요청한다. 요약은 사용자 확인을 거친다. PR 댓글은 머신 계정과 사용자 계정의 것만 읽는다. 거르는 명령이 스크립트가 되면 `script-authoring`을 따른다.
 
-- [ ] **Step 1: 실패하는 테스트 작성:** `the release-notes reader has no shell or write tool and bm-upgrade hands step 3 to it`.
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 독자 정의가 없어 실패한다.
-- [ ] **Step 3: 최소 구현:** 독자 정의, 스킬 3단계·체크리스트, review-and-merge의 댓글 규칙.
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0(`repo-skills.bats`, `repo-cloud-neutral.bats` 포함).
-- [ ] **Step 5: 커밋:** `feat: read release notes in a role without credentials and filter PR comments by author`, `Task: 5`.
+- [x] **Step 1: 실패하는 테스트 작성:** `the release-notes reader has no shell or write tool and bm-upgrade hands step 3 to it`.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 독자 정의가 없어 실패한다.
+- [x] **Step 3: 최소 구현:** 독자 정의, 스킬 3단계·체크리스트, review-and-merge의 댓글 규칙.
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0(`repo-skills.bats`, `repo-cloud-neutral.bats` 포함).
+- [x] **Step 5: 커밋:** `feat: read release notes in a role without credentials and filter PR comments by author`, `Task: 5`.
 
 ### Task 6: Restore confirmation from the terminal
 
@@ -164,11 +164,11 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 
 동작(스펙 3.6): `confirm`은 `/dev/tty`에서만 읽는다. 열 수 없으면 ssh 전에 `die`로 끝나고, 사용자 터미널에서 `make restore`를 실행하라고 안내한다. 시험용 입구는 두지 않는다.
 
-- [ ] **Step 1: 실패하는 테스트 작성:** 거부 사례 표에 `piped yes without a terminal`을 더한다(`$STUB_LOG`에 ssh 호출 없음). `restore_with_answer`는 `script`로 만든 pty로 답을 넘긴다(16곳 그대로, `@test` 수 유지).
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 지금 코드는 파이프 `yes`를 받아 새 사례가 실패한다.
-- [ ] **Step 3: 최소 구현:** `read`를 `/dev/tty`로 돌리고, 열기 실패를 `die`로 바꾼다(bash 3.2).
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
-- [ ] **Step 5: 커밋:** `fix: read the restore confirmation from the terminal, not stdin`, `Task: 6`.
+- [x] **Step 1: 실패하는 테스트 작성:** 거부 사례 표에 `piped yes without a terminal`을 더한다(`$STUB_LOG`에 ssh 호출 없음). `restore_with_answer`는 `script`로 만든 pty로 답을 넘긴다(16곳 그대로, `@test` 수 유지).
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 지금 코드는 파이프 `yes`를 받아 새 사례가 실패한다.
+- [x] **Step 3: 최소 구현:** `read`를 `/dev/tty`로 돌리고, 열기 실패를 `die`로 바꾼다(bash 3.2).
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `fix: read the restore confirmation from the terminal, not stdin`, `Task: 6`.
 
 ### Task 7: Codex reviewer environment
 
@@ -178,11 +178,11 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 
 동작(스펙 3.7): codex 호출에 `-c 'shell_environment_policy.inherit="core"'`, `-c 'shell_environment_policy.ignore_default_excludes=false'`. Task 1이 8-B를 확인했으면 `--sandbox read-only`·`sandbox_mode` 대신 `-c` permission profile(`~/.ssh`, `~/.config/gcloud`, `~/.config/gh`, 실행 시점에 계산한 main `.env` deny, 네트워크 끔).
 
-- [ ] **Step 1: 실패하는 테스트 작성:** codex stub이 받은 인자에 환경 정책(과 profile)이 있음.
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례가 실패한다.
-- [ ] **Step 3: 최소 구현:** 인자를 더한다.
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
-- [ ] **Step 5: 커밋:** `feat: strip tokens from the Codex reviewer and deny its credential reads`, `Task: 7`.
+- [x] **Step 1: 실패하는 테스트 작성:** codex stub이 받은 인자에 환경 정책(과 profile)이 있음.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례가 실패한다.
+- [x] **Step 3: 최소 구현:** 인자를 더한다.
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `feat: strip tokens from the Codex reviewer and deny its credential reads`, `Task: 7`.
 
 ### Task 8: Main checkout access from worktrees
 
@@ -192,11 +192,11 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 
 동작(스펙 3.8): 새 타깃은 main `backups/`의 최신 archive 경로와 `.sha256`·`.manifest`가 있는지만 출력한다(내용은 출력하지 않는다). `bm-recover` 2단계가 그 타깃을 부른다. worktree 세션의 리뷰 보고서와 로그 내보내기는 worktree 안에 둔다. archive 옮기기는 사용자에게 명령을 알려 주고 맡긴다.
 
-- [ ] **Step 1: 실패하는 테스트 작성:** fixture `backups/`(가짜 archive와 체크섬)로 최신 경로와 확인 결과를 출력하고, archive가 없으면 해결 방법을 담아 실패하는 사례.
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 스크립트가 없어 실패한다.
-- [ ] **Step 3: 최소 구현:** 스크립트, 타깃, 제외 목록, 스킬과 reference.
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
-- [ ] **Step 5: 커밋:** `feat: let worktree sessions find the latest backup without reading the main checkout`, `Task: 8`.
+- [x] **Step 1: 실패하는 테스트 작성:** fixture `backups/`(가짜 archive와 체크섬)로 최신 경로와 확인 결과를 출력하고, archive가 없으면 해결 방법을 담아 실패하는 사례.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 스크립트가 없어 실패한다.
+- [x] **Step 3: 최소 구현:** 스크립트, 타깃, 제외 목록, 스킬과 reference.
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `feat: let worktree sessions find the latest backup without reading the main checkout`, `Task: 8`.
 
 ### Task 9: Trifecta ADR and docs
 
@@ -206,9 +206,9 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 
 동작(스펙 3.9): ADR에 스펙 3.1의 역할별 표와 잔여 위험(제외 명령의 write-then-run, sandbox 밖 도구, 문자열·훅 우회, bypass 모드, WebFetch, 10-B)을 적는다. ADR `0svs72hp` 표의 force-push, `backups` 삭제, VM 변경 전 묻기, restore `yes` 칸을 "일부"로 바꾸고 근거로 Task 2·3·6 테스트를 적는다.
 
-- [ ] **Step 1:** 새 테스트는 없다. `tests/repo-docs.bats`가 이름, front matter, 링크를 검사한다.
-- [ ] **Step 2:** Run: `make check` / Expected: exit 0.
-- [ ] **Step 3: 커밋:** `docs: record the agent trifecta decision`, `Task: 9`.
+- [x] **Step 1:** 새 테스트는 없다. `tests/repo-docs.bats`가 이름, front matter, 링크를 검사한다.
+- [x] **Step 2:** Run: `make check` / Expected: exit 0.
+- [x] **Step 3: 커밋:** `docs: record the agent trifecta decision`, `Task: 9`.
 
 ### Finish: review and hand-off
 
@@ -244,3 +244,17 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 | 2026-10-27 | Verified | 사용자 OK를 받고 main checkout `.claude/settings.local.json`을 읽기 전용으로 점검했다. 규칙 원문은 출력하지 않았다. 최상위 키는 `permissions`이고 그 안에 `allow` 108개만 있다. `deny`·`ask`·`defaultMode`·`additionalDirectories`·`sandbox`는 없다. 새 ask·deny 대상(push, `gh pr` 쓰기, `gh api`, VM 변경 make 타깃, `gcloud`, `rm`, `.env`·`backups`·`.local-data`)과 겹치는 allow는 0개다. 이 파일이 새 설정을 약하게 만드는 길은 없다. |
 | 2026-10-27 | Verified | 에이전트 Bash: `test -t 0` → `no-tty`. `/dev/tty` 열기 → "device not configured". Task 6의 `/dev/tty` 확인을 에이전트가 넘을 수 없다. |
 | 2026-10-27 | Open question | Claude Code `!` 모드에 tty가 붙는지는 확인하지 못했다(에이전트가 실행할 수 없음). 그래서 Task 6의 실패 메시지는 "자기 터미널에서 실행"만 안내한다. `-p`에서는 `no-tty`였다. VM 명령(`make probe`, `gcloud describe`)은 정확한 문자열로 제외되면 지금과 같이 sandbox 밖에서 돌므로 따로 VM에 닿아 시험하지 않는다. 제외 패턴이 맞는지는 Task 2에서 VM에 닿지 않는 `gcloud --version`으로 확인한다. mk823xbp memory hook은 #30이 병합된 뒤 확인한다. |
+| 2026-10-28 | Verified | Task 2 (f460f77): `make check` exit 0, total line coverage 89.06%. |
+| 2026-10-28 | Verified | Task 3 (c9b2b66): `make check` exit 0, total line coverage 89.25%. |
+| 2026-10-28 | Verified | Task 4 (6c7b4c6): `make check` exit 0, total line coverage 89.25%. `make secret-scan` 따로 실행해 통과(`check`는 secret-scan을 포함하지 않는다). |
+| 2026-10-28 | Verified | Task 5 (3a626a3): `make check` exit 0, total line coverage 89.25%. |
+| 2026-10-28 | Verified | Task 6 (2350307): `make check` exit 0, total line coverage 89.27%. |
+| 2026-10-28 | Verified | `origin/main` 병합 (38856e0) 뒤 `make check` exit 0, total line coverage 89.23%. |
+| 2026-10-28 | Verified | Task 7 (8bac0b5): `make check` exit 0, total line coverage 89.24%. |
+| 2026-10-28 | Verified | Task 8 (6cc91a9): `make check` exit 0, total line coverage 89.33%. |
+| 2026-10-28 | Verified | Task 9 (d62fe98): `make check` exit 0, total line coverage 89.33%. |
+| 2026-10-28 | Open question | Claude 리뷰어 `claude -p --agent branch-reviewer`가 새 설정(sandbox, 가드 훅, `-p`에서 ask는 거부)에서 도는지 확인하지 못했다. 병합 전에 필요하다(스펙 3.8 마지막 항목, Task 1 Step 2). |
+| 2026-10-28 | Open question | `gcloud --version`이 `gcloud *` 제외 패턴에 맞아 sandbox 밖에서 도는지 확인하지 못했다(Task 2). |
+| 2026-10-28 | Open question | 파이프를 붙인 `make check 2>&1 \| tail -20`이 정확한 문자열 제외 `make check`에 맞는지 확인하지 못했다. |
+| 2026-10-28 | Open question | 완료 조건 7(Manual 모드 새 세션의 `make deploy`·`git push`·`git push --force` 프롬프트와 미끼 `backups` 경로 `rm` 차단)을 아직 확인하지 못했다. |
+| 2026-10-28 | Open question | memory hook 재확인(mk823xbp T6 S3)은 `work/memory-sync-pacing` 병합 뒤 감독 세션이 한다. |

@@ -24,8 +24,8 @@ date: 2026-10-28
 
 ## 결정
 
-1. **Verified (2026-10-28):** 사용자가 스펙 결정 0~11을 승인했다.
-2. 셸 명령은 sandbox 안에서 돈다(`allowUnsandboxedCommands: false`). `denyRead`는 `~/.ssh`, `~/.config/gcloud`, `~/.config/gh`, main `.env`다. 허용 도메인은 `github.com`, `api.github.com`뿐이다. 제외 명령은 고정 목록이다(테스트 계열 make 타깃은 정확한 문자열, 변수를 받거나 Docker·ssh·VM에 닿는 타깃은 `make <t> *`, `gh *`, `gcloud *`, `git push *`).
+1. **Verified (2026-10-27):** 사용자가 스펙 결정 0~11을 승인했다(근거 커밋 dfbdd82).
+2. 셸 명령은 sandbox 안에서 돈다(`allowUnsandboxedCommands: false`). `denyRead`는 `~/.ssh`, `~/.config/gcloud`, `~/.config/gh`, main `.env`, main `backups/`, main `.local-data/`다. 허용 도메인은 `github.com`, `api.github.com`뿐이다. 제외 명령은 고정 목록이다(테스트 계열 make 타깃은 정확한 문자열, 변수를 받거나 Docker·ssh·VM에 닿는 타깃은 `make <t> *`, `gh *`, `gcloud *`, `git push *`).
 3. 결정 1의 1-C(`permissions.blockReadsOutsideWorkingDirectories: true`)는 쓰지 않고 사용자가 미리 승인한 대체안 **1-B**로 물러선다. **Verified (2026-10-27):** Task 1 spike에서 1-C는 Read 도구의 scratchpad 읽기와 sandbox 안 홈 디렉터리 읽기(auto memory, transcript)를 막아 감독 세션 운영을 깼다. 1-B에서는 이것들이 읽혔고 worktree 미끼, main `.env`, 임의 도메인 `curl`은 막혔다. 증거는 계획의 Progress log(2026-10-27 행)에 있다. main `.env`는 sandbox `denyRead`의 상대 경로와 `Read(~/**/.env)` deny로 막는다. **Verified (2026-10-27):** spike에서 `Read(../../../.env)`는 맞지 않아 권한 프롬프트가 떴고(계획 Progress log), `Read(~/**/.env)`로 바꾸자 거부됐다. 이 규칙은 의도적으로 홈 디렉터리 아래 모든 `.env`를 막는다. main checkout의 파일보다 넓고, Read 도구로 다른 프로젝트의 `.env`도 읽지 못한다.
    **Assumption:** `denyRead`의 `../../../.env`는 worktree가 `.claude/worktrees/<slug>` 깊이에 있을 때만 main `.env`를 가리킨다. Codex·CLI 경로(`../<저장소>-wt/<slug>` 등)처럼 다른 곳에 만든 worktree는 이 sandbox 보호를 잃는다. 그 경우에도 `Read(~/**/.env)`가 Read 도구는 막는다.
 4. deny는 두 종류만 둔다(결정 11). 비밀값·노트 읽기와 `backups`·`basic-memory.prev` 삭제다. force-push를 포함한 나머지는 ask다: `git push`(force 형태 포함), `gh pr create/edit/comment/ready`, `make review-post`, `make review-record`, VM을 바꾸는 make 타깃, `gcloud` 생성·삭제, `make memory-hooks`. `AGENTS.md`의 "never"는 그대로다. 에이전트는 force-push를 요청하지 않고 ask는 마지막 방어선이다.
@@ -42,7 +42,7 @@ date: 2026-10-28
 
 | 역할 | 자격증명 | 신뢰할 수 없는 입력 | 외부 통신 | 끊는 기제 |
 |---|---|---|---|---|
-| 작성 메인 세션 (Claude) | sandbox 안에서는 `~/.ssh`, `~/.config/gcloud`, `~/.config/gh`, main `.env`를 못 읽는다. 제외 명령(`gh`, `gcloud`, `git push`, ssh를 쓰는 make 타깃)은 자격증명을 쓴다. Read 도구는 `deny`가 비밀 경로를 막지만 worktree 밖 다른 파일은 읽는다(1-B) | WebFetch(남음), PR 댓글(작성자 필터) | Bash는 허용 도메인 두 개뿐. push·PR 게시·VM 변경은 ask. 제외 명령은 sandbox 밖 | `.claude/settings.json`의 `sandbox`·`permissions`·`hooks`, `scripts/guard-agent-bash.sh`. 테스트: `tests/repo-config.bats`의 "the Claude Code settings keep the sandbox on, …", `tests/guard-agent-bash.bats` |
+| 작성 메인 세션 (Claude) | sandbox 안에서는 `~/.ssh`, `~/.config/gcloud`, `~/.config/gh`, main `.env`를 못 읽는다. 제외 명령(`gh`, `gcloud`, `git push`, ssh를 쓰는 make 타깃)은 자격증명을 쓴다. Read 도구는 `deny`가 비밀 경로와 main `backups/`·`.local-data/`(노트 내용)를 막고(sandbox `denyRead`도 같다), 그 밖의 worktree 밖 파일은 읽는다(1-B) | WebFetch(남음), PR 댓글(작성자 필터는 행동 규칙(prose)이며 강제되지 않는다) | Bash는 허용 도메인 두 개뿐. push·PR 게시·VM 변경은 ask. 제외 명령은 sandbox 밖 | `.claude/settings.json`의 `sandbox`·`permissions`·`hooks`, `scripts/guard-agent-bash.sh`. 테스트: `tests/repo-config.bats`의 "the Claude Code settings keep the sandbox on, …", `tests/guard-agent-bash.bats` |
 | 작성 서브에이전트 | 부모와 같음 | 부모와 같음 | 부모와 같음 | **Verified (문서):** 부모 설정 상속. sandbox는 서브에이전트가 같은 설정을 쓴다고(https://code.claude.com/docs/en/sandboxing.md), 권한 규칙은 부모 대화의 것을 상속한다고(https://code.claude.com/docs/en/permissions.md) 적혀 있다 |
 | 릴리스 노트 독자 | 없음(Bash·쓰기 도구 없음) | 있음(릴리스 노트) | WebFetch만 | `.claude/agents/release-notes-reader.md` 도구 목록. 테스트: `tests/repo-config.bats`의 "the release-notes reader has no shell or write tool and bm-upgrade hands step 3 to it" |
 | Codex 리뷰어 | 토큰 환경 변수 제거, `~/.ssh`·`~/.config`·main `.env` 읽기 deny | 리뷰 대상 브랜치 | 없음(네트워크 꺼짐) | `scripts/review-branch.sh`의 `-c` 인자. 테스트: `tests/review-branch.bats`의 "both codex calls strip token-like env vars and run under a deny profile …", "the deny path of the main .env is quoted for TOML …" |
@@ -53,7 +53,7 @@ date: 2026-10-28
 
 좋아지는 것:
 - push, PR 게시, VM 변경, force-push는 bypass 모드에서도 매번 프롬프트가 뜬다(ask는 bypass에서도 남는다). `backups`·`basic-memory.prev` 삭제는 사람이 승인해도 실행되지 않는다.
-- 작성 세션의 셸 명령이 `~/.ssh` 등 자격증명 경로와 임의 도메인에 닿지 못한다. 릴리스 노트는 쓰기 수단이 없는 역할이 읽는다. restore 확인은 에이전트가 파이프로 넘길 수 없다.
+- sandbox 안에서 도는 셸 명령은 `~/.ssh` 등 자격증명 경로와 임의 도메인에 닿지 못한다. 제외 명령(`gh`, `gcloud`, push, VM make 타깃)은 sandbox 밖에서 사용자 자격증명으로 돌므로 이 문장이 적용되지 않는다. 그 쓰기·외부 전송 형태(`gh api` 쓰기, `gh gist/issue/release/repo` 쓰기 동사, `gh pr close/merge/review/reopen`, 클라우드 CLI 메타데이터·update·stop·reset·resize, 여러 타깃을 이은 `make` 호출)는 설정 ask와 훅 `scripts/guard-agent-bash.sh`가 묻는다. 릴리스 노트는 쓰기 수단이 없는 역할이 읽는다. restore 확인은 에이전트가 파이프로 넘길 수 없다.
 
 치르는 것(잔여 위험):
 - **Assumption:** 제외 명령 범주마다 사용자 권한 전체로 돈다. `make check` 같은 제외 타깃은 에이전트가 고친 Makefile과 테스트를 sandbox 밖에서 실행한다(write-then-run). 막는 것은 컨테이너 네트워크(`--network none`)뿐이고, 호스트 쪽 레시피 줄은 막지 못한다. 리뷰가 Makefile·테스트 변경을 본다.
@@ -61,6 +61,9 @@ date: 2026-10-28
 - 문자열·훅 검사는 우회할 수 있다. 변수·인코딩, `env VAR=x scripts/<VM 스크립트>`, VM 스크립트 앞의 `xargs`·`nohup`·`time`·`exec` 래퍼, `HEAD:+x` 같은 refspec 형태의 force-push는 훅이 잡지 못한다. push·게시 ask가 마지막 확인 지점이다. 반대로 `rm`과 `backups`가 한 명령에 있으면 막으므로 안전한 쪽의 오탐이 있다. `Bash(rm *backups*)` deny 규칙도 부분 문자열이라 느슨하다(`rm *backups*; curl x` 같은 복합 명령도 규칙 모양에 맞는다).
 - bypass 모드(권한 확인 건너뛰기)에서는 allow 규칙이 의미 없어지고 ask·deny와 훅만 남는다. sandbox는 그대로 적용된다.
 - WebFetch로 들어오는 외부 글과 URL을 통한 유출은 남는다. WebFetch·WebSearch는 그대로 두었다. 외부로 나가는 명령은 ask다.
+- 제외 명령의 읽기 전용 형태(`gh pr view`, `gh api` GET, 클라우드 CLI `describe`·`list` 등)는 sandbox 밖에서 프롬프트 없이 돈다.
+- sandbox 안 명령은 세션의 환경 변수를 그대로 물려받는다.
+- 가드 훅 스크립트는 worktree 안에 있어 에이전트가 고칠 수 있고, sandbox 밖에서 사용자 권한으로 돈다. 고친 훅은 다음 Bash 호출부터 적용되므로 훅 변경은 리뷰가 본다.
 - main checkout 세션은 셸로 `.env`를 읽을 수 있다(결정 10-B). Read 도구는 `deny`로 막힌다.
 - restore를 `script`·`expect`로 pty를 만들어 부르면 확인 질문을 넘길 수 있다. 훅은 그 형태를 ask로만 묻는다(deny 아님).
 - **Reported (Claude Code 문서):** worktree 세션도 main checkout의 추적되지 않는 `.claude/settings.local.json`을 읽고 승인한 권한을 거기에 저장한다. 새 설정을 약하게 만드는 allow가 그 파일에 생길 수 있다. 2026-10-27에 이 파일을 점검했을 때 겹치는 allow는 없었다.
