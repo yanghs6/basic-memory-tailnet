@@ -61,6 +61,8 @@ assert_asks() {
     "env git push --force"
     "git -C . push -f"
     "git -C . push origin +main"
+    "git push -fu origin x"
+    "git push -uf origin x"
   )
   for cmd in "${commands[@]}"; do
     assert_asks "$cmd"
@@ -74,6 +76,8 @@ assert_asks() {
     "bash scripts/deploy-stack.sh"
     "./scripts/bootstrap-vm.sh"
     "sh -c 'scripts/upload-sb-fonts.sh'"
+    "scripts/restore-notes.sh x"
+    "cd scripts && ./restore-notes.sh"
     "script -q /dev/null make restore"
     "expect -c 'spawn make restore'"
     "gcloud compute instances create x"
@@ -102,6 +106,14 @@ assert_asks() {
     "gcloud compute instances describe x"
     "grep -rn script scripts"
     "scripts/show-status.sh"
+    "cat scripts/deploy-stack.sh"
+    "git add scripts/restore-notes.sh"
+    "shellcheck scripts/bootstrap-vm.sh"
+    "grep -n confirm scripts/restore-notes.sh"
+    "git push origin fix-f"
+    "git push origin feat/-f"
+    "git commit -m \"add +x flag\""
+    "echo format term"
   )
   for cmd in "${commands[@]}"; do
     run guard "$cmd"

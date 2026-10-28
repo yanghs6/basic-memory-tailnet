@@ -9,6 +9,8 @@
 # Any other failing exit code does NOT block, so every failure below is turned into exit 2 (fail closed).
 # The patterns match the text of the command, so they also catch sh -c, env and git -C wrappers; a command hidden
 # by variable substitution or encoding is not caught (see the ADR for the sandbox).
+# Accepted false positives, on the safe side: rm together with backups anywhere in the command denies, and a +word
+# token after push asks.
 # Usage: the Bash PreToolUse hook in .claude/settings.json (hook input JSON on stdin)
 set -euo pipefail
 
@@ -37,9 +39,12 @@ readonly PROTECTED_PATTERN='backups|basic-memory\.prev'
 
 readonly PUSH_PATTERN="${BOUNDARY_START}push${WORD_END}"
 # --force and --force-with-lease, a standalone -f, or a refspec token that starts with +.
-readonly FORCE_PATTERN="(^|[[:space:]'\"])(--force|-f${WORD_END}|\\+[A-Za-z0-9._/])"
+readonly FORCE_PATTERN="(^|[[:space:]'\"])(--force|-[A-Za-z]*f[A-Za-z]*${WORD_END}|\\+[A-Za-z0-9._/])"
 
-readonly VM_SCRIPT_PATTERN='(restore-notes|deploy-stack|bootstrap-vm|upload-sb-fonts)\.sh'
+# Only a direct call: the script name in command position (start, after ; & | ( or a newline, or after sh, bash
+# or env, also inside sh -c '...'), with an optional directory prefix. cat, git add or shellcheck on it pass.
+readonly COMMAND_LEAD=$'(^|[;&|(\n]|(^|[[:space:];&|(])(sh|bash|env)[[:space:]]+(-c[[:space:]]+)?)[[:space:]\'"]*'
+readonly VM_SCRIPT_PATTERN="${COMMAND_LEAD}([^[:space:];&|()'\"]*/)?(restore-notes|deploy-stack|bootstrap-vm|upload-sb-fonts)\\.sh([[:space:];&|)'\"]|\$)"
 
 readonly PTY_WRAPPER_PATTERN="${BOUNDARY_START}(script|expect)${WORD_END}"
 readonly RESTORE_PATTERN="${BOUNDARY_START}restore${WORD_END}"
