@@ -40,7 +40,7 @@ SHFMT_IMAGE := mvdan/shfmt:v3.12.0@sha256:307d265ffd25ce832899ae17c93ed5062fc337
 GITLEAKS_IMAGE := zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
 TOOLS_IMAGE := bm-tools:local
 COVERAGE_MIN := 80
-DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
+DOCKER_RUN := docker run --rm --network none -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' '*.bats' 'tests/stubs/*')
 
 .PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify gateway-lock check-git secret-scan review review-post review-record vm-bootstrap deploy verify probe status logs export-logs sb-fonts backup restore access-check tunnel new-doc new-id new-script

@@ -153,7 +153,7 @@ printf "env [%s] [%s]\n" "${COMPOSE_PROFILES-unset}" "${BM_WEB_BASE_URL-unset}" 
   setup_stubs docker
   run make_in "$LINKED_WT" secret-scan
   assert_success
-  run grep -cE "^docker run --rm -v $LINKED_WT:/repo -v $MAIN_REPO/\.git:$MAIN_REPO/\.git:ro -w /repo zricethezav/gitleaks:v[0-9.]+@sha256:[0-9a-f]{64} git --redact --verbose --log-opts=--all /repo$" "$STUB_LOG"
+  run grep -cE "^docker run --rm --network none -v $LINKED_WT:/repo -v $MAIN_REPO/\.git:$MAIN_REPO/\.git:ro -w /repo zricethezav/gitleaks:v[0-9.]+@sha256:[0-9a-f]{64} git --redact --verbose --log-opts=--all /repo$" "$STUB_LOG"
   assert_output 1
 }
 
@@ -186,11 +186,18 @@ printf "env [%s] [%s]\n" "${COMPOSE_PROFILES-unset}" "${BM_WEB_BASE_URL-unset}" 
       run make_in "$LINKED_WT" "$target"
       assert_success || exit 1
       case "$target" in
-        fmt) assert_stub_called -Fx "docker run --rm -v $LINKED_WT:/repo -v $MAIN_REPO/.git:$MAIN_REPO/.git:ro -w /repo $shfmt_image -w probe.sh" ;;
+        fmt) assert_stub_called -Fx "docker run --rm --network none -v $LINKED_WT:/repo -v $MAIN_REPO/.git:$MAIN_REPO/.git:ro -w /repo $shfmt_image -w probe.sh" ;;
         test) assert_log_order "docker build -q -t $tools_image tools" "$tools_image bats tests" ;;
         local-down) assert_stub_called -Fx 'docker compose -f compose.yaml down' ;;
         local-logs) assert_stub_called -Fx 'docker compose -f compose.yaml logs --tail=200' ;;
       esac
     ) || fail "make $target did not run its docker command in the linked worktree it ran from"
   done
+}
+
+@test "test containers run without network" {
+  local docker_run
+  docker_run="$(sed -n 's/^DOCKER_RUN := //p' "$REPO_DIR/Makefile")"
+  [[ -n "$docker_run" ]] || fail "the Makefile defines no DOCKER_RUN"
+  [[ " $docker_run " == *" --network none "* ]] || fail "DOCKER_RUN lacks --network none: $docker_run"
 }
