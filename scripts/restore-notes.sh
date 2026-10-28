@@ -8,7 +8,7 @@
 # back and restarts the container.
 # With BM_WEB=on only Basic Memory and SilverBullet decide success (and the rollback); the web connector starts after
 # them and only warns when it is not healthy.
-# Usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz   (asks the user to type yes)
+# Usage: make restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz   (asks the user to type yes in their own terminal)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -64,9 +64,15 @@ check_archive_entries() {
   fi
 }
 
+# The answer is read from the controlling terminal only, so a piped or scripted "yes" on stdin never counts and an agent
+# without a terminal cannot confirm for the user. There is no other way in.
 confirm() {
   local answer=""
-  read -r -p "$1" answer || true
+  if ! { : </dev/tty; } 2>/dev/null; then
+    die "no terminal to ask for the restore confirmation; nothing was changed. Next: run 'make restore BACKUP=<archive>' in your own terminal and type yes there"
+  fi
+  printf '%s' "$1" >/dev/tty
+  read -r answer </dev/tty || true
   [[ "$answer" == yes ]] || die "aborted: you must type 'yes' to restore"
 }
 
