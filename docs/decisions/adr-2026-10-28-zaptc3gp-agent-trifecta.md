@@ -58,7 +58,8 @@ date: 2026-10-28
 치르는 것(잔여 위험):
 - **Assumption:** 제외 명령 범주마다 사용자 권한 전체로 돈다. `make check` 같은 제외 타깃은 에이전트가 고친 Makefile과 테스트를 sandbox 밖에서 실행한다(write-then-run). 막는 것은 컨테이너 네트워크(`--network none`)뿐이고, 호스트 쪽 레시피 줄은 막지 못한다. 리뷰가 Makefile·테스트 변경을 본다.
 - sandbox 밖에서 도는 도구는 sandbox가 닿지 않는다: Read 도구(비밀 경로는 `deny`가, 그 밖은 1-B라 읽힌다), WebFetch, 훅, 로컬 MCP 서버.
-- 문자열·훅 검사는 우회할 수 있다. 변수·인코딩, `env VAR=x scripts/<VM 스크립트>`, VM 스크립트 앞의 `xargs`·`nohup`·`time`·`exec` 래퍼, `HEAD:+x` 같은 refspec 형태의 force-push는 훅이 잡지 못한다. push·게시 ask가 마지막 확인 지점이다. 반대로 `rm`과 `backups`가 한 명령에 있으면 막으므로 안전한 쪽의 오탐이 있다. `Bash(rm *backups*)` deny 규칙도 부분 문자열이라 느슨하다(`rm *backups*; curl x` 같은 복합 명령도 규칙 모양에 맞는다).
+- 문자열·훅 검사는 우회할 수 있다. 변수·인코딩, `env VAR=x scripts/<VM 스크립트>`, VM 스크립트 앞의 `xargs`·`nohup`·`time`·`exec` 래퍼, `HEAD:+x` 같은 refspec 형태의 force-push는 훅이 잡지 못한다. make와 gh 패턴도 같다: 환경 변수 접두어(`FOO=1 make deploy`), `sudo`, `time`, `xargs`, 따옴표 친 타깃(`make "deploy"`)은 훅이 잡지 못한다. 설정의 ask 규칙은 글자 그대로의 접두어 형태만 잡는다. push·게시 ask가 마지막 확인 지점이다. 반대로 `rm`과 `backups`가 한 명령에 있으면 막으므로 안전한 쪽의 오탐이 있다. `Bash(rm *backups*)` deny 규칙도 부분 문자열이라 느슨하다(`rm *backups*; curl x` 같은 복합 명령도 규칙 모양에 맞는다).
+- **Verified (2026-10-28):** sandbox 제외는 리다이렉트를 붙인 명령(`make check-git 2>&1`)에는 맞아 sandbox 밖에서 돌지만, 파이프를 붙인 명령(`make check-git | tail -2`, `make check 2>&1 | tail -3`, `gcloud --version | head -1`)에는 맞지 않아 sandbox 안에서 돌고 docker.sock, `.env`, `~/.config/gcloud` 접근이 EPERM으로 실패한다. 제외 대상 명령은 파이프 없이 부른다.
 - bypass 모드(권한 확인 건너뛰기)에서는 allow 규칙이 의미 없어지고 ask·deny와 훅만 남는다. sandbox는 그대로 적용된다.
 - WebFetch로 들어오는 외부 글과 URL을 통한 유출은 남는다. WebFetch·WebSearch는 그대로 두었다. 외부로 나가는 명령은 ask다.
 - 제외 명령의 읽기 전용 형태(`gh pr view`, `gh api` GET, 클라우드 CLI `describe`·`list` 등)는 sandbox 밖에서 프롬프트 없이 돈다.

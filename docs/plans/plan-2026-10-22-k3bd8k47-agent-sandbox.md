@@ -253,9 +253,8 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 | 2026-10-28 | Verified | Task 7 (8bac0b5): `make check` exit 0, total line coverage 89.24%. |
 | 2026-10-28 | Verified | Task 8 (6cc91a9): `make check` exit 0, total line coverage 89.33%. |
 | 2026-10-28 | Verified | Task 9 (d62fe98): `make check` exit 0, total line coverage 89.33%. |
-| 2026-10-28 | Open question | Claude 리뷰어 `claude -p --agent branch-reviewer`가 새 설정(sandbox, 가드 훅, `-p`에서 ask는 거부)에서 도는지 확인하지 못했다. 병합 전에 필요하다(스펙 3.8 마지막 항목, Task 1 Step 2). |
-| 2026-10-28 | Open question | `gcloud --version`이 `gcloud *` 제외 패턴에 맞아 sandbox 밖에서 도는지 확인하지 못했다(Task 2). |
-| 2026-10-28 | Open question | 파이프를 붙인 `make check 2>&1 \| tail -20`이 정확한 문자열 제외 `make check`에 맞는지 확인하지 못했다. |
+| 2026-10-28 | Verified | 감독 세션의 headless `claude -p`(이 worktree): `branch-reviewer` 에이전트가 새 설정에서 돌았다. 읽기 명령(`git log`)은 sandbox 차단 없이 성공했고, `scripts/check-git.sh`는 sandbox가 아니라 기존 `guard-reviewer-bash.sh` 허용 목록이 거부했다. |
+| 2026-10-28 | Verified | `gcloud --version`은 `gcloud *` 제외에 맞아 sandbox 밖에서 돈다. 리다이렉트를 붙인 호출(`make check-git 2>&1`)은 제외에 맞아 sandbox 밖에서 돌았지만, 파이프를 붙인 호출(`make check-git \| tail -2`, `make check 2>&1 \| tail -3`, `gcloud --version \| head -1`)은 sandbox 안에서 돌아 docker.sock, `.env`, `~/.config/gcloud` 접근이 EPERM으로 실패했다. |
 | 2026-10-28 | Open question | 완료 조건 7(Manual 모드 새 세션의 `make deploy`·`git push`·`git push --force` 프롬프트와 미끼 `backups` 경로 `rm` 차단)을 아직 확인하지 못했다. |
 | 2026-10-28 | Open question | memory hook 재확인(mk823xbp T6 S3)은 `work/memory-sync-pacing` 병합 뒤 감독 세션이 한다. |
 | 2026-10-28 | Verified | 최종 리뷰 수정(I1-I5, M1, M4, M5): `make check` exit 0, total line coverage 89.43%; 정책 검사 스크립트 OK. |
