@@ -248,7 +248,7 @@ reviewer_hook_command() {
 
 # sandbox.excludedCommands must hold exactly these entries (the exact strings and the `*` ones): a target that takes arguments needs
 # `make <t> *`, and any other entry (make *, docker *, bash, make) would take the sandbox off for everything it matches.
-SANDBOX_EXACT_EXCLUDES='make check|make test|make lint|make coverage|make fmt|make check-git|make secret-scan|make tools-image|make gateway-lock'
+SANDBOX_EXACT_EXCLUDES='make check|make test|make lint|make coverage|make fmt|make check-git|make secret-scan|make tools-image|make gateway-lock|make check local-up local-verify'
 SANDBOX_STAR_EXCLUDES='make local-up *|make local-down *|make local-logs *|make local-verify *|make review *|make review-post *|make review-record *|make probe *|make status *|make logs *|make export-logs *|make verify *|make backup *|make backup-latest *|make access-check *|make tunnel *|make memory-sync *|make memory-index *|make memory-hooks *|make deploy *|make restore *|make vm-bootstrap *|make sb-fonts *|gh *|gcloud *|git push *'
 # The ask rules the settings must keep: outward actions and VM or cloud changes.
 SANDBOX_ASK_RULES='Bash(git push --force*)|Bash(git push * --force*)|Bash(git push -f*)|Bash(git push * -f*)|Bash(git push *)|Bash(gh pr create *)|Bash(gh pr edit *)|Bash(gh pr comment *)|Bash(gh pr ready *)|Bash(make review-post *)|Bash(make review-record *)|Bash(make deploy *)|Bash(make restore *)|Bash(make vm-bootstrap *)|Bash(make sb-fonts *)|Bash(make memory-hooks *)|Bash(gcloud compute instances create *)|Bash(gcloud compute instances delete *)|Bash(gcloud compute firewall-rules create *)|Bash(gcloud compute firewall-rules delete *)'
@@ -271,12 +271,13 @@ settings_problems() {
     | need(.sandbox.enabled == true; "sandbox.enabled must be true"),
       need(.sandbox.allowUnsandboxedCommands == false; "sandbox.allowUnsandboxedCommands must be false"),
       need((.permissions | has("blockReadsOutsideWorkingDirectories") | not); "permissions.blockReadsOutsideWorkingDirectories must be absent (the spike fell back to 1-B)"),
-      ("../../../.env", "~/.ssh", "~/.config/gcloud", "~/.config/gh" | . as $p | need($deny_read | index($p); "sandbox.filesystem.denyRead lacks " + $p)),
+      ("../../../.env", "../../../backups", "../../../.local-data", "~/.ssh", "~/.config/gcloud", "~/.config/gh" | . as $p | need($deny_read | index($p); "sandbox.filesystem.denyRead lacks " + $p)),
       need(((.sandbox.network.allowedDomains // []) | length) > 0; "sandbox.network.allowedDomains must not be empty"),
       need($deny | index("Read(~/**/.env)"); "permissions.deny lacks Read(~/**/.env)"),
+      ("Read(~/**/backups/bm-*)", "Read(~/**/.local-data/**)" | . as $r | need($deny | index($r); "permissions.deny lacks " + $r)),
       ($exact + $stars | .[] | . as $r | need($excluded | index($r); "sandbox.excludedCommands lacks " + $r)),
       ($excluded[] | select(. as $e | ($exact + $stars) | index($e) | not) | "sandbox.excludedCommands has an entry outside the fixed list: " + .),
-      ($deny[] | select((test("^Read\\((\\./\\.env|\\./backups/\\*\\*|\\./\\.local-data/\\*\\*|~/\\.ssh/\\*\\*|~/\\.config/gcloud/\\*\\*|~/\\.config/gh/\\*\\*|~/\\*\\*/\\.env)\\)$") or test("^Bash\\(rm .*(backups|basic-memory\\.prev)")) | not) | "permissions.deny holds a rule that is neither a secret read nor a backup deletion: " + .),
+      ($deny[] | select((test("^Read\\((\\./\\.env|\\./backups/\\*\\*|\\./\\.local-data/\\*\\*|~/\\.ssh/\\*\\*|~/\\.config/gcloud/\\*\\*|~/\\.config/gh/\\*\\*|~/\\*\\*/\\.env|~/\\*\\*/backups/bm-\\*|~/\\*\\*/\\.local-data/\\*\\*)\\)$") or test("^Bash\\(rm .*(backups|basic-memory\\.prev)")) | not) | "permissions.deny holds a rule that is neither a secret read nor a backup deletion: " + .),
       need($deny | any(test("^Bash\\(rm .*backups")); "permissions.deny lacks a backups deletion rule"),
       need($deny | any(test("^Bash\\(rm .*basic-memory\\.prev")); "permissions.deny lacks a basic-memory.prev deletion rule"),
       ($asks[] | . as $r | need($asked | index($r); "permissions.ask lacks " + $r)),
@@ -311,6 +312,21 @@ settings_problems() {
   jq 'del(.sandbox.filesystem.denyRead[0])' "$settings" >"$bad"
   run settings_problems "$bad"
   assert_output --partial "sandbox.filesystem.denyRead lacks "
+  jq '.sandbox.filesystem.denyRead -= ["../../../backups"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "sandbox.filesystem.denyRead lacks ../../../backups"
+  jq '.sandbox.filesystem.denyRead -= ["../../../.local-data"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "sandbox.filesystem.denyRead lacks ../../../.local-data"
+  jq '.permissions.deny -= ["Read(~/**/backups/bm-*)"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "permissions.deny lacks Read(~/**/backups/bm-*)"
+  jq '.permissions.deny -= ["Read(~/**/.local-data/**)"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "permissions.deny lacks Read(~/**/.local-data/**)"
+  jq '.sandbox.excludedCommands -= ["make check local-up local-verify"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "sandbox.excludedCommands lacks make check local-up local-verify"
   jq '.permissions.deny += ["Bash(rm *)"]' "$settings" >"$bad"
   run settings_problems "$bad"
   assert_output --partial "neither a secret read nor a backup deletion"

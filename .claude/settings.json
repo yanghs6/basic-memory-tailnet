@@ -11,7 +11,9 @@
         "~/.ssh",
         "~/.config/gcloud",
         "~/.config/gh",
-        "../../../.env"
+        "../../../.env",
+        "../../../backups",
+        "../../../.local-data"
       ]
     },
     "network": {
@@ -30,6 +32,7 @@
       "make secret-scan",
       "make tools-image",
       "make gateway-lock",
+      "make check local-up local-verify",
       "make local-up *",
       "make local-down *",
       "make local-logs *",
@@ -90,6 +93,8 @@
       "Read(~/.config/gcloud/**)",
       "Read(~/.config/gh/**)",
       "Read(~/**/.env)",
+      "Read(~/**/backups/bm-*)",
+      "Read(~/**/.local-data/**)",
       "Bash(rm *backups*)",
       "Bash(rm *basic-memory.prev*)"
     ],
