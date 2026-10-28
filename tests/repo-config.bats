@@ -253,9 +253,13 @@ SANDBOX_STAR_EXCLUDES='make local-up *|make local-down *|make local-logs *|make 
 # The ask rules the settings must keep: outward actions and VM or cloud changes.
 SANDBOX_ASK_RULES='Bash(git push --force*)|Bash(git push * --force*)|Bash(git push -f*)|Bash(git push * -f*)|Bash(git push *)|Bash(gh pr create *)|Bash(gh pr edit *)|Bash(gh pr comment *)|Bash(gh pr ready *)|Bash(make review-post *)|Bash(make review-record *)|Bash(make deploy *)|Bash(make restore *)|Bash(make vm-bootstrap *)|Bash(make sb-fonts *)|Bash(gcloud compute instances create *)|Bash(gcloud compute instances delete *)|Bash(gcloud compute firewall-rules create *)|Bash(gcloud compute firewall-rules delete *)'
 
+# The command of the Bash guard hook: exit 2 on any failure, because only exit 2 blocks.
+# shellcheck disable=SC2016 # the literal text of the hook command, expanded by Claude Code, not here
+SANDBOX_GUARD_COMMAND='"$CLAUDE_PROJECT_DIR"/scripts/guard-agent-bash.sh || exit 2'
+
 # settings_problems FILE: print one line per way the Claude Code settings in FILE break the sandbox rules; print nothing when they hold.
 settings_problems() {
-  jq -r --arg exact "$SANDBOX_EXACT_EXCLUDES" --arg star "$SANDBOX_STAR_EXCLUDES" --arg ask "$SANDBOX_ASK_RULES" '
+  jq -r --arg exact "$SANDBOX_EXACT_EXCLUDES" --arg star "$SANDBOX_STAR_EXCLUDES" --arg ask "$SANDBOX_ASK_RULES" --arg guard "$SANDBOX_GUARD_COMMAND" '
     def need(cond; msg): if cond then empty else msg end;
     ($star | split("|")) as $stars
     | ($exact | split("|")) as $exact
@@ -275,7 +279,8 @@ settings_problems() {
       ($deny[] | select((test("^Read\\((\\./\\.env|\\./backups/\\*\\*|\\./\\.local-data/\\*\\*|~/\\.ssh/\\*\\*|~/\\.config/gcloud/\\*\\*|~/\\.config/gh/\\*\\*|~/\\*\\*/\\.env)\\)$") or test("^Bash\\(rm .*(backups|basic-memory\\.prev)")) | not) | "permissions.deny holds a rule that is neither a secret read nor a backup deletion: " + .),
       need($deny | any(test("^Bash\\(rm .*backups")); "permissions.deny lacks a backups deletion rule"),
       need($deny | any(test("^Bash\\(rm .*basic-memory\\.prev")); "permissions.deny lacks a basic-memory.prev deletion rule"),
-      ($asks[] | . as $r | need($asked | index($r); "permissions.ask lacks " + $r))
+      ($asks[] | . as $r | need($asked | index($r); "permissions.ask lacks " + $r)),
+      need(((.hooks.PreToolUse // []) | any(.matcher == "Bash" and ((.hooks // []) | any(.type == "command" and .command == $guard)))); "hooks.PreToolUse lacks the Bash guard hook " + $guard)
   ' "$1" || return 1
 }
 
@@ -309,6 +314,12 @@ settings_problems() {
   jq '.permissions.deny += ["Bash(rm *)"]' "$settings" >"$bad"
   run settings_problems "$bad"
   assert_output --partial "neither a secret read nor a backup deletion"
+  jq 'del(.hooks)' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "hooks.PreToolUse lacks the Bash guard hook"
+  jq '.hooks.PreToolUse[0].matcher = "Read"' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "hooks.PreToolUse lacks the Bash guard hook"
   # The committed file holds every rule.
   run settings_problems "$settings"
   assert_output ""
