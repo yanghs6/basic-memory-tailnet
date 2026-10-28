@@ -57,8 +57,8 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
         && assert_line "effort low" || exit 1
       if [[ "$reviewer" == codex ]]; then
         assert_line "model gpt-6.1-sol" \
-          && assert_stub_called -F 'codex exec review -m gpt-6.1-sol -c model_reasoning_effort="low" -c sandbox_mode="read-only" --base main :: cwd='"$REVIEW_WT" \
-          && assert_stub_called -F "codex exec -m gpt-6.1-sol -c model_reasoning_effort=\"low\" --sandbox read-only -o $OUT-r1-codex-plan.md"
+          && assert_stub_called -F 'codex exec review -m gpt-6.1-sol -c model_reasoning_effort="low" -c shell_environment_policy.inherit="core"' \
+          && assert_stub_called -F "codex exec -m gpt-6.1-sol -c model_reasoning_effort=\"low\" -c shell_environment_policy.inherit=\"core\" "
       else
         assert_line "model claude-opus-5-5" || exit 1
         run grep -c "^claude " "$STUB_LOG"
@@ -71,6 +71,24 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
       fi
     ) || fail "$reviewer review of a branch by $author"
   done
+}
+
+@test "both codex calls strip token-like env vars and run under a deny profile instead of --sandbox or sandbox_mode" {
+  local arg main_env
+  cd "$BATS_TEST_TMPDIR" || return
+  review_repo claude-code || return 1
+  run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+  assert_success
+  main_env="$(git rev-parse --path-format=absolute --git-common-dir)" || return 1
+  main_env="$(dirname "$main_env")/.env"
+  # Both calls (the change review and the plan review) carry every argument.
+  for arg in 'shell_environment_policy.inherit="core"' 'shell_environment_policy.ignore_default_excludes=false' \
+    'default_permissions="reviewer"' 'permissions.reviewer.extends=":read-only"' 'permissions.reviewer.filesystem={' \
+    '"~/.ssh"="deny"' '"~/.config"="deny"' "\"$main_env\"=\"deny\""; do
+    run grep -c -F -- "$arg" "$STUB_LOG"
+    assert_output 2 || fail "argument $arg is not on both codex calls"
+  done
+  refute_stub_called -F -e '--sandbox' -e 'sandbox_mode'
 }
 
 @test "passes REVIEW_MODEL and REVIEW_EFFORT to both reviewer calls and records them in the meta file" {
