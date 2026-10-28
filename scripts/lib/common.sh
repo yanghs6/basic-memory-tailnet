@@ -11,6 +11,7 @@
 #   mask VALUE -> first 4 characters + ****, for printing secrets and ids
 #   utc_stamp -> the current UTC time as YYYYMMDDTHHMMSSZ
 #   main_checkout_root [DIR] -> the main checkout that DIR belongs to
+#   sha256_of FILE -> hex digest of a local file
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
 
 [ -n "${_BM_LIB_COMMON:-}" ] && return 0
@@ -27,6 +28,9 @@ readonly REPO_DIR
 readonly DEFAULT_BM_PORT=8737
 readonly DEFAULT_SB_PORT=3000
 readonly DEFAULT_BM_WEB_PORT=8738
+# ssh access mode: local ends of make tunnel (Basic Memory, web UI) when .env sets no BM_TUNNEL_*_PORT.
+readonly DEFAULT_TUNNEL_MCP_PORT=18737
+readonly DEFAULT_TUNNEL_WEB_PORT=13000
 # Suffix of a file still being written; it gets its final name only when complete.
 readonly PARTIAL_SUFFIX=".partial"
 
@@ -73,4 +77,13 @@ main_checkout_root() {
   local common
   common="$(git -C "${1:-$COMMON_LIB_DIR}" rev-parse --path-format=absolute --git-common-dir)" || return 1
   dirname "$common"
+}
+
+# sha256_of FILE -> hex digest (sha256sum on Linux, shasum on macOS).
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{ print $1 }'
+  else
+    shasum -a 256 "$1" | awk '{ print $1 }'
+  fi
 }

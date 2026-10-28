@@ -13,7 +13,7 @@ MAIN_ROOT := $(if $(GIT_COMMON_DIR),$(abspath $(GIT_COMMON_DIR)/..),$(CURDIR))
 BM_PORT := $(or $(BM_PORT),8737)
 SB_PORT := $(or $(SB_PORT),3000)
 BM_WEB_PORT := $(or $(BM_WEB_PORT),8738)
-export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT SB_PORT BM_ACCESS BM_ACCESS_CHECK_URL BM_TUNNEL_MCP_PORT BM_TUNNEL_WEB_PORT
+export BM_VM_HOST BM_VM_USER BM_TAILNET_DOMAIN BM_VM_PUBLIC_IP BM_PORT SB_PORT BM_ACCESS BM_ACCESS_CHECK_URL BM_TUNNEL_MCP_PORT BM_TUNNEL_WEB_PORT BM_MEMORY_DEVICE BM_MEMORY_MCP_URL BM_MEMORY_EXCLUDE
 export BM_WEB BM_WEB_HOST BM_WEB_PORT BM_WEB_GITHUB_USER_ID BM_WEB_GITHUB_CLIENT_ID
 # Only the targets that hand the SilverBullet login to compose or the VM, or log in to check it, see it; make
 # review's CLIs and the read-only probe do not.
@@ -43,7 +43,7 @@ COVERAGE_MIN := 80
 DOCKER_RUN := docker run --rm -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' '*.bats' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify gateway-lock check-git secret-scan review review-post review-record vm-bootstrap deploy verify probe status logs export-logs sb-fonts backup restore access-check tunnel new-doc new-id new-script
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify gateway-lock check-git secret-scan review review-post review-record vm-bootstrap deploy verify probe status logs export-logs sb-fonts backup restore access-check tunnel memory-sync memory-index memory-hooks new-doc new-id new-script
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -111,6 +111,15 @@ access-check: ## Report which access path (tailscale or ssh) works on this netwo
 
 tunnel: ## ssh mode: forward MCP and the web UI to 127.0.0.1:BM_TUNNEL_MCP_PORT and BM_TUNNEL_WEB_PORT (Ctrl-C stops)
 	scripts/open-tunnel.sh
+
+memory-sync: ## Mirror this Mac's Claude Code and Codex memory files to Basic Memory (HOOK=1: in the background, always exit 0; FULL=1: rewrite everything after a restore)
+	scripts/sync-agent-memory.sh $(if $(HOOK),--hook) $(if $(FULL),--full)
+
+memory-index: ## Print the Basic Memory index of this project and global notes for a SessionStart hook on stdin (MEMORY_AGENT=claude-code|codex)
+	scripts/show-memory-index.sh "$(MEMORY_AGENT)"
+
+memory-hooks: ## Add the memory-sync and memory-index hooks to Claude Code and Codex (REMOVE=1 removes them; ask the user first)
+	scripts/install-memory-hooks.sh $(if $(REMOVE),--remove)
 
 check-git: ## Check the git policy for the current branch against origin/main (name, commit trailers, worktree config)
 	scripts/check-git.sh origin/main

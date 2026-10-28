@@ -23,7 +23,6 @@
 #   backup_gateway_files DIR -> with BM_WEB=on, copy the live gateway files into DIR on the VM and set GATEWAY_BACKUP_DIR (restore)
 #   gateway_rollback_cmd DIR -> a command for `remote` that puts the files backed up in DIR back (restore's rollback)
 #   manifest_cmd DIR -> a command printing "<sha256>  ./<path>" for every data file under DIR
-#   sha256_of FILE -> hex digest of a local file
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
 
 [ -n "${_BM_LIB_VM:-}" ] && return 0
@@ -336,13 +335,4 @@ gateway_rollback_cmd() {
 # manifests cannot drift apart. pipefail makes a failing find fail the command instead of printing a short list.
 manifest_cmd() {
   printf 'set -o pipefail; cd %s && sudo -n find . -path ./%s -prune -o -type f -exec sha256sum {} + | LC_ALL=C sort -k2' "$1" "$BM_MODEL_CACHE_REL_PATH"
-}
-
-# sha256_of FILE -> hex digest (sha256sum on Linux, shasum on macOS).
-sha256_of() {
-  if command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$1" | awk '{ print $1 }'
-  else
-    shasum -a 256 "$1" | awk '{ print $1 }'
-  fi
 }

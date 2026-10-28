@@ -112,6 +112,7 @@ claude.ai의 커스텀 커넥터로 Basic Memory를 쓰려고 선택 기능 `BM_
 
 1. "차단과 끄기"를 따릅니다. 데이터가 바뀐 흔적이 있으면 1단계의 백업으로 복원합니다(`make restore`, 사용자가 직접 `yes`).
    - `BM_WEB=on`인 `make restore`는 Basic Memory와 SilverBullet이 healthy해지면 성공합니다. 그 뒤에 띄우는 `gateway`·`cloudflared`가 healthy하지 않으면 실패나 롤백 없이 `WARNING: the web connector services are not healthy`만 내므로, 그때는 `make status`와 `make logs`로 봅니다.
+   - 복원한 뒤에는 각 Mac에서 `make memory-sync FULL=1`을 한 번 실행합니다([운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 "기억 미러").
 
 ## Cloudflare 보호 설정
 
