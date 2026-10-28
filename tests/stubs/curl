@@ -14,6 +14,8 @@
 #   -w '%{http_code}' it also prints CURL_STUB_HTTP_CODE (default 200), like a reachability probe.
 # CURL_STUB_FAIL_MATCH=<substring>: calls whose arguments contain it fail with CURL_STUB_FAIL_EXIT (default 28 =
 #   timeout; 6 = DNS), like a network that blocks that host.
+# CURL_STUB_CONFLICT_MATCH=<substring> (MCP mode): a write_note request whose payload contains it is answered with action
+#   conflict instead of created (an answered failure, unlike CURL_STUB_FAIL_MATCH).
 set -euo pipefail
 printf 'curl %s\n' "$*" >>"$STUB_LOG"
 if [[ -n "${CURL_STUB_FAIL_MATCH:-}" && "$*" == *"$CURL_STUB_FAIL_MATCH"* ]]; then
@@ -154,7 +156,10 @@ if [[ -n "$headers_file" ]]; then
   cp "$CURL_FIXTURES/headers.txt" "$headers_file"
 fi
 request_id="$(jq -r '.id // empty' <<<"$data")"
-if [[ -f "$CURL_FIXTURES/$key.body" && -n "$request_id" ]]; then
+if [[ "$key" == call_write_note && -n "${CURL_STUB_CONFLICT_MATCH:-}" && "$data" == *"$CURL_STUB_CONFLICT_MATCH"* ]]; then
+  sed -E 's/(^|[^\\])"id":[0-9]+/\1"id":'"$request_id"'/g; s/\\"action\\":\\"created\\"/\\"action\\":\\"conflict\\"/; s/"action":"created"/"action":"conflict"/' \
+    "$CURL_FIXTURES/$key.body" >"$body_file"
+elif [[ -f "$CURL_FIXTURES/$key.body" && -n "$request_id" ]]; then
   sed -E 's/(^|[^\\])"id":[0-9]+/\1"id":'"$request_id"'/g' "$CURL_FIXTURES/$key.body" >"$body_file"
 elif [[ -f "$CURL_FIXTURES/$key.body" ]]; then
   cp "$CURL_FIXTURES/$key.body" "$body_file"
