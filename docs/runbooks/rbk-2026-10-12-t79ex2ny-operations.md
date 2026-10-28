@@ -85,6 +85,7 @@ Claude Code·Codex의 기억 파일을 Basic Memory의 `agent-memory/`로 미러
 4. 사용자 OK를 받고 `make memory-hooks`를 실행합니다. SessionStart·Stop에 동기화를, SessionStart에 색인을 더합니다.
 5. Codex에서 `/hooks`로 새 hook을 신뢰합니다.
 
+- 첫 동기화 속도: 한 번에 노트 10개까지만 보내므로(쓰기 사이 3초 대기), Mac에서 처음 올릴 때와 `FULL=1` 뒤에는 여러 번 실행해야 끝납니다. `... wait for the next memory-sync` 줄이 더 나오지 않을 때까지 `make memory-sync`를 다시 실행하거나 hook이 마저 올리게 둡니다. 1 GB VM이므로 실행 사이에 `make status`로 VM 상태를 봅니다. 연속 2번 실패하면 그 실행은 멈추고 1로 끝납니다(스펙 §3.3).
 - 확인: 새 세션을 열면 컨텍스트에 `Basic Memory index:`가 들어옵니다. 다른 Mac이나 다른 에이전트의 기억이 아직 없으면 아무것도 들어오지 않습니다. 지난 결정을 물으면 에이전트가 `read_note`나 `search_notes`를 부릅니다.
 - 에이전트 조회 규칙과 "새 기억은 영어로"는 사용자 전역 지침(`~/.agents/AGENTS.md`)에 있습니다(스펙 §3.8).
 - 로그: `~/.local/state/bm-agent-memory/sync.log`
