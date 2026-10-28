@@ -62,7 +62,9 @@ readonly MAKE_ASK_TARGETS='(deploy|restore|vm-bootstrap|sb-fonts|review-post|rev
 readonly MAKE_ASK_PATTERN="${MAKE_LEAD}${MAKE_ASK_TARGETS}([[:space:];&|)'\"]|\$)"
 
 # gh in command position. Write forms ask; read forms (pr view, issue list, api GET) pass.
-readonly GH_LEAD="${COMMAND_LEAD}gh[[:space:]]+"
+# Global flags (-R a/b, --repo a/b, --repo=a/b, or a bare flag) may stand between gh and the subcommand.
+readonly GH_GLOBAL_FLAGS='(-[A-Za-z-]+(=[^[:space:]]+|[[:space:]]+[^-[:space:]][^[:space:]]*)?[[:space:]]+)*'
+readonly GH_LEAD="${COMMAND_LEAD}gh[[:space:]]+${GH_GLOBAL_FLAGS}"
 readonly GH_API_PATTERN="${GH_LEAD}api([[:space:]]|\$)"
 readonly GH_API_FIELD_PATTERN='[[:space:]](-f|-F|--field|--raw-field|--input)([[:space:]=]|$)|[[:space:]]-[fF][^[:space:]-]'
 readonly GH_API_METHOD_PATTERN='[[:space:]](-X|--method)[[:space:]=]*([^[:space:]]+)'

@@ -150,6 +150,11 @@ assert_asks() {
     "gh pr review 1"
     "gh pr reopen 1"
     "sh -c 'gh issue create --title t'"
+    "gh -R a/b pr merge 3"
+    "gh --repo a/b pr merge 3"
+    "gh --repo=a/b issue close 1"
+    "gh -R a/b release delete v1"
+    "gh -R a/b api -X POST repos/a/b/issues -f title=t"
   )
   for cmd in "${commands[@]}"; do
     assert_asks "$cmd"
@@ -211,6 +216,10 @@ assert_asks() {
     "gh api -X GET repos/x/y"
     "gh api --method get repos/x/y"
     "gh issue list"
+    "gh -R a/b pr view 3"
+    "gh --repo a/b issue list"
+    "gh --repo=a/b pr list"
+    "gh -R a/b api repos/a/b/issues/1/comments"
     "gh issue view 3"
     "gh release list"
     "gcloud compute instances describe x"
