@@ -424,3 +424,18 @@ settings_problems() {
   [[ "$names" == "$expected" ]] \
     || fail "ALLOWED_TOOLS in gateway/gateway.py must be exactly the 18 tools of the spec:"$'\n'"$(diff <(echo "$expected") <(echo "$names"))"
 }
+
+@test "the release-notes reader has no shell or write tool and bm-upgrade hands step 3 to it" {
+  local agent="$REPO_DIR/.claude/agents/release-notes-reader.md" skill="$REPO_DIR/.agents/skills/bm-upgrade/SKILL.md"
+  [[ -f "$agent" ]] || fail ".claude/agents/release-notes-reader.md must exist"
+  run frontmatter "$agent"
+  # The line must be exactly "tools: WebFetch": a second tools line or one that adds Bash fails.
+  assert_line "tools: WebFetch"
+  refute_line --regexp '^tools: .*(Bash|Write|Edit)'
+  assert_line --regexp '^disallowedTools: .*Bash'
+  assert_line --regexp '^disallowedTools: .*Write'
+  assert_line --regexp '^disallowedTools: .*Edit'
+  assert_line --regexp '^disallowedTools: .*NotebookEdit'
+  run grep -E '^3\. .*release-notes-reader' "$skill"
+  assert_success
+}
