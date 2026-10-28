@@ -3,7 +3,7 @@
 load helpers
 
 setup() {
-  setup_stubs curl
+  setup_stubs curl sleep
   use_mcp_fixtures sse
   export HOME="$BATS_TEST_TMPDIR/home" BM_MEMORY_DEVICE=mac-test BM_MEMORY_MCP_URL=http://127.0.0.1:18737/mcp
   unset XDG_STATE_HOME BM_MEMORY_EXCLUDE CODEX_HOME CLAUDE_CONFIG_DIR
@@ -127,7 +127,7 @@ tool_calls() { jq -r --arg name "$1" 'select(.params.name == $name) | .id' "$STU
   # shellcheck disable=SC2034 # i only counts the tries
   for i in $(seq 50); do
     grep -q 'sync skipped' "$STATE_DIR/sync.log" 2>/dev/null && break
-    sleep 0.1
+    /bin/sleep 0.1
   done
   grep -q 'basic-memory unreachable (run make tunnel); sync skipped' "$STATE_DIR/sync.log" || fail "no skip line in sync.log"
 }
@@ -288,4 +288,85 @@ exec "$REAL_FIND" "$@"'
   assert_success
   assert_equal "$(written_notes)" \
     "$(printf '%s\n' agent-memory/_global/codex/mac-test/v2/MEMORY agent-memory/acme-widget/claude-code/mac-test/MEMORY)"
+}
+
+# add_claude_files COUNT -> COUNT more Claude memory files (extra-1.md ...) in the widget folder.
+add_claude_files() {
+  local i
+  for ((i = 1; i <= $1; i++)); do echo "extra $i" >"$CLAUDE_MEM/memory/extra-$i.md"; done
+}
+
+@test "sends at most 10 write_note calls per run with a 3 second pause between two of them, says how many wait, and the next run sends the rest" {
+  add_claude_files 7
+  run "$SYNC"
+  assert_success
+  assert_output --partial "synced: wrote 10, deleted 0, failed 0, deferred 2"
+  assert_output --partial "2 notes wait for the next memory-sync (at most 10 writes per run)"
+  assert_equal "$(tool_calls write_note)" 10
+  assert_equal "$(grep -c '^sleep 3$' "$STUB_LOG")" 9
+  assert_equal "$(grep -c '^sleep ' "$STUB_LOG")" 9
+  assert_equal "$(wc -l <"$STATE_DIR/state.tsv" | tr -d ' ')" 10
+  rm -f "$STUB_LOG.requests"
+  : >"$STUB_LOG"
+  run "$SYNC"
+  assert_success
+  assert_output --partial "synced: wrote 2, deleted 0, failed 0, deferred 0"
+  refute_output --partial "wait for the next memory-sync"
+  assert_equal "$(tool_calls write_note)" 2
+  assert_equal "$(tool_calls delete_note)" 0
+  assert_equal "$(grep -c '^sleep 3$' "$STUB_LOG")" 1
+  assert_equal "$(wc -l <"$STATE_DIR/state.tsv" | tr -d ' ')" 12
+}
+
+@test "stops after 2 failed requests in a row, warns, counts the unsent writes as deferred and exits 1, and the next run writes everything" {
+  export CURL_STUB_FAIL_MATCH='"name":"write_note"'
+  run "$SYNC"
+  assert_failure
+  assert_output --partial "WARNING: basic-memory did not answer 2 requests in a row; stopped sending, the next memory-sync continues"
+  assert_output --partial "synced: wrote 0, deleted 0, failed 2, deferred 3"
+  assert_equal "$(grep -c '"name":"write_note"' "$STUB_LOG")" 2
+  unset CURL_STUB_FAIL_MATCH
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC"
+  assert_success
+  assert_equal "$(tool_calls write_note)" 5
+}
+
+@test "--full writes 10 of 12 files, keeps the others with an empty sha256, and the next normal run writes the rest" {
+  add_claude_files 7
+  "$SYNC" 2>/dev/null
+  "$SYNC" 2>/dev/null
+  printf 'data: %s\n' '{"jsonrpc":"2.0","id":2,"result":{"isError":false,"structuredContent":{"result":{"has_more":false,"results":[]}}}}' \
+    >"$CURL_FIXTURES/call_search_notes.body"
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC" --full
+  assert_success
+  assert_output --partial "2 notes wait for the next memory-sync"
+  assert_equal "$(tool_calls write_note)" 10
+  assert_equal "$(awk -F'\t' '$3 == ""' "$STATE_DIR/state.tsv" | wc -l | tr -d ' ')" 2
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC"
+  assert_success
+  assert_equal "$(tool_calls write_note)" 2
+  assert_equal "$(awk -F'\t' '$3 == ""' "$STATE_DIR/state.tsv" | wc -l | tr -d ' ')" 0
+}
+
+@test "starts the next run's writes at the first note a run did not send, so ten notes that always conflict cannot block the rest, and clears that cursor once a run sends everything" {
+  add_claude_files 8
+  export CURL_STUB_CONFLICT_MATCH='"directory":"agent-memory/acme-widget'
+  run "$SYNC"
+  assert_failure
+  assert_output --partial "failed 10, deferred 3"
+  assert_equal "$(cut -d/ -f1-3 "$STATE_DIR/next-write.txt")" agent-memory/_global/codex
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC"
+  assert_failure
+  assert_equal "$(grep -c '/codex/' "$STATE_DIR/state.tsv")" 3
+  assert_equal "$(grep -c 'acme-widget' "$STATE_DIR/state.tsv")" 0
+  assert_equal "$(cut -d/ -f1-3 "$STATE_DIR/next-write.txt")" agent-memory/acme-widget/claude-code
+  unset CURL_STUB_CONFLICT_MATCH
+  run "$SYNC"
+  assert_success
+  assert_equal "$(wc -l <"$STATE_DIR/state.tsv" | tr -d ' ')" 13
+  [[ ! -e "$STATE_DIR/next-write.txt" ]] || fail "the cursor is still there after a run that sent every write"
 }

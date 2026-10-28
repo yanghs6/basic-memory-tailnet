@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Test stub for sleep: logs its arguments and returns at once, so no test waits.
+set -euo pipefail
+printf 'sleep %s\n' "$*" >>"$STUB_LOG"

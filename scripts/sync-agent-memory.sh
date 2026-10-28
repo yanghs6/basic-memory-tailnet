@@ -37,14 +37,24 @@ readonly SEARCH_PAGE_SIZE=50
 readonly SECRET_PATTERN='tskey-[a-z]+-[A-Za-z0-9]+-[A-Za-z0-9]{10,}|gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|A[KS]IA[A-Z2-7]{16}|xox[bp]-[0-9]+-[A-Za-z0-9-]{10,}|sk-ant-[a-z]+[0-9]{2}-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]+T3BlbkFJ|AIza[A-Za-z0-9_-]{35}|-----BEGIN [A-Z0-9 ]*PRIVATE KEY'
 readonly STATE_FILE_NAME=state.tsv
 readonly KEYS_FILE_NAME=keys.tsv
+# One line: the note path of the first write a run did not send; the next run starts its writes there.
+readonly CURSOR_FILE_NAME=next-write.txt
 readonly LOG_FILE_NAME=sync.log
 readonly LOCK_DIR_NAME=lock
+# Pacing for the 1 GB VM, which indexes every note it receives: at most this many write_note calls per run, the rest wait.
+readonly WRITE_LIMIT_PER_RUN=10
+# Pause in seconds between two write_note calls (not before the first one).
+readonly WRITE_PAUSE_SECONDS=3
+# After this many requests in a row (writes or deletes) that got no answer ("request to <URL> failed") a run sends nothing more.
+readonly FAILURES_IN_A_ROW_LIMIT=2
 
 IS_HOOK=""
 IS_FULL=""
 STATE_DIR=""
 STATE_FILE=""
 KEYS_FILE=""
+CURSOR_FILE=""
+NEXT_CURSOR=""
 LOCK_DIR=""
 # Work files of one run: desired (file, note path, sha256, key, agent, repo), old-state (a copy of state.tsv),
 # next-state (the lines of the new state.tsv), write (desired lines plus the old permalink), delete (state lines).
@@ -53,6 +63,13 @@ REQUEST_ID=1
 WROTE=0
 DELETED=0
 FAILED=0
+# Lines not sent in this run (DEFERRED), the part of them held back by the write limit (LIMIT_DEFERRED), the failed
+# requests in a row that got no answer, the write_note calls made and whether the failure streak stopped the run.
+DEFERRED=0
+LIMIT_DEFERRED=0
+FAILURE_STREAK=0
+WRITE_CALLS=0
+IS_STOPPED=""
 
 usage() { die "usage: sync-agent-memory.sh [--hook] [--full] (make memory-sync [HOOK=1] [FULL=1])"; }
 
@@ -320,18 +337,41 @@ delete_one() {
   jq -e 'type == "object" and (has("error") | not)' <<<"$result" >/dev/null || die "delete_note: error for $1"
 }
 
-# send_deletes -> delete_one for each line of delete; the line of a failed delete stays in the state.
+# note_failure -> after a failed request: re-emits its stderr (the err file), counts it when no answer came back (the mcp
+# library's "request to <URL> failed" message) and resets the streak when the server answered (conflict, tool error).
+# The run stops sending once FAILURES_IN_A_ROW_LIMIT unanswered requests came in a row.
+note_failure() {
+  cat "$WORK_DIR/err" >&2
+  if ! grep -qF "request to $MCP_URL failed" "$WORK_DIR/err"; then
+    FAILURE_STREAK=0
+    return 0
+  fi
+  FAILURE_STREAK=$((FAILURE_STREAK + 1))
+  if ((FAILURE_STREAK >= FAILURES_IN_A_ROW_LIMIT)) && [[ -z "$IS_STOPPED" ]]; then
+    IS_STOPPED=1
+    log "WARNING: basic-memory did not answer $FAILURES_IN_A_ROW_LIMIT requests in a row; stopped sending, the next memory-sync continues"
+  fi
+}
+
+# send_deletes -> delete_one for each line of delete; the line of a failed or unsent delete stays in the state.
 send_deletes() {
   local source note sha permalink
   unit_fields "$WORK_DIR/delete"
   while IFS=$'\037' read -r source note sha permalink; do
+    if [[ -n "$IS_STOPPED" ]]; then
+      DEFERRED=$((DEFERRED + 1))
+      printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$sha" "$permalink" >>"$WORK_DIR/next-state"
+      continue
+    fi
     REQUEST_ID=$((REQUEST_ID + 1))
-    if (delete_one "$permalink"); then
+    if (delete_one "$permalink") 2>"$WORK_DIR/err"; then
       DELETED=$((DELETED + 1))
+      FAILURE_STREAK=0
     else
       log "WARNING: could not delete $note; the next memory-sync tries again"
       FAILED=$((FAILED + 1))
       printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$sha" "$permalink" >>"$WORK_DIR/next-state"
+      note_failure
     fi
   done <"$WORK_DIR/delete.fields"
 }
@@ -359,25 +399,74 @@ write_one() {
   jq -r '.permalink // empty' <<<"$result"
 }
 
-# send_writes -> write_one for each line of write; a written note's line goes to the state with its permalink. A failed
-# write of a file sent before keeps its old permalink with an empty sha256: the note can still be deleted if the file
-# goes away, and the next run writes the file again (also after --full, where the old sha256 is the current one).
+# keep_unwritten SOURCE NOTE OLD_LINK -> a file whose write failed or was not sent: with an old permalink its line stays
+# in the state with an empty sha256 (the note can still be deleted, the next run writes the file again, also after
+# --full, where the old sha256 is the current one); without one it is left out, so the next run sees it as new.
+keep_unwritten() {
+  if [[ -n "$3" ]]; then
+    printf '%s\t%s\t\t%s\n' "$1" "$2" "$3" >>"$WORK_DIR/next-state"
+  fi
+}
+
+# send_writes -> write_one for each line of write, at most WRITE_LIMIT_PER_RUN of them with WRITE_PAUSE_SECONDS between
+# two; a written note's line goes to the state with its permalink. Failed and unsent files go through keep_unwritten.
 send_writes() {
   local source note sha key agent repo old_link permalink
   unit_fields "$WORK_DIR/write"
   while IFS=$'\037' read -r source note sha key agent repo old_link; do
+    if [[ -n "$IS_STOPPED" ]] || ((WRITE_CALLS >= WRITE_LIMIT_PER_RUN)); then
+      DEFERRED=$((DEFERRED + 1))
+      [[ -n "$IS_STOPPED" ]] || LIMIT_DEFERRED=$((LIMIT_DEFERRED + 1))
+      [[ -n "$NEXT_CURSOR" ]] || NEXT_CURSOR="$note"
+      keep_unwritten "$source" "$note" "$old_link"
+      continue
+    fi
+    if ((WRITE_CALLS > 0)); then
+      sleep "$WRITE_PAUSE_SECONDS"
+    fi
+    WRITE_CALLS=$((WRITE_CALLS + 1))
     REQUEST_ID=$((REQUEST_ID + 1))
-    if permalink="$(write_one "$source" "$note" "$key" "$agent" "$repo")" && [[ -n "$permalink" ]]; then
+    if permalink="$(write_one "$source" "$note" "$key" "$agent" "$repo" 2>"$WORK_DIR/err")" && [[ -n "$permalink" ]]; then
       WROTE=$((WROTE + 1))
+      FAILURE_STREAK=0
       printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$sha" "$permalink" >>"$WORK_DIR/next-state"
     else
       log "WARNING: could not write $note; the next memory-sync tries again"
       FAILED=$((FAILED + 1))
-      if [[ -n "$old_link" ]]; then
-        printf '%s\t%s\t\t%s\n' "$source" "$note" "$old_link" >>"$WORK_DIR/next-state"
-      fi
+      keep_unwritten "$source" "$note" "$old_link"
+      note_failure
     fi
   done <"$WORK_DIR/write.fields"
+}
+
+# rotate_writes -> the write list starts at the note the cursor names (lines before it move to the end, the order is
+# kept), so notes that fail every run cannot use up the per-run limit before the others get their turn. Without a
+# cursor, or when its note is not in the list, the list stays as it is.
+rotate_writes() {
+  local cursor=""
+  [[ -f "$CURSOR_FILE" ]] || return 0
+  IFS= read -r cursor <"$CURSOR_FILE" || true
+  [[ -n "$cursor" ]] || return 0
+  awk -F'\t' -v cursor="$cursor" '
+    { line[NR] = $0; if (start == 0 && $2 == cursor) start = NR }
+    END {
+      if (start == 0) start = 1
+      for (i = start; i <= NR; i++) print line[i]
+      for (i = 1; i < start; i++) print line[i]
+    }
+  ' "$WORK_DIR/write" >"$WORK_DIR/write.rotated" || exit 1
+  mv "$WORK_DIR/write.rotated" "$WORK_DIR/write"
+}
+
+# write_cursor -> the cursor file holds NEXT_CURSOR (through a .partial file, like state.tsv) or is removed when this run
+# sent every write.
+write_cursor() {
+  if [[ -z "$NEXT_CURSOR" ]]; then
+    rm -f "$CURSOR_FILE"
+    return 0
+  fi
+  printf '%s\n' "$NEXT_CURSOR" >"$CURSOR_FILE$PARTIAL_SUFFIX"
+  mv "$CURSOR_FILE$PARTIAL_SUFFIX" "$CURSOR_FILE"
 }
 
 # write_state -> state.tsv replaced by next-state through a .partial file in the same folder.
@@ -411,9 +500,14 @@ sync_memory() {
     plan_full_deletes
   fi
   send_deletes
+  rotate_writes
   send_writes
   write_state
-  log "synced: wrote $WROTE, deleted $DELETED, failed $FAILED"
+  write_cursor
+  log "synced: wrote $WROTE, deleted $DELETED, failed $FAILED, deferred $DEFERRED"
+  if ((LIMIT_DEFERRED > 0)); then
+    log "$LIMIT_DEFERRED notes wait for the next memory-sync (at most $WRITE_LIMIT_PER_RUN writes per run)"
+  fi
   ((FAILED == 0)) || die "$FAILED notes failed (see the WARNING lines above); the next memory-sync tries them again"
 }
 
@@ -422,6 +516,7 @@ main() {
   STATE_DIR="$(memory_state_dir)" || exit 1
   STATE_FILE="$STATE_DIR/$STATE_FILE_NAME"
   KEYS_FILE="$STATE_DIR/$KEYS_FILE_NAME"
+  CURSOR_FILE="$STATE_DIR/$CURSOR_FILE_NAME"
   LOCK_DIR="$STATE_DIR/$LOCK_DIR_NAME"
   # The hook's log goes to this folder, so it exists before anything runs in the background.
   mkdir -p "$STATE_DIR" || die "cannot create the state folder $(tilde_path "$STATE_DIR"); check its parent's permissions"

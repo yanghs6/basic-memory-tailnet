@@ -81,10 +81,11 @@ Claude Code·Codex의 기억 파일을 Basic Memory의 `agent-memory/`로 미러
 
 1. 메인 체크아웃 `.env`에 `BM_MEMORY_DEVICE`(`^[a-z0-9-]+$`, 예: `mac-work`)를 넣습니다(사용자). Mac마다 다른 값을 씁니다. 다른 Mac의 `.env`를 복사했다면 이 값을 바꿉니다. 같은 값이면 두 Mac이 서로의 노트를 덮어쓰고, `FULL=1`은 상대 Mac의 노트를 지웁니다. 노트로 보내지 않을 프로젝트가 있으면 `BM_MEMORY_EXCLUDE`(쉼표로 구분한 프로젝트 키)도 넣습니다.
 2. `make tunnel`을 띄웁니다(`ssh` 모드).
-3. `make memory-sync`로 처음 올립니다. 다시 실행해 아무것도 보내지 않는지 봅니다.
+3. `make memory-sync`로 처음 올립니다. 한 번에 10개까지만 보내므로 `wait for the next memory-sync` 줄이 더 나오지 않을 때까지 다시 실행합니다(1 GB VM이므로 실행 사이에 `make status`로 상태를 봅니다). 그 실행들의 `wrote` 합이 원본 파일 수와 같아야 하고, 한 번 더 실행하면 아무것도 보내지 않습니다.
 4. 사용자 OK를 받고 `make memory-hooks`를 실행합니다. SessionStart·Stop에 동기화를, SessionStart에 색인을 더합니다.
 5. Codex에서 `/hooks`로 새 hook을 신뢰합니다.
 
+- 첫 동기화 속도: 한 번에 노트 10개까지만 보내므로(쓰기 사이 3초 대기), Mac에서 처음 올릴 때와 `FULL=1` 뒤에는 여러 번 실행해야 끝납니다. `... wait for the next memory-sync` 줄이 더 나오지 않을 때까지 `make memory-sync`를 다시 실행하거나 hook이 마저 올리게 둡니다. 1 GB VM이므로 실행 사이에 `make status`로 VM 상태를 봅니다. 응답 없이 연속 2번 실패하면 그 실행은 멈추고 1로 끝납니다(스펙 §3.3).
 - 확인: 새 세션을 열면 컨텍스트에 `Basic Memory index:`가 들어옵니다. 다른 Mac이나 다른 에이전트의 기억이 아직 없으면 아무것도 들어오지 않습니다. 지난 결정을 물으면 에이전트가 `read_note`나 `search_notes`를 부릅니다.
 - 에이전트 조회 규칙과 "새 기억은 영어로"는 사용자 전역 지침(`~/.agents/AGENTS.md`)에 있습니다(스펙 §3.8).
 - 로그: `~/.local/state/bm-agent-memory/sync.log`
@@ -191,6 +192,7 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다.
 | 2026-10-26 | 장애 아님: 사용자가 Ruleset `main`의 Enforcement를 껐다가 다시 켬. [doc-ids 계획](../plans/plan-2026-10-26-e3svnr3h-doc-ids.md) Task 4의 일회성 이력 재작성 | 사용 안 함(재작성 전 `main` a1d77be의 mirror 백업 사본을 저장소 밖에 둠) | 없음 | `git push --force-with-lease`로 `main`을 829e77a로 바꾼 뒤 Enforcement를 다시 켰다. 공개 규칙 API에 규칙 5개(deletion, non_fast_forward, required_linear_history, pull_request, required_status_checks)가 보인다. [GitHub 런북](rbk-2026-10-14-ppmby9v6-github.md) 6절 4단계의 기록이다 | 해당 없음(장애 아님) |
 | 2026-10-27 | Assumption: 0.24.1 첫 기동의 DB 마이그레이션과 재색인으로 1GB VM이 느려짐. 시험 배포 직후 `make verify`가 세 번 실패함(05:16Z ssh banner 시간 초과, 05:18Z 검증 터널 열리지 않음, 05:19Z `write_note`의 `curl: (28)`) | 사용 안 함 | 없음 | 컨테이너는 내내 healthy였고 메모리 64%, 스왑 487/1023MB. `make probe` 통과 뒤 05:22Z `make verify` 통과. 출처: [recovery-drill 계획](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md) Progress log | 원인 확인과, 업그레이드 직후 verify를 몇 분 미룰지는 [recovery-drill 계획](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md) Follow-ups에 남김 |
 | 2026-10-27 | 장애 아님: 롤백 시험([recovery-drill 계획](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md) Task 4). 0.24.1로 배포한 뒤 옛 `image:` 줄과 `make restore`로 0.23.2와 백업 시점 데이터로 되돌림 | `bm-20261027T050239Z.tgz` | 05:02:39Z(백업)부터 약 05:27Z(복원)까지. 그 사이 쓴 노트는 VM의 `/srv/basic-memory.prev-*`(이번 복원분)에만 남음 | 사용자가 시험 창 동안 노트 쓰기를 멈춤. 표시 노트 `verify/rollback-drill`이 복원 뒤 사라진 것을 확인 | `/srv/basic-memory.prev-*` 삭제는 사람이 정함 |
+| 2026-10-28 | Assumption: 첫 기억 미러 동기화(`make memory-sync`, Claude 기억 62개, 컨테이너 재시작 직후 01:27Z)가 `write_note`를 쉬지 않고 연달아 보내, 1GB VM에서 색인·임베딩이 밀리고 swap thrashing이 일어남. `write_note`가 30초 시간 초과로 19번 넘게 실패했고, 01:39Z에 동기화를 멈춘 뒤에도 MCP initialize가 30분 넘게 응답하지 않음(`make probe` 2회 연속 실패) | 사용 안 함. 재시작에 `make backup`을 씀(`bm-20261028T022222Z.tgz`가 함께 생김) | 없음. 응답을 못 받은 쓰기 가운데 23개는 서버에 쓰였고, 다음 동기화가 덮어씀 | 컨테이너는 내내 healthy였음(healthcheck는 TCP 연결만 봄). 01:55Z vmstat에서 si 약 1MB/s, wa 45~52%, Basic Memory RSS 59MiB. 02:14Z에는 swap 입출력이 멈추고 CPU가 한가했지만 여전히 응답 없음. 02:24Z 재시작 뒤 swap 89MB, 02:28Z `make probe` 통과. serial port 출력에 OOM 없음 | PR #33(쓰기 속도 조절: 실행마다 10개, 쓰기 사이 3초, 응답 없는 요청이 2번 연속이면 멈춤). 그때까지 [agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md) Task 6의 동기화와 hook 설치를 보류 |
 
 ### 점검 기록 (Exposure audit)
 
