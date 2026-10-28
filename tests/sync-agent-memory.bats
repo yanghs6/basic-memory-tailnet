@@ -113,7 +113,7 @@ tool_calls() { jq -r --arg name "$1" 'select(.params.name == $name) | .id' "$STU
   mv "$CURL_FIXTURES/conflict.body" "$CURL_FIXTURES/call_write_note.body"
   run "$SYNC"
   assert_failure
-  assert_output --partial "failed 2, deferred 3"
+  assert_output --partial "failed 5"
   [[ ! -s "$STATE_DIR/state.tsv" ]] || fail "a conflicting write reached the state"
 }
 

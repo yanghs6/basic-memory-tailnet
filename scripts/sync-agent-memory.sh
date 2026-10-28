@@ -333,8 +333,15 @@ delete_one() {
   jq -e 'type == "object" and (has("error") | not)' <<<"$result" >/dev/null || die "delete_note: error for $1"
 }
 
-# note_failure -> counts a failed request; the run stops sending once FAILURES_IN_A_ROW_LIMIT of them came in a row.
+# note_failure -> after a failed request: re-emits its stderr (the err file), counts it when no answer came back (the mcp
+# library's "request to <URL> failed" message) and resets the streak when the server answered (conflict, tool error).
+# The run stops sending once FAILURES_IN_A_ROW_LIMIT unanswered requests came in a row.
 note_failure() {
+  cat "$WORK_DIR/err" >&2
+  if ! grep -q "request to .* failed" "$WORK_DIR/err"; then
+    FAILURE_STREAK=0
+    return 0
+  fi
   FAILURE_STREAK=$((FAILURE_STREAK + 1))
   if ((FAILURE_STREAK >= FAILURES_IN_A_ROW_LIMIT)) && [[ -z "$IS_STOPPED" ]]; then
     IS_STOPPED=1
@@ -353,7 +360,7 @@ send_deletes() {
       continue
     fi
     REQUEST_ID=$((REQUEST_ID + 1))
-    if (delete_one "$permalink"); then
+    if (delete_one "$permalink") 2>"$WORK_DIR/err"; then
       DELETED=$((DELETED + 1))
       FAILURE_STREAK=0
     else
@@ -414,7 +421,7 @@ send_writes() {
     fi
     WRITE_CALLS=$((WRITE_CALLS + 1))
     REQUEST_ID=$((REQUEST_ID + 1))
-    if permalink="$(write_one "$source" "$note" "$key" "$agent" "$repo")" && [[ -n "$permalink" ]]; then
+    if permalink="$(write_one "$source" "$note" "$key" "$agent" "$repo" 2>"$WORK_DIR/err")" && [[ -n "$permalink" ]]; then
       WROTE=$((WROTE + 1))
       FAILURE_STREAK=0
       printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$sha" "$permalink" >>"$WORK_DIR/next-state"

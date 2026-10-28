@@ -272,7 +272,7 @@ agent-memory/
      - 지우기는 결과에 `error`가 없으면 끝난 것으로 본다. 이미 없는 노트의 `deleted: false`도 여기에 든다(§2).
 - **속도 조절 (2026-10-28 추가, 설계 판단):** 한 번에 보내는 양과 속도를 제한한다. 1 GB VM이 받은 노트를 모두 색인하므로, 첫 동기화가 한꺼번에 보내면 VM이 응답을 멈춘다.
   - 한 실행에서 `write_note`는 최대 10번(`WRITE_LIMIT_PER_RUN`)이고, 두 번 사이에 3초(`WRITE_PAUSE_SECONDS`)를 쉰다. 첫 쓰기 앞에서는 쉬지 않는다. 나머지는 다음 실행이 보낸다.
-  - 쓰기나 지우기가 연속 2번(`FAILURES_IN_A_ROW_LIMIT`) 실패하면 그 실행은 더 보내지 않는다. 지우기는 먼저 돌고, 연속 실패가 한도에 닿으면 남은 지우기와 모든 쓰기를 멈춘다.
+  - 쓰기나 지우기 요청이 응답 없이(요청 실패나 시간 초과) 연속 2번(`FAILURES_IN_A_ROW_LIMIT`) 실패하면 그 실행은 더 보내지 않는다. 서버가 답한 실패(`conflict`, 도구 오류)는 연속 실패에 세지 않고 흐름을 끊는다(항상 충돌하는 파일 때문에 매번 멈추지 않게). 지우기는 먼저 돌고, 연속 실패가 한도에 닿으면 남은 지우기와 모든 쓰기를 멈춘다.
   - 보내지 않은 줄은 "미룬 줄"이다. 실패한 쓰기와 같이, 옛 permalink가 있는 줄은 sha256을 비워 다음 상태에 남기고(다시 보내고 지울 수도 있게), 옛 permalink가 없는 줄은 상태에 넣지 않는다(다음 실행이 새 파일로 본다). 보내지 않은 지우기는 원래 줄을 그대로 둔다. `--full`의 쓰기도 같은 제한을 받고, 미룬 줄은 이후 일반 실행이 마저 보낸다.
   - 로그: `synced: wrote <n>, deleted <n>, failed <n>, deferred <n>`. 한도 때문에 미룬 줄이 있으면 `<n> notes wait for the next memory-sync (at most 10 writes per run)`도 남긴다. 연속 실패로 멈추면 `WARNING: basic-memory did not answer 2 requests in a row; stopped sending, the next memory-sync continues`를 남기고, 보내지 않은 줄은 실패가 아니라 미룬 줄로 센다.
   - 종료 코드: 실패한 항목이 없으면 0이다(한도 때문에 미룬 것은 정상이다). 실패했거나 연속 실패로 멈췄으면 1이다.
