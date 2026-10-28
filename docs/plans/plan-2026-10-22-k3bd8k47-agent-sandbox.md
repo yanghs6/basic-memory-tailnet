@@ -258,3 +258,4 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 | 2026-10-28 | Open question | 파이프를 붙인 `make check 2>&1 \| tail -20`이 정확한 문자열 제외 `make check`에 맞는지 확인하지 못했다. |
 | 2026-10-28 | Open question | 완료 조건 7(Manual 모드 새 세션의 `make deploy`·`git push`·`git push --force` 프롬프트와 미끼 `backups` 경로 `rm` 차단)을 아직 확인하지 못했다. |
 | 2026-10-28 | Open question | memory hook 재확인(mk823xbp T6 S3)은 `work/memory-sync-pacing` 병합 뒤 감독 세션이 한다. |
+| 2026-10-28 | Verified | 최종 리뷰 수정(I1-I5, M1, M4, M5): `make check` exit 0, total line coverage 89.43%; 정책 검사 스크립트 OK. |
