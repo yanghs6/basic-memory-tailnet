@@ -186,9 +186,14 @@ EOF
 # The main checkout's .env is an absolute path found at run time. ~/.config holds the cloud CLI and gh credentials;
 # it is denied as a whole because the cloud-neutral rule keeps provider names out of scripts.
 codex_isolation_args() {
-  local root deny
+  local root env_path deny
   root="$(main_checkout_root "$PWD")" || die "cannot find the main checkout from $PWD"
-  deny="{\"$root/.env\"=\"deny\", \"~/.ssh\"=\"deny\", \"~/.config\"=\"deny\"}"
+  [[ "$root" != *[[:cntrl:]]* ]] \
+    || die "the main checkout path contains a control character or newline; move the checkout to a plain path"
+  # Escape the path for a TOML basic string: backslash first, then the double quote.
+  env_path="${root//\\/\\\\}/.env"
+  env_path="${env_path//\"/\\\"}"
+  deny="{\"$env_path\"=\"deny\", \"~/.ssh\"=\"deny\", \"~/.config\"=\"deny\"}"
   printf '%s\n' -c 'shell_environment_policy.inherit="core"' -c 'shell_environment_policy.ignore_default_excludes=false' \
     -c "default_permissions=\"$CODEX_PROFILE\"" -c "permissions.$CODEX_PROFILE.extends=\":read-only\"" \
     -c "permissions.$CODEX_PROFILE.filesystem=$deny"

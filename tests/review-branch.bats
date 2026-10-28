@@ -57,8 +57,8 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
         && assert_line "effort low" || exit 1
       if [[ "$reviewer" == codex ]]; then
         assert_line "model gpt-6.1-sol" \
-          && assert_stub_called -F 'codex exec review -m gpt-6.1-sol -c model_reasoning_effort="low" -c shell_environment_policy.inherit="core"' \
-          && assert_stub_called -F "codex exec -m gpt-6.1-sol -c model_reasoning_effort=\"low\" -c shell_environment_policy.inherit=\"core\" "
+          && assert_stub_called -E '^codex exec review -m gpt-6.1-sol -c model_reasoning_effort="low" -c shell_environment_policy.inherit="core" .* --base main :: cwd='"$REVIEW_WT"'$' \
+          && assert_stub_called -E '^codex exec -m gpt-6.1-sol -c model_reasoning_effort="low" -c shell_environment_policy.inherit="core" .* -o '"$OUT"'-r1-codex-plan\.md'
       else
         assert_line "model claude-opus-5-5" || exit 1
         run grep -c "^claude " "$STUB_LOG"
@@ -89,6 +89,32 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
     assert_output 2 || fail "argument $arg is not on both codex calls"
   done
   refute_stub_called -F -e '--sandbox' -e 'sandbox_mode'
+}
+
+@test "the deny path of the main .env is quoted for TOML: a space stays, a quote and a backslash are escaped, a newline is refused" {
+  local case root expected
+  cd "$BATS_TEST_TMPDIR" || return
+  # Each case: the main checkout directory name | the path as it must appear inside the TOML string.
+  for case in 'my repo|my repo' 'q"uote|q\"uote' 'back\slash|back\\slash'; do
+    IFS='|' read -r root expected <<<"$case"
+    (
+      review_repo claude-code || exit 1
+      mv "$WORK" "$BATS_TEST_TMPDIR/$root" && cd "$BATS_TEST_TMPDIR/$root" || exit 1
+      run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+      assert_success || exit 1
+      run grep -c -F -- "\"$BATS_TEST_TMPDIR/$expected/.env\"=\"deny\"" "$STUB_LOG"
+      assert_output 2
+    ) || fail "deny path for a main checkout named $root"
+  done
+  (
+    review_repo claude-code || exit 1
+    mv "$WORK" "$BATS_TEST_TMPDIR/new
+line" && cd "$BATS_TEST_TMPDIR/new
+line" || exit 1
+    run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+    assert_failure && assert_output --partial "control character or newline" || exit 1
+    refute_stub_called -F 'codex '
+  ) || fail "a newline in the main checkout path is not refused"
 }
 
 @test "passes REVIEW_MODEL and REVIEW_EFFORT to both reviewer calls and records them in the meta file" {
