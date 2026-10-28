@@ -977,7 +977,6 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 - 한국어 기억의 검색 품질이 부족하면(Task 6 Step 7), 두 안을 따로 정한다. 하나는 VM을 키우고(e2-medium 약 $24.46/월) 다국어 임베딩 모델(multilingual-e5-large)과 `hybrid`로 옮기는 것이다. 이미지 설정을 바꾸므로 `bm-upgrade` 스킬과 VM 변경 OK가 필요하고, 먼저 로컬에서 RSS를 잰다. 다른 하나는 기존 한국어 기억을 영어로 옮기는 것이다.
 - 답변이 조회된 노트를 인용하면 그 내용이 Codex 기억에 간접적으로 남을 수 있다(스펙 §6). 미러가 같은 내용을 되풀이해 키우는지 한 달 뒤 `agent-memory/_global/codex/` 크기로 본다.
 - `mcp_post`가 요청 본문(기억 내용)을 curl 인자(`-d`)로 넘겨, 실행 중에 `ps`로 보이고 ARG_MAX(1 MiB)에 묶인다. 지금 가장 큰 기억 파일은 73 KB다. `--data-binary @-`로 stdin에 넘기고 curl 스텁도 stdin을 읽게 바꾼다(2026-10-27 최종 리뷰 M3).
-- `~/.claude/projects` 폴더 자체가 심볼릭 링크이면 `collect_claude`의 `find`가 따라가지 않아 Claude 기억을 하나도 올리지 않는다. 이미 올린 뒤 링크로 바뀌면 다음 동기화가 그 노트를 지운다(원본은 로컬에 남고, 고치면 다시 올라간다). 기억 폴더처럼 `find -H`로 바꾸고 테스트를 더한다(2026-10-27 최종 리뷰 재검토).
 - `keys.tsv`에 적은 repo는 다시 구하지 않는다. 나중에 git 원격을 더한 프로젝트는 노트의 `repo` 메타데이터가 비어 있는 채로 남는다. 필요하면 `FULL=1` 때 repo를 다시 구한다.
 
 ## Progress log

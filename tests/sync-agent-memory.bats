@@ -192,6 +192,19 @@ exec "$REAL_FIND" "$@"'
   assert_equal "$(written_notes | grep -c '^agent-memory/acme-widget/claude-code/mac-test/')" 2
 }
 
+@test "mirrors nothing new and deletes nothing when the Claude projects folder itself is a symlink" {
+  "$SYNC" 2>/dev/null
+  cp "$STATE_DIR/state.tsv" "$BATS_TEST_TMPDIR/state.before"
+  mv "$HOME/.claude/projects" "$BATS_TEST_TMPDIR/dotfiles-projects"
+  ln -s "$BATS_TEST_TMPDIR/dotfiles-projects" "$HOME/.claude/projects"
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC"
+  assert_success
+  assert_equal "$(tool_calls delete_note)" 0
+  assert_equal "$(tool_calls write_note)" 0
+  assert_same_file "$BATS_TEST_TMPDIR/state.before" "$STATE_DIR/state.tsv"
+}
+
 @test "does not mirror a file with a token-like secret and deletes its earlier mirror" {
   local secret
   for secret in "tskey-auth-k$(printf 'A%.0s' {1..8})-$(printf 'k%.0s' {1..12})" "gho_$(printf 'a%.0s' {1..36})" \

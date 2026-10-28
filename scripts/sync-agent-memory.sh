@@ -215,7 +215,7 @@ add_sources() {
 collect_claude() {
   local projects="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects" folder entry key repo
   [[ -d "$projects" ]] || return 0
-  find "$projects" -mindepth 1 -maxdepth 1 -type d >"$WORK_DIR/folders.found" || cannot_list "$projects"
+  find -H "$projects" -mindepth 1 -maxdepth 1 -type d >"$WORK_DIR/folders.found" || cannot_list "$projects"
   LC_ALL=C sort "$WORK_DIR/folders.found" >"$WORK_DIR/folders"
   while IFS= read -r folder; do
     if [[ "${folder##*/}" == "$TMP_FOLDER_PREFIX"* || ! -d "$folder/$CLAUDE_MEMORY_FOLDER" ]]; then
