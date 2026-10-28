@@ -16,11 +16,25 @@
 #   timeout; 6 = DNS), like a network that blocks that host.
 # CURL_STUB_CONFLICT_MATCH=<substring> (MCP mode): a write_note request whose payload contains it is answered with action
 #   conflict instead of created (an answered failure, unlike CURL_STUB_FAIL_MATCH).
+# CURL_STUB_SLOW_MATCH=<substring> with CURL_STUB_SLOW_SECONDS=<n>: a call whose arguments contain it takes n simulated
+#   seconds (no real wait); it times out with exit 28 when its -m limit is shorter, and is answered as usual otherwise.
 set -euo pipefail
 printf 'curl %s\n' "$*" >>"$STUB_LOG"
 if [[ -n "${CURL_STUB_FAIL_MATCH:-}" && "$*" == *"$CURL_STUB_FAIL_MATCH"* ]]; then
   echo "curl: (${CURL_STUB_FAIL_EXIT:-28}) simulated failure (stub)" >&2
   exit "${CURL_STUB_FAIL_EXIT:-28}"
+fi
+if [[ -n "${CURL_STUB_SLOW_MATCH:-}" && "$*" == *"$CURL_STUB_SLOW_MATCH"* ]]; then
+  max_time=""
+  previous=""
+  for arg in "$@"; do
+    [[ "$previous" != -m ]] || max_time="$arg"
+    previous="$arg"
+  done
+  if [[ -n "$max_time" ]] && ((max_time < CURL_STUB_SLOW_SECONDS)); then
+    echo "curl: (28) Operation timed out after ${max_time} seconds (stub)" >&2
+    exit 28
+  fi
 fi
 wants_code=""
 if [[ "$*" == *'%{http_code}'* ]]; then
