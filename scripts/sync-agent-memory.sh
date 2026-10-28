@@ -37,6 +37,8 @@ readonly SEARCH_PAGE_SIZE=50
 readonly SECRET_PATTERN='tskey-[a-z]+-[A-Za-z0-9]+-[A-Za-z0-9]{10,}|gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|A[KS]IA[A-Z2-7]{16}|xox[bp]-[0-9]+-[A-Za-z0-9-]{10,}|sk-ant-[a-z]+[0-9]{2}-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]+T3BlbkFJ|AIza[A-Za-z0-9_-]{35}|-----BEGIN [A-Z0-9 ]*PRIVATE KEY'
 readonly STATE_FILE_NAME=state.tsv
 readonly KEYS_FILE_NAME=keys.tsv
+# One line: the note path of the first write a run did not send; the next run starts its writes there.
+readonly CURSOR_FILE_NAME=next-write.txt
 readonly LOG_FILE_NAME=sync.log
 readonly LOCK_DIR_NAME=lock
 # Pacing for the 1 GB VM, which indexes every note it receives: at most this many write_note calls per run, the rest wait.
@@ -51,6 +53,8 @@ IS_FULL=""
 STATE_DIR=""
 STATE_FILE=""
 KEYS_FILE=""
+CURSOR_FILE=""
+NEXT_CURSOR=""
 LOCK_DIR=""
 # Work files of one run: desired (file, note path, sha256, key, agent, repo), old-state (a copy of state.tsv),
 # next-state (the lines of the new state.tsv), write (desired lines plus the old permalink), delete (state lines).
@@ -413,6 +417,7 @@ send_writes() {
     if [[ -n "$IS_STOPPED" ]] || ((WRITE_CALLS >= WRITE_LIMIT_PER_RUN)); then
       DEFERRED=$((DEFERRED + 1))
       [[ -n "$IS_STOPPED" ]] || LIMIT_DEFERRED=$((LIMIT_DEFERRED + 1))
+      [[ -n "$NEXT_CURSOR" ]] || NEXT_CURSOR="$note"
       keep_unwritten "$source" "$note" "$old_link"
       continue
     fi
@@ -432,6 +437,36 @@ send_writes() {
       note_failure
     fi
   done <"$WORK_DIR/write.fields"
+}
+
+# rotate_writes -> the write list starts at the note the cursor names (lines before it move to the end, the order is
+# kept), so notes that fail every run cannot use up the per-run limit before the others get their turn. Without a
+# cursor, or when its note is not in the list, the list stays as it is.
+rotate_writes() {
+  local cursor=""
+  [[ -f "$CURSOR_FILE" ]] || return 0
+  IFS= read -r cursor <"$CURSOR_FILE" || true
+  [[ -n "$cursor" ]] || return 0
+  awk -F'\t' -v cursor="$cursor" '
+    { line[NR] = $0; if (start == 0 && $2 == cursor) start = NR }
+    END {
+      if (start == 0) start = 1
+      for (i = start; i <= NR; i++) print line[i]
+      for (i = 1; i < start; i++) print line[i]
+    }
+  ' "$WORK_DIR/write" >"$WORK_DIR/write.rotated" || exit 1
+  mv "$WORK_DIR/write.rotated" "$WORK_DIR/write"
+}
+
+# write_cursor -> the cursor file holds NEXT_CURSOR (through a .partial file, like state.tsv) or is removed when this run
+# sent every write.
+write_cursor() {
+  if [[ -z "$NEXT_CURSOR" ]]; then
+    rm -f "$CURSOR_FILE"
+    return 0
+  fi
+  printf '%s\n' "$NEXT_CURSOR" >"$CURSOR_FILE$PARTIAL_SUFFIX"
+  mv "$CURSOR_FILE$PARTIAL_SUFFIX" "$CURSOR_FILE"
 }
 
 # write_state -> state.tsv replaced by next-state through a .partial file in the same folder.
@@ -465,8 +500,10 @@ sync_memory() {
     plan_full_deletes
   fi
   send_deletes
+  rotate_writes
   send_writes
   write_state
+  write_cursor
   log "synced: wrote $WROTE, deleted $DELETED, failed $FAILED, deferred $DEFERRED"
   if ((LIMIT_DEFERRED > 0)); then
     log "$LIMIT_DEFERRED notes wait for the next memory-sync (at most $WRITE_LIMIT_PER_RUN writes per run)"
@@ -479,6 +516,7 @@ main() {
   STATE_DIR="$(memory_state_dir)" || exit 1
   STATE_FILE="$STATE_DIR/$STATE_FILE_NAME"
   KEYS_FILE="$STATE_DIR/$KEYS_FILE_NAME"
+  CURSOR_FILE="$STATE_DIR/$CURSOR_FILE_NAME"
   LOCK_DIR="$STATE_DIR/$LOCK_DIR_NAME"
   # The hook's log goes to this folder, so it exists before anything runs in the background.
   mkdir -p "$STATE_DIR" || die "cannot create the state folder $(tilde_path "$STATE_DIR"); check its parent's permissions"

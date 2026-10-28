@@ -350,3 +350,23 @@ add_claude_files() {
   assert_equal "$(tool_calls write_note)" 2
   assert_equal "$(awk -F'\t' '$3 == ""' "$STATE_DIR/state.tsv" | wc -l | tr -d ' ')" 0
 }
+
+@test "starts the next run's writes at the first note a run did not send, so ten notes that always conflict cannot block the rest, and clears that cursor once a run sends everything" {
+  add_claude_files 8
+  export CURL_STUB_CONFLICT_MATCH='"directory":"agent-memory/acme-widget'
+  run "$SYNC"
+  assert_failure
+  assert_output --partial "failed 10, deferred 3"
+  assert_equal "$(cut -d/ -f1-3 "$STATE_DIR/next-write.txt")" agent-memory/_global/codex
+  rm -f "$STUB_LOG.requests"
+  run "$SYNC"
+  assert_failure
+  assert_equal "$(grep -c '/codex/' "$STATE_DIR/state.tsv")" 3
+  assert_equal "$(grep -c 'acme-widget' "$STATE_DIR/state.tsv")" 0
+  assert_equal "$(cut -d/ -f1-3 "$STATE_DIR/next-write.txt")" agent-memory/acme-widget/claude-code
+  unset CURL_STUB_CONFLICT_MATCH
+  run "$SYNC"
+  assert_success
+  assert_equal "$(wc -l <"$STATE_DIR/state.tsv" | tr -d ' ')" 13
+  [[ ! -e "$STATE_DIR/next-write.txt" ]] || fail "the cursor is still there after a run that sent every write"
+}
