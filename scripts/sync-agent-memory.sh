@@ -39,6 +39,12 @@ readonly STATE_FILE_NAME=state.tsv
 readonly KEYS_FILE_NAME=keys.tsv
 readonly LOG_FILE_NAME=sync.log
 readonly LOCK_DIR_NAME=lock
+# Pacing for the 1 GB VM, which indexes every note it receives: at most this many write_note calls per run, the rest wait.
+readonly WRITE_LIMIT_PER_RUN=10
+# Pause in seconds between two write_note calls (not before the first one).
+readonly WRITE_PAUSE_SECONDS=3
+# After this many failed requests in a row (writes or deletes) a run sends nothing more.
+readonly FAILURES_IN_A_ROW_LIMIT=2
 
 IS_HOOK=""
 IS_FULL=""
@@ -53,6 +59,13 @@ REQUEST_ID=1
 WROTE=0
 DELETED=0
 FAILED=0
+# Lines not sent in this run (DEFERRED), the part of them held back by the write limit (LIMIT_DEFERRED), the failed
+# requests in a row, the write_note calls made and whether the failure streak stopped the run.
+DEFERRED=0
+LIMIT_DEFERRED=0
+FAILURE_STREAK=0
+WRITE_CALLS=0
+IS_STOPPED=""
 
 usage() { die "usage: sync-agent-memory.sh [--hook] [--full] (make memory-sync [HOOK=1] [FULL=1])"; }
 
@@ -320,18 +333,34 @@ delete_one() {
   jq -e 'type == "object" and (has("error") | not)' <<<"$result" >/dev/null || die "delete_note: error for $1"
 }
 
-# send_deletes -> delete_one for each line of delete; the line of a failed delete stays in the state.
+# note_failure -> counts a failed request; the run stops sending once FAILURES_IN_A_ROW_LIMIT of them came in a row.
+note_failure() {
+  FAILURE_STREAK=$((FAILURE_STREAK + 1))
+  if ((FAILURE_STREAK >= FAILURES_IN_A_ROW_LIMIT)) && [[ -z "$IS_STOPPED" ]]; then
+    IS_STOPPED=1
+    log "WARNING: basic-memory did not answer $FAILURES_IN_A_ROW_LIMIT requests in a row; stopped sending, the next memory-sync continues"
+  fi
+}
+
+# send_deletes -> delete_one for each line of delete; the line of a failed or unsent delete stays in the state.
 send_deletes() {
   local source note sha permalink
   unit_fields "$WORK_DIR/delete"
   while IFS=$'\037' read -r source note sha permalink; do
+    if [[ -n "$IS_STOPPED" ]]; then
+      DEFERRED=$((DEFERRED + 1))
+      printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$sha" "$permalink" >>"$WORK_DIR/next-state"
+      continue
+    fi
     REQUEST_ID=$((REQUEST_ID + 1))
     if (delete_one "$permalink"); then
       DELETED=$((DELETED + 1))
+      FAILURE_STREAK=0
     else
       log "WARNING: could not delete $note; the next memory-sync tries again"
       FAILED=$((FAILED + 1))
       printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$sha" "$permalink" >>"$WORK_DIR/next-state"
+      note_failure
     fi
   done <"$WORK_DIR/delete.fields"
 }
@@ -359,23 +388,41 @@ write_one() {
   jq -r '.permalink // empty' <<<"$result"
 }
 
-# send_writes -> write_one for each line of write; a written note's line goes to the state with its permalink. A failed
-# write of a file sent before keeps its old permalink with an empty sha256: the note can still be deleted if the file
-# goes away, and the next run writes the file again (also after --full, where the old sha256 is the current one).
+# keep_unwritten SOURCE NOTE OLD_LINK -> a file whose write failed or was not sent: with an old permalink its line stays
+# in the state with an empty sha256 (the note can still be deleted, the next run writes the file again, also after
+# --full, where the old sha256 is the current one); without one it is left out, so the next run sees it as new.
+keep_unwritten() {
+  if [[ -n "$3" ]]; then
+    printf '%s\t%s\t\t%s\n' "$1" "$2" "$3" >>"$WORK_DIR/next-state"
+  fi
+}
+
+# send_writes -> write_one for each line of write, at most WRITE_LIMIT_PER_RUN of them with WRITE_PAUSE_SECONDS between
+# two; a written note's line goes to the state with its permalink. Failed and unsent files go through keep_unwritten.
 send_writes() {
   local source note sha key agent repo old_link permalink
   unit_fields "$WORK_DIR/write"
   while IFS=$'\037' read -r source note sha key agent repo old_link; do
+    if [[ -n "$IS_STOPPED" ]] || ((WRITE_CALLS >= WRITE_LIMIT_PER_RUN)); then
+      DEFERRED=$((DEFERRED + 1))
+      [[ -n "$IS_STOPPED" ]] || LIMIT_DEFERRED=$((LIMIT_DEFERRED + 1))
+      keep_unwritten "$source" "$note" "$old_link"
+      continue
+    fi
+    if ((WRITE_CALLS > 0)); then
+      sleep "$WRITE_PAUSE_SECONDS"
+    fi
+    WRITE_CALLS=$((WRITE_CALLS + 1))
     REQUEST_ID=$((REQUEST_ID + 1))
     if permalink="$(write_one "$source" "$note" "$key" "$agent" "$repo")" && [[ -n "$permalink" ]]; then
       WROTE=$((WROTE + 1))
+      FAILURE_STREAK=0
       printf '%s\t%s\t%s\t%s\n' "$source" "$note" "$sha" "$permalink" >>"$WORK_DIR/next-state"
     else
       log "WARNING: could not write $note; the next memory-sync tries again"
       FAILED=$((FAILED + 1))
-      if [[ -n "$old_link" ]]; then
-        printf '%s\t%s\t\t%s\n' "$source" "$note" "$old_link" >>"$WORK_DIR/next-state"
-      fi
+      keep_unwritten "$source" "$note" "$old_link"
+      note_failure
     fi
   done <"$WORK_DIR/write.fields"
 }
@@ -413,7 +460,10 @@ sync_memory() {
   send_deletes
   send_writes
   write_state
-  log "synced: wrote $WROTE, deleted $DELETED, failed $FAILED"
+  log "synced: wrote $WROTE, deleted $DELETED, failed $FAILED, deferred $DEFERRED"
+  if ((LIMIT_DEFERRED > 0)); then
+    log "$LIMIT_DEFERRED notes wait for the next memory-sync (at most $WRITE_LIMIT_PER_RUN writes per run)"
+  fi
   ((FAILED == 0)) || die "$FAILED notes failed (see the WARNING lines above); the next memory-sync tries them again"
 }
 
