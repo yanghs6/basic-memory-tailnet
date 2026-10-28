@@ -432,10 +432,11 @@ settings_problems() {
   # The line must be exactly "tools: WebFetch": a second tools line or one that adds Bash fails.
   assert_line "tools: WebFetch"
   refute_line --regexp '^tools: .*(Bash|Write|Edit)'
-  assert_line --regexp '^disallowedTools: .*Bash'
-  assert_line --regexp '^disallowedTools: .*Write'
-  assert_line --regexp '^disallowedTools: .*Edit'
-  assert_line --regexp '^disallowedTools: .*NotebookEdit'
+  # Each tool is matched as a whole list item, so NotebookEdit does not satisfy Edit.
+  local tool
+  for tool in Bash Write Edit NotebookEdit; do
+    assert_line --regexp "^disallowedTools: (.*[ ,])?${tool}(,|\$)"
+  done
   run grep -E '^3\. .*release-notes-reader' "$skill"
   assert_success
 }
