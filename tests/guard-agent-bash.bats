@@ -89,6 +89,89 @@ assert_asks() {
   done
 }
 
+@test "asks when a make call names a VM-changing or posting target in any argument position" {
+  local cmd commands
+  commands=(
+    "make deploy"
+    "make restore"
+    "make backup deploy"
+    "make status deploy"
+    "make probe vm-bootstrap"
+    "make verify sb-fonts"
+    "make review review-post PR=1"
+    "make check review-record"
+    "make logs memory-hooks"
+    "make -C . deploy"
+    "cd x && make backup deploy"
+    "sh -c 'make status restore'"
+    "env make probe deploy"
+  )
+  for cmd in "${commands[@]}"; do
+    assert_asks "$cmd"
+  done
+}
+
+@test "asks before gh writes: api with a non-GET method or fields, gist, issue, release, repo and pr close, merge, review, reopen" {
+  local cmd commands
+  commands=(
+    "gh api -X POST repos/x/y/issues/1/comments -f body=hi"
+    "gh api --method PATCH repos/x/y"
+    "gh api -XDELETE repos/x/y"
+    "gh api --method=PUT repos/x/y"
+    "gh api repos/x/y/issues -f title=t"
+    "gh api repos/x/y/issues -F title=t"
+    "gh api repos/x/y --field a=b"
+    "gh api repos/x/y --raw-field a=b"
+    "gh api repos/x/y --input body.json"
+    "gh gist create notes.txt"
+    "gh gist edit abc"
+    "gh gist delete abc"
+    "gh issue create --title t"
+    "gh issue comment 1 --body b"
+    "gh issue edit 1"
+    "gh issue close 1"
+    "gh issue delete 1"
+    "gh issue reopen 1"
+    "gh issue transfer 1 x/y"
+    "gh issue lock 1"
+    "gh release create v1"
+    "gh release upload v1 f"
+    "gh release edit v1"
+    "gh release delete v1"
+    "gh repo create x"
+    "gh repo edit x"
+    "gh repo delete x"
+    "gh repo rename y"
+    "gh repo archive x"
+    "gh repo fork x"
+    "gh repo sync x"
+    "gh pr close 1"
+    "gh pr merge 1"
+    "gh pr review 1"
+    "gh pr reopen 1"
+    "sh -c 'gh issue create --title t'"
+  )
+  for cmd in "${commands[@]}"; do
+    assert_asks "$cmd"
+  done
+}
+
+@test "asks before cloud CLI metadata, update, stop, reset and resize changes" {
+  local cmd commands
+  commands=(
+    "gcloud compute instances add-metadata x --metadata a=b"
+    "gcloud compute instances remove-metadata x --keys a"
+    "gcloud compute firewall-rules update y --allow tcp:22"
+    "gcloud compute instances stop x"
+    "gcloud compute instances reset x"
+    "gcloud compute instances set-machine-type x --machine-type e2-small"
+    "gcloud --configuration=bm-personal compute disks resize d --size 20"
+  )
+  for cmd in "${commands[@]}"; do
+    assert_asks "$cmd"
+  done
+}
+
 @test "passes ordinary commands with exit 0 and no output" {
   local cmd commands
   commands=(
@@ -99,7 +182,6 @@ assert_asks() {
     "git log --oneline"
     "git status"
     "make check"
-    "make restore"
     "ls backups"
     "cat docs/README.md"
     "gcloud compute instances list"
@@ -114,6 +196,26 @@ assert_asks() {
     "git push origin feat/-f"
     "git commit -m \"add +x flag\""
     "echo format term"
+    "make check"
+    "make test"
+    "make backup"
+    "make review"
+    "make backup-latest"
+    "make memory-sync"
+    "make check; echo deploy"
+    "git log --grep deploy"
+    "cat docs/deploy.md"
+    "gh pr view 1"
+    "gh pr list"
+    "gh api repos/x/y/issues/1/comments"
+    "gh api -X GET repos/x/y"
+    "gh api --method get repos/x/y"
+    "gh issue list"
+    "gh issue view 3"
+    "gh release list"
+    "gcloud compute instances describe x"
+    "gcloud --version"
+    "gh --version"
   )
   for cmd in "${commands[@]}"; do
     run guard "$cmd"

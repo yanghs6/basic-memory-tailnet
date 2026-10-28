@@ -3,7 +3,9 @@
 # docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md, section 3.3). It reads the command from the hook input and
 #   - denies (exit 2, stderr shown to the agent) deleting backups/ or /srv/basic-memory.prev-* directories,
 #   - asks the user (permissionDecision "ask") before a force-push, a direct call of a VM-changing script,
-#     script or expect around restore, and cloud CLI create or delete,
+#     script or expect around restore, a make call naming a VM-changing or posting target, gh write forms (api with
+#     fields or a non-GET method, gist, issue, release, repo, pr close or merge) and cloud CLI changes (create, delete,
+#     metadata, update, stop, reset, resize),
 #   - passes everything else (exit 0, no output) on to the normal permission rules.
 # Contract (code.claude.com/docs/en/hooks): hook input JSON on stdin, the command is .tool_input.command; exit 2 blocks.
 # Any other failing exit code does NOT block, so every failure below is turned into exit 2 (fail closed).
@@ -51,8 +53,23 @@ readonly RESTORE_PATTERN="${BOUNDARY_START}restore${WORD_END}"
 
 # The cloud CLI is written as a bracket expression so that scripts name no provider (tests/repo-cloud-neutral.bats).
 readonly CLOUD_CLI_PATTERN="${BOUNDARY_START}[g]cloud${WORD_END}"
-readonly CLOUD_CHANGE_PATTERN='[[:space:]](create|delete)([[:space:]]|$)'
+readonly CLOUD_CHANGE_PATTERN='[[:space:]](create|delete|add-metadata|remove-metadata|update|stop|reset|resize|set-machine-type)([[:space:]]|$)'
 
+# A make call in command position with a VM-changing or posting target among its arguments (make backup deploy,
+# make -C . deploy): the permission rules see only the first target, so `make status deploy` would run unasked.
+readonly MAKE_LEAD="${COMMAND_LEAD}([^[:space:];&|()'\"]*/)?make[[:space:]]+([^;&|()]*[[:space:]])?"
+readonly MAKE_ASK_TARGETS='(deploy|restore|vm-bootstrap|sb-fonts|review-post|review-record|memory-hooks)'
+readonly MAKE_ASK_PATTERN="${MAKE_LEAD}${MAKE_ASK_TARGETS}([[:space:];&|)'\"]|\$)"
+
+# gh in command position. Write forms ask; read forms (pr view, issue list, api GET) pass.
+readonly GH_LEAD="${COMMAND_LEAD}gh[[:space:]]+"
+readonly GH_API_PATTERN="${GH_LEAD}api([[:space:]]|\$)"
+readonly GH_API_FIELD_PATTERN='[[:space:]](-f|-F|--field|--raw-field|--input)([[:space:]=]|$)|[[:space:]]-[fF][^[:space:]-]'
+readonly GH_API_METHOD_PATTERN='[[:space:]](-X|--method)[[:space:]=]*([^[:space:]]+)'
+readonly GH_WRITE_PATTERN="${GH_LEAD}((gist[[:space:]]+(create|edit|delete))|(issue[[:space:]]+(create|comment|edit|close|delete|reopen|transfer|lock))|(release[[:space:]]+(create|upload|edit|delete))|(repo[[:space:]]+(create|edit|delete|rename|archive|fork|sync))|(pr[[:space:]]+(close|merge|review|reopen)))([[:space:]]|\$)"
+
+readonly ASK_MAKE_TARGET='this make target changes the VM or posts to a pull request'
+readonly ASK_GH_WRITE='this gh call writes to GitHub from outside the sandbox'
 readonly ASK_FORCE_PUSH='force-push rewrites the remote branch history'
 readonly ASK_VM_SCRIPT='this script changes the VM'
 readonly ASK_RESTORE='restore overwrites the notes on the VM'
@@ -67,6 +84,19 @@ ask() {
   jq -cn --arg reason "agent Bash guard: $1; confirm with the user" \
     '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "ask", permissionDecisionReason: $reason}}'
   exit 0
+}
+
+# gh_api_writes COMMAND: succeed when a gh api call sends fields or input, or uses a method other than GET.
+gh_api_writes() {
+  local method
+  if [[ "$1" =~ $GH_API_FIELD_PATTERN ]]; then
+    return 0
+  fi
+  if [[ "$1" =~ $GH_API_METHOD_PATTERN ]]; then
+    method="$(printf '%s' "${BASH_REMATCH[2]}" | tr '[:upper:]' '[:lower:]')"
+    [[ "$method" == get ]] || return 0
+  fi
+  return 1
 }
 
 main() {
@@ -91,6 +121,15 @@ main() {
   fi
   if [[ "$command" =~ $CLOUD_CLI_PATTERN && "$command" =~ $CLOUD_CHANGE_PATTERN ]]; then
     ask "$ASK_CLOUD"
+  fi
+  if [[ "$command" =~ $MAKE_ASK_PATTERN ]]; then
+    ask "$ASK_MAKE_TARGET"
+  fi
+  if [[ "$command" =~ $GH_WRITE_PATTERN ]]; then
+    ask "$ASK_GH_WRITE"
+  fi
+  if [[ "$command" =~ $GH_API_PATTERN ]] && gh_api_writes "$command"; then
+    ask "$ASK_GH_WRITE"
   fi
 }
 
