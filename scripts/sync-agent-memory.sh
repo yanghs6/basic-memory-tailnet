@@ -43,7 +43,7 @@ readonly LOCK_DIR_NAME=lock
 readonly WRITE_LIMIT_PER_RUN=10
 # Pause in seconds between two write_note calls (not before the first one).
 readonly WRITE_PAUSE_SECONDS=3
-# After this many failed requests in a row (writes or deletes) a run sends nothing more.
+# After this many requests in a row (writes or deletes) that got no answer ("request to <URL> failed") a run sends nothing more.
 readonly FAILURES_IN_A_ROW_LIMIT=2
 
 IS_HOOK=""
@@ -60,7 +60,7 @@ WROTE=0
 DELETED=0
 FAILED=0
 # Lines not sent in this run (DEFERRED), the part of them held back by the write limit (LIMIT_DEFERRED), the failed
-# requests in a row, the write_note calls made and whether the failure streak stopped the run.
+# requests in a row that got no answer, the write_note calls made and whether the failure streak stopped the run.
 DEFERRED=0
 LIMIT_DEFERRED=0
 FAILURE_STREAK=0
@@ -338,7 +338,7 @@ delete_one() {
 # The run stops sending once FAILURES_IN_A_ROW_LIMIT unanswered requests came in a row.
 note_failure() {
   cat "$WORK_DIR/err" >&2
-  if ! grep -q "request to .* failed" "$WORK_DIR/err"; then
+  if ! grep -qF "request to $MCP_URL failed" "$WORK_DIR/err"; then
     FAILURE_STREAK=0
     return 0
   fi

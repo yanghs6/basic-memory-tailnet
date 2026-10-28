@@ -81,7 +81,7 @@ Claude Code·Codex의 기억 파일을 Basic Memory의 `agent-memory/`로 미러
 
 1. 메인 체크아웃 `.env`에 `BM_MEMORY_DEVICE`(`^[a-z0-9-]+$`, 예: `mac-work`)를 넣습니다(사용자). Mac마다 다른 값을 씁니다. 다른 Mac의 `.env`를 복사했다면 이 값을 바꿉니다. 같은 값이면 두 Mac이 서로의 노트를 덮어쓰고, `FULL=1`은 상대 Mac의 노트를 지웁니다. 노트로 보내지 않을 프로젝트가 있으면 `BM_MEMORY_EXCLUDE`(쉼표로 구분한 프로젝트 키)도 넣습니다.
 2. `make tunnel`을 띄웁니다(`ssh` 모드).
-3. `make memory-sync`로 처음 올립니다. 다시 실행해 아무것도 보내지 않는지 봅니다.
+3. `make memory-sync`로 처음 올립니다. 한 번에 10개까지만 보내므로 `wait for the next memory-sync` 줄이 더 나오지 않을 때까지 다시 실행합니다(1 GB VM이므로 실행 사이에 `make status`로 상태를 봅니다). 그 실행들의 `wrote` 합이 원본 파일 수와 같아야 하고, 한 번 더 실행하면 아무것도 보내지 않습니다.
 4. 사용자 OK를 받고 `make memory-hooks`를 실행합니다. SessionStart·Stop에 동기화를, SessionStart에 색인을 더합니다.
 5. Codex에서 `/hooks`로 새 hook을 신뢰합니다.
 
