@@ -43,7 +43,7 @@ COVERAGE_MIN := 80
 DOCKER_RUN := docker run --rm --network none -v "$(CURDIR):/repo" -v "$(GIT_COMMON_DIR):$(GIT_COMMON_DIR):ro" -w /repo
 SH_FILES = $(shell git ls-files --cached --others --exclude-standard -- '*.sh' '*.bash' '*.bats' 'tests/stubs/*')
 
-.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify gateway-lock check-git secret-scan review review-post review-record vm-bootstrap deploy verify probe status logs export-logs sb-fonts backup restore access-check tunnel memory-sync memory-index memory-hooks new-doc new-id new-script
+.PHONY: help tools-image lint fmt test coverage check local-up local-down local-logs local-verify gateway-lock check-git secret-scan review review-post review-record vm-bootstrap deploy verify probe status logs export-logs sb-fonts backup backup-latest restore access-check tunnel memory-sync memory-index memory-hooks new-doc new-id new-script
 
 help: ## Show available targets
 	@awk 'BEGIN { FS = ":.*## " } /^[a-z0-9-]+:.*## / { printf "  %-14s %s\n", $$1, $$2 }' $(firstword $(MAKEFILE_LIST))
@@ -172,6 +172,9 @@ sb-fonts: ## Convert the D2Koding Nerd Font to WOFF2 and upload it to the VM not
 
 backup: ## Download a consistent backup of VM data into the main checkout's backups/ (brief container stop)
 	scripts/backup-notes.sh
+
+backup-latest: ## Print the newest main-checkout backup archive and whether its checksum matches and its manifest exists (read-only; never prints contents)
+	scripts/show-backup.sh
 
 restore: ## Restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz to the VM (asks for yes), then verify
 	scripts/restore-notes.sh "$(BACKUP)"
