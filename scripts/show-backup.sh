@@ -23,12 +23,12 @@ resolve_backup_dir() {
   printf '%s/%s\n' "$root" "$BACKUPS_DIRNAME"
 }
 
-# newest_archive DIR -> path of the newest bm-*.tgz in DIR by modification time; fails when there is none.
+# newest_archive DIR -> path of the newest bm-*.tgz in DIR by its UTC stamp (the name sorts in time order; mtime does not survive a copy); fails when there is none.
 newest_archive() {
   local file newest=""
   for file in "$1"/bm-*.tgz; do
     [[ -f "$file" ]] || continue
-    if [[ -z "$newest" || "$file" -nt "$newest" ]]; then
+    if [[ -z "$newest" || "$file" > "$newest" ]]; then
       newest="$file"
     fi
   done

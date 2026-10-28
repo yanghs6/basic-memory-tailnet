@@ -23,7 +23,8 @@ make_backup() {
 @test "prints the newest archive with a matching checksum and its manifest, and never its contents" {
   make_backup bm-20261001T000000Z
   make_backup bm-20261002T000000Z
-  touch -t 202610010000 "$BACKUP_DIR/bm-20261001T000000Z.tgz"
+  # The newer stamp gets the OLDER mtime (a copy or restore can reorder mtimes): the name decides.
+  touch -t 202601010000 "$BACKUP_DIR/bm-20261002T000000Z.tgz"
   run "$SCRIPT"
   assert_success
   assert_output --partial "$BACKUP_DIR/bm-20261002T000000Z.tgz"
