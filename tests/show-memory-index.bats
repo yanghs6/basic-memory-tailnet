@@ -57,6 +57,13 @@ line_of() { grep -nF -- "$1" <<<"$output" | head -n 1 | cut -d: -f1; }
       assert_success && assert_output "" && refute_stub_called '^curl '
     ) || fail "index in $cwd"
   done
+  # A second clone is excluded as <key>--<folder name>.
+  export BM_MEMORY_EXCLUDE=acme-widget--widget
+  : >"$STUB_LOG"
+  run "$INDEX" claude-code <<<"$(hook_input "$WIDGET")"
+  assert_success
+  assert_output ""
+  refute_stub_called '^curl '
   : >"$STUB_LOG"
   run "$INDEX" gemini <<<"$(hook_input "$BATS_TEST_TMPDIR")"
   assert_failure

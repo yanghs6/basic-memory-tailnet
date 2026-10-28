@@ -67,13 +67,19 @@ check_agent() {
   die "MEMORY_AGENT must be claude-code or codex"
 }
 
-# is_skipped CWD KEY -> status 0 in the Codex memory folders and in an excluded project (<key> or <key>--<folder name>).
+# is_skipped CWD KEY -> status 0 in the Codex memory folders and in an excluded project: KEY, or KEY--<folder name of CWD>
+# (the form that excludes a second clone; it may also skip a first clone with the same folder name).
 is_skipped() {
-  local codex_memories="${CODEX_HOME:-$HOME/.codex}/memories"
+  local codex_memories="${CODEX_HOME:-$HOME/.codex}/memories" dir folder
   case "$1" in
     "$codex_memories"*) return 0 ;;
   esac
-  is_excluded "$2" || is_excluded "${2%%--*}"
+  is_excluded "$2" && return 0
+  is_excluded "${2%%--*}" && return 0
+  [[ -d "$1" && "$2" != "$GLOBAL_KEY" ]] || return 1
+  dir="${1%/}"
+  folder="$(sanitize_key "${dir##*/}")" || exit 1
+  is_excluded "$2--$folder"
 }
 
 # list_key KEY REQUEST_ID -> the search_notes result of the mirror notes of one project key, as one JSON line.
