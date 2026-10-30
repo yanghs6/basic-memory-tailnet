@@ -979,6 +979,8 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 - 한국어 기억의 검색 품질이 부족하면(Task 6 Step 7), 두 안을 따로 정한다. 하나는 VM을 키우고(e2-medium 약 $24.46/월) 다국어 임베딩 모델(multilingual-e5-large)과 `hybrid`로 옮기는 것이다. 이미지 설정을 바꾸므로 `bm-upgrade` 스킬과 VM 변경 OK가 필요하고, 먼저 로컬에서 RSS를 잰다. 다른 하나는 기존 한국어 기억을 영어로 옮기는 것이다.
 - 답변이 조회된 노트를 인용하면 그 내용이 Codex 기억에 간접적으로 남을 수 있다(스펙 §6). 미러가 같은 내용을 되풀이해 키우는지 한 달 뒤 `agent-memory/_global/codex/` 크기로 본다.
 - `mcp_post`가 요청 본문(기억 내용)을 curl 인자(`-d`)로 넘겨, 실행 중에 `ps`로 보이고 ARG_MAX(1 MiB)에 묶인다. 지금 가장 큰 기억 파일은 73 KB다. `--data-binary @-`로 stdin에 넘기고 curl 스텁도 stdin을 읽게 바꾼다(2026-10-27 최종 리뷰 M3).
+- Codex hook은 샌드박스 안에서 돌아 `127.0.0.1`의 터널 포트에 닿지 못하는 것으로 보인다(2026-10-30 Progress log, 사용자 결정 A). 두 안 중에서 전체 재검토 때 sandbox 계획 k3bd8k47 설계와 함께 정한다. 하나는 샌드박스 밖의 동기화(Claude hook이나 `make memory-sync`)가 색인을 로컬 파일로 남기고 Codex hook은 그 파일만 읽는 안이다. 다른 하나는 Codex 샌드박스의 네트워크를 허용하는 안이다(`sandbox_workspace_write.network_access`는 모든 명령에 열리므로 범위를 함께 본다).
+- `sync.log`의 오류 줄(`basic-memory unreachable ...; sync skipped` 등)에는 시각이 없어, 어느 세션의 hook인지 나눌 수 없다(2026-10-30 Step 5).
 - `keys.tsv`에 적은 repo는 다시 구하지 않는다. 나중에 git 원격을 더한 프로젝트는 노트의 `repo` 메타데이터가 비어 있는 채로 남는다. 필요하면 `FULL=1` 때 repo를 다시 구한다.
 
 ## Progress log
@@ -1021,3 +1023,4 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 | 2026-10-30 | Verified | Codex: 05:15:05Z에 메인 체크아웃에서 연 Codex 세션의 developer 컨텍스트에 "basic-memory unreachable at session start"가 들어갔는데, 그때는 터널이 켜져 있었다(05:11Z·05:12Z 동기화 성공). `codex sandbox -- curl http://127.0.0.1:18737/mcp`는 curl (7)로 연결하지 못하고, 샌드박스 밖에서는 HTTP 400으로 닿는다. |
 | 2026-10-30 | Assumption | Codex는 hook 명령을 기본 샌드박스 안에서 돌린다(Codex 문서는 이를 말하지 않는다). 그래서 Codex 세션의 색인은 늘 unreachable이고, Codex hook의 동기화도 서버에 닿지 못한다. Codex 기억은 `_global`로 빼 두었고 Claude hook이 Claude 기억을 올리므로 지금 동기화에는 영향이 없다. 고칠지와 방법은 사용자 결정을 기다린다(sandbox 계획 k3bd8k47과 겹침). 설정은 바꾸지 않았다. |
 | 2026-10-30 | Verified | 원본 없는 노트 확인(사용자 OK): 이 Mac의 미러 노트를 `search_notes`(text, `metadata_filters` device·mirror)로 끝까지 받으니 69행이 모두 entity였고 고유 permalink는 65개로 상태 파일 65줄과 같다. 원본 없는 노트는 0개라 지우지 않았다. 같은 permalink 4개가 목록에 두 번씩 나온다(검색 색인의 중복 행으로 추정). memory-index는 permalink로 중복을 거르므로 색인 줄은 겹치지 않지만, `total`을 쓰는 "n more"는 그만큼 부풀 수 있다(Step 7 M7). |
+| 2026-10-30 | Verified | 사용자 결정(감독 세션 경유, "A로 진행하세요"): Codex hook 샌드박스 문제는 지금 고치지 않는다. `~/.codex/config.toml`의 sandbox·network_proxy 설정은 그대로 둔다. 완료 조건 5의 Codex 색인 부분은 "Codex 샌드박스가 막음, 사용자 결정 A(2026-10-30)로 보류"로 적는다. 고치는 방법은 Follow-ups에 둔다. |
