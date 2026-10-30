@@ -16,8 +16,12 @@ readonly HOOK_TIMEOUT_SECONDS=15
 readonly SYNC_EVENTS="SessionStart Stop"
 readonly INDEX_EVENT=SessionStart
 # Make exits 2 on its own errors (a moved checkout, a missing target) and a Claude Code Stop hook that exits 2 blocks the
-# stop, so each command ends in || exit 1 (a non-blocking error). The pattern also matches the older form without it.
-readonly OWN_COMMAND_PATTERN='^make -s --no-print-directory -C .+ memory-(sync HOOK=1|index MEMORY_AGENT=(claude-code|codex))( \|\| exit 1)?$'
+# stop, so each command ends in || exit 1 (a non-blocking error). The memsearch plugin's Stop hook runs a `claude -p` child
+# with MEMSEARCH_NO_WATCH=1 and a -p run executes the user's hooks, so each command starts with a guard that does nothing
+# there. The pattern also matches the two older forms: without the guard, and without the guard and || exit 1.
+readonly OWN_COMMAND_PATTERN='^(\[ "\$\{MEMSEARCH_NO_WATCH:-\}" = 1 \] \|\| )?make -s --no-print-directory -C .+ memory-(sync HOOK=1|index MEMORY_AGENT=(claude-code|codex))( \|\| exit 1)?$'
+# shellcheck disable=SC2016  # the text is written into the hook file, so ${...} must stay unexpanded
+readonly HOOK_GUARD='[ "${MEMSEARCH_NO_WATCH:-}" = 1 ] || '
 readonly CLAUDE_AGENT=claude-code
 readonly CODEX_AGENT=codex
 
@@ -60,8 +64,8 @@ current_json() {
 # new_json CURRENT_JSON AGENT MAIN REMOVE -> CURRENT_JSON with our hooks for AGENT replaced (REMOVE true: removed).
 new_json() {
   local current="$1" agent="$2" main="$3" remove="$4" sync_cmd index_cmd
-  sync_cmd="make -s --no-print-directory -C '$main' memory-sync HOOK=1 || exit 1"
-  index_cmd="make -s --no-print-directory -C '$main' memory-index MEMORY_AGENT=$agent || exit 1"
+  sync_cmd="${HOOK_GUARD}make -s --no-print-directory -C '$main' memory-sync HOOK=1 || exit 1"
+  index_cmd="${HOOK_GUARD}make -s --no-print-directory -C '$main' memory-index MEMORY_AGENT=$agent || exit 1"
   jq --arg pattern "$OWN_COMMAND_PATTERN" --argjson remove "$remove" --arg sync "$sync_cmd" --arg index "$index_cmd" \
     --arg events "$SYNC_EVENTS" --arg index_event "$INDEX_EVENT" --argjson timeout "$HOOK_TIMEOUT_SECONDS" \
     "$HOOKS_JQ" <<<"$current"

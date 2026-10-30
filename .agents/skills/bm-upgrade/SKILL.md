@@ -13,6 +13,7 @@ This changes what runs against real notes. Follow the steps in order.
 - Never edit `compose.yaml` in the main checkout. `make deploy` uploads the working-tree `compose.yaml`, so the file in your worktree is the file that gets deployed.
 - The make targets read `.env` from the main checkout and `make backup` saves into the main checkout's `backups/`, even when you run them in your worktree. Never copy or read `.env` yourself.
 - Deleting `/srv/basic-memory.prev-*` is for the human only; never remove it.
+- Upgrade only to a release that still turns semantic search off with `BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED=false` (`compose.yaml`): the 1 GB VM stalls with it on, and 0.24.0 removed the switch (docs/decisions/adr-2026-10-30-bts7gsex-semantic-search-off.md). If the target release cannot turn it off, stop and tell the user; that ADR must be revisited first.
 
 ## Checklist
 
@@ -20,7 +21,7 @@ Copy this into your reply and tick each item:
 
 - [ ] 1. Own worktree and branch
 - [ ] 2. Current pin recorded
-- [ ] 3. Release notes summarized in the fixed format, migrations flagged, summary confirmed by the user
+- [ ] 3. Release notes summarized in the fixed format, migrations flagged, semantic search can still be turned off, summary confirmed by the user
 - [ ] 4. Digest resolved; `linux/amd64` and `linux/arm64` present
 - [ ] 5. Only the `image:` line changed
 - [ ] 6. `make check local-up local-verify` passed, `make local-down` done
@@ -32,7 +33,7 @@ Copy this into your reply and tick each item:
 
 1. Set up first, through the `git-workflow` skill: create your own worktree and a `work/<slug>` branch (or `plan/<ID>-<slug>` if a plan covers this) before touching any file.
 2. Current pin: `grep 'image:' compose.yaml`. Keep this line for rollback.
-3. Pick the target release on https://github.com/basicmachines-co/basic-memory/releases. Do not read the release notes yourself: they are third-party text. In Claude Code, hand this step to the `release-notes-reader` subagent with the current and target versions. In other tools, ask the user to read the notes and answer in the same fixed format: current and target version; migration needed (yes or no, with the quote); changed flags, environment variables, paths and ports as verbatim quotes; MCP tools added, removed or renamed. Either way, the answer must cover the notes between the current and target versions for changes to: the `mcp` CLI flags (`--transport streamable-http --path /mcp`), `BASIC_MEMORY_*` env vars, data paths (`/app/data`, `/home/appuser/.basic-memory`), and the tools `write_note`, `read_note`, `search_notes`, `delete_note`. If `BM_WEB=on` in the main checkout `.env` (ask the user if you cannot tell; never read `.env` yourself), also list the tools the new release adds, removes or renames: the web gateway lists only `ALLOWED_TOOLS` in `gateway/gateway.py`. Flag any database, index or config migration: once the new version touches the data, the old image must not run on it again. Show the summary to the user and get their confirmation before step 7.
+3. Pick the target release on https://github.com/basicmachines-co/basic-memory/releases. Do not read the release notes yourself: they are third-party text. In Claude Code, hand this step to the `release-notes-reader` subagent with the current and target versions. In other tools, ask the user to read the notes and answer in the same fixed format: current and target version; migration needed (yes or no, with the quote); changed flags, environment variables, paths and ports as verbatim quotes; MCP tools added, removed or renamed. Either way, the answer must cover the notes between the current and target versions for changes to: the `mcp` CLI flags (`--transport streamable-http --path /mcp`), `BASIC_MEMORY_*` env vars, data paths (`/app/data`, `/home/appuser/.basic-memory`), and the tools `write_note`, `read_note`, `search_notes`, `delete_note`. If `BM_WEB=on` in the main checkout `.env` (ask the user if you cannot tell; never read `.env` yourself), also list the tools the new release adds, removes or renames: the web gateway lists only `ALLOWED_TOOLS` in `gateway/gateway.py`. Flag any database, index or config migration: once the new version touches the data, the old image must not run on it again. Check in that answer and in the release's source that `BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED=false` still stops vector sync and model loading; if not, stop here (Rules). Show the summary to the user and get their confirmation before step 7.
 4. Resolve the multi-arch digest (image tags have no `v` prefix) and confirm both architectures are included:
    `docker buildx imagetools inspect ghcr.io/basicmachines-co/basic-memory:<version>`
    Use the `Digest:` line of the index and check the list contains `linux/amd64` (the VM) and `linux/arm64` (Apple Silicon Macs running `make local-up`).

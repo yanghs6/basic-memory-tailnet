@@ -74,11 +74,12 @@ spec: docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md
   - 이런 형식이 있는 파일은 보내지 않는다.
   - 테스트의 가짜 토큰은 실행 중에 만들어, 저장소에 토큰 모양 문자열을 남기지 않는다.
 - hook 명령(`<main>`은 `main_checkout_root`의 결과이고, 작은따옴표로 감싼다):
-  - SessionStart·Stop: `make -s --no-print-directory -C '<main>' memory-sync HOOK=1 || exit 1`
-  - SessionStart: `make -s --no-print-directory -C '<main>' memory-index MEMORY_AGENT=claude-code || exit 1`(Claude 설정), `... MEMORY_AGENT=codex || exit 1`(Codex 설정)
+  - SessionStart·Stop: `[ "${MEMSEARCH_NO_WATCH:-}" = 1 ] || make -s --no-print-directory -C '<main>' memory-sync HOOK=1 || exit 1`
+  - SessionStart: `[ "${MEMSEARCH_NO_WATCH:-}" = 1 ] || make -s --no-print-directory -C '<main>' memory-index MEMORY_AGENT=claude-code || exit 1`(Claude 설정), `... MEMORY_AGENT=codex || exit 1`(Codex 설정)
+  - 앞의 `[ "${MEMSEARCH_NO_WATCH:-}" = 1 ] ||`(2026-10-30)는 memsearch 플러그인의 Stop hook이 띄우는 `claude -p` 자식(환경변수 `MEMSEARCH_NO_WATCH=1`)에서 우리 hook이 아무것도 하지 않게 한다(스펙 §3.5).
   - 끝의 `|| exit 1`은 make 자신의 오류(종료 코드 2)가 Claude Code Stop hook의 멈춤을 막지 않게 한다(스펙 §3.5, 2026-10-27 최종 리뷰 C2).
   - UserPromptSubmit에는 아무것도 더하지 않는다(스펙 결정 8).
-  - 정규식 `^make -s --no-print-directory -C .+ memory-(sync HOOK=1|index MEMORY_AGENT=(claude-code|codex))( \|\| exit 1)?$`에 맞는 항목만 이 계획의 hook으로 본다. `|| exit 1`이 없는 옛 형태도 맞으므로 옛 항목은 새 항목으로 바뀐다.
+  - 정규식 `^(\[ "\$\{MEMSEARCH_NO_WATCH:-\}" = 1 \] \|\| )?make -s --no-print-directory -C .+ memory-(sync HOOK=1|index MEMORY_AGENT=(claude-code|codex))( \|\| exit 1)?$`에 맞는 항목만 이 계획의 hook으로 본다. 앞의 확인이 없는 형태와 `|| exit 1`이 없는 옛 형태도 맞으므로 옛 항목은 새 항목으로 바뀐다.
 - `AGENTS.md`의 스크립트 규칙을 따른다: strict mode 머리, `common.sh` 계열 source, `die`, 이름 붙인 상수, macOS bash 3.2, `x="$(fn)" || exit 1`. 테스트를 먼저 쓰고, `make test`/`make check`로만 돌리고, [test-scope ADR](../decisions/adr-2026-10-13-a878ypj5-test-scope.md)의 범위를 지킨다. `tests/verify-mcp.bats`와 그 fixture는 고치지 않는다. 테스트 안에서 `export`하는 bats 파일은 shebang 다음 줄에서 SC2030·SC2031을 끈다(`script-authoring` Gotchas).
 - 기억 본문, 세션 id, 홈 폴더 절대 경로, VM 주소는 커밋·PR·로그에 쓰지 않는다. 스크립트는 기억 본문을 출력하지 않고, 테스트는 가짜 기억 파일만 쓴다.
 - 에이전트는 `.env`를 읽지 않는다. `BM_MEMORY_DEVICE`는 사용자가 메인 체크아웃 `.env`에 넣는다.
@@ -801,8 +802,9 @@ setup() {
   jq -n '{model: "x", hooks: {UserPromptSubmit: [{hooks: [{type: "command", command: "bash memsearch.sh", timeout: 10}]}]}}' \
     >"$HOME/.claude/settings.json"
   MAIN="$(main_checkout_root "$REPO_DIR")"
-  SYNC_CMD="make -s --no-print-directory -C '$MAIN' memory-sync HOOK=1 || exit 1"
-  INDEX_CMD="make -s --no-print-directory -C '$MAIN' memory-index MEMORY_AGENT"
+  GUARD='[ "${MEMSEARCH_NO_WATCH:-}" = 1 ] || '
+  SYNC_CMD="${GUARD}make -s --no-print-directory -C '$MAIN' memory-sync HOOK=1 || exit 1"
+  INDEX_CMD="${GUARD}make -s --no-print-directory -C '$MAIN' memory-index MEMORY_AGENT"
   INSTALL="$REPO_DIR/scripts/install-memory-hooks.sh"
 }
 
@@ -931,7 +933,7 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
   - 메인 체크아웃을 `origin/main`으로 맞춘다: `! git -C <main> pull --ff-only`. hook은 메인 체크아웃의 스크립트를 부른다.
   - `.env`에 `BM_MEMORY_DEVICE=mac-work`를 넣는다.
   - `make tunnel`을 띄운다.
-- [ ] **Step 2: 첫 동기화 (완료 조건 2).** `make -C <main> memory-sync`를 실행한다. 한 번에 최대 10개만 쓰므로(속도 조절, 스펙 §3.3) `synced: wrote <n>, deleted 0, failed 0, deferred <m>`이 나온다. `... wait for the next memory-sync` 줄이 더 나오지 않을 때까지 `make -C <main> memory-sync`를 다시 실행한다(실행 사이에 `make status`로 1 GB VM을 본다). 그 실행들의 `wrote` 합이 원본 파일 수와 같아야 한다. 그다음 한 번 더 실행하면 아무 줄도 남기지 않는다. `list_directory("agent-memory", depth 4)`로 폴더가 §3.2 경로대로인지 본다. 숫자와 키 목록만 Progress log에 적고, 회사 프로젝트 이름은 `<회사 키>`로 가린다.
+- [ ] **Step 2: 첫 동기화 (완료 조건 2).** `make -C <main> memory-sync`를 실행한다. 한 번에 최대 5개만 쓰므로(속도 조절, 스펙 §3.3) `synced: wrote <n>, deleted 0, failed 0, deferred <m>`이 나온다. `... wait for the next memory-sync` 줄이 더 나오지 않을 때까지 `make -C <main> memory-sync`를 다시 실행한다(실행 사이에 `make status`로 1 GB VM을 본다). 그 실행들의 `wrote` 합이 원본 파일 수와 같아야 한다. 그다음 한 번 더 실행하면 아무 줄도 남기지 않는다. `list_directory("agent-memory", depth 4)`로 폴더가 §3.2 경로대로인지 본다. 숫자와 키 목록만 Progress log에 적고, 회사 프로젝트 이름은 `<회사 키>`로 가린다.
 - [ ] **Step 3: hook 등록 (사용자 OK).** `make -C <main> memory-hooks`를 실행한다. 사용자는 Codex에서 `/hooks`로 신뢰한다. 새 Claude Code 세션과 Codex 세션을 연다.
 - [ ] **Step 4: 변경·삭제 반영 (완료 조건 3, 스펙 §2 Assumption 4).**
   - 사용자 OK를 받고 이 저장소 기억 폴더에 시험 파일 `rollout-check.md`를 만든다.
