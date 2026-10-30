@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 id: k3bd8k47
 spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 ---
@@ -212,9 +212,9 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 
 ### Finish: review and hand-off
 
-- [ ] 완료 조건 7(Manual 모드 새 세션: `make deploy`·`git push`·`git push --force` 프롬프트를 확인하고 거절, 미끼 `backups` 경로 `rm` 차단)을 Progress log에 `Verified`로 적는다.
-- [ ] Progress log에 그날 `make check` 결과를 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
-- [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
+- [x] 완료 조건 7(Manual 모드 새 세션: `make deploy`·`git push`·`git push --force` 프롬프트를 확인하고 거절, 미끼 `backups` 경로 `rm` 차단)을 Progress log에 `Verified`로 적는다.
+- [x] Progress log에 그날 `make check` 결과를 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
+- [x] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
 - [ ] 다른 세션의 설정에 영향을 주므로, 리뷰 대기로 넘기기 전과 병합 전에 감독 세션에 알린다.
 - [ ] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
 - [ ] CI가 통과하고 열린 P0/P1이 없으면 사용자 OK를 받고 `gh pr ready <PR>`을 실행한다. 승인과 squash 병합은 사람만 한다.
@@ -225,6 +225,7 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 - 옛 공개 커밋의 세션 링크(평가 AP10)는 이 계획 밖이다. 이력 재작성은 `AGENTS.md:33`이 금지한다.
 - 다른 에이전트가 MCP로 쓴 Basic Memory 노트를 신뢰할 수 없는 입력으로 볼지 정한다. MCP 서버는 sandbox 밖에서 돈다.
 - Gemini CLI·Antigravity의 sandbox 설정(지금 `.gemini/settings.json`에는 `context.fileName`만 있다)과 Codex 작성 세션의 다리 점검.
+- mk823xbp memory hook이 새 sandbox 설정에서 도는지 병합 뒤 다시 확인한다(2026-10-30 사용자 결정 (a)).
 - auto mode에서 훅·설정의 ask가 사람 확인 없이 통과될 수 있다는 점을 스펙 6절 위험과 ADR 잔여 위험에 넣을지 사용자가 정한다(2026-10-28 Progress log).
 
 ## Progress log
@@ -266,3 +267,6 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 | 2026-10-30 | Verified | 완료 조건 7, Manual 모드 새 세션(transcript의 `permissionMode` 값이 모두 `default`)에서 네 명령을 시험했다. (1) `make deploy`: 가드가 `ask`("this make target changes the VM…")를 냈고 권한 창이 떴다. 승인 1회(`source: user_temporary`, `grantScope: once`)로 실제 배포가 실행됐다(`deployed. Next: make verify`, 두 컨테이너 Healthy). (2) `git push --dry-run origin HEAD`: 권한 창이 떴고 승인 1회 뒤 `Everything up-to-date`. (3) `git push --force --dry-run origin HEAD`: 가드는 `ask`("force-push rewrites the remote branch history…")를 냈지만, ECC GateGuard의 destructive-command 게이트가 먼저 거부해 권한 창은 뜨지 않았고 명령도 실행되지 않았다. (4) `rm /tmp/decoy/backups/x`: 권한 창 없이 가드 deny(`rm together with backups or basic-memory.prev`)로 거부됐다. |
 | 2026-10-30 | Reported | 감독 세션이 (1) 뒤 VM을 확인했다: `make probe` exit 0, `make status`에서 basic-memory-server·silverbullet-server 모두 "Up 40 hours (healthy)", 메모리 51%, swap 604/1023 MB. compose가 바뀌지 않아 이번 deploy는 컨테이너를 다시 만들지 않았다. `make verify`는 시험 노트를 쓰고 VM에서 의미 검색이 아직 켜져 있어 지금 돌리지 않는다. PR #35 배포 때 세션 25가 verify까지 한다. |
 | 2026-10-30 | Open question | (3)의 권한 창 표시는 GateGuard가 먼저 막아 관찰하지 못했다. 이 항목을 받아들일지는 감독 세션이 사용자에게 묻는다. |
+| 2026-10-30 | Verified | 사용자가 (3)을 그대로 받아들였다. 가드가 `ask`를 낸 것은 확인됐고 GateGuard가 명령을 실행 전에 막았으므로 완료 조건 7을 충족한 것으로 본다. memory hook 재확인(mk823xbp)은 병합 뒤 후속으로 한다(사용자 결정 (a)). |
+| 2026-10-30 | Verified | 이 worktree 세션에서 제외 대상 명령의 형태별 결과: `make check-git 2>&1`은 sandbox 밖에서 돌아 `OK: git policy (26 commits since origin/main)`. `make check-git > "$TMPDIR/…" 2>&1`(exit 2)과 `make check-git; echo "exit=$?"`(`mktemp: mkstemp failed … Operation not permitted`)는 sandbox 안에서 돌아 실패했다. 같은 이유로 `make check > file 2>&1; …`은 docker.sock 접근이, `gh pr view … \| head`는 `~/.config/gh` 읽기가 막혔다. 파이프 없는 `gh pr checks 32`는 성공했다. `git-workflow` 스킬 Commit 1의 "redirect to a file" 안내를 단독 실행으로 바꾸고 ADR 잔여 위험에 한 줄 더했다. |
+| 2026-10-30 | Verified | 위 수정 뒤 `make check 2>&1` exit 0, total line coverage 89.30%. |
