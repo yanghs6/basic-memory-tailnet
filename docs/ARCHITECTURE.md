@@ -1,6 +1,6 @@
 ---
 status: current
-reviewed: 2026-10-27
+reviewed: 2026-10-28
 ---
 
 # 아키텍처
@@ -60,6 +60,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 | `gateway/` + `gateway` 서비스 | VM·Mac(로컬 검증) | `BM_WEB=on`일 때만 도는 OAuth 게이트웨이(FastMCP). GitHub 로그인 한 계정(숫자 id)만 통과시키고 허용한 도구 18개만 Basic Memory `/mcp`로 넘김. 감사 로그는 표준 출력, 저장소는 `/srv/basic-memory/gateway/`. [web-connector ADR](decisions/adr-2026-10-22-fcvznmdc-web-connector.md), [런북](runbooks/rbk-2026-10-27-x9h4zzdh-web-connector.md) |
 | `cloudflared` 서비스 | VM | `BM_WEB=on`일 때만. Cloudflare로 아웃바운드 터널을 열고 `gateway`에만 닿음 |
 | `make export-logs` | Mac | VM에서 실행 중인 서비스마다 `docker logs --timestamps --since <SINCE>`(기본 24h)를 SSH로 받아, 한 줄에 `{time, service, stream, msg, data}` 하나인 JSON Lines 파일 하나로 시간순으로 씀. `data`는 msg가 JSON 객체일 때만 있음. 서비스 설정은 바꾸지 않음. 로그 줄은 화면에 찍지 않음 (`scripts/export-logs.sh`, [조사](research/rsch-2026-10-27-k2zsffqn-json-log-export.md)) |
+| `make backup-latest` | Mac | main 체크아웃 `backups/`의 최신 archive(파일 이름의 UTC 시각이 가장 늦은 것) 경로와, 체크섬 일치 여부·manifest 유무만 출력. 읽기 전용이고 내용은 출력하지 않음. worktree 세션이 `backups/`를 직접 읽지 않고 복구할 archive를 고르는 데 씀 (`scripts/show-backup.sh`, [agent-trifecta ADR](decisions/adr-2026-10-28-zaptc3gp-agent-trifecta.md)) |
 | `make tunnel` | Mac | `ssh` 모드에서 MCP(18737)·웹 UI(13000)를 `127.0.0.1`로 포워딩 (`scripts/open-tunnel.sh`) |
 | Tailscale Serve | VM | tailnet HTTPS 443 → `http://127.0.0.1:8737`(Basic Memory), 8443 → `http://127.0.0.1:3000`(SilverBullet) |
 | Tailscale SSH | VM | `tailscale` 모드에서 부트스트랩 이후의 유일한 관리 경로(`ssh` 모드는 SSH 별칭) |
@@ -97,6 +98,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 - 컨테이너 포트는 `127.0.0.1`에만 바인딩하고, Serve는 tailnet 전용(Funnel off)이며, GCP 방화벽에는 VPC 밖의 소스를 허용하는 인바운드 규칙이 없습니다. `default-allow-rdp`·`default-allow-icmp`는 지우고, `default-allow-ssh`는 Tailscale SSH를 확인한 뒤 지웁니다. `default-allow-internal`은 VPC 내부(`10.128.0.0/9`) 전용이라 둡니다.
 - `ssh` 모드는 Tailscale을 쓰지 않습니다. VPC 밖 인바운드는 IAP 대역의 22번 하나이고, 인증은 Google 계정 IAM과 SSH 키입니다. 모든 터널은 기기의 `127.0.0.1`에만 열리고, `verify`가 VM의 Tailscale 꺼짐과 sshd 키 전용을 검사합니다. 한 VM에서 두 모드를 함께 쓰지 않습니다([access-modes ADR](decisions/adr-2026-10-15-cz8c26gp-access-modes.md)).
 - 자동 검증 범위: `tests/repo-config.bats`(설정 파일)와 `make verify`/`make probe`(8737·3000 바인딩, Serve 포트별 대상과 Funnel, SilverBullet 로그인·셸 꺼짐, 공인 IP의 22·80·443·8443·8737·3000). `BM_WEB=on`이면 게이트웨이 포트 8738의 `127.0.0.1` 바인딩과 공인 IP의 8738 차단, 공개 URL `https://<BM_WEB_HOST>`의 OAuth 검사(공개 IPv4로만 풀림, 토큰 없는 `401`과 `resource_metadata`, 보호 리소스·인가 서버 메타데이터, 외부 redirect URI 등록 거절)도 봅니다. `ssh` 모드의 `verify`는 Serve 검사 대신 VM의 Tailscale 꺼짐과 sshd 키 전용을 임시 터널로 검사합니다. 방화벽 규칙과 tailnet 정책은 VM에서 읽을 수 없어 [운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit으로 수동 점검합니다.
+- 에이전트 쪽 경계: Claude Code 작성 세션의 셸은 sandbox 안에서 돌고, push·PR 게시·VM 변경·force-push는 설정과 훅이 묻고, `backups/` 삭제는 `rm` 형태에 한해 deny 규칙과 (감싼 형태는) 훅이 막으며, 릴리스 노트는 쓰기 수단이 없는 서브에이전트가 읽습니다. 제외 명령, 문자열·훅 우회, 감독 세션의 `.env` 읽기 같은 잔여 위험은 [agent-trifecta ADR](decisions/adr-2026-10-28-zaptc3gp-agent-trifecta.md)에 있습니다.
 - SilverBullet은 로그인(`SB_USER`)이 있어야 열리고, 셸 명령은 꺼져 있으며(`SB_SHELL_BACKEND=off`), Basic Memory와 다른 Docker 네트워크에 있습니다. 노트 폴더만 마운트해서 Basic Memory DB와 설정을 보지 못합니다.
 - 웹 커넥터(`BM_WEB=on`)는 신뢰 경계를 하나 더합니다. 공개되는 것은 Cloudflare 호스트명 하나이고, `cloudflared`는 `web` 네트워크에만 있어 `gateway`에만 닿습니다. `gateway`가 토큰, GitHub 사용자 id, 도구 허용 목록을 강제하고 클라이언트의 `Authorization`을 Basic Memory로 넘기지 않습니다. 차단은 세 겹입니다: `BM_WEB=off` 배포(또는 `cloudflared` 정지), `BM_WEB_JWT_KEY` 교체, claude.ai 커넥터와 GitHub OAuth App 삭제([런북](runbooks/rbk-2026-10-27-x9h4zzdh-web-connector.md)). 노트 내용은 Cloudflare edge에서 평문으로 지나갑니다.
 - 회사 프로젝트의 기억도 VM에 저장됩니다. 색인과 에이전트가 읽는 노트는 지시가 아니라 참고 자료로 다룹니다([스펙](specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md) §4).

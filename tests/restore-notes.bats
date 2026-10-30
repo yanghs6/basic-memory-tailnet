@@ -33,8 +33,17 @@ local_manifest() {
   bash -c "$(. "$REPO_DIR/scripts/lib/vm.sh" && manifest_cmd "$1")"
 }
 
+# The two helpers below need util-linux script and setsid (present in the Linux test image only, not on macOS).
+# restore_with_answer ANSWER -> runs the restore on a pty (util-linux script) and types ANSWER there, because the script
+# reads its confirmation from /dev/tty only. script -e passes the exit status of the restore on.
 restore_with_answer() {
-  run bash -c 'printf "%s\n" "$1" | "$0" "$2"' "$RESTORE" "$1" "$ARCHIVE"
+  run bash -c 'printf "%s\n" "$1" | RESTORE_BIN="$0" ARCHIVE_ARG="$2" script -qec '"'"'"$RESTORE_BIN" "$ARCHIVE_ARG"'"'"' /dev/null' "$RESTORE" "$1" "$ARCHIVE"
+}
+
+# restore_piped_without_tty ANSWER -> pipes ANSWER on stdin in a new session, so the process has no controlling terminal.
+restore_piped_without_tty() {
+  # shellcheck disable=SC2016 # the inner bash expands its own arguments
+  run setsid -w bash -c 'printf "%s\n" "$1" | "$0" "$2"' "$RESTORE" "$1" "$ARCHIVE"
 }
 
 # add_model_cache -> a HuggingFace-style cache in the fake data root: a blob plus a relative symlink to it.
@@ -143,6 +152,7 @@ add_model_cache() {
   local case input message detail answer entry
   # Each case: the bad input | the message of the check that refuses | the part of that message naming the reason.
   for case in "answer no|aborted: you must type 'yes'|" \
+    "piped yes without a terminal|no terminal|your own terminal" \
     "no SB_USER|missing env SB_USER|" \
     "missing archive|backup not found|" \
     "missing checksum file|checksum file missing|" \
@@ -177,7 +187,11 @@ add_model_cache() {
           assert_line "$entry" || exit 1
           ;;
       esac
-      restore_with_answer "$answer"
+      if [[ "$input" == "piped yes without a terminal" ]]; then
+        restore_piped_without_tty "$answer"
+      else
+        restore_with_answer "$answer"
+      fi
       assert_failure && assert_output --partial "$message" && refute_stub_called -F 'ssh' || exit 1
       if [[ -n "$detail" ]]; then
         assert_output --partial "$detail" || exit 1

@@ -21,7 +21,7 @@ Policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md (pull requests
 
 ## Commit
 
-1. Run `make check`.
+1. Run `make check` as a command of its own and read the output from the tool result: in a Claude Code session a pipe, a file redirect or a chain (`make check | tail -3`, `make check > out.log`, `make check; echo $?`) runs inside the sandbox and fails; only `2>&1` is fine.
 2. `git commit -m "<type>: <description>" --trailer "Assisted-by: <tool> <model id>" --trailer "Plan: <ID|none>" --trailer "Task: <N|review|none>"`, with your identity written out. If you keep it in a variable, set it in the same command and write `${AGENT_ID:?set AGENT_ID}`, so an unset value stops the commit instead of writing an empty trailer.
 3. Never add `Co-authored-by` or `Signed-off-by`.
 4. `make check-git` (it checks against `origin/main`) must pass before you push.

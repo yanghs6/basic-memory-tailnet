@@ -246,6 +246,103 @@ reviewer_hook_command() {
   assert_success
 }
 
+# sandbox.excludedCommands must hold exactly these entries (the exact strings and the `*` ones): a target that takes arguments needs
+# `make <t> *`, and any other entry (make *, docker *, bash, make) would take the sandbox off for everything it matches.
+SANDBOX_EXACT_EXCLUDES='make check|make test|make lint|make coverage|make fmt|make check-git|make secret-scan|make tools-image|make gateway-lock|make check local-up local-verify'
+SANDBOX_STAR_EXCLUDES='make local-up *|make local-down *|make local-logs *|make local-verify *|make review *|make review-post *|make review-record *|make probe *|make status *|make logs *|make export-logs *|make verify *|make backup *|make backup-latest *|make access-check *|make tunnel *|make memory-sync *|make memory-index *|make memory-hooks *|make deploy *|make restore *|make vm-bootstrap *|make sb-fonts *|gh *|gcloud *|git push *'
+# The ask rules the settings must keep: outward actions and VM or cloud changes.
+SANDBOX_ASK_RULES='Bash(git push --force*)|Bash(git push * --force*)|Bash(git push -f*)|Bash(git push * -f*)|Bash(git push *)|Bash(gh pr create *)|Bash(gh pr edit *)|Bash(gh pr comment *)|Bash(gh pr ready *)|Bash(make review-post *)|Bash(make review-record *)|Bash(make deploy *)|Bash(make restore *)|Bash(make vm-bootstrap *)|Bash(make sb-fonts *)|Bash(make memory-hooks *)|Bash(gcloud compute instances create *)|Bash(gcloud compute instances delete *)|Bash(gcloud compute firewall-rules create *)|Bash(gcloud compute firewall-rules delete *)'
+
+# The command of the Bash guard hook: exit 2 on any failure, because only exit 2 blocks.
+# shellcheck disable=SC2016 # the literal text of the hook command, expanded by Claude Code, not here
+SANDBOX_GUARD_COMMAND='"$CLAUDE_PROJECT_DIR"/scripts/guard-agent-bash.sh || exit 2'
+
+# settings_problems FILE: print one line per way the Claude Code settings in FILE break the sandbox rules; print nothing when they hold.
+settings_problems() {
+  jq -r --arg exact "$SANDBOX_EXACT_EXCLUDES" --arg star "$SANDBOX_STAR_EXCLUDES" --arg ask "$SANDBOX_ASK_RULES" --arg guard "$SANDBOX_GUARD_COMMAND" '
+    def need(cond; msg): if cond then empty else msg end;
+    ($star | split("|")) as $stars
+    | ($exact | split("|")) as $exact
+    | ($ask | split("|")) as $asks
+    | (.sandbox.filesystem.denyRead // []) as $deny_read
+    | (.sandbox.excludedCommands // []) as $excluded
+    | (.permissions.deny // []) as $deny
+    | (.permissions.ask // []) as $asked
+    | need(.sandbox.enabled == true; "sandbox.enabled must be true"),
+      need(.sandbox.allowUnsandboxedCommands == false; "sandbox.allowUnsandboxedCommands must be false"),
+      need((.permissions | has("blockReadsOutsideWorkingDirectories") | not); "permissions.blockReadsOutsideWorkingDirectories must be absent (the spike fell back to 1-B)"),
+      ("../../../.env", "../../../backups", "../../../.local-data", "~/.ssh", "~/.config/gcloud", "~/.config/gh" | . as $p | need($deny_read | index($p); "sandbox.filesystem.denyRead lacks " + $p)),
+      need(((.sandbox.network.allowedDomains // []) | length) > 0; "sandbox.network.allowedDomains must not be empty"),
+      need($deny | index("Read(~/**/.env)"); "permissions.deny lacks Read(~/**/.env)"),
+      ("Read(~/**/backups/bm-*)", "Read(~/**/.local-data/**)" | . as $r | need($deny | index($r); "permissions.deny lacks " + $r)),
+      ($exact + $stars | .[] | . as $r | need($excluded | index($r); "sandbox.excludedCommands lacks " + $r)),
+      ($excluded[] | select(. as $e | ($exact + $stars) | index($e) | not) | "sandbox.excludedCommands has an entry outside the fixed list: " + .),
+      ($deny[] | select((test("^Read\\((\\./\\.env|\\./backups/\\*\\*|\\./\\.local-data/\\*\\*|~/\\.ssh/\\*\\*|~/\\.config/gcloud/\\*\\*|~/\\.config/gh/\\*\\*|~/\\*\\*/\\.env|~/\\*\\*/backups/bm-\\*|~/\\*\\*/\\.local-data/\\*\\*)\\)$") or test("^Bash\\(rm .*(backups|basic-memory\\.prev)")) | not) | "permissions.deny holds a rule that is neither a secret read nor a backup deletion: " + .),
+      need($deny | any(test("^Bash\\(rm .*backups")); "permissions.deny lacks a backups deletion rule"),
+      need($deny | any(test("^Bash\\(rm .*basic-memory\\.prev")); "permissions.deny lacks a basic-memory.prev deletion rule"),
+      ($asks[] | . as $r | need($asked | index($r); "permissions.ask lacks " + $r)),
+      need(((.hooks.PreToolUse // []) | any(.matcher == "Bash" and ((.hooks // []) | any(.type == "command" and .command == $guard)))); "hooks.PreToolUse lacks the Bash guard hook " + $guard)
+  ' "$1" || return 1
+}
+
+@test "the Claude Code settings keep the sandbox on, deny only secret reads and backup deletion, and ask before outward or VM commands" {
+  local settings="$REPO_DIR/.claude/settings.json" bad="$BATS_TEST_TMPDIR/bad.json"
+  # The check itself: a copy without one required key and a copy with `make *` added must both be reported.
+  jq 'del(.sandbox.enabled)' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "sandbox.enabled must be true"
+  jq '.sandbox.excludedCommands += ["make *"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "outside the fixed list: make *"
+  jq '.sandbox.excludedCommands += ["bash"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "outside the fixed list: bash"
+  jq 'del(.sandbox.excludedCommands[0])' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "sandbox.excludedCommands lacks make check"
+  jq 'del(.sandbox.excludedCommands[20])' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "sandbox.excludedCommands lacks "
+  jq '.permissions.blockReadsOutsideWorkingDirectories = true' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "blockReadsOutsideWorkingDirectories must be absent"
+  jq 'del(.permissions.ask[0])' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "permissions.ask lacks "
+  jq 'del(.sandbox.filesystem.denyRead[0])' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "sandbox.filesystem.denyRead lacks "
+  jq '.sandbox.filesystem.denyRead -= ["../../../backups"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "sandbox.filesystem.denyRead lacks ../../../backups"
+  jq '.sandbox.filesystem.denyRead -= ["../../../.local-data"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "sandbox.filesystem.denyRead lacks ../../../.local-data"
+  jq '.permissions.deny -= ["Read(~/**/backups/bm-*)"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "permissions.deny lacks Read(~/**/backups/bm-*)"
+  jq '.permissions.deny -= ["Read(~/**/.local-data/**)"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "permissions.deny lacks Read(~/**/.local-data/**)"
+  jq '.sandbox.excludedCommands -= ["make check local-up local-verify"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "sandbox.excludedCommands lacks make check local-up local-verify"
+  jq '.permissions.deny += ["Bash(rm *)"]' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "neither a secret read nor a backup deletion"
+  jq 'del(.hooks)' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "hooks.PreToolUse lacks the Bash guard hook"
+  jq '.hooks.PreToolUse[0].matcher = "Read"' "$settings" >"$bad"
+  run settings_problems "$bad"
+  assert_output --partial "hooks.PreToolUse lacks the Bash guard hook"
+  # The committed file holds every rule.
+  run settings_problems "$settings"
+  assert_output ""
+  # A committed file must stay portable: no home directory path.
+  refute_matches "$settings" '/Users/|/home/'
+}
+
 @test "cloudflared runs a pinned cloudflared image as a remotely managed tunnel in the tunnel profile, publishes no port and joins only the web network" {
   local cf command
   cf="$(service_block cloudflared)"
@@ -342,4 +439,20 @@ reviewer_hook_command() {
   expected="$(tr ' ' '\n' <<<"$WEB_ALLOWED_TOOLS" | sort)"
   [[ "$names" == "$expected" ]] \
     || fail "ALLOWED_TOOLS in gateway/gateway.py must be exactly the 18 tools of the spec:"$'\n'"$(diff <(echo "$expected") <(echo "$names"))"
+}
+
+@test "the release-notes reader has no shell or write tool and bm-upgrade hands step 3 to it" {
+  local agent="$REPO_DIR/.claude/agents/release-notes-reader.md" skill="$REPO_DIR/.agents/skills/bm-upgrade/SKILL.md"
+  [[ -f "$agent" ]] || fail ".claude/agents/release-notes-reader.md must exist"
+  run frontmatter "$agent"
+  # The line must be exactly "tools: WebFetch": a second tools line or one that adds Bash fails.
+  assert_line "tools: WebFetch"
+  refute_line --regexp '^tools: .*(Bash|Write|Edit)'
+  # Each tool is matched as a whole list item, so NotebookEdit does not satisfy Edit.
+  local tool
+  for tool in Bash Write Edit NotebookEdit; do
+    assert_line --regexp "^disallowedTools: (.*[ ,])?${tool}(,|\$)"
+  done
+  run grep -E '^3\. .*release-notes-reader' "$skill"
+  assert_success
 }

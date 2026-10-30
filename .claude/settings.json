@@ -3,6 +3,77 @@
   "attribution": {
     "commit": ""
   },
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "filesystem": {
+      "denyRead": [
+        "~/.ssh",
+        "~/.config/gcloud",
+        "~/.config/gh",
+        "../../../.env",
+        "../../../backups",
+        "../../../.local-data"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com"
+      ]
+    },
+    "excludedCommands": [
+      "make check",
+      "make test",
+      "make lint",
+      "make coverage",
+      "make fmt",
+      "make check-git",
+      "make secret-scan",
+      "make tools-image",
+      "make gateway-lock",
+      "make check local-up local-verify",
+      "make local-up *",
+      "make local-down *",
+      "make local-logs *",
+      "make local-verify *",
+      "make review *",
+      "make review-post *",
+      "make review-record *",
+      "make probe *",
+      "make status *",
+      "make logs *",
+      "make export-logs *",
+      "make verify *",
+      "make backup *",
+      "make backup-latest *",
+      "make access-check *",
+      "make tunnel *",
+      "make memory-sync *",
+      "make memory-index *",
+      "make memory-hooks *",
+      "make deploy *",
+      "make restore *",
+      "make vm-bootstrap *",
+      "make sb-fonts *",
+      "gh *",
+      "gcloud *",
+      "git push *"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/guard-agent-bash.sh || exit 2"
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(make help)",
@@ -17,7 +88,37 @@
     "deny": [
       "Read(./.env)",
       "Read(./backups/**)",
-      "Read(./.local-data/**)"
+      "Read(./.local-data/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.config/gcloud/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/**/.env)",
+      "Read(~/**/backups/bm-*)",
+      "Read(~/**/.local-data/**)",
+      "Bash(rm *backups*)",
+      "Bash(rm *basic-memory.prev*)"
+    ],
+    "ask": [
+      "Bash(git push --force*)",
+      "Bash(git push * --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * -f*)",
+      "Bash(git push *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr ready *)",
+      "Bash(make review-post *)",
+      "Bash(make review-record *)",
+      "Bash(make deploy *)",
+      "Bash(make restore *)",
+      "Bash(make vm-bootstrap *)",
+      "Bash(make sb-fonts *)",
+      "Bash(make memory-hooks *)",
+      "Bash(gcloud compute instances create *)",
+      "Bash(gcloud compute instances delete *)",
+      "Bash(gcloud compute firewall-rules create *)",
+      "Bash(gcloud compute firewall-rules delete *)"
     ]
   }
 }
