@@ -26,6 +26,8 @@ assert_denied() {
 assert_asks() {
   run guard "$1"
   [[ "$status" -eq 0 ]] || fail "expected exit 0 for: $1; got $status: $output"
+  # The test image's jq -e passes on empty input, so an empty answer must fail here first.
+  [[ -n "$output" ]] || fail "expected an ask decision for: $1; got no output"
   jq -e '.hookSpecificOutput.hookEventName == "PreToolUse" and .hookSpecificOutput.permissionDecision == "ask" and (.hookSpecificOutput.permissionDecisionReason | length > 0)' <<<"$output" >/dev/null \
     || fail "expected an ask decision for: $1; got: $output"
 }
