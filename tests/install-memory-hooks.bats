@@ -11,8 +11,11 @@ setup() {
   jq -n '{model: "x", hooks: {UserPromptSubmit: [{hooks: [{type: "command", command: "bash memsearch.sh", timeout: 10}]}]}}' \
     >"$HOME/.claude/settings.json"
   MAIN="$(main_checkout_root "$REPO_DIR")"
-  SYNC_CMD="make -s --no-print-directory -C '$MAIN' memory-sync HOOK=1 || exit 1"
-  INDEX_CMD="make -s --no-print-directory -C '$MAIN' memory-index MEMORY_AGENT"
+  # The memsearch plugin's Stop hook runs a claude -p child with MEMSEARCH_NO_WATCH=1, which runs our hooks too.
+  # shellcheck disable=SC2016  # the text is written into the hook file, so ${...} must stay unexpanded
+  GUARD='[ "${MEMSEARCH_NO_WATCH:-}" = 1 ] || '
+  SYNC_CMD="${GUARD}make -s --no-print-directory -C '$MAIN' memory-sync HOOK=1 || exit 1"
+  INDEX_CMD="${GUARD}make -s --no-print-directory -C '$MAIN' memory-index MEMORY_AGENT"
   INSTALL="$REPO_DIR/scripts/install-memory-hooks.sh"
 }
 
@@ -79,10 +82,32 @@ commands() { jq -r --arg e "$2" '.hooks[$e][]?.hooks[]?.command' "$1"; }
   assert_equal "$(cat "$HOME/.claude/settings.json")" "$before"
   assert_equal "$(find "$HOME/.claude" -name '*.bak-*' | wc -l | tr -d ' ')" 0
   assert_equal "$(commands "$HOME/.claude/settings.json" SessionStart | tail -n 1)" other.sh
-  jq '.hooks.Stop[0].hooks[0].command |= (sub("-C .+ memory"; "-C /old/place memory") | sub(" [|][|] exit 1$"; ""))' "$HOME/.claude/settings.json" \
-    >"$BATS_TEST_TMPDIR/stale.json"
-  cp "$BATS_TEST_TMPDIR/stale.json" "$HOME/.claude/settings.json"
+  local form
+  for form in 'sub("-C .+ memory"; "-C /old/place memory") | sub("^[^|]*[|][|] "; "") | sub(" [|][|] exit 1$"; "")' 'sub("^[^|]*[|][|] "; "")'; do
+    (
+      jq ".hooks.Stop[0].hooks[0].command |= ($form)" "$HOME/.claude/settings.json" >"$BATS_TEST_TMPDIR/stale.json" \
+        && [[ "$(jq -r '.hooks.Stop[0].hooks[0].command' "$BATS_TEST_TMPDIR/stale.json")" != "$SYNC_CMD" ]] \
+        && cp "$BATS_TEST_TMPDIR/stale.json" "$HOME/.claude/settings.json" \
+        && "$INSTALL" >/dev/null 2>&1 \
+        && assert_equal "$(commands "$HOME/.claude/settings.json" Stop)" "$SYNC_CMD" || exit 1
+    ) || fail "older form not replaced: $form"
+  done
+}
+
+@test "an installed hook command does nothing when MEMSEARCH_NO_WATCH is 1 and runs make otherwise" {
+  local cmd
+  setup_stubs make
   run "$INSTALL"
   assert_success
-  assert_equal "$(commands "$HOME/.claude/settings.json" Stop)" "$SYNC_CMD"
+  for cmd in "$(commands "$HOME/.claude/settings.json" Stop)" "$(commands "$HOME/.codex/hooks.json" SessionStart | tail -n 1)"; do
+    printf '#!/usr/bin/env bash\n%s\n' "$cmd" >"$BATS_TEST_TMPDIR/hook.sh"
+    chmod +x "$BATS_TEST_TMPDIR/hook.sh"
+    : >"$STUB_LOG"
+    (
+      MEMSEARCH_NO_WATCH=1 "$BATS_TEST_TMPDIR/hook.sh" && refute_stub_called '^make ' || exit 1
+    ) || fail "make ran in the memsearch child: $cmd"
+    (
+      env -u MEMSEARCH_NO_WATCH "$BATS_TEST_TMPDIR/hook.sh" && assert_stub_called '^make ' || exit 1
+    ) || fail "make did not run without the guard variable: $cmd"
+  done
 }

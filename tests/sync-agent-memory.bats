@@ -143,7 +143,7 @@ tool_calls() { jq -r --arg name "$1" 'select(.params.name == $name) | .id' "$STU
   run "$SYNC" --full
   assert_success
   assert_equal "$(tool_calls write_note)" 5
-  assert_equal "$(jq -c 'select(.params.name == "search_notes") | .params.arguments.metadata_filters' "$STUB_LOG.requests")" '{"device":"mac-test","mirror":true}'
+  assert_equal "$(jq -c 'select(.params.name == "search_notes") | .params.arguments | [.metadata_filters, .search_type]' "$STUB_LOG.requests")" '[{"device":"mac-test","mirror":true},"text"]'
   assert_equal "$(jq -r 'select(.params.name == "delete_note") | .params.arguments.identifier' "$STUB_LOG.requests")" \
     main/agent-memory/acme-widget/claude-code/mac-test/old
 }

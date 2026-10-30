@@ -14,6 +14,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 readonly INDEX_MAX_CHARS=2500
 readonly INDEX_PAGE_SIZE=50
+# Semantic search is off on the server (compose.yaml), so every search says it wants a text search.
+readonly SEARCH_TYPE=text
 readonly INDEX_EXCERPT_CHARS=100
 readonly INDEX_TIMEOUT_SECONDS=3
 readonly GLOBAL_KEY=_global
@@ -85,8 +87,8 @@ is_skipped() {
 # list_key KEY REQUEST_ID -> the search_notes result of the mirror notes of one project key, as one JSON line.
 list_key() {
   local args
-  args="$(jq -cn --arg key "$1" --arg project "$BM_PROJECT" --argjson size "$INDEX_PAGE_SIZE" \
-    '{project: $project, metadata_filters: {project: $key, mirror: true}, page_size: $size, output_format: "json"}')" || exit 1
+  args="$(jq -cn --arg key "$1" --arg project "$BM_PROJECT" --argjson size "$INDEX_PAGE_SIZE" --arg type "$SEARCH_TYPE" \
+    '{project: $project, metadata_filters: {project: $key, mirror: true}, search_type: $type, page_size: $size, output_format: "json"}')" || exit 1
   mcp_call_tool "$2" search_notes "$args"
 }
 

@@ -32,6 +32,8 @@ readonly LOCK_STALE_MINUTES=10
 # Length of the path hash in the key of a third folder of the same repository (<key>--<name>-<hash>).
 readonly KEY_HASH_LENGTH=6
 readonly SEARCH_PAGE_SIZE=50
+# Semantic search is off on the server (compose.yaml), so every search says it wants a text search.
+readonly SEARCH_TYPE=text
 # Token formats with the gitleaks default lengths (Tailscale, GitHub, AWS, Slack, Anthropic, OpenAI, Google, PEM private
 # keys); a file holding one is never sent.
 readonly SECRET_PATTERN='tskey-[a-z]+-[A-Za-z0-9]+-[A-Za-z0-9]{10,}|gh[pousr]_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{82}|A[KS]IA[A-Z2-7]{16}|xox[bp]-[0-9]+-[A-Za-z0-9-]{10,}|sk-ant-[a-z]+[0-9]{2}-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9_-]+T3BlbkFJ|AIza[A-Za-z0-9_-]{35}|-----BEGIN [A-Z0-9 ]*PRIVATE KEY'
@@ -299,8 +301,8 @@ list_device_notes() {
   while :; do
     REQUEST_ID=$((REQUEST_ID + 1))
     args="$(jq -cn --arg project "$BM_PROJECT" --arg device "$BM_MEMORY_DEVICE" --argjson page "$page" \
-      --argjson size "$SEARCH_PAGE_SIZE" \
-      '{project: $project, metadata_filters: {device: $device, mirror: true}, page: $page, page_size: $size,
+      --argjson size "$SEARCH_PAGE_SIZE" --arg type "$SEARCH_TYPE" \
+      '{project: $project, metadata_filters: {device: $device, mirror: true}, search_type: $type, page: $page, page_size: $size,
         output_format: "json"}')" || exit 1
     result="$(mcp_call_tool "$REQUEST_ID" search_notes "$args")" \
       || die "search_notes failed, so FULL=1 cannot tell which notes to delete; run make memory-sync FULL=1 again"

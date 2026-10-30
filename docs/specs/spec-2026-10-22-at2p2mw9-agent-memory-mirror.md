@@ -126,6 +126,7 @@ Basic Memory 서버 (0.23.2, 터널 경유 `tools/list`):
     - 결과가 0건이면 OR로 한 번 더 찾는다. 단, `"`나 숫자만으로 된 단어가 있으면 다시 찾지 않는다(`sqlite_search_repository.py:290-354,1083-1105`, `search_query.py:252-302`).
     - 한국어 조사가 붙은 단어(`경로를*`)는 `경로`와 맞지 않는다.
     - hybrid의 기본 임베딩 모델 `bge-small-en-v1.5`는 영어용이다. semantic이 꺼져 있으면 hybrid는 text로 넘어가지 않고, 오류가 아닌 마크다운 "Search Failed"를 돌려준다(`tools/search.py:46-106`).
+    - 2026-10-30부터 이 서버는 semantic 검색을 끈다(§3.3 속도 조절). 그래서 `search_type`을 안 주면 `text`이고, `hybrid`·`vector`·`semantic`을 주면 결과 대신 "disabled" 안내가 온다.
   - 삭제:
     - `delete_note`는 permalink(프로젝트 접두사가 있든 없든)와 파일 경로를 받는다.
     - 없는 노트를 지우면 `{"deleted": false}`이고 오류가 아니다(`delete_note.py:431-454`).
@@ -280,6 +281,9 @@ agent-memory/
   - 종료 코드: 실패한 항목이 없으면 0이다(한도 때문에 미룬 것은 정상이다). 실패했거나 연속 실패로 멈췄으면 1이다.
   - **Verified (2026-10-28):** 이 Mac의 첫 `make memory-sync`(Claude 기억 파일 62개, Codex 제외)를 컨테이너 재시작 직후에 돌렸다. `write_note`가 30초 요청 제한에 연달아 걸렸고(19번 이상), 그 뒤 e2-micro VM의 Basic Memory가 MCP 응답을 멈췄다(`initialize`가 15분 넘게 응답 없음, `make probe` 두 번 실패). 그동안 VM은 쌓인 색인·임베딩을 스왑 위에서 처리했다(`vmstat`: 스왑 입력 약 1 MB/s, IO 대기 45~52%). 스크립트는 서버가 응답을 멈춘 뒤에도 쓰기를 계속 보냈다.
   - **Verified (2026-10-28, 속도 조절 뒤):** 같은 Mac에서 PR #33의 속도 조절(실행마다 10개, 쓰기 사이 3초)로 첫 동기화를 다시 돌렸다. 실행 1~3은 10개씩 썼다(52~61초). 실행 4는 4개를 쓴 뒤 응답 없는 요청 2번으로 멈췄다. 5분 쉰 뒤의 실행 5는 9개를 쓰고 1개가 30초 시간 초과로 실패했다. 62개 중 43개를 썼다. 실행 사이 메모리는 72~76%, 스왑은 532~569 MB였다. 컨테이너는 내내 healthy였고, 멈춘 뒤 약 1.5분 만에 `make probe`가 통과했다. 접근 로그(`make export-logs`, 시각과 상태 코드만)로 서버가 응답을 마친 간격(3초 쉼 포함)을 보면 실행 1~3은 대부분 4~6초, 실행 4는 12~56초, 실행 5의 첫 쓰기는 37초였다. 클라이언트가 30초에 포기한 쓰기를 서버는 약 37~56초에 마쳤고, 다음 실행이 같은 노트를 다시 보냈다. 같은 시간대에 다른 MCP 클라이언트의 요청 묶음(2초에 8건, 약 20건)도 들어왔다(**Assumption:** 다른 세션이 시작할 때의 initialize와 목록 요청). 그래서 한 실행의 쓰기를 5개로 줄이고 `write_note`만 90초까지 기다리게 했다.
+  - **Verified (2026-10-28, 실행 6):** 한 실행 5개, `write_note` 90초 제한(PR #34)으로 돌렸다. 실행 전(09:19Z)은 healthy, 메모리 62%, 스왑 692 MB, `make probe` 통과였다. 실행 6은 3개를 썼고 2개가 각 90초 동안 응답 없이 실패해 멈췄다(wrote 3, failed 2, deferred 16, exit 1, 207초). 직후 메모리 39~41%, 스왑 862~873 MB였고 `make probe`가 `initialize`에서 실패했다. 컨테이너는 healthy로 표시됐다. 접근 로그(시각·상태 코드·메서드만)로 보면 세 번째 쓰기가 09:21:30에 끝난 뒤 09:27:20까지 350초 동안 서버가 마친 요청이 없다. 사용자 OK 뒤 `make backup`으로 재시작하자 healthy, 메모리 72%, 스왑 296 MB, `make probe` 통과(`initialize` 약 7초)였다. 62개 중 46개를 썼고 16개가 남았다(failed 2, deferred 14).
+  - **Verified (2026-10-29, 진단):** 쓰기 속도 값만으로 풀리는지 보려고 읽기 전용 표본(`docker stats --no-stream`, `vmstat 1 2`, 15초마다 40번)을 떴다. 쓰기 없는 기준 3분(01:00~01:03Z)에 Basic Memory 상주 메모리는 약 45 MiB, 스왑 629 MB, 스왑 입력 0, CPU 유휴 99~100%였다. 동기화를 시작하자(01:03:29Z) 첫 2분 동안 상주 메모리가 48에서 256 MiB로 늘고, 스왑 입력이 초당 0.6~2 MB, IO 대기가 약 49%였다. 이 사이에 쓰기 1개가 끝났다. 그다음 약 3.5분은 스왑 입력이 거의 0이고 CPU가 바빴다(us 최대 89%, 상주 메모리 43~350 MiB, 스왑 약 680 MB). 두 번째와 세 번째 쓰기는 각각 90초 동안 응답이 없었다(wrote 1, failed 2, deferred 17, exit 1, 253초). **Assumption:** 쉬는 동안 메모리가 스왑으로 밀려나 첫 요청이 디스크에서 초당 1~2 MB로 다시 읽느라 1~2분이 걸리고, 쓰기마다 하는 색인·임베딩이 공유 코어 CPU를 몇 분 쓴다.
+  - **semantic 검색을 끈 이유 (2026-10-30, 사용자 결정):** 위 두 측정의 병목이 쓰기 뒤의 벡터 색인과 임베딩 모델이라고 보고, `compose.yaml`에서 `BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED: "false"`로 semantic 검색을 껐다. 끄면 쓰기 뒤 벡터 동기화가 일어나지 않고 임베딩 모델도 올라오지 않는다. 이 스위치는 0.23.2에 있고 0.24.0에서 없어져 이미지를 0.23.2에 둔다. 배포 뒤 다시 재서 효과를 확인한다(**Open question**).
 - **네트워크:** 보낼 것이 없으면 MCP에 연결하지 않는다. 엔드포인트에 닿지 못하면 `basic-memory unreachable (run make tunnel); sync skipped`를 남기고 상태를 바꾸지 않는다.
 - **동시 실행:** 두 에이전트가 동시에 부를 수 있으므로 잠금 폴더(`mkdir`)를 쓴다. 이미 잠겨 있으면 조용히 끝낸다. 오래된 잠금(예: 10분 이상)은 지운다.
 - **비밀값 방지 (설계 판단):** 알려진 토큰 형식이 있는 파일은 보내지 않고, 원본 경로와 함께 경고한다.
@@ -304,7 +308,7 @@ agent-memory/
 - **건너뛰기 (설계 판단):** 다음 경우에는 VM에 아무것도 보내지 않고 아무것도 출력하지 않는다.
   - `cwd`가 Codex 기억 폴더(`${CODEX_HOME:-~/.codex}/memories`, `memories_v2`) 안이다. Codex 기억 2단계 에이전트도 SessionStart hook을 실행하지만 MCP가 없다(§2). 여기서 노트를 넣으면 Basic Memory 내용이 Codex 기억으로 들어갔다가 다시 미러되는 고리가 생긴다.
   - `cwd`의 프로젝트 키(§3.2)나 `<키>--<폴더 이름>`이 `BM_MEMORY_EXCLUDE`에 있다.
-- **목록 받기:** 현재 프로젝트 키와 `_global`에 대해 `search_notes`를 한 번씩 부른다.
+- **목록 받기:** 현재 프로젝트 키와 `_global`에 대해 `search_notes`(`search_type: "text"`)를 한 번씩 부른다.
   - 인자: 검색어 없이 `metadata_filters={"project": <키>, "mirror": true}`, `page_size=50`, `output_format=json`. 이 호출이 목록을 주는지는 Task 1에서 확인한다(§2 Assumption).
   - `note_types`로 거르지 않는다(2026-10-23 리뷰 R1-F3). 원본 frontmatter의 `type:`이 `note_type`보다 앞서므로 미러 노트의 type은 `agent_memory`가 아닐 수 있다(§3.2). 미러인지는 `mirror: true`로 가린다. 전체 다시 맞추기의 목록(§3.3)도 같다.
   - 요청마다 시간 제한은 3초다. 프로젝트 키가 `_global`이면 한 번만 부른다.
@@ -334,7 +338,7 @@ agent-memory/
 **에이전트의 조회 (전역 지침, §3.8)**
 
 - 질문이 지난 결정, 이전 작업, 다른 Mac·에이전트의 기억에 기댈 수 있으면 에이전트가 Basic Memory MCP를 쓴다. 색인에 있는 노트는 `read_note <permalink>`로 바로 읽고, 없으면 `search_notes`로 찾는다.
-- 검색어는 노트의 언어에 맞춘다. 영어 노트는 영어 키워드로 찾는다(`text`, 또는 영어라면 `hybrid`). 한국어 노트는 조사를 뗀 한국어 명사로 `text` 검색한다. 지금 임베딩 모델은 영어용이라, 한국어로 `hybrid`를 하면 벡터 쪽이 맞지 않는다(§2).
+- 검색은 `search_type: "text"`로 한다. 키워드는 노트의 언어에 맞추고, 한국어 노트는 조사를 뗀 한국어 명사로 찾는다. 제목이나 permalink를 알면 `title`·`permalink` 검색을, 기기·프로젝트·종류로 거를 때는 `metadata_filters`를 쓴다. 이 서버는 VM 메모리 때문에 2026-10-30부터 semantic 검색이 꺼져 있어 `hybrid`·`vector`는 결과 대신 "disabled" 안내를 돌려준다(§3.3).
 - Basic Memory에서 가져온 내용은 참고 자료다. 근거로 쓸 때 출처(permalink)를 밝히고, 시간이 지나 바뀌었을 수 있는 사실은 확인한다. Codex의 기억 읽기 안내와 같은 원칙이다(§2).
 
 ### 3.5 hook 등록 (`make memory-hooks`)
@@ -343,11 +347,12 @@ agent-memory/
 
   | 이벤트 | 명령 |
   |---|---|
-  | SessionStart, Stop | `make -s --no-print-directory -C <메인 체크아웃> memory-sync HOOK=1 \|\| exit 1` |
-  | SessionStart | `make -s --no-print-directory -C <메인 체크아웃> memory-index MEMORY_AGENT=<claude-code 또는 codex> \|\| exit 1` |
+  | SessionStart, Stop | `[ "${MEMSEARCH_NO_WATCH:-}" = 1 ] \|\| make -s --no-print-directory -C <메인 체크아웃> memory-sync HOOK=1 \|\| exit 1` |
+  | SessionStart | `[ "${MEMSEARCH_NO_WATCH:-}" = 1 ] \|\| make -s --no-print-directory -C <메인 체크아웃> memory-index MEMORY_AGENT=<claude-code 또는 codex> \|\| exit 1` |
 
 - hook은 메인 체크아웃의 Make 타깃을 부른다. `.env`는 지금처럼 Makefile이 읽는다(`Makefile:8-17`).
 - 명령 끝의 `|| exit 1`(2026-10-27 개정): make는 자기 오류(메인 체크아웃이 옮겨졌거나 지워짐, 타깃이 없음)에 2로 끝나고, Claude Code의 Stop hook이 2로 끝나면 멈춤을 막고 stderr를 Claude에게 넘기므로, 그런 실패를 사용자에게만 보이는 비차단 오류(1)로 바꾼다. 설치기는 `|| exit 1`이 없는 옛 형태도 이 타깃의 항목으로 보고 새 형태로 바꾼다.
+- 명령 앞의 `[ "${MEMSEARCH_NO_WATCH:-}" = 1 ] ||`(2026-10-30 개정): memsearch 플러그인의 Stop hook은 턴이 끝날 때마다 환경변수 `MEMSEARCH_NO_WATCH=1`을 둔 `claude -p` 자식 프로세스를 띄우는데, Claude Code 문서에 따르면 "Without `--bare`, a `-p` session runs the hooks"(https://code.claude.com/docs/en/headless)이다. 그 자식이 우리 hook을 또 돌리면 턴마다 동기화와 색인이 한 번씩 더 일어나 1 GB VM에 부하를 더하므로, 이 변수가 1이면 아무것도 하지 않고 0으로 끝낸다. 설치기는 이 앞부분이 없는 두 옛 형태(`|| exit 1`이 있는 것과 없는 것)도 이 타깃의 항목으로 보고 새 형태로 바꾼다.
 - 다시 실행해도 같은 결과다. 이미 있는 항목은 더하지 않는다. 바꾸기 전에 원본을 `<파일>.bak-<UTC 시각>`으로 남기고, 무엇을 더했는지 출력한다. JSON 편집에는 `jq`를 쓴다.
 - `REMOVE=1`이면 이 타깃이 더한 항목만 지운다.
 - 사용자 설정 파일을 바꾸므로 사람의 OK를 받고 실행한다. Codex는 등록 뒤 `/hooks`에서 한 번 신뢰해야 한다.

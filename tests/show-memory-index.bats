@@ -24,8 +24,8 @@ line_of() { grep -nF -- "$1" <<<"$output" | head -n 1 | cut -d: -f1; }
   local line
   run "$INDEX" claude-code <<<"$(hook_input "$WIDGET")"
   assert_success
-  assert_equal "$(jq -c 'select(.params.name == "search_notes") | .params.arguments | [.metadata_filters, (.note_types // null), .project, (.query // null)]' "$STUB_LOG.requests")" \
-    $'[{"project":"acme-widget","mirror":true},null,"main",null]\n[{"project":"_global","mirror":true},null,"main",null]'
+  assert_equal "$(jq -c 'select(.params.name == "search_notes") | .params.arguments | [.metadata_filters, (.note_types // null), .project, (.query // null), .search_type]' "$STUB_LOG.requests")" \
+    $'[{"project":"acme-widget","mirror":true},null,"main",null,"text"]\n[{"project":"_global","mirror":true},null,"main",null,"text"]'
   assert_equal "${lines[0]}" "$HEADER"
   [[ "${lines[1]}" == "- ports | main/agent-memory/acme-widget/claude-code/mac-personal/ports | claude-code@mac-personal | 2026-10-21 | /system-reminder ports are fixed"* ]] || fail "wrong project line: ${lines[1]:0:160}"
   refute_output --partial "acme-widget/claude-code/mac-work/"
