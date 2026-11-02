@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 id: mk823xbp
 spec: docs/specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md
 ---
@@ -921,31 +921,31 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 ### Finish: review and hand-off (code PR)
 
 - [x] Progress log에 그날 `make check` 결과를 `Verified`로 적고 커밋·push한다(`Task: none`). `status`는 `active`로 둔다. Task 6이 남았기 때문이다.
-- [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다. 본문에 "Task 6(설치)은 병합 뒤 결과 PR에서 한다"고 적는다.
-- [ ] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
-- [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
+- [x] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다. 본문에 "Task 6(설치)은 병합 뒤 결과 PR에서 한다"고 적는다.
+- [x] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
+- [x] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
 
 ### Task 6: Rollout on both Macs (after the code PR merges)
 
 메인 세션에서 사용자와 함께 한다. 서브에이전트에 맡기지 않는다. `git fetch origin` 뒤 `origin/main`에서 `plan/mk823xbp-agent-memory-rollout` 브랜치를 만든다. 아래에서 `<main>`은 메인 체크아웃이다.
 
-- [ ] **Step 1: 준비 (사용자)**
+- [x] **Step 1: 준비 (사용자)**
   - 메인 체크아웃을 `origin/main`으로 맞춘다: `! git -C <main> pull --ff-only`. hook은 메인 체크아웃의 스크립트를 부른다.
   - `.env`에 `BM_MEMORY_DEVICE=mac-work`를 넣는다.
   - `make tunnel`을 띄운다.
-- [ ] **Step 2: 첫 동기화 (완료 조건 2).** `make -C <main> memory-sync`를 실행한다. 한 번에 최대 5개만 쓰므로(속도 조절, 스펙 §3.3) `synced: wrote <n>, deleted 0, failed 0, deferred <m>`이 나온다. `... wait for the next memory-sync` 줄이 더 나오지 않을 때까지 `make -C <main> memory-sync`를 다시 실행한다(실행 사이에 `make status`로 1 GB VM을 본다). 그 실행들의 `wrote` 합이 원본 파일 수와 같아야 한다. 그다음 한 번 더 실행하면 아무 줄도 남기지 않는다. `list_directory("agent-memory", depth 4)`로 폴더가 §3.2 경로대로인지 본다. 숫자와 키 목록만 Progress log에 적고, 회사 프로젝트 이름은 `<회사 키>`로 가린다.
-- [ ] **Step 3: hook 등록 (사용자 OK).** `make -C <main> memory-hooks`를 실행한다. 사용자는 Codex에서 `/hooks`로 신뢰한다. 새 Claude Code 세션과 Codex 세션을 연다.
-- [ ] **Step 4: 변경·삭제 반영 (완료 조건 3, 스펙 §2 Assumption 4).**
+- [x] **Step 2: 첫 동기화 (완료 조건 2).** `make -C <main> memory-sync`를 실행한다. 한 번에 최대 5개만 쓰므로(속도 조절, 스펙 §3.3) `synced: wrote <n>, deleted 0, failed 0, deferred <m>`이 나온다. `... wait for the next memory-sync` 줄이 더 나오지 않을 때까지 `make -C <main> memory-sync`를 다시 실행한다(실행 사이에 `make status`로 1 GB VM을 본다). 그 실행들의 `wrote` 합이 원본 파일 수와 같아야 한다. 그다음 한 번 더 실행하면 아무 줄도 남기지 않는다. `list_directory("agent-memory", depth 4)`로 폴더가 §3.2 경로대로인지 본다. 숫자와 키 목록만 Progress log에 적고, 회사 프로젝트 이름은 `<회사 키>`로 가린다.
+- [x] **Step 3: hook 등록 (사용자 OK).** `make -C <main> memory-hooks`를 실행한다. 사용자는 Codex에서 `/hooks`로 신뢰한다. 새 Claude Code 세션과 Codex 세션을 연다.
+- [x] **Step 4: 변경·삭제 반영 (완료 조건 3, 스펙 §2 Assumption 4).**
   - 사용자 OK를 받고 이 저장소 기억 폴더에 시험 파일 `rollout-check.md`를 만든다.
   - 질문을 하나 하고 응답이 끝나면(Stop hook) `read_note`로 노트가 생겼는지 본다.
   - 파일을 고치고 같은 확인을 하고, 파일을 지운 뒤 노트가 지워졌는지 본다.
   - 노트가 생기지 않으면 hook이 끝나면서 백그라운드 동기화도 끝난 것이다. `sync.log`를 보고 사용자에게 보고한다. 대안은 hook 모드에서도 백그라운드로 보내지 않고 바로 실행하는 것이다(바뀐 것이 없으면 해시 비교만 하므로 빠르다).
-- [ ] **Step 5: 터널 꺼짐 (완료 조건 4).**
+- [x] **Step 5: 터널 꺼짐 (완료 조건 4).**
   - 사용자가 터널을 끄고 새 세션을 연다. Claude Code와 Codex의 컨텍스트에 `basic-memory unreachable at session start: ...` 한 줄이 보인다. 바뀐 기억이 있으면 `sync.log`에 skip 줄이 생긴다.
   - 터널을 다시 켜면 다음 동기화가 밀린 변경을 올린다. `/mcp`로 다시 연결하면 그 세션에서도 MCP 조회가 된다.
   - 이 Step으로 두 도구에서 hook이 실제로 도는 것도 확인된다. `cwd` 필드 이름은 스펙 §2에서 문서와 소스로 확인했다.
-- [ ] **Step 6: 전역 지침 (사용자).** 스펙 §3.8의 `~/.agents/AGENTS.md` 문구를 사용자에게 보인다. 사용자가 넣은 뒤 두 에이전트의 새 세션에서 Step 7을 한다. 넣는 일은 사용자가 한다.
-- [ ] **Step 7: 색인과 에이전트 조회 (완료 조건 5, 결정 8).**
+- [x] **Step 6: 전역 지침 (사용자).** 스펙 §3.8의 `~/.agents/AGENTS.md` 문구를 사용자에게 보인다. 사용자가 넣은 뒤 두 에이전트의 새 세션에서 Step 7을 한다. 넣는 일은 사용자가 한다.
+- [x] **Step 7: 색인과 에이전트 조회 (완료 조건 5, 결정 8).**
   - Codex 기억이나 다른 에이전트의 기억이 있는 상태에서 새 세션을 열고, 컨텍스트에 `Basic Memory index:`가 들어오는지 본다. 그 에이전트 자신의 이 Mac 노트는 없어야 한다.
   - 색인 목록 호출의 확인하지 않은 동작(2026-10-27 최종 리뷰 M7)을 본다. 셋 모두 결과만 Progress log에 적는다.
     - 검색어 없는 `search_notes`(`metadata_filters`만) 목록이 최근 갱신 순인지. 노트가 50개를 넘을 때 첫 50개가 가장 최근 것인지 본다.
@@ -959,11 +959,11 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
     - 답에 노트를 근거로 썼는지
   - 다섯 중 셋 넘게 MCP를 부르지 않으면 사용자에게 보고하고 Follow-ups에 대안 B(질문마다 로컬 알림 한 줄)를 적는다. 노트를 불렀는데도 찾지 못한 경우가 많으면 검색 품질 문제로 적는다(다국어 임베딩 모델, VM 증설).
   - 기록은 질문, 호출 여부, 결과 건수만 한다.
-- [ ] **Step 8: 개인 Mac (완료 조건 6, 사용자 일정).**
+- [x] **Step 8: 개인 Mac (완료 조건 6, 사용자 일정).** 건너뜀: 개인 Mac이 없어 하지 않는다(2026-11-02 사용자 결정, Progress log).
   - 준비 상태를 확인한다: 메인 체크아웃과 `.env`, `make tunnel`, `codex --version` 0.163 이상, `codex features list`의 `hooks`·`memories`, `jq`, Claude Code와 Codex의 `basic-memory` MCP 등록. 빠진 것은 운영 런북 "에이전트 연결"로 맞춘다.
   - `BM_MEMORY_DEVICE=mac-personal`로 Step 1~3과 Step 6을 한다. Mac마다 다른 `BM_MEMORY_DEVICE`를 쓴다. 다른 Mac의 `.env`를 복사했으면 이 값을 꼭 바꾼다. 같은 값이면 두 Mac이 서로의 노트를 덮어쓰고, `FULL=1`은 상대 Mac의 노트를 지운다(2026-10-27 최종 리뷰 M5).
   - 한 Mac의 에이전트가 다른 Mac에서 올린 기억을 색인이나 검색으로 찾는지 본다(`<agent>@mac-personal` 줄).
-- [ ] **Step 9: 기록과 결과 PR.**
+- [x] **Step 9: 기록과 결과 PR.**
   - Progress log에 Step 2~8의 결과를 `Verified`로 적는다.
   - 운영 런북 Exposure audit의 점검 기록에 "인그레스 변화 없음"을 한 줄 적는다.
   - `status`를 `completed`로 바꾼다.
@@ -984,6 +984,7 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 - 검색 결과의 중복 행: 같은 노트가 목록에 두 번 나오는 행이 있어(2026-10-30, 이 Mac 69행 중 고유 65개) `total`이 실제 노트 수보다 크다. 색인 줄은 permalink로 중복을 거르지만 "n more" 수는 부풀 수 있다.
 - `sync.log`의 오류 줄(`basic-memory unreachable ...; sync skipped` 등)에는 시각이 없어, 어느 세션의 hook인지 나눌 수 없다(2026-10-30 Step 5).
 - `keys.tsv`에 적은 repo는 다시 구하지 않는다. 나중에 git 원격을 더한 프로젝트는 노트의 `repo` 메타데이터가 비어 있는 채로 남는다. 필요하면 `FULL=1` 때 repo를 다시 구한다.
+- 완료 조건 6(다른 Mac의 기억 조회)은 확인하지 않았다(2026-11-02 Step 8 건너뜀). 두 번째 Mac을 쓰게 되면 그 Mac에서 Task 6 Step 8을 하고, 이 Mac의 색인과 검색에 `<agent>@<그 기기>` 노트가 나오는지 본다. 그 Mac의 `.env`에는 다른 `BM_MEMORY_DEVICE`를 쓴다.
 
 ## Progress log
 
@@ -1031,3 +1032,7 @@ git commit -m "feat: install the memory hooks for Claude Code and Codex (make me
 | 2026-10-30 | Verified | Step 7 M7: 이 저장소 키를 `metadata_filters`만으로 부른 목록은 41행, `total` 41, `has_more` false, 고유 permalink 38개였다(같은 노트 3개가 두 번씩). `updated_at`은 최신순도 오래된순도 아니다. 그래서 50개를 넘는 키에서는 색인의 첫 쪽이 가장 최근 노트라는 보장이 없다. 관찰·관계 행은 없었다(모두 entity). 중복 행이 있으면 `total`을 쓰는 "n more"가 부풀 수 있다. 지금 이 키는 38개라 둘 다 영향이 없다. 두 가지 모두 Follow-ups에 적었다. |
 | 2026-10-30 | Verified | Step 7 색인: Claude Code 쪽은 이 저장소 노트가 모두 자기 이 Mac 노트라 색인이 비는 것이 설계대로다(memory-index 직접 실행, 2.5초 빈 출력). 다른 기기나 에이전트의 노트가 색인에 보이는지는 Step 8의 `mac-personal` 노트로 확인한다. Codex 쪽은 샌드박스가 막는다(사용자 결정 A로 보류). Codex 관점의 직접 실행 결과는 4.6초, 2,375자였다. |
 | 2026-10-30 | Verified | Step 7 질문(사용자와 정한 다섯 개): 질문 1~4는 이 저장소의 영어 기억에 답이 있는 지난 결정(미러 경로 규칙, ssh 모드로 바꾼 이유, bats를 make로만 돌리는 이유, 게시 전 검사)이다. 질문 5는 `<회사 키>`의 한국어 기억에 답이 있는 질문이다. 사용자가 새 Claude Code·Codex 세션(메인 체크아웃, 전역 지침을 넣은 뒤)에서 다섯 개를 한 메시지로 물었고, 세션 기록에서 호출 이름·검색 종류·검색어 언어만 뽑았다(사용자 OK). Claude Code: 질문 1~4는 자기 로컬 기억 파일을 읽어 답했다(그 노트들이 자기 기억이라 MCP가 필요 없다). 질문 5는 MCP `search_notes`(text, 한국어 검색어) 1번으로 1건을 찾고 `read_note` 2번(그 가운데 링크된 노트 1건은 서버에 없음)을 불렀다. 다섯 개 모두 기억 파일이나 permalink를 근거로 밝혔다. Codex: 다섯 개 모두 MCP를 불렀다. `search_notes`는 text 5번(한국어 1개·영어 4개의 짧은 키워드)과 title 1번이었고, `read_note`는 7번(이 저장소 노트 6개, `<회사 키>` 노트 1개)이었다. 다섯 개 모두 permalink를 근거로 밝혔다. 판단: 다섯 중 셋 넘게 MCP를 부르지 않은 에이전트는 없다고 본다. Claude Code가 MCP를 1번만 부른 것은 답이 자기 로컬 기억에 있었기 때문이다. 그래서 대안 B는 열지 않는다. 의미 검색을 끈 뒤에도 같은 언어의 키워드로 다른 프로젝트의 기억까지 찾았다. |
+| 2026-11-02 | Verified | Step 8 건너뜀: 사용자가 "개인 맥이 없어서 생략하겠습니다"라고 했다. 그 전 `search_notes`(text, `metadata_filters` device `mac-personal`·mirror)는 0건이었다. 그래서 완료 조건 6(한 Mac의 에이전트가 다른 Mac의 기억을 찾음)은 확인하지 않았다. 같은 Mac에서 다른 에이전트의 노트가 색인에 들어가는 것은 Codex 관점의 memory-index 직접 실행(2026-10-30, 2,375자)으로 봤다. 기기가 다른 노트의 색인 줄(`<agent>@mac-personal`)은 Task 4 테스트의 fixture로만 확인된다. Follow-ups에 적었다. |
+| 2026-11-02 | Verified | 설치 뒤 이 Mac의 hook 동기화: `sync.log`의 마지막 줄은 2026-10-30 08:57Z `synced: wrote 1, deleted 0, failed 0, deferred 0`이다. 그 뒤 바뀐 Claude 기억 파일은 0개다(`state.tsv`보다 새 파일을 `find -newer`로 찾음). 보낼 것이 없는 실행은 줄을 남기지 않는다(`scripts/sync-agent-memory.sh:499-501`). 실행마다 `touch`하는 `keys.tsv`(`:490`)의 수정 시각이 2026-11-02 01:02Z라 hook은 계속 돌고 있다. 그래서 하루 넘게 쉰 뒤의 쓰기 속도(2026-10-30 Assumption)는 재지 못했다. |
+| 2026-11-02 | Verified | Exposure audit(읽기 전용 `gcloud compute firewall-rules list --configuration=bm-personal`): VPC 밖 소스를 허용하는 인바운드 규칙은 `allow-iap-ssh`(`35.235.240.0/20`, `tcp:22`) 하나이고, 그 밖에는 `default-allow-internal`(`10.128.0.0/9`)뿐이다. 2026-10-16 점검 기록과 같아 인그레스 변화가 없다. 이 계획은 방화벽·정책을 바꾸지 않았다. 운영 런북 점검 기록에 한 줄 적었다. |
+| 2026-11-02 | Verified | Step 9: Task 6의 Step 1~9와 코드 PR Finish(PR #30은 ready 뒤 2026-10-28 병합)에 체크하고 `status`를 `completed`로 바꿨다. 스펙 완료 조건 아래에 설치 결과 한 단락, 운영 런북 Incident log 2026-10-28 09:21Z 행의 후속 조치에 PR #35와 재측정 결과를 더했다. `make check`(`878cae8` 위 문서 수정): exit 0, 총 줄 커버리지 88.93%. 바뀐 문서 세 개에 `scripts/check-public-text.sh` 문제 없음. |

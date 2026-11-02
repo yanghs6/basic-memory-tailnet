@@ -51,6 +51,8 @@ Claude Code와 Codex의 지속 기억은 각 Mac의 로컬 파일에만 있어�
 5. Claude Code와 Codex는 세션을 시작하면 색인을 받는다. 미러된 기억과 관련된 한국어 질문을 하면, 에이전트가 MCP(`read_note`나 `search_notes`)로 그 노트를 읽고 답에 쓴다. 수동으로 확인해 결과 PR에 기록한다(2026-10-23 개정).
 6. 개인 Mac(`mac-personal`)에 설치한 뒤, 한 Mac의 에이전트가 다른 Mac의 기억을 색인이나 검색으로 찾는다.
 
+**Verified (2026-11-02, 설치 결과):** 회사 Mac에서 조건 1~5를 확인했다([agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md) Progress log). 사용자 결정으로 뺀 것이 세 가지다. 조건 2의 Codex 기억은 올리지 않았다(`BM_MEMORY_EXCLUDE=_global`). 조건 5의 Codex 색인은 Codex 샌드박스가 터널 포트를 막아 보류했다(결정 A). 조건 6은 개인 Mac이 없어 확인하지 않았다.
+
 ## 2. 근거가 된 사실 (2026-10-22, `main` `57993a3`)
 
 로컬 기억 (회사 Mac):
