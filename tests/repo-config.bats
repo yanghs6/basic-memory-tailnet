@@ -155,6 +155,13 @@ makefile_image_problems() {
   grep -qxF '    networks: [basic-memory]' <<<"$bm" || fail "basic-memory must use only its own network"
 }
 
+@test "basic-memory turns semantic search off, or the 1 GB VM stalls on writes" {
+  local bm
+  bm="$(service_block basic-memory)"
+  grep -qxF '      BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED: "false"' <<<"$bm" \
+    || fail 'basic-memory must set BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED: "false" (docs/decisions/adr-2026-10-30-bts7gsex-semantic-search-off.md)'
+}
+
 @test "SilverBullet is a -slim image, needs a login, has no shell or runtime API, restarts unless-stopped, probes without --version and shares no network or data beyond the notes" {
   local sb healthcheck
   sb="$(service_block silverbullet)"

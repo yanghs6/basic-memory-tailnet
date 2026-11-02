@@ -75,7 +75,7 @@ spec: none
 **Files:**
 - Modify: `tests/repo-config.bats`
 
-- [ ] **Step 1: 실패하는 테스트 작성.** basic-memory 서비스 테스트 바로 뒤에 새 `@test`를 둔다.
+- [x] **Step 1: 실패하는 테스트 작성.** basic-memory 서비스 테스트 바로 뒤에 새 `@test`를 둔다.
 
 ```bash
 @test "basic-memory turns semantic search off, or the 1 GB VM stalls on writes" {
@@ -86,8 +86,8 @@ spec: none
 }
 ```
 
-- [ ] **Step 2: RED·GREEN 확인.** `compose.yaml`의 그 줄을 잠시 지우고 `make test`를 실행하면 이 테스트만 실패한다. `git checkout -- compose.yaml`로 되돌리고 다시 `make test`가 통과한다. 두 결과를 Progress log에 적는다.
-- [ ] **Step 3: `make check` 통과 후 커밋.** `test: pin semantic search off in compose.yaml` (`Task: 1`).
+- [x] **Step 2: RED·GREEN 확인.** `compose.yaml`의 그 줄을 잠시 지우고 `make test`를 실행하면 이 테스트만 실패한다. `git checkout -- compose.yaml`로 되돌리고 다시 `make test`가 통과한다. 두 결과를 Progress log에 적는다.
+- [x] **Step 3: `make check` 통과 후 커밋.** `test: pin semantic search off in compose.yaml` (`Task: 1`).
 
 ### Task 2: probe의 의미 검색 확인 (W9, F23)
 
@@ -270,3 +270,6 @@ check_semantic_search_off() {
 | 2026-11-02 | Verified | `git fetch origin` 뒤 `origin/plan/fqns5sye-*` 없음. 브랜치 `worktree-ops-robustness`를 `plan/fqns5sye-ops-robustness`로 바꿈(`.git/config` 잠금 오류가 났지만 옛 이름의 branch 설정이 없어 잃은 것 없음) |
 | 2026-11-02 | Verified | VM에 `search_notes(search_type="hybrid")`를 보내면 "Search Failed - Semantic Search Disabled" 안내가 돌아옴 |
 | 2026-11-02 | Verified | 사용자가 계획을 승인하고 결정 1-A, 2-A, 기준값 80%를 정함 |
+| 2026-11-02 | Verified | Task 1 RED: `compose.yaml`의 `BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED` 줄을 잠시 지우고 `make test`를 실행함. 278개 중 `not ok 136 basic-memory turns semantic search off, or the 1 GB VM stalls on writes` 하나만 실패했고 make는 exit 2로 끝남 |
+| 2026-11-02 | Verified | Task 1 GREEN: `git checkout -- compose.yaml`로 되돌린 뒤 `make test`가 278개 모두 ok, exit 0 |
+| 2026-11-02 | Verified | Task 1 `make check`: lint 통과, 278개 모두 ok, `total line coverage: 89.30% (minimum 80%)`, exit 0 |
