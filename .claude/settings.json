@@ -58,7 +58,8 @@
       "make sb-fonts *",
       "gh *",
       "gcloud *",
-      "git push *"
+      "git push *",
+      "scripts/check-public-text.sh *"
     ]
   },
   "hooks": {
