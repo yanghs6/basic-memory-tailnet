@@ -21,14 +21,14 @@ Policy: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md (pull requests
 
 ## Commit
 
-1. Run `make check`.
+1. Run `make check` as a command of its own and read the output from the tool result: in a Claude Code session a pipe, a file redirect or a chain (`make check | tail -3`, `make check > out.log`, `make check; echo $?`) runs inside the sandbox and fails; only `2>&1` is fine.
 2. `git commit -m "<type>: <description>" --trailer "Assisted-by: <tool> <model id>" --trailer "Plan: <ID|none>" --trailer "Task: <N|review|none>"`, with your identity written out. If you keep it in a variable, set it in the same command and write `${AGENT_ID:?set AGENT_ID}`, so an unset value stops the commit instead of writing an empty trailer.
 3. Never add `Co-authored-by` or `Signed-off-by`.
 4. `make check-git` (it checks against `origin/main`) must pass before you push.
 
 ## Publish
 
-1. After the first commit run `git push -u origin <branch>`, then open one draft pull request for the whole branch: `gh pr create --draft --base main --title "<type>: <description>" --body-file <file>`. The body follows `.github/pull_request_template.md`: summary, plan file, verification evidence, and as the last paragraph `Assisted-by: <tool> <model id>` (one line per tool that worked on the branch) and `Plan: <ID|none>`. Replace the template's example text; the squash merge turns the title and body into the commit on `main`. Write each paragraph and each list item on one line: GitHub shows every line break in a pull request body, so text wrapped at a fixed width reads as broken sentences. Before every `gh pr create` or `gh pr edit`, run `scripts/check-public-text.sh <file>` on the body file and fix every hit.
+1. After the first commit run `git push -u origin <branch>`, then open one draft pull request for the whole branch: `gh pr create --draft --base main --title "<type>: <description>" --body-file <file>`. The body follows `.github/pull_request_template.md`: summary, plan file, verification evidence, and as the last paragraph `Assisted-by: <tool> <model id>` (one line per tool that worked on the branch) and `Plan: <ID|none>`. Replace the template's example text; the squash merge turns the title and body into the commit on `main`. Write each paragraph and each list item on one line: GitHub shows every line break in a pull request body, so text wrapped at a fixed width reads as broken sentences. Before every `gh pr create` or `gh pr edit`, run `scripts/check-public-text.sh <file>` on the body file as a command of its own and fix every hit; like `make check`, it fails inside the Claude Code sandbox when piped, redirected or chained.
 2. Push after every commit. CI runs `check` (`make check`) and `pr-rules` (branch name, commit trailers, PR title and trailers, and `scripts/check-tests.sh`: fewer `@test` lines or a new `skip` since the merge base need `Tests-Removed: <reason>` in the last paragraph of the PR body). Fix every failure; editing the title or body re-runs `pr-rules`.
 3. `gh` and `git push` run as the machine account. If your sandbox blocks the network, ask the human to run the push or `gh` command.
 4. Never write the VM's external or tailnet IP addresses in commits, the pull request or comments.
