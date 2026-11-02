@@ -177,8 +177,8 @@ BEGIN {
 # files and binary files are left out; dies on a file it cannot read.
 repo_text_files() {
   local list="$1" path regular errors status=0 unreadable=0
-  regular="$(mktemp)" || exit 1
-  errors="$(mktemp)" || exit 1
+  regular="$(new_temp check-public-text)" || exit 1
+  errors="$(new_temp check-public-text)" || exit 1
   while IFS= read -r -d '' path; do
     if [[ -f "$path" && ! -L "$path" ]]; then
       if [[ -r "$path" ]]; then
@@ -209,8 +209,8 @@ main() {
     label="$2"
     shift 2
   fi
-  list="$(mktemp)" || exit 1
-  input="$(mktemp)" || exit 1
+  list="$(new_temp check-public-text)" || exit 1
+  input="$(new_temp check-public-text)" || exit 1
   # shellcheck disable=SC2064  # expand now: the locals are gone when the EXIT trap runs
   trap "rm -f '$list' '$input'" EXIT
   if (($# == 0)); then

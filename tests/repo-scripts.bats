@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 load helpers
 
-# Script rules: strict mode, bash 3.2, no Funnel, no template blank left by make new-script, and the layout checks of
+# Script rules: strict mode, bash 3.2, temporary files through new_temp, no Funnel, no template blank left by make new-script, and the layout checks of
 # the script-test layout spec section 9 (pair tests, names, sources, the scripts/...sh paths the docs name). The structure-checks ADR
 # allows the layout and blank checks; the verbs come from the table in the script-authoring skill.
 
@@ -21,6 +21,9 @@ SHEBANG='#!/usr/bin/env bash'
 # blank ends in the sed delimiter (s/<blank>/<value>/), so a blank followed by / does not count. A test that checks a
 # blank is gone escapes the braces in its pattern, so its file holds no two braces in a row and does not count either.
 TEMPLATE_BLANK='\{\{[A-Za-z][^}]*\}\}([^/]|$)'
+# A local mktemp call in a command substitution. A remote command that only names mktemp in a string passed to ssh
+# (bootstrap-vm.sh) does not match.
+LOCAL_MKTEMP='\$\([[:space:]]*mktemp([^A-Za-z0-9_-]|$)'
 
 setup() {
   # shellcheck source=../scripts/lib/layout.sh
@@ -64,6 +67,12 @@ script_path_refs() {
 
 @test "scripts avoid bash 4+ features (macOS ships bash 3.2)" {
   refute_matches "$REPO_DIR/scripts" 'mapfile|readarray|declare -[Ann]|local -[Ann]|inherit_errexit|coproc|wait -n|\|&|&>>|\$\{[A-Za-z_][A-Za-z0-9_]*(\^|,)|\$\{[A-Za-z_][A-Za-z0-9_]*\[-[0-9]+\]'
+}
+
+@test "scripts and libraries create temporary files only with new_temp, which keeps them under TMPDIR" {
+  # scripts/remote runs alone on the VM without common.sh; common.sh holds new_temp itself.
+  refute_matches "$REPO_DIR/scripts" "$LOCAL_MKTEMP" --exclude-dir=remote --exclude=common.sh \
+    || fail "replace each mktemp call with new_temp [-d] NAME (scripts/lib/common.sh): without a template, macOS mktemp ignores TMPDIR, and the Claude Code sandbox refuses the directory it uses instead"
 }
 
 @test "no script enables Tailscale Funnel" {

@@ -485,7 +485,7 @@ sync_memory() {
   require_cmd curl jq git
   require_memory_device
   acquire_lock
-  WORK_DIR="$(mktemp -d)" || exit 1
+  WORK_DIR="$(new_temp -d sync-agent-memory)" || exit 1
   : >"$WORK_DIR/desired"
   touch "$KEYS_FILE"
   collect_claude

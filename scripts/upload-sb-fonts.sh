@@ -26,7 +26,7 @@ main() {
   python3 -c 'import fontTools.ttLib.woff2, brotli' 2>/dev/null \
     || die "python3 cannot write WOFF2 yet: python3 -m pip install --user fonttools brotli"
 
-  WORK="$(mktemp -d)" || exit 1
+  WORK="$(new_temp -d upload-sb-fonts)" || exit 1
   trap 'rm -rf "$WORK"' EXIT
   for style in $FONT_STYLES; do
     name="$FONT_FILE_PREFIX-$style.woff2"

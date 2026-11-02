@@ -161,7 +161,7 @@ check_registration() {
 main() {
   parse_args "$@"
   require_cmd curl jq
-  WORK_DIR="$(mktemp -d)" || exit 1
+  WORK_DIR="$(new_temp -d verify-web)" || exit 1
   trap 'rm -rf "$WORK_DIR"' EXIT
   step "web connector OAuth checks${PUBLIC:+ against the public host}"
   if [[ -n "$PUBLIC" ]]; then
