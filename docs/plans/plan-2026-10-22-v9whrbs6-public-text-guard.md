@@ -213,10 +213,10 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 
 ### Finish: review and hand-off
 
-- [ ] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
-- [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
-- [ ] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge). 이때부터 Task 4의 검사가 게시를 막을 수 있다.
-- [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
+- [x] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
+- [x] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
+- [x] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge). 이때부터 Task 4의 검사가 게시를 막을 수 있다.
+- [x] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
 
 ## Follow-ups
 
@@ -241,3 +241,4 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 | 2026-10-27 | Verified | Task 5 공개 텍스트 이력 집계: `git log -p origin/main \| scripts/check-public-text.sh -`(`67401d2`, 커밋 162개)는 IPv4 7건, 세션 링크 6건이었다. 값은 보지 않았다. 세션 링크는 이미 알려진 AP10(Follow-ups)이다. IPv4는 예외 목록에 오른 기록 계획들의 증거 줄이 이력에 남은 것으로 추정한다(**Assumption**, stdin에는 예외 목록이 적용되지 않는다). |
 | 2026-10-27 | Verified | Task 5 GitGuardian(사용자): 사용자가 대시보드에 열린 incident가 없다고 확인했다. 이 PR의 GitGuardian check도 pass다. |
 | 2026-10-27 | Verified | Finish: `origin/main`(`67401d2`)을 병합한 뒤 `55dc6e6`에서 `make check`는 exit 0, 157개 ok, `not ok` 0개, 줄 커버리지 88.00%(최소 80%)였다. `make check-git`은 OK였다(커밋 7개). 계획 Task 1~5를 모두 끝냈다. |
+| 2026-11-02 | Verified | Finish 상자를 실행 결과와 맞췄다(2026-11-02 저장소 재검토 P3-38). 근거: 위 Finish 행과 PR #25(2026-10-27 병합, 다른 벤더 리뷰 R1·R2 코멘트, 본문 Verification의 `make check`·CI). |
