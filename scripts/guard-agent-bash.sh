@@ -4,8 +4,8 @@
 #   - denies (exit 2, stderr shown to the agent) deleting backups/ or /srv/basic-memory.prev-* directories,
 #   - asks the user (permissionDecision "ask") before a force-push, a direct call of a VM-changing script,
 #     script or expect around restore, a make call naming a VM-changing or posting target, gh write forms (api with
-#     fields or a non-GET method, gist, issue, release, repo, pr close or merge) and cloud CLI changes (create, delete,
-#     metadata, update, stop, reset, resize),
+#     fields or a non-GET method, gist, issue, release, repo, pr create, edit, comment, ready, close or merge) and
+#     cloud CLI changes (create, delete, metadata, update, stop, reset, resize),
 #   - passes everything else (exit 0, no output) on to the normal permission rules.
 # Contract (code.claude.com/docs/en/hooks): hook input JSON on stdin, the command is .tool_input.command; exit 2 blocks.
 # Any other failing exit code does NOT block, so every failure below is turned into exit 2 (fail closed).
@@ -68,7 +68,7 @@ readonly GH_LEAD="${COMMAND_LEAD}gh[[:space:]]+${GH_GLOBAL_FLAGS}"
 readonly GH_API_PATTERN="${GH_LEAD}api([[:space:]]|\$)"
 readonly GH_API_FIELD_PATTERN='[[:space:]](-f|-F|--field|--raw-field|--input)([[:space:]=]|$)|[[:space:]]-[fF][^[:space:]-]'
 readonly GH_API_METHOD_PATTERN='[[:space:]](-X|--method)[[:space:]=]*([^[:space:]]+)'
-readonly GH_WRITE_PATTERN="${GH_LEAD}((gist[[:space:]]+(create|edit|delete))|(issue[[:space:]]+(create|comment|edit|close|delete|reopen|transfer|lock))|(release[[:space:]]+(create|upload|edit|delete))|(repo[[:space:]]+(create|edit|delete|rename|archive|fork|sync))|(pr[[:space:]]+(close|merge|review|reopen)))([[:space:]]|\$)"
+readonly GH_WRITE_PATTERN="${GH_LEAD}((gist[[:space:]]+(create|edit|delete))|(issue[[:space:]]+(create|comment|edit|close|delete|reopen|transfer|lock))|(release[[:space:]]+(create|upload|edit|delete))|(repo[[:space:]]+(create|edit|delete|rename|archive|fork|sync))|(pr[[:space:]]+(create|edit|comment|ready|close|merge|review|reopen)))([[:space:]]|\$)"
 
 readonly ASK_MAKE_TARGET='this make target changes the VM or posts to a pull request'
 readonly ASK_GH_WRITE='this gh call writes to GitHub from outside the sandbox'

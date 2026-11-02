@@ -113,7 +113,7 @@ assert_asks() {
   done
 }
 
-@test "asks before gh writes: api with a non-GET method or fields, gist, issue, release, repo and pr close, merge, review, reopen" {
+@test "asks before gh writes: api with a non-GET method or fields, gist, issue, release, repo and pr create, edit, comment, ready, close, merge, review, reopen" {
   local cmd commands
   commands=(
     "gh api -X POST repos/x/y/issues/1/comments -f body=hi"
@@ -151,8 +151,16 @@ assert_asks() {
     "gh pr merge 1"
     "gh pr review 1"
     "gh pr reopen 1"
+    "gh pr create --draft --title t"
+    "gh pr edit 1 --body-file b.md"
+    "gh pr comment 1 --body b"
+    "gh pr ready 1"
     "sh -c 'gh issue create --title t'"
     "gh -R a/b pr merge 3"
+    "gh -R a/b pr comment 3 --body b"
+    "gh --repo a/b pr ready 3"
+    "gh --repo=a/b pr edit 3 --title t"
+    "gh -R a/b pr create --title t"
     "gh --repo a/b pr merge 3"
     "gh --repo=a/b issue close 1"
     "gh -R a/b release delete v1"
