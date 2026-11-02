@@ -138,13 +138,13 @@ check_semantic_search_off() {
 **Files:**
 - Modify: `.claude/agents/release-notes-reader.md`, `.agents/skills/bm-upgrade/SKILL.md`
 
-- [ ] **Step 1:** reader 형식 목록 끝에 한 줄을 더한다: `- Semantic search switch (BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED): verbatim quotes that keep, rename, remove or change it, or "not mentioned"`.
-- [ ] **Step 2:** bm-upgrade 3단계를 고친다.
+- [x] **Step 1:** reader 형식 목록 끝에 한 줄을 더한다: `- Semantic search switch (BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED): verbatim quotes that keep, rename, remove or change it, or "not mentioned"`.
+- [x] **Step 2:** bm-upgrade 3단계를 고친다.
   - 다른 도구에서 사용자가 답하는 형식에도 같은 항목을 넣는다.
   - "Check in that answer and in the release's source" 문장을 바꾼다: 스위치 줄이 스위치를 그대로 둔다는 인용이 아니면(not mentioned, 제거, 이름·동작 변경) 여기서 멈추고 사용자에게 알린다. 그 ADR을 먼저 다시 연다(Rules).
   - Checklist 3번은 그대로 둔다("semantic search can still be turned off").
-- [ ] **Step 3:** 사용자 결정 1-A에 따라 형식 줄을 검사하는 테스트는 더하지 않는다. `make check`로 기존 reader 테스트(`repo-config.bats:444`)가 계속 통과하는지만 본다.
-- [ ] **Step 4:** 커밋. `docs: stop bm-upgrade unless the release notes keep the semantic search switch` (`Task: 3`).
+- [x] **Step 3:** 사용자 결정 1-A에 따라 형식 줄을 검사하는 테스트는 더하지 않는다. `make check`로 기존 reader 테스트(`repo-config.bats:444`)가 계속 통과하는지만 본다.
+- [x] **Step 4:** 커밋. `docs: stop bm-upgrade unless the release notes keep the semantic search switch` (`Task: 3`).
 
 ### Task 4: 아카이브 항목 검사를 lib로 (W16, F26)
 
@@ -273,3 +273,4 @@ check_semantic_search_off() {
 | 2026-11-02 | Verified | Task 1 RED: `compose.yaml`의 `BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED` 줄을 잠시 지우고 `make test`를 실행함. 278개 중 `not ok 136 basic-memory turns semantic search off, or the 1 GB VM stalls on writes` 하나만 실패했고 make는 exit 2로 끝남 |
 | 2026-11-02 | Verified | Task 1 GREEN: `git checkout -- compose.yaml`로 되돌린 뒤 `make test`가 278개 모두 ok, exit 0 |
 | 2026-11-02 | Verified | Task 1 `make check`: lint 통과, 278개 모두 ok, `total line coverage: 89.30% (minimum 80%)`, exit 0 |
+| 2026-11-02 | Verified | Task 3 `make check`: 278개 모두 ok(기존 reader 테스트 `ok 150 the release-notes reader has no shell or write tool and bm-upgrade hands step 3 to it` 포함), `total line coverage: 89.30% (minimum 80%)`, exit 0. 결정 1-A대로 새 테스트는 없음 |
