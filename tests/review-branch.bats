@@ -57,8 +57,8 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
         && assert_line "effort low" || exit 1
       if [[ "$reviewer" == codex ]]; then
         assert_line "model gpt-6.1-sol" \
-          && assert_stub_called -F 'codex exec review -m gpt-6.1-sol -c model_reasoning_effort="low" -c sandbox_mode="read-only" --base main :: cwd='"$REVIEW_WT" \
-          && assert_stub_called -F "codex exec -m gpt-6.1-sol -c model_reasoning_effort=\"low\" --sandbox read-only -o $OUT-r1-codex-plan.md"
+          && assert_stub_called -E '^codex exec review -m gpt-6.1-sol -c model_reasoning_effort="low" -c shell_environment_policy.inherit="core" .* --base main :: cwd='"$REVIEW_WT"'$' \
+          && assert_stub_called -E '^codex exec -m gpt-6.1-sol -c model_reasoning_effort="low" -c shell_environment_policy.inherit="core" .* -o '"$OUT"'-r1-codex-plan\.md'
       else
         assert_line "model claude-opus-5-5" || exit 1
         run grep -c "^claude " "$STUB_LOG"
@@ -71,6 +71,50 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
       fi
     ) || fail "$reviewer review of a branch by $author"
   done
+}
+
+@test "both codex calls strip token-like env vars and run under a deny profile instead of --sandbox or sandbox_mode" {
+  local arg main_env
+  cd "$BATS_TEST_TMPDIR" || return
+  review_repo claude-code || return 1
+  run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+  assert_success
+  main_env="$(git rev-parse --path-format=absolute --git-common-dir)" || return 1
+  main_env="$(dirname "$main_env")/.env"
+  # Both calls (the change review and the plan review) carry every argument.
+  for arg in 'shell_environment_policy.inherit="core"' 'shell_environment_policy.ignore_default_excludes=false' \
+    'default_permissions="reviewer"' 'permissions.reviewer.extends=":read-only"' 'permissions.reviewer.filesystem={' \
+    '"~/.ssh"="deny"' '"~/.config"="deny"' "\"$main_env\"=\"deny\""; do
+    run grep -c -F -- "$arg" "$STUB_LOG"
+    assert_output 2 || fail "argument $arg is not on both codex calls"
+  done
+  refute_stub_called -F -e '--sandbox' -e 'sandbox_mode'
+}
+
+@test "the deny path of the main .env is quoted for TOML: a space stays, a quote and a backslash are escaped, a newline is refused" {
+  local case root expected
+  cd "$BATS_TEST_TMPDIR" || return
+  # Each case: the main checkout directory name | the path as it must appear inside the TOML string.
+  for case in 'my repo|my repo' 'q"uote|q\"uote' 'back\slash|back\\slash'; do
+    IFS='|' read -r root expected <<<"$case"
+    (
+      review_repo claude-code || exit 1
+      mv "$WORK" "$BATS_TEST_TMPDIR/$root" && cd "$BATS_TEST_TMPDIR/$root" || exit 1
+      run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+      assert_success || exit 1
+      run grep -c -F -- "\"$BATS_TEST_TMPDIR/$expected/.env\"=\"deny\"" "$STUB_LOG"
+      assert_output 2
+    ) || fail "deny path for a main checkout named $root"
+  done
+  (
+    review_repo claude-code || exit 1
+    mv "$WORK" "$BATS_TEST_TMPDIR/new
+line" && cd "$BATS_TEST_TMPDIR/new
+line" || exit 1
+    run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+    assert_failure && assert_output --partial "control character or newline" || exit 1
+    refute_stub_called -F 'codex '
+  ) || fail "a newline in the main checkout path is not refused"
 }
 
 @test "passes REVIEW_MODEL and REVIEW_EFFORT to both reviewer calls and records them in the meta file" {

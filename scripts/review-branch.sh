@@ -26,6 +26,8 @@ readonly DEFAULT_REVIEW_EFFORT=low
 readonly REVIEW_EFFORTS="low medium high xhigh max"
 # How many lines from the end of a failed make check's log the reviewer gets.
 readonly CHECK_TAIL_LINES=20
+# The codex permission profile that denies the reviewer its credential paths.
+readonly CODEX_PROFILE=reviewer
 
 BRANCH=""
 REVIEWER=""
@@ -178,13 +180,35 @@ EOF
   prompt_footer
 }
 
+# codex_isolation_args -> the codex arguments, one per line, that keep the reviewer's shell free of token-like
+# environment variables and deny it the credential paths. A permission profile is ignored while --sandbox or
+# sandbox_mode is set, so neither is passed; the profile extends :read-only, which also leaves the network off.
+# The main checkout's .env is an absolute path found at run time. ~/.config holds the cloud CLI and gh credentials;
+# it is denied as a whole because the cloud-neutral rule keeps provider names out of scripts.
+codex_isolation_args() {
+  local root env_path deny
+  root="$(main_checkout_root "$PWD")" || die "cannot find the main checkout from $PWD"
+  [[ "$root" != *[[:cntrl:]]* ]] \
+    || die "the main checkout path contains a control character or newline; move the checkout to a plain path"
+  # Escape the path for a TOML basic string: backslash first, then the double quote.
+  env_path="${root//\\/\\\\}/.env"
+  env_path="${env_path//\"/\\\"}"
+  deny="{\"$env_path\"=\"deny\", \"~/.ssh\"=\"deny\", \"~/.config\"=\"deny\"}"
+  printf '%s\n' -c 'shell_environment_policy.inherit="core"' -c 'shell_environment_policy.ignore_default_excludes=false' \
+    -c "default_permissions=\"$CODEX_PROFILE\"" -c "permissions.$CODEX_PROFILE.extends=\":read-only\"" \
+    -c "permissions.$CODEX_PROFILE.filesystem=$deny"
+}
+
 run_codex() {
-  local diff_out="$1" plan_out="$2"
-  # codex exec review defaults to a workspace-write sandbox; force read-only for the change review.
-  (cd "$WT" && codex exec review -m "$MODEL" -c "model_reasoning_effort=\"$EFFORT\"" -c 'sandbox_mode="read-only"' \
+  local diff_out="$1" plan_out="$2" isolation_lines line
+  local isolation=()
+  isolation_lines="$(codex_isolation_args)" || exit 1
+  while IFS= read -r line; do isolation+=("$line"); done <<<"$isolation_lines"
+  # codex exec review defaults to a workspace-write sandbox; the profile makes both calls read-only.
+  (cd "$WT" && codex exec review -m "$MODEL" -c "model_reasoning_effort=\"$EFFORT\"" "${isolation[@]}" \
     --base "$BASE_BRANCH") >"$diff_out" </dev/null \
     || die "codex change review failed; see $diff_out"
-  (cd "$WT" && codex exec -m "$MODEL" -c "model_reasoning_effort=\"$EFFORT\"" --sandbox read-only \
+  (cd "$WT" && codex exec -m "$MODEL" -c "model_reasoning_effort=\"$EFFORT\"" "${isolation[@]}" \
     -o "$plan_out" "$(plan_prompt)") >/dev/null </dev/null \
     || die "codex plan review failed"
 }
