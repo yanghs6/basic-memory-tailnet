@@ -1,10 +1,12 @@
 ---
-status: backlog
+status: dropped
 id: x4d2x4eq
 spec: none
 ---
 
 # x4d2x4eq Agent Guidance Gaps Implementation Plan
+
+다시 씀(2026-11-02): 독립 단위 넷으로 나눈 [agent-guidance-gaps 계획](plan-2026-11-02-560fxtyb-agent-guidance-gaps.md)으로 옮겼다. 이 파일의 사실과 줄 번호는 2026-10-22 기준이다.
 
 > 2026-10-22 에이전트 개발 시스템 평가(저장소 밖 기록)에서 나온 backlog 초안입니다. 실행하려면 먼저 사용자가 이 계획, Task 1·4의 `AGENTS.md` 영어 문구, 아래 Open question의 답을 승인해야 합니다. `AGENTS.md`는 사용자 OK 없이 고치지 않습니다. 문서와 스킬만 바꾸고 스크립트 동작은 바꾸지 않으므로 스펙 없이 계획으로 갑니다. 다만 사용자가 Open question 2·3에서 "검사를 둔다"나 "문서만 바꾸는 PR의 리뷰를 줄인다"를 고르면, 그 부분은 ADR이 먼저입니다.
 
