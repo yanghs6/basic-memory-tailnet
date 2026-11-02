@@ -8,6 +8,7 @@ date: 2026-10-30
 
 - 설계: [agent-memory-mirror 스펙](../specs/spec-2026-10-22-at2p2mw9-agent-memory-mirror.md) §3.3
 - 관련: [VM 크기 ADR](adr-2026-10-12-mdq5exsf-vm-sizing.md)
+- 대체 범위: [VM 크기 ADR](adr-2026-10-12-mdq5exsf-vm-sizing.md) 재평가 기준의 측정 방법 가운데 "`search_notes`(semantic)로 임베딩 모델을 올린 뒤"를 text 검색 한 번으로 바꾼다(결정 1). [문서 고유 ID와 초안 보드 설계](../specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md) §3.3의 초안 보드 조회에 `search_type: "text"`를 더한다(결정 2). 두 문서의 나머지는 그대로다.
 
 ## 맥락과 문제
 

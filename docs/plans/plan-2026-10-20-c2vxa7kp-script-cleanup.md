@@ -469,7 +469,7 @@ Expected: `make check` exit 0. `git grep`은 `tests/review_bash_guard.bats:29`�
 - [test-cleanup 계획](plan-2026-10-21-hf9kadp3-test-cleanup.md)(테스트 정리와 생성 규칙): 테스트 파일 이름 변경과 분할(`common.bats` → `lib-common.bats` 포함), 픽스처 이동, 테스트 도우미와 중복 정리, `.bats` lint, 검사 1~5, `script-authoring` 스킬과 `make new-script`, `AGENTS.md`의 Invariants·Skills·Map(P5).
 - [access-modes 계획](plan-2026-10-15-ctv444ep-access-modes.md)의 미룬 작은 개선(`make tunnel`의 같은 포트 안내, Ctrl-C INT trap 등)은 이 계획의 범위 밖이다. access-modes 계획 파일의 Follow-ups에 남아 있다.
 - 최종 리뷰 M4(원래 있던 동작, 사용자 결정으로 미룸): `scripts/restore-notes.sh:118-122`는 VM의 답이 `present`가 아니면 모두 "이전 데이터 없음"으로 읽는다. `present`·`absent` 외의 답이면 멈추도록 테스트를 먼저 쓰고 고친다.
-- `bm-diagnose`의 `references/failure-messages.md`에는 `<step>: request to <url> failed` 앞에 `curl: (28) Operation timed out`이 찍히는 경우(서버가 30초 안에 답하지 못함)의 행이 없다. 2026-10-21 배포 직후 `make verify`에서 나왔다(Progress log). 행 추가를 검토한다.
+- `bm-diagnose`의 `references/failure-messages.md`에는 `<step>: request to <url> failed` 앞에 `curl: (28) Operation timed out`이 찍히는 경우(서버가 30초 안에 답하지 못함)의 행이 없다. 2026-10-21 배포 직후 `make verify`에서 나왔다(Progress log). 행 추가를 검토한다. → 끝남: [recovery-drill 계획](plan-2026-10-22-zw0shxee-recovery-drill.md) Task 2가 그 행을 더했다(PR #27) (2026-11-02)
 
 ## Progress log
 

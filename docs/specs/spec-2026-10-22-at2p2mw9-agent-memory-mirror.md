@@ -74,7 +74,7 @@ Basic Memory 서버 (0.23.2, 터널 경유 `tools/list`):
 - **Verified:** `search_notes`에는 폴더 인자가 없다. `metadata_filters`(frontmatter 필드), `tags`, `note_types`, `after_date`, `search_type`(`text`, `title`, `permalink`, `vector`, `semantic`, `hybrid`)이 있다.
 - **Verified:** `write_note`는 `title`·`content`·`directory`가 필수이고 `metadata`·`tags`·`note_type`·`overwrite`를 받는다. `delete_note`는 `identifier`(제목이나 permalink)를 받는다. `build_context`는 `memory://` URL을 받는다.
 - **Verified (Command: `list_directory`):** 프로젝트 `main`의 노트는 `agent-hub/agent-hub 접속 방법 (ssh 모드).md` 하나다.
-- **Verified:** `compose.yaml:25`는 기본 프로젝트를 `main`으로 둔다. 의미 검색용 임베딩 모델 캐시(`config/fastembed_cache/`)가 VM에 있다(`docs/ARCHITECTURE.md:96`).
+- **Verified:** `compose.yaml:25`는 기본 프로젝트를 `main`으로 둔다. 의미 검색용 임베딩 모델 캐시(`config/fastembed_cache/`)가 VM에 있다(당시 `docs/ARCHITECTURE.md`의 "데이터 경로" 표).
 - **Verified (Command: `make status`):** VM 메모리 사용 59%, 스왑 510/1023 MB.
 - **Verified:** 2026-10-22 세션 시작 때 터널이 꺼져 있어 `basic-memory` 연결이 `ECONNREFUSED`였다. 터널은 사람이 띄워야 한다.
 
@@ -265,7 +265,7 @@ agent-memory/
   - Claude: `~/.claude/projects/*/memory/` 아래의 `*.md`. 이름이 `-private-tmp-`로 시작하는 폴더는 뺀다.
   - Codex: `${CODEX_HOME:-~/.codex}/memories/`와, 있으면 기억 V2의 `memories_v2/` 아래의 `*.md`. `memories_v2`의 파일은 상대경로 앞에 `v2/`를 붙인다. `.git/`, `phase2_workspace_diff.md`(2단계 작업 중에만 생기고 지운 내용까지 담김), 이름이 `.`으로 시작하는 파일과 폴더는 뺀다.
   - 프로젝트 키가 `BM_MEMORY_EXCLUDE`에 있으면 뺀다.
-- **상태 파일:** `${XDG_STATE_HOME:-$HOME/.local/state}/bm-agent-memory/state.tsv`. 한 줄에 원본 경로, Basic Memory 경로(`directory/title`), sha256을 적는다.
+- **상태 파일:** `${XDG_STATE_HOME:-$HOME/.local/state}/bm-agent-memory/state.tsv`. 한 줄에 원본 경로, Basic Memory 경로(`directory/title`), sha256, 서버가 돌려준 노트의 permalink를 탭으로 나눠 적는다. permalink는 맞추기 4의 "원래 줄"이 옛 노트를 지울 때 쓴다.
 - **맞추기:**
   1. 원본을 훑어 지금 있어야 할 노트 목록과 해시를 만든다.
   2. 새 파일과 해시가 바뀐 파일은 `write_note(overwrite=true)`로 보낸다.
@@ -293,7 +293,7 @@ agent-memory/
   - 패턴은 gitleaks 기본 설정의 길이 조건을 따른다. 접두어만 맞추면 테스트 값(`tskey-auth-ssh123`)이나 자리표시자(`xoxb-your-token-here`)까지 걸리기 때문이다.
   - **Verified (2026-10-22):** 지금 기억 파일 중 이 패턴에 걸리는 파일은 없다.
   - 패턴 자체는 [agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md) Global Constraints에 있다. Basic Memory에는 인증이 없고 웹 커넥터가 열릴 수 있기 때문이다. Codex는 생성한 기억에서 비밀값을 지운다고 문서에 적혀 있지만, Claude 기억에는 그런 장치가 없다.
-- **종료 코드:** 사람이 실행한 `make memory-sync`는 실패한 항목이 있으면 1로 끝난다. hook에서 부를 때(`HOOK=1`)는 백그라운드에서 돌고 항상 0으로 끝나며, 결과는 상태 폴더의 로그에 남긴다. 상태 폴더는 백그라운드로 넘기기 전에 만든다. 새 Mac에서 첫 hook이 로그를 쓸 곳이 없어 조용히 끝나지 않게 하기 위해서다.
+- **종료 코드:** 사람이 실행한 `make memory-sync`는 실패한 항목이 있으면 1로 끝난다. hook에서 부를 때(`HOOK=1`)는 백그라운드에서 돌고 0으로 끝나며, 결과는 상태 폴더의 로그에 남긴다. 상태 폴더는 백그라운드로 넘기기 전에 만든다. 새 Mac에서 첫 hook이 로그를 쓸 곳이 없어 조용히 끝나지 않게 하기 위해서다. 그래서 상태 폴더를 만들지 못하면 백그라운드로 넘기기 전에 `cannot create the state folder …`를 출력하고 1로 끝난다(2026-11-02 `scripts/sync-agent-memory.sh`의 `main`과 대조).
 - **전체 다시 맞추기 (`make memory-sync FULL=1`, 2026-10-23 추가, 설계 판단):** 백업 복원(`make restore`)이나 VM 재구축 뒤에는 VM의 노트가 옛 상태로 돌아간다. 그런데 로컬 상태 파일은 이미 올렸다고 보므로, 아무것도 다시 보내지 않는다.
   - `FULL=1`이면 상태 파일을 믿지 않고 원본 전부를 `write_note(overwrite=true)`로 보낸다.
   - 이 기기의 미러 노트 목록(`metadata_filters={"device": <기기>, "mirror": true}`, 페이지를 끝까지)을 받아, 원본이 없는 노트를 지운다. 원본이 있는지는 목록의 `file_path`와 노트 경로로 비교한다. permalink는 소문자화·로마자화로 원래 경로와 달라지기 때문이다.

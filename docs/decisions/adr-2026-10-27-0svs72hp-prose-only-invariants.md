@@ -32,17 +32,19 @@ date: 2026-10-27
 
 **Verified (2026-10-27):** 이 ADR을 더한 커밋의 트리에서 각 행의 테스트와 스크립트를 열어 확인했다. 줄 번호는 그 커밋의 `AGENTS.md`와 파일 기준이다. **Verified (2026-10-27):** 같은 브랜치가 `origin/main`(`0619c19`, PR #27·#29)을 병합한 뒤 다시 확인해 밀린 인용 두 개(`tests/repo-make.bats:151`, `tests/post-review.bats:41`)를 고쳤다.
 
+**Verified (2026-11-02):** `tests/repo-config.bats`의 줄 인용 여섯 개(`:66`, `:88`, `:160`, `:229`, `:281`, `:314`)가 밀려 테스트 이름으로 바꿨다. 나머지 줄 인용은 위 커밋 기준 그대로다.
+
 | `AGENTS.md` | 규칙 | 상태 | 보는 곳, 또는 검사가 없는 이유 |
 |---|---|---|---|
 | `:9` | 커밋마다 `make check` | 일부 | CI `check` 잡(`.github/workflows/ci.yml`)이 PR head에서 `make check`를 돌리고 ruleset이 필수 검사로 요구한다(`.github/rulesets/main.json:28-35`). 커밋마다 막으려면 도구별 hook이 필요하다. |
 | `:12` | 테스트를 약하게 하지 않음, `Tests-Removed` | 일부 | `scripts/check-tests.sh`(pr-rules "Test count and skips", `tests/check-tests.bats:31`, `:58`)가 `@test` 감소와 새 `skip`을 본다. 지우고 같은 수를 더함, 단언 약화는 리뷰가 본다. |
-| `:13` | 포트를 `127.0.0.1`에만 publish | 검사 있음 | `tests/repo-config.bats:88` "compose publishes ports on 127.0.0.1 only". VM에서는 `make verify`가 loopback 바인딩을 본다. |
+| `:13` | 포트를 `127.0.0.1`에만 publish | 검사 있음 | `tests/repo-config.bats`의 "compose publishes ports on 127.0.0.1 only". VM에서는 `make verify`가 loopback 바인딩을 본다. |
 | `:13` | Tailscale Funnel 금지 | 검사 있음 | `tests/repo-scripts.bats:69` "no script enables Tailscale Funnel". VM에서는 provision이 Funnel이 켜져 있으면 실패하고(`tests/remote-provision-vm.bats:79`), `make verify`도 본다(`tests/verify-vm.bats:81`). |
 | `:13` | 공개 인그레스 0, 모드별 인바운드 규칙 하나 | 검사 없음 | 방화벽은 클라우드 상태라 저장소 검사가 볼 수 없다. `make verify`가 공인 IP의 포트 차단을 보고(`tests/verify-vm.bats:244`), 규칙 목록은 운영 런북의 Exposure audit을 손으로 점검한다([운영 런북](../runbooks/rbk-2026-10-12-t79ex2ny-operations.md)). |
-| `:13` | 웹 커넥터: 밖으로만 dial, gateway가 GitHub 계정 하나와 허용 도구만 | 일부 | 저장소 쪽은 `tests/repo-config.bats:229`(cloudflared는 포트를 publish하지 않음), `:281`(quick tunnel 없음), `:314`(gateway가 숫자 id로 소유자 확인, 허용 도구만). 허용 id 값과 tunnel 설정은 `.env`와 클라우드 상태라 `make verify`(`tests/verify-vm.bats:175`)와 웹 커넥터 런북이 본다. |
+| `:13` | 웹 커넥터: 밖으로만 dial, gateway가 GitHub 계정 하나와 허용 도구만 | 일부 | 저장소 쪽은 `tests/repo-config.bats`의 "cloudflared runs a pinned cloudflared image as a remotely managed tunnel in the tunnel profile, publishes no port and joins only the web network", "nothing starts a quick tunnel", "gateway.py strips client headers, opens only the allowed tools, checks the owner by numeric id and culls its store". 허용 id 값과 tunnel 설정은 `.env`와 클라우드 상태라 `make verify`(`tests/verify-vm.bats:175`)와 웹 커넥터 런북이 본다. |
 | `:13` | 모든 `ssh -L`은 `forward_spec`로 `127.0.0.1` | 검사 있음 | `tests/repo-scripts.bats:176` "every ssh -L in scripts/ and the Makefile goes through forward_spec". |
 | `:13` | VM 하나에 접속 모드 하나 | 검사 없음 | VM 상태다. ssh 모드의 `make verify`는 VM의 Tailscale이 로그인 상태면 실패한다(`tests/verify-vm.bats:135`). |
-| `:14` | 이미지를 digest로 고정 | 검사 있음 | `tests/repo-config.bats:66` "every image in compose.yaml, the Makefile and tools/Dockerfile is pinned by digest". |
+| `:14` | 이미지를 digest로 고정 | 검사 있음 | `tests/repo-config.bats`의 "every image in compose.yaml, the Makefile and tools/Dockerfile is pinned by digest". |
 | `:14` | 릴리스 노트를 읽은 뒤에만 고정 변경, `bm-upgrade`로만 업그레이드 | 검사 없음 | 산출물이 남지 않는 절차다. `bm-upgrade` 스킬과 리뷰가 본다. |
 | `:15` | shebang과 `set -euo pipefail` | 검사 있음 | `tests/repo-scripts.bats:48` "every executable shell file starts with #!/usr/bin/env bash and enables strict mode". |
 | `:15` | 라이브러리 source, `scripts/remote/`는 source 없음 | 검사 있음 | `tests/repo-scripts.bats:118`(스크립트), `:107`(라이브러리는 `common.sh`), `:102`(remote). |
@@ -53,7 +55,7 @@ date: 2026-10-27
 | `:17` | 비밀값과 세션 id를 출력하지 않음, `mask` | 일부 | 기존 경로마다 동작 테스트가 있다: `tests/lib-common.bats:9`(`mask`), `tests/verify-mcp.bats:12`(세션 id), `tests/lib-sb.bats:28`, `tests/lib-vm.bats:143`, `:208`, `tests/repo-make.bats:55`. 새 출력 경로를 보는 일반 검사는 없다. 값을 모르는 검사는 출력에서 그것을 찾을 수 없다. |
 | `:18` | 짝 테스트 | 검사 있음 | `tests/repo-scripts.bats:73` "every script and library has its pair test, …". |
 | `:18` | 테스트 먼저 | 검사 없음 | 순서는 이력에만 있다. Progress log의 실패 확인 기록과 리뷰가 본다. |
-| `:22` | 비밀값, `.env`, `backups/`, `.local-data/`, 노트 내용을 커밋하지 않음 | 일부 | `.env`: `tests/repo-config.bats:160`(추적 안 됨, ignore됨). `backups/`, `.local-data/`는 `.gitignore`뿐이다. 비밀값은 GitHub push protection과 GitGuardian(저장소 밖 설정, [GitHub 런북](../runbooks/rbk-2026-10-14-ppmby9v6-github.md))이 보고, `make secret-scan`(gitleaks, `tests/repo-make.bats:151`)은 손으로 돌리며 `make check`나 CI에는 없다. 노트 내용은 모양으로 구분할 수 없다. |
+| `:22` | 비밀값, `.env`, `backups/`, `.local-data/`, 노트 내용을 커밋하지 않음 | 일부 | `.env`: `tests/repo-config.bats`의 "the .env files are never tracked and are git-ignored, but .env.example is not ignored". `backups/`, `.local-data/`는 `.gitignore`뿐이다. 비밀값은 GitHub push protection과 GitGuardian(저장소 밖 설정, [GitHub 런북](../runbooks/rbk-2026-10-14-ppmby9v6-github.md))이 보고, `make secret-scan`(gitleaks, `tests/repo-make.bats:151`)은 손으로 돌리며 `make check`나 CI에는 없다. 노트 내용은 모양으로 구분할 수 없다. |
 | `:23` | 비밀값은 `.env`에만, SSH나 curl stdin으로 전달 | 일부 | 기존 경로의 동작 테스트(`tests/lib-vm.bats:208`, `tests/lib-sb.bats:28`). 명령 인자나 저장소 파일에 넣지 않는 것을 보는 일반 검사는 없다. |
 | `:24` | VM·클라우드를 바꾸기 전에 사용자에게 물음 | 일부 | `.claude/settings.json`의 ask 규칙과 `scripts/guard-agent-bash.sh`가 Claude Code 세션에서 `make deploy`·`restore`·`vm-bootstrap`·`sb-fonts`, VM 스크립트 직접 호출, `gcloud` 생성·삭제를 묻는다(`tests/repo-config.bats`의 "the Claude Code settings keep the sandbox on, …", `tests/guard-agent-bash.bats`의 "asks before a direct call of a VM-changing script, …"). 우회 형태와 다른 도구(Codex, Gemini, Antigravity)의 작성 세션은 행동이다. [agent-trifecta ADR](adr-2026-10-28-zaptc3gp-agent-trifecta.md) |
 | `:25` | `backups/`, `/srv/basic-memory.prev-*` 삭제 금지 | 일부 | Claude Code 세션에서 `permissions.deny`의 `rm` 규칙과 훅이 막는다(`tests/guard-agent-bash.bats`의 "denies deleting backups or the basic-memory.prev directories, also in wrapped forms", `tests/repo-config.bats`의 설정 사례). `rm`이 아닌 삭제 수단과 다른 도구의 세션은 행동이다. [agent-trifecta ADR](adr-2026-10-28-zaptc3gp-agent-trifecta.md) |

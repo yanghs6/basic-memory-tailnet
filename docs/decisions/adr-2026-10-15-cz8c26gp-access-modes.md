@@ -8,6 +8,7 @@ amended-by: docs/decisions/adr-2026-10-22-fcvznmdc-web-connector.md
 # ADR cz8c26gp: VM마다 접속 방식 하나 (Tailscale 또는 SSH 터널)
 
 - 설계: [접속 방식 설계](../specs/spec-2026-10-15-jr59pvyf-access-modes.md)
+- 대체 범위: [basic-memory-on-gcp-tailscale ADR](adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md) 결정의 "Tailscale Serve로 tailnet 안에만 노출"과 "공인 SSH는 부트스트랩에만 쓰고 이후 Tailscale SSH로 전환하며, VPC 밖 소스를 허용하는 인바운드 규칙을 두지 않습니다"를 `tailscale` 모드의 규칙으로 좁힙니다. `ssh` 모드는 Tailscale을 쓰지 않고, VPC 밖 인바운드는 IAP 대역의 22번 하나입니다(결과). 그 ADR의 다른 결정(e2-micro, 런북의 gcloud 명령)은 그대로입니다.
 
 ## 맥락
 
