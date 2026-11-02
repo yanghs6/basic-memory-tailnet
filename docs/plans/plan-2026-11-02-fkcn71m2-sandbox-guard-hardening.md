@@ -91,11 +91,11 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 
 **Files:** Modify `scripts/check-public-text.sh` / Test `tests/check-public-text.bats`
 
-- [ ] **Step 1: 실패하는 테스트 작성:** 인자 없이 돌릴 때 ① index를 깨뜨린 임시 저장소에서 `git ls-files`가 실패하면 exit 1과 조치 메시지 ② 파일이 하나도 없는 저장소에서 exit 1("no text files").
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 두 경우 모두 지금은 성공으로 끝나 실패.
-- [ ] **Step 3: 최소 구현:** `git ls-files -z -co --exclude-standard`를 `new_temp` 파일로 받고 `|| die`, 검사할 파일이 0개면 `die`.
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
-- [ ] **Step 5: 커밋:** `fix: fail the public text check when git cannot list the repo files`, `Task: 2`.
+- [x] **Step 1: 실패하는 테스트 작성:** 인자 없이 돌릴 때 ① index를 깨뜨린 임시 저장소에서 `git ls-files`가 실패하면 exit 1과 조치 메시지 ② 파일이 하나도 없는 저장소에서 exit 1("no text files").
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 두 경우 모두 지금은 성공으로 끝나 실패.
+- [x] **Step 3: 최소 구현:** `git ls-files -z -co --exclude-standard`를 `new_temp` 파일로 받고 `|| die`, 검사할 파일이 0개면 `die`.
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `fix: fail the public text check when git cannot list the repo files`, `Task: 2`.
 
 ### Task 3: sandbox exclusions, `make check-git BRANCH=` and posting scripts (W1, F08, F09 일부)
 
@@ -234,3 +234,4 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 | 2026-11-02 | Verified | `git grep`으로 `local-path` 모양을 찾으니 `/home/appuser/`(컨테이너 경로) 10개 파일뿐이었다. |
 | 2026-11-02 | Verified | 사용자가 Basic Memory 초안 보드의 초안을 승인하고 D1-A, D2-A, D3-A를 골랐다. |
 | 2026-11-02 | Verified | Task 1: 테스트를 먼저 쓰자 `make test`(테스트 279개)에서 새 테스트 둘만 실패했다. lib 테스트는 `new_temp: command not found`로, repo 테스트는 로컬 `$(mktemp` 호출 11곳을 찾아 실패했다(`scripts/remote/`와 `bootstrap-vm.sh`가 ssh로 넘기는 원격 `mktemp`는 걸리지 않음). 구현 뒤 `make check`는 exit 0, total line coverage 89.32%(최소 80%)였다. 이 세션 sandbox에서 stdin `hello`로 돌린 `scripts/check-public-text.sh --label probe -`는 바꾸기 전 `mkstemp failed ... Operation not permitted`로 exit 1, 바꾼 뒤 출력 없이 exit 0이었다. |
+| 2026-11-02 | Verified | Task 2: 테스트를 먼저 쓰자 `make test`(테스트 280개)에서 새 테스트 하나만 실패했다. 빈 저장소에서 인자 없이 돌린 검사가 exit 0으로 끝났기 때문이다. 임시 저장소의 `.git/index`를 깨뜨리자 `git ls-files`는 exit 128, `git rev-parse --show-toplevel`은 exit 0이었고, 바꾸기 전 스크립트는 git 오류만 남긴 채 exit 0이었다. 구현 뒤 `make check`는 exit 0, total line coverage 89.34%(최소 80%)였다. |

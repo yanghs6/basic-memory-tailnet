@@ -2,7 +2,8 @@
 # Check text that leaves the repo (files, commit messages, PR text, review reports) for IPv4 addresses outside the allowed
 # ranges, tailnet IPv6 addresses, ts.net host names, Claude Code session links and Generated with lines. Prints only the
 # place and kind of each hit, never the value, and exits 1 on a hit. Without arguments it scans the tracked and new text
-# files of the current repository and applies the exemption list at its root; named files and stdin get no exemption.
+# files of the current repository and applies the exemption list at its root; it fails when git cannot list the files
+# or none is left to scan. Named files and stdin get no exemption.
 # Usage: scripts/check-public-text.sh [--label NAME] [FILE|-]...
 set -euo pipefail
 
@@ -174,11 +175,18 @@ BEGIN {
 
 # repo_text_files LIST -> writes the tracked and new (not ignored) regular text files of the repo at the current
 # directory to LIST as scan lines ('<path><TAB><path>'). Symlinks (also the .claude/skills directory links), deleted
-# files and binary files are left out; dies on a file it cannot read.
+# files and binary files are left out; dies when git cannot list the files, on a file it cannot read, and when no text
+# file is left, so a scan of nothing never passes.
 repo_text_files() {
-  local list="$1" path regular errors status=0 unreadable=0
+  local list="$1" files path regular errors status=0 unreadable=0
+  files="$(new_temp check-public-text)" || exit 1
   regular="$(new_temp check-public-text)" || exit 1
   errors="$(new_temp check-public-text)" || exit 1
+  # A file, not a process substitution: that loses git's exit status and leaves an empty list.
+  git ls-files -z -co --exclude-standard >"$files" || {
+    rm -f "$files" "$regular" "$errors"
+    die "git cannot list the repo files (its error is above): repair the repository until git status works, then run it again"
+  }
   while IFS= read -r -d '' path; do
     if [[ -f "$path" && ! -L "$path" ]]; then
       if [[ -r "$path" ]]; then
@@ -188,7 +196,7 @@ repo_text_files() {
         unreadable=1
       fi
     fi
-  done < <(git ls-files -z -co --exclude-standard) >"$regular"
+  done <"$files" >"$regular"
   # grep -I leaves out binary files; /dev/null keeps grep off stdin when no file is left. xargs turns any grep exit
   # from 1 to 125 into 123, so "no file listed" and a read error differ only in what grep wrote to stderr.
   LC_ALL=C xargs -0 grep -Il -e '' /dev/null <"$regular" 2>"$errors" | awk '{ printf "%s\t%s\n", $0, $0 }' >"$list" \
@@ -197,8 +205,10 @@ repo_text_files() {
   if [[ -s "$errors" ]] || ((status != 0 && status != XARGS_COMMAND_FAILED)); then
     unreadable=1
   fi
-  rm -f "$regular" "$errors"
+  rm -f "$files" "$regular" "$errors"
   ((unreadable == 0)) || die "some repo files cannot be read (listed above): fix their permissions and run it again"
+  [[ -s "$list" ]] \
+    || die "no text files to check in this repository: run it in the repo, or name the files to check (- for stdin)"
 }
 
 main() {

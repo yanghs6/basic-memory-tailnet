@@ -122,3 +122,17 @@ to_crlf() {
   assert_failure
   assert_output --partial "locked.txt: unreadable"
 }
+
+@test "fails instead of passing when git cannot list the repo files or none is left to check" {
+  init_git_repo
+  run "$SCRIPT"
+  assert_failure
+  assert_output --partial "no text files to check"
+
+  # A corrupt index stops git ls-files, while git rev-parse still finds the repo.
+  printf 'notes\n' >notes.txt
+  printf 'not an index\n' >.git/index
+  run "$SCRIPT"
+  assert_failure
+  assert_output --partial "git cannot list the repo files"
+}
