@@ -102,8 +102,7 @@ teardown() {
   assert_output --partial "OK: SilverBullet answers and refuses requests without a login"
   assert_output --partial "tailscale serve is tailnet only"
   assert_output --partial "public IP 203.0.113.10 refuses"
-  run grep -F '"method":"tools/call"' "$STUB_LOG.requests"
-  assert_failure
+  assert_equal "$(jq -r 'select(.method == "tools/call") | .params.name' "$STUB_LOG.requests")" search_notes
   refute_stub_called -F '/.auth'
 }
 

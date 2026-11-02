@@ -100,15 +100,15 @@ spec: none
 
 **Verified (2026-11-02):** VM의 Basic Memory에 `search_notes(search_type="hybrid", output_format="json")`을 보내면 `{"result":"# Search Failed - Semantic Search Disabled\n\nYou requested ... search ..., but semantic search is disabled. ..."}`이 돌아온다(이 세션이 MCP로 직접 호출).
 
-- [ ] **Step 1: 실패하는 테스트 작성.**
+- [x] **Step 1: 실패하는 테스트 작성.**
   - fixture 두 개: `structuredContent.result`가 위 문자열인 응답(SSE는 `data:` 한 줄, JSON은 본문 그대로). 응답 id는 6이다.
   - 새 `@test "checks that a hybrid search answers that semantic search is disabled, with and without --read-only, and fails when it returns results or times out"`:
     - `--read-only`와 기본 모드 둘 다: 성공하고 `semantic search off ok`를 출력한다. `$STUB_LOG.requests`에 `search_type: "hybrid"`인 `search_notes` 요청이 하나 있다.
     - fixture를 결과 객체(`{"results":[],...}`)로 바꾸면 실패하고 `semantic search` 문구로 멈춘다.
     - 시간 초과는 `CURL_STUB_SLOW_MATCH=search_notes`와 `CURL_STUB_SLOW_SECONDS`를 `MCP_TIMEOUT_SECONDS`보다 크게 둬서 만든다. 실패해야 한다.
   - 기존 왕복 테스트(`:12`)의 기대값을 새 요청 하나만큼 고친다: `Mcp-Session-Id` 5→6, `Host` 6→7, tools/call 목록 맨 앞에 `search_notes`. 동작이 바뀐 만큼만 고치고 약하게 만들지 않는다.
-- [ ] **Step 2: `make test`로 실패 확인.** 새 테스트와 고친 왕복 테스트만 실패한다.
-- [ ] **Step 3: 구현.**
+- [x] **Step 2: `make test`로 실패 확인.** 새 테스트와 고친 왕복 테스트만 실패한다.
+- [x] **Step 3: 구현.**
 
 ```bash
 # The query of the semantic search probe: matches no note, so a server with semantic search on answers an empty result.
@@ -130,8 +130,8 @@ check_semantic_search_off() {
 
   - 헤더 주석의 흐름 줄에 search_notes(hybrid) 확인을 더한다.
   - 같은 fixture 디렉터리를 쓰는 테스트(`verify-vm.bats`, `lib-mcp.bats`, `show-memory-index.bats`, `sync-agent-memory.bats`)가 새 fixture 파일 때문에 바뀌지 않는지 `make test`로 본다.
-- [ ] **Step 4: `make check` 통과.** 실제 서버 응답 모양은 Task 8의 `make local-verify`가 확인한다. 모양이 다르면 fixture를 실제 응답에 맞춘다.
-- [ ] **Step 5: 커밋.** `feat: check in verify and probe that semantic search is off` (`Task: 2`).
+- [x] **Step 4: `make check` 통과.** 실제 서버 응답 모양은 Task 8의 `make local-verify`가 확인한다. 모양이 다르면 fixture를 실제 응답에 맞춘다.
+- [x] **Step 5: 커밋.** `feat: check in verify and probe that semantic search is off` (`Task: 2`).
 
 ### Task 3: release-notes-reader 형식과 bm-upgrade 중단 조건 (W9, F24)
 
@@ -274,3 +274,7 @@ check_semantic_search_off() {
 | 2026-11-02 | Verified | Task 1 GREEN: `git checkout -- compose.yaml`로 되돌린 뒤 `make test`가 278개 모두 ok, exit 0 |
 | 2026-11-02 | Verified | Task 1 `make check`: lint 통과, 278개 모두 ok, `total line coverage: 89.30% (minimum 80%)`, exit 0 |
 | 2026-11-02 | Verified | Task 3 `make check`: 278개 모두 ok(기존 reader 테스트 `ok 150 the release-notes reader has no shell or write tool and bm-upgrade hands step 3 to it` 포함), `total line coverage: 89.30% (minimum 80%)`, exit 0. 결정 1-A대로 새 테스트는 없음 |
+| 2026-11-02 | Verified | Task 2 RED: fixture 두 개와 새 테스트, 고친 왕복 테스트를 넣고 `make test`를 실행함. 279개 중 `not ok 255`(왕복 테스트, `Mcp-Session-Id` 기대 6·실제 5)와 `not ok 258`(새 테스트, `semantic search off ok` 없음) 두 개만 실패했고 exit 2 |
+| 2026-11-02 | Verified | Task 2 구현 뒤 `make test`: 278개 ok, `not ok 268 probe runs every check without writing notes, logging in or needing SB_USER` 하나만 실패, exit 2. verify-mcp, lib-mcp, show-memory-index, sync-agent-memory 테스트는 새 fixture로도 모두 통과 |
+| 2026-11-02 | Verified | 계획이 `tests/verify-vm.bats:105-106`의 단언을 빠뜨렸음. probe 테스트가 `grep -F '"method":"tools/call"'`의 실패로 "tools/call 없음"을 요구했지만, 이제 probe도 읽기 전용 `search_notes` 호출을 보냄. 감독 승인을 받아 두 줄을 `tools/call` 이름 목록이 정확히 `search_notes` 하나인지 보는 `assert_equal` 한 줄로 바꿈. 쓰기·읽기·삭제 도구를 부르지 않는다는 보장은 그대로이고, 파일의 다른 줄은 Task 6 몫이라 고치지 않음 |
+| 2026-11-02 | Verified | Task 2 `make check`: lint 통과, 279개 모두 ok, `scripts/verify-mcp.sh` 97.33%, `total line coverage: 89.33% (minimum 80%)`, exit 0 |

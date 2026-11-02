@@ -1,6 +1,9 @@
 #!/usr/bin/env bats
 load helpers
 
+# With semantic search on, a hybrid search loads the embedding model first: minutes on the 1 GB VM.
+MODEL_LOAD_SECONDS=600
+
 setup() {
   setup_stubs curl
   export VERIFY_ID=test1
@@ -22,11 +25,11 @@ setup() {
       assert_success \
         && assert_output --partial "OK: MCP round trip passed" \
         && refute_output --partial "test-session-0123456789" \
-        && assert_equal "$(grep -c 'Mcp-Session-Id: test-session-0123456789' "$STUB_LOG")" 5 \
-        && assert_equal "$(jq -r 'select(.method == "tools/call") | "\(.params.name) \(.params.arguments.title // .params.arguments.identifier)"' "$STUB_LOG.requests")" \
-          $'write_note bm-verify-test1\nread_note bm-verify-test1\ndelete_note bm-verify-test1' || exit 1
+        && assert_equal "$(grep -c 'Mcp-Session-Id: test-session-0123456789' "$STUB_LOG")" 6 \
+        && assert_equal "$(jq -r 'select(.method == "tools/call") | "\(.params.name) \(.params.arguments.title // .params.arguments.identifier // .params.arguments.query)"' "$STUB_LOG.requests")" \
+          $'search_notes bm-verify-semantic-probe-test1\nwrite_note bm-verify-test1\nread_note bm-verify-test1\ndelete_note bm-verify-test1' || exit 1
       if [[ -n "$host" ]]; then
-        assert_equal "$(grep -c "Host: $host" "$STUB_LOG")" 6
+        assert_equal "$(grep -c "Host: $host" "$STUB_LOG")" 7
       fi
     ) || fail "verify-mcp round trip against $kind responses${host:+ with --host-header $host}"
   done
@@ -67,6 +70,41 @@ setup() {
       run "$VERIFY" "$URL"
       assert_failure && assert_output --partial "$expected"
     ) || fail "verify-mcp did not stop at the expected step for: $fault"
+  done
+}
+
+@test "checks that a hybrid search answers that semantic search is disabled, with and without --read-only, and fails when it returns results or times out" {
+  local args fault expected
+  for args in "--read-only" ""; do
+    (
+      rm -f "$STUB_LOG.requests" || exit 1
+      run "$VERIFY" ${args:+"$args"} "$URL"
+      assert_success \
+        && assert_output --partial "semantic search off ok" \
+        && assert_equal "$(jq -c 'select(.params.name == "search_notes") | .params.arguments.search_type' "$STUB_LOG.requests")" '"hybrid"' \
+        || exit 1
+    ) || fail "verify-mcp ${args:-without --read-only} did not check with one hybrid search that semantic search is off"
+  done
+  for fault in results timeout; do
+    (
+      rm -rf "$CURL_FIXTURES" "$STUB_LOG.requests" || exit 1
+      use_mcp_fixtures sse || exit 1
+      case "$fault" in
+        results)
+          echo 'data: {"jsonrpc":"2.0","id":6,"result":{"content":[],"isError":false,"structuredContent":{"result":{"results":[],"current_page":1,"page_size":10}}}}' >"$CURL_FIXTURES/call_search_notes.body" || exit 1
+          expected="search_notes: a hybrid search did not answer that semantic search is disabled"
+          ;;
+        timeout)
+          export CURL_STUB_SLOW_MATCH='"name":"search_notes"' CURL_STUB_SLOW_SECONDS="$MODEL_LOAD_SECONDS"
+          expected="search_notes: request to $URL failed"
+          ;;
+      esac
+      run "$VERIFY" "$URL"
+      assert_failure \
+        && assert_output --partial "$expected" \
+        && ! grep -qF '"name":"write_note"' "$STUB_LOG.requests" \
+        || exit 1
+    ) || fail "verify-mcp passed or wrote a note when the hybrid search $fault"
   done
 }
 
