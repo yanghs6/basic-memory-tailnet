@@ -2,7 +2,7 @@
 status: approved
 id: sgpbx1gq
 date: 2026-10-16
-amended-by: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
+amended-by: [docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md, docs/decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md]
 ---
 
 # 에이전트 공용 문서 체계 — 설계

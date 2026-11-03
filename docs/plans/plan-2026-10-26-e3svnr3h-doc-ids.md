@@ -68,8 +68,8 @@ spec: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/26-doc-ids` 브랜치를 만든다(`git-workflow` 스킬의 Start).
-- [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
+- [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/26-doc-ids` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: ID tooling and checks that accept both forms
 
@@ -87,7 +87,7 @@ spec: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
 - Produces (Make): `make new-id`는 ID 하나를 출력한다. `make new-doc TYPE=<type> SLUG=<slug> [ID=<id>]`.
 - Produces (`scripts/lib/git.sh`): `PLAN_PATTERN`이 `^([0-9]{2}|[0-9a-hjkmnp-tv-z]{8}|none)$`를 받는다. `LEGACY_PLAN_PATTERN`을 따로 두어 Task 5에서 지울 곳을 한 곳으로 모은다. `BRANCH_PATTERN`도 같은 방식이다.
 
-- [ ] **Step 1: 실패하는 테스트 작성.**
+- [x] **Step 1: 실패하는 테스트 작성.**
   - `lib-docs.bats`:
     - "random_doc_id prints 8 characters from the id alphabet": 100번 뽑아 모두 `DOC_ID_PATTERN`에 맞는지 본다.
     - "new_doc_id skips an id that a file on another branch already uses": `random_doc_id`를 첫 번째는 쓰인 ID, 두 번째는 새 ID를 내도록 다시 정의하고, 원격 추적 브랜치에 그 ID의 파일을 둔다.
@@ -99,12 +99,12 @@ spec: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
   - `create-id.bats`: "prints one id and nothing else".
   - `check-git.bats`·`check-pr.bats`·`lib-git.bats`: 표에 `plan/k7m2x9qa-x`, `Plan: k7m2x9qa`를 허용 사례로, `plan/K7M2X9QA-x`, `plan/k7m2x9q-x`, `plan/k7m2x9qai-x`, `Plan: k7m2x9qi`를 거부 사례로 더한다. 옛 형식 `plan/26-x`, `Plan: 26`도 아직 허용 사례다.
   - `repo-docs.bats`: `ALLOWED_KEYS`에 `id`가 있다. 이름이 새 형식인 문서는 front matter `id`가 이름의 ID와 같아야 한다(옛 형식 이름은 Task 2 전까지 검사하지 않음).
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패한다.
-- [ ] **Step 3: 최소 구현.** Interfaces대로 구현한다.
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패한다.
+- [x] **Step 3: 최소 구현.** Interfaces대로 구현한다.
   - `create-doc.sh`는 숫자 열이 있는 타입에서도 번호 대신 ID를 쓴다(타입 표의 `번호` 열은 Task 2에서 지운다). 머리 주석과 사용법 줄을 고친다.
   - 템플릿(`skill-authoring` 스킬로 편집): 모든 템플릿 front matter에 `id: {{id}}`를 더하고, `plan.md`·`adr.md`의 `{{number}}`를 `{{id}}`로 바꾼다. Task 2가 `id`를 필수로 만들기 전에 새 문서가 그 규칙을 지키게 하기 위해서다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋.** `git commit -m "feat: give new documents random ids and accept id branches and trailers" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 26" --trailer "Task: 1"`
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋.** `git commit -m "feat: give new documents random ids and accept id branches and trailers" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 26" --trailer "Task: 1"`
 
 ### Task 2: Rename every document and update every reference
 
@@ -116,14 +116,14 @@ spec: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
 - Consumes: Task 1의 `new_doc_id`(ID 할당), `DOC_ID_PATTERN`.
 - Produces: 대응표(옛 타입·번호, 옛 이름, 새 ID, 새 이름). Task 4의 재작성 스크립트가 이 표를 입력으로 쓴다.
 
-- [ ] **Step 1: 실패하는 테스트 작성.** `repo-docs.bats`:
+- [x] **Step 1: 실패하는 테스트 작성.** `repo-docs.bats`:
   - 모든 타입 문서의 이름이 `<코드>-<날짜>-<ID>-<slug>.md`다.
   - front matter `id`가 이름의 ID와 같다. 다르면 두 값을 모두 담아 실패한다.
   - 같은 ID가 두 파일에 있으면 실패한다.
   - 타입 표에 `번호` 열이 없다(`lib-docs.bats`의 표 행도 바꾼다).
   - 번호 중복 검사(`:88-98`)와 번호 열 검사(`:78`)는 지운다. 이유를 커밋 본문에 적는다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 이름 테스트가 문서 62개를 실패로 나열한다.
-- [ ] **Step 3: 이전 스크립트 작성과 실행(스크래치).**
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 이름 테스트가 문서 62개를 실패로 나열한다.
+- [x] **Step 3: 이전 스크립트 작성과 실행(스크래치).**
   - 문서마다 `new_doc_id`로 ID를 받아 대응표를 만든다. 이 계획, 스펙, [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)도 포함한다.
   - `git mv`로 이름을 바꾸고 front matter 첫 키 다음에 `id`를 넣는다. 리뷰 기록 slug의 `plan-NN-`는 뺀다.
   - 저장소 전체(문서, 스킬, `AGENTS.md`, `README.md`, 스크립트, 테스트, 워크플로)에서 다음을 바꾼다. 코드 블록 안도 포함한다.
@@ -131,15 +131,15 @@ spec: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
     - 대응표의 정확한 패턴("계획 NN", "ADR NNNN", `Plan: NN`, `plan/NN-…`, 계획 제목 `# NN`, ADR 제목 `# ADR NNNN:`)을 slug와 ID 표기로 바꾼다. 사람이 읽는 인용은 "<slug> 계획", "<slug> ADR"이다.
   - 바꾸지 않는 패턴 목록을 둔다: 개수("ADR 6개"), 분수("계획 1/5"), 연도, "결정 N", "Task N", 리뷰 ID, PR "#NN".
   - 스크립트는 바꾼 곳 수와, 남은 숫자 후보(`계획 [0-9]`, `ADR [0-9]`, `plan/[0-9]`, `Plan: [0-9]`)의 목록을 출력한다.
-- [ ] **Step 4: 사람 확인.** 남은 후보 목록을 사용자와 함께 보고, 번호 인용이면 고치고 아니면 그대로 둔다. 목록과 처리를 Progress log에 적는다.
-- [ ] **Step 5: 대응표와 규칙.**
+- [x] **Step 4: 사람 확인.** 남은 후보 목록을 사용자와 함께 보고, 번호 인용이면 고치고 아니면 그대로 둔다. 목록과 처리를 Progress log에 적는다.
+- [x] **Step 5: 대응표와 규칙.**
   - [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 부록에 대응표를 적는다. 옛 이름은 경로·확장자 없이 날짜·번호·slug를 띄어 쓴다.
   - `docs/README.md`의 타입 표에서 `번호` 열을 지우고 이름 규칙 문단을 ID 기준으로 고친다. `DOC_TYPES_HEADER`를 맞춘다.
   - [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)을 `status: accepted`로 바꾼다.
-- [ ] **Step 6: 통과 확인.**
+- [x] **Step 6: 통과 확인.**
   - Run: `make check`. Expected: exit 0.
   - Run: 남은 후보 grep(Step 3과 같은 패턴)과 옛 이름 grep. Expected: [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 부록과 Step 4에서 남기기로 한 곳 밖에서 0건. 결과를 Progress log에 `Verified`로 적는다.
-- [ ] **Step 7: 커밋.** 이름 변경 커밋과 인용 갱신 커밋을 나눈다. 리뷰어가 `git log --follow`로 이름 변경을 볼 수 있게 하기 위해서다. 트레일러는 `Plan: 26`, `Task: 2`.
+- [x] **Step 7: 커밋.** 이름 변경 커밋과 인용 갱신 커밋을 나눈다. 리뷰어가 `git log --follow`로 이름 변경을 볼 수 있게 하기 위해서다. 트레일러는 `Plan: 26`, `Task: 2`.
 
 ### Task 3: Rules, skills, templates and the draft board flow
 
@@ -150,33 +150,33 @@ spec: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
 - Consumes: `make new-id`, `make new-doc ID=`, 새 이름 규칙.
 - Produces: `doc-authoring` 스킬의 초안 흐름 절(스펙 §3.3). 프로젝트 키를 얻는 명령(`git remote get-url origin` 정규화)과 기기 이름(`BM_MEMORY_DEVICE` 또는 `hostname -s` 소문자)을 그대로 적는다.
 
-- [ ] **Step 1: 스킬.** `skill-authoring` 스킬로 편집한다. 템플릿은 Task 1에서 이미 바꿨다.
+- [x] **Step 1: 스킬.** `skill-authoring` 스킬로 편집한다. 템플릿은 Task 1에서 이미 바꿨다.
   - `doc-authoring`에 초안 흐름을 쓴다. 순서는 보드 조회, `make new-id`, `write_note`, SilverBullet 검토, 승인 뒤 `make new-doc ID=`, 노트 갱신이다.
   - 쓰기 규칙(주인만 씀, 고치기 전 다시 읽기, 만료 없음, 삭제는 승인 뒤)과 터널이 꺼졌을 때의 동작을 함께 쓴다.
-- [ ] **Step 2: 규칙.** `AGENTS.md`를 스펙 §3.6대로 바꾼다. `tests/repo-config.bats:135`의 크기 테스트가 통과해야 한다.
-- [ ] **Step 3: 통과 확인.** Run: `make check`. Expected: exit 0. `tests/repo-skills.bats`가 템플릿 이름을 확인한다.
-- [ ] **Step 4: 초안 보드 확인(사용자와 함께, 완료 조건 7).**
+- [x] **Step 2: 규칙.** `AGENTS.md`를 스펙 §3.6대로 바꾼다. `tests/repo-config.bats:135`의 크기 테스트가 통과해야 한다.
+- [x] **Step 3: 통과 확인.** Run: `make check`. Expected: exit 0. `tests/repo-skills.bats`가 템플릿 이름을 확인한다.
+- [x] **Step 4: 초안 보드 확인(사용자와 함께, 완료 조건 7).**
   - 사용자가 `make tunnel`을 켠다.
   - 이 세션이 시험 초안 노트(`agent-drafts/yanghs6-basic-memory-tailnet/spec-<ID>-draft-board-check`)를 `write_note`로 만든다.
   - 다른 벤더 에이전트(`codex exec </dev/null`, 강도 low)가 `search_notes(metadata_filters={"project": …, "draft": true})`로 그 노트를 찾는다.
   - 사용자가 SilverBullet에서 같은 노트를 본다(스펙 §2의 Assumption).
   - 결과를 Progress log에 적고, 사용자 OK 뒤 시험 노트를 지운다.
-- [ ] **Step 5: 커밋.** `git commit -m "docs: move drafts to the Basic Memory draft board and document ids in the rules and skills" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 26" --trailer "Task: 3"`
+- [x] **Step 5: 커밋.** `git commit -m "docs: move drafts to the Basic Memory draft board and document ids in the rules and skills" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: 26" --trailer "Task: 3"`
 
 ### Code PR: review and merge
 
-- [ ] PR 본문 Verification에 Task 1~3의 `make check`, 남은 후보 grep, 초안 보드 확인, CI(`check`, `pr-rules`)를 적는다.
-- [ ] 다른 벤더의 읽기 전용 리뷰(`make review ... </dev/null`)를 하고, 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
-- [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
+- [x] PR 본문 Verification에 Task 1~3의 `make check`, 남은 후보 grep, 초안 보드 확인, CI(`check`, `pr-rules`)를 적는다.
+- [x] 다른 벤더의 읽기 전용 리뷰(`make review ... </dev/null`)를 하고, 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
+- [x] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
 
 ### Task 4: History rewrite (agent, once, OK at every step)
 
 **Files:**
 - 저장소 파일은 바꾸지 않는다. 결과는 Task 5의 결과 PR에 적는다.
 
-- [ ] **Step 1: 조건 확인.** 열린 PR 0개(`gh pr list --state open`), 감독 세션이 확인한 다른 세션의 브랜치·worktree 0개, 사용자가 정한 날짜. 하나라도 아니면 멈추고 사용자에게 알린다. 그대로 대응표로 끝낼지 사용자가 정한다.
-- [ ] **Step 2: clone 준비.** 세션 스크래치에 `git clone --mirror`를 두 개(`backup`, `work`) 만든다. `backup`은 끝까지 손대지 않는다.
-- [ ] **Step 3: 재작성 스크립트 작성(스크래치).**
+- [x] **Step 1: 조건 확인.** 열린 PR 0개(`gh pr list --state open`), 감독 세션이 확인한 다른 세션의 브랜치·worktree 0개, 사용자가 정한 날짜. 하나라도 아니면 멈추고 사용자에게 알린다. 그대로 대응표로 끝낼지 사용자가 정한다.
+- [x] **Step 2: clone 준비.** 세션 스크래치에 `git clone --mirror`를 두 개(`backup`, `work`) 만든다. `backup`은 끝까지 손대지 않는다.
+- [x] **Step 3: 재작성 스크립트 작성(스크래치).**
   - 입력: [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md) 대응표, Task 2의 치환 규칙, 시대별 번호 대응(계획 02~05의 번호를 바꾼 커밋을 찾아 그 전과 후의 대응).
   - `git rev-list --reverse --topo-order main`을 따라 커밋마다 다음을 한다.
     - 원래 tree를 `git ls-tree -r`로 읽어 경로를 바꾸고, 바뀐 blob만 변환해 `git hash-object -w`로 쓴다. 변환은 경로, 번호, `main` 안 앞선 커밋의 SHA다.
@@ -184,14 +184,14 @@ spec: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
     - 메시지를 같은 규칙으로 바꾸고, `GIT_AUTHOR_*`·`GIT_COMMITTER_*`를 원래 값으로 둔 채 `git commit-tree -p <새 부모>...`로 커밋한다.
     - 옛 SHA → 새 SHA를 기록한다.
   - 같은 blob은 한 번만 변환한다.
-- [ ] **Step 4: 시험 실행.** `work` clone의 복사본에서 먼저 돌리고, 스펙 §3.5 3단계의 검증 다섯 가지를 실행한다. 어긋나면 고쳐 다시 돈다.
-- [ ] **Step 5: 본 실행과 검증.** `work` clone에서 돌리고 검증 다섯 가지를 다시 한다. 결과(명령, 건수, 표본 diff)를 사용자에게 보이고 OK를 받는다.
-- [ ] **Step 6: push(OK).**
+- [x] **Step 4: 시험 실행.** `work` clone의 복사본에서 먼저 돌리고, 스펙 §3.5 3단계의 검증 다섯 가지를 실행한다. 어긋나면 고쳐 다시 돈다.
+- [x] **Step 5: 본 실행과 검증.** `work` clone에서 돌리고 검증 다섯 가지를 다시 한다. 결과(명령, 건수, 표본 diff)를 사용자에게 보이고 OK를 받는다.
+- [x] **Step 6: push(OK).**
   - Enforcement를 끈다(머신 계정 권한이 없으면 사용자가 Settings에서).
   - `git ls-remote origin main`이 Step 1의 SHA와 같은지 보고, `work` clone에서 `main`을 force-push한다.
   - Enforcement를 켠다. 런북 4절의 확인 명령으로 규칙 5개를 확인한다.
-- [ ] **Step 7: PR #1~#20 수정(OK).** 제목·본문·머신 계정 코멘트에 같은 치환을 `gh pr edit`과 `gh api`로 적용한다. 코멘트의 base·head SHA는 `main`에 있는 것만 바꾼다. 코멘트마다 치환 건수를 남긴다.
-- [ ] **Step 8: clone 맞추기(OK).**
+- [x] **Step 7: PR #1~#20 수정(OK).** 제목·본문·머신 계정 코멘트에 같은 치환을 `gh pr edit`과 `gh api`로 적용한다. 코멘트의 base·head SHA는 `main`에 있는 것만 바꾼다. 코멘트마다 치환 건수를 남긴다.
+- [x] **Step 8: clone 맞추기(OK).**
   - main checkout에서 `git fetch origin && git reset --hard origin/main`을 실행한다. 그 전에 `.env`와 `backups/`가 남는지 `git status --ignored`로 확인한다.
   - 다른 Mac에서 할 명령을 사용자에게 알린다.
   - 사용자 메모리 색인에 대응표 위치를 한 줄 더한다.
@@ -201,11 +201,11 @@ spec: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
 **Files:**
 - Modify: `scripts/lib/git.sh`(`LEGACY_PLAN_PATTERN` 제거), `scripts/check-git.sh`, `scripts/check-pr.sh`, 각 bats, 이 계획(Progress log, `status`), [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)("이전 결과" 절)
 
-- [ ] **Step 1: 실패하는 테스트 작성.** `check-git.bats`·`check-pr.bats`·`lib-git.bats`의 옛 형식 사례(`plan/26-x`, `Plan: 26`)를 거부 사례로 옮긴다. 이유를 커밋 본문에 적는다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 옮긴 사례만 실패한다.
-- [ ] **Step 3: 최소 구현.** 옛 형식 허용을 지운다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0.
-- [ ] **Step 5: 기록.** [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)에 "이전 결과" 절(재작성 여부, 검증 결과, 남은 것)을 더하고, 이 계획의 `status`를 `completed`로 바꾼다. 새 ID 형식의 work 브랜치에서 커밋·push하고 PR을 연다.
+- [x] **Step 1: 실패하는 테스트 작성.** `check-git.bats`·`check-pr.bats`·`lib-git.bats`의 옛 형식 사례(`plan/26-x`, `Plan: 26`)를 거부 사례로 옮긴다. 이유를 커밋 본문에 적는다.
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 옮긴 사례만 실패한다.
+- [x] **Step 3: 최소 구현.** 옛 형식 허용을 지운다.
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0.
+- [x] **Step 5: 기록.** [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)에 "이전 결과" 절(재작성 여부, 검증 결과, 남은 것)을 더하고, 이 계획의 `status`를 `completed`로 바꾼다. 새 ID 형식의 work 브랜치에서 커밋·push하고 PR을 연다.
 
 ## Follow-ups
 
@@ -246,3 +246,4 @@ spec: docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md
 | 2026-10-26 | Verified | Task 4 Step 8: 사용자가 메인 checkout을 `git fetch origin --prune`과 `git reset --hard origin/main`으로 맞췄다(HEAD 829e77a, `.env`와 `backups/` 유지). 다른 Mac에는 `git fetch origin --prune && git switch main && git reset --hard origin/main`과 옛 로컬 브랜치 `git branch -D`를 알렸다. 옛 SHA와 새 SHA의 대응 파일 위치를 사용자 메모리에 적었다. 서명이 사라진 squash 커밋 23개, 빈 커밋이 된 3개 등 부작용은 [doc-ids-and-draft-board ADR](../decisions/adr-2026-10-23-tgw26pj8-doc-ids-and-draft-board.md)의 "이전 결과"에 있고, 커밋별 대응은 그 ADR의 "부록: 재작성 전후 커밋 대응"에 있다. |
 | 2026-10-26 | Verified | Task 5 RED: `check-git`, `check-pr`, `lib-git`의 옛 형식(`plan/26-x`, `Plan: 26`) 사례를 거부 사례로 옮기고, 옛 형식을 고정값으로만 쓰던 테스트(`check-git`, `review-branch`, `post-review`, `lib-git`, `guard-reviewer-bash`, `agent_commit`의 기본 Plan)는 ID 형식으로 바꾼 뒤 `make test` → 149개 중 4개 실패(check-git 12·13, check-pr 17, lib-git 47). 실패한 것은 옮긴 거부 사례뿐이다. |
 | 2026-10-26 | Verified | Task 5 GREEN: `LEGACY_PLAN_PATTERN`을 지우고 `AGENTS.md`의 "두 자리 형식 허용" 구절과 `scripts/lib/git.sh`의 주석을 고친 뒤 `make check` exit 0, 149개 모두 ok, 라인 커버리지 93.64%(최소 80%). |
+| 2026-11-02 | Verified | 체크박스를 실행 결과와 맞췄다(2026-11-02 저장소 재검토 P3-38). 근거: 이 Progress log의 Task 행, 코드 PR #22(2026-10-26 병합, 다른 벤더 리뷰 R1 코멘트, 본문 Verification의 `make check`·CI), 결과 PR #23. |

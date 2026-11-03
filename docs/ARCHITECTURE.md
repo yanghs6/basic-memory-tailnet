@@ -1,6 +1,6 @@
 ---
 status: current
-reviewed: 2026-10-28
+reviewed: 2026-11-02
 ---
 
 # 아키텍처
@@ -51,7 +51,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 | 구성 요소 | 위치 | 역할 |
 |---|---|---|
 | `Makefile` + `scripts/` | Mac | VM 수명주기의 유일한 제어 지점. SSH로 VM을 다룸. gcloud는 쓰지 않음. 공용 함수는 `scripts/lib/`(common, vm, sb, git, docs, layout, mcp, agent-memory)에 있고, 파일마다 첫머리에 함수 색인이 있음 |
-| `scripts/remote/provision-vm.sh` | VM (root) | 스왑 파일 1GB, Docker·Tailscale 설치, 데이터 디렉터리, Serve 설정 |
+| `scripts/remote/provision-vm.sh` | VM (root) | 스왑 파일 1GB, Docker 설치, 데이터 디렉터리. Tailscale 설치와 Serve 설정은 `tailscale` 모드만(`ssh` 모드는 건너뜀) |
 | `compose.yaml` | Mac(로컬 검증)·VM | Basic Memory와 SilverBullet(웹 UI), `BM_WEB=on`일 때만 뜨는 `gateway`(프로필 `web`)·`cloudflared`(프로필 `tunnel`) 컨테이너 정의 (같은 파일) |
 | `silverbullet/` + `scripts/sync-sb-space.sh`·`upload-sb-fonts.sh`·`verify-sb.sh` | Mac → 노트 폴더 | SilverBullet 공간 파일(노트 `.gitignore`, 관리 페이지 `Library/agent-hub/agent-hub.md`, 대시보드 `index.md`)과 글꼴을 쓰고, 로그인·셸 꺼짐을 검사. [web-ui-silverbullet ADR](decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md) |
 | `scripts/check-local-stack.sh` | Mac | `make local-up`·`local-down`이 compose를 부르기 전에 실행. compose project(`compose.yaml`의 `name:`)의 컨테이너가 다른 worktree에서 시작됐으면(라벨 `com.docker.compose.project.working_dir`) 멈춤. 그 디렉터리가 이미 없으면 경고만 남김. `docker ps`만 부름 |
@@ -76,7 +76,7 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 |---|---|---|
 | Markdown 노트 | `.local-data/knowledge/basic-memory/` | `/srv/basic-memory/knowledge/basic-memory/` |
 | SilverBullet 공간 파일 | 노트 폴더 안 `.gitignore`, `index.md`, `Library/agent-hub/`(관리 페이지와 글꼴), `.silverbullet.browser-sessions.json`(로그인 세션) | 같음. Basic Memory는 `.gitignore`와 기본 무시 목록(`.*`)으로 이 파일들을 색인하지 않음 |
-| SQLite 인덱스·설정·임베딩 모델 캐시 | `.local-data/config/` | `/srv/basic-memory/config/` |
+| SQLite 인덱스·설정 (임베딩 모델 캐시 `fastembed_cache/`는 의미 검색이 꺼져 있어 쓰지 않음) | `.local-data/config/` | `/srv/basic-memory/config/` |
 | `compose.yaml` | 명령을 실행한 체크아웃 루트(`make deploy`가 그 파일을 올림) | `/opt/basic-memory/` |
 | `.env` | main 체크아웃 루트 | `/opt/basic-memory/` (VM용 `.env`는 `make deploy`가 생성) |
 | 상태 파일 | `~/.local/state/bm-agent-memory/` | 해당 없음 |
@@ -109,14 +109,17 @@ GCP 인스턴스 이름(예: `agent-hub-01`)과 Tailscale 기기 이름(`agent-h
 - 1GB RAM에 스왑 1GB입니다. 부트스트랩이 스왑 파일을 만들고 `make status`는 스왑이 없으면 경고합니다([vm-sizing ADR](decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md)).
 - **Verified (2026-10-12):** 무료 등급 조건: e2-micro 1대, 30GB 표준 영구 디스크, 월 1GB 아웃바운드. Spot VM과 balanced 디스크는 무료가 아닙니다.
 - 정지 후 시작하면 외부 IP가 바뀝니다. `.env`의 `BM_VM_PUBLIC_IP`를 갱신해야 `verify`가 맞는 IP를 검사합니다.
-- **Open question:** 외부 IPv4 요금이 무료 등급에 포함되는지는 아직 확인하지 못했습니다. 배포 다음 날 SKU별 청구를 확인합니다([운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 비용 점검).
+- **Verified (2026-10-13, 가격표):** 외부 IPv4는 무료 등급에 들지 않습니다. $0.005/h, 월 약 $3.65입니다([GCP 설계](specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md) §3).
+- **Verified (2026-10-14, 사용자가 내보낸 SKU별 청구 보고서):** 10월 보고서에서 `External IP Charge on a Standard VM`은 정가부터 ₩0이었습니다([vm-rollout 계획](plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Progress log).
+- **Open question:** 가격표와 청구가 다른 이유(무료 등급 적용인지, 집계 지연인지)는 확인하지 못했습니다. 크레딧이 청구 합계를 상쇄할 수도 있으므로 SKU별 정가로 확인합니다([운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 비용 점검). 10월 한 달 치 금액 확인은 [ipv4-egress-decision 계획](plans/plan-2026-11-02-s1amnk1s-ipv4-egress-decision.md)의 Step 0입니다.
+- 1GB VM에서 쓰기 뒤의 vector 작업과 임베딩 모델 때문에 서버가 몇 분씩 멈춰, Basic Memory의 의미 검색을 껐습니다(`compose.yaml`의 `BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED: "false"`). 검색은 text이고, 이 스위치가 있는 0.23.2에 이미지를 고정합니다([semantic-search-off ADR](decisions/adr-2026-10-30-bts7gsex-semantic-search-off.md)).
 
 ## 주요 흐름
 
 - **배포:** `make deploy` → compose와 VM용 `.env`(권한 600, `SB_USER` 포함) 전송 → `docker compose pull` → 공간 파일 쓰기(`sync-sb-space.sh`. 노트 `.gitignore`가 바뀌었으면 `.gitignore`만 쓰고 Basic Memory만 다시 만든 뒤 관리 페이지·`index.md` 쓰기) → `up -d --wait`. `BM_WEB=on`이면 `gateway/` 파일도 올리고 `COMPOSE_PROFILES=web,tunnel`로 `gateway`·`cloudflared`를 띄우며, `off`면 남은 두 컨테이너를 지움
 - **검증:** `make verify` → tailnet URL(`ssh` 모드는 임시 터널 `127.0.0.1:28737`·`23000`)로 MCP 왕복(initialize, tools/list, 쓰기·읽기·삭제) → 8443의 SilverBullet 로그인·쿠키·셸 꺼짐 → 포트 바인딩(8737, 3000) → Serve 포트별 대상, tailnet 전용 → 공인 IP 포트 차단. `make probe`는 노트를 쓰지 않고 SilverBullet에 로그인하지 않습니다. `BM_WEB=on`이면 공개 URL의 OAuth 검사(토큰 없는 401, 메타데이터, 외부 redirect URI 등록 거절, 공개 IPv4 해석)와 게이트웨이 포트 바인딩도 봅니다.
-- **백업:** `make backup` → 컨테이너 정지(재시작은 정지 전에 예약) → 파일별 체크섬 manifest → `/srv/basic-memory`를 tar로 받아옴(임베딩 모델 캐시 `config/fastembed_cache/`는 제외하며, 복원 뒤 첫 사용 때 Basic Memory가 다시 내려받음) → sha256 저장 → 세 파일을 최종 이름으로 rename → 컨테이너 재시작. 아카이브는 main 체크아웃의 `backups/`에 저장됩니다.
-- **기억 미러:** SessionStart·Stop hook → `make memory-sync HOOK=1` → Mac의 Claude Code·Codex 기억 파일(`*.md`)을 `agent-memory/<프로젝트 키>/<에이전트>/<기기>/`로 백그라운드 전송(바뀐 것만, 사라진 원본은 노트도 삭제). SessionStart → `make memory-index` → 다른 Mac·에이전트의 노트 색인(`Basic Memory index:`)을 에이전트 컨텍스트에 넣음. 터널이 없으면 경고 한 줄만 남기고 끝남
+- **백업:** `make backup` → 컨테이너 정지(재시작은 정지 전에 예약) → 파일별 체크섬 manifest → `/srv/basic-memory`를 tar로 받아옴(임베딩 모델 캐시 `config/fastembed_cache/`는 제외. 의미 검색이 꺼져 있어 Basic Memory는 모델을 올리지 않음) → sha256 저장 → 세 파일을 최종 이름으로 rename → 컨테이너 재시작. 아카이브는 main 체크아웃의 `backups/`에 저장됩니다.
+- **기억 미러:** SessionStart·Stop hook → `make memory-sync HOOK=1` → Mac의 Claude Code·Codex 기억 파일(`*.md`)을 `agent-memory/<프로젝트 키>/<에이전트>/<기기>/`로 백그라운드 전송(바뀐 것만, 사라진 원본은 노트도 삭제). 1 GB VM을 위해 한 번에 노트 5개까지만 보내고(쓰기 사이 3초 대기, 쓰기 하나는 90초까지 기다림) 나머지는 다음 실행이 보내며, 응답 없이 연속 2번 실패하면 그 실행은 더 보내지 않음([운영 런북](runbooks/rbk-2026-10-12-t79ex2ny-operations.md)의 기억 미러). SessionStart → `make memory-index` → 다른 Mac·에이전트의 노트 색인(`Basic Memory index:`)을 에이전트 컨텍스트에 넣음. 터널이 없으면 경고 한 줄만 남기고 끝남
 - **복원:** `make restore` → 정지 → 임시 경로에 압축 해제 → manifest 대조 → 저장소 compose.yaml 적용 → 데이터 교체(기존은 `.prev-*`) → Basic Memory가 멈춘 동안 공간 파일 쓰기(`sync-sb-space.sh`) → 기동 → verify. 정지 이후 실패하면 이전 데이터와 compose로 자동 롤백
 
-관련 결정: [basic-memory-on-gcp-tailscale ADR](decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md), [vm-sizing ADR](decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md), [web-ui-silverbullet ADR](decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md), [access-modes ADR](decisions/adr-2026-10-15-cz8c26gp-access-modes.md), [web-connector ADR](decisions/adr-2026-10-22-fcvznmdc-web-connector.md)
+관련 결정: [basic-memory-on-gcp-tailscale ADR](decisions/adr-2026-10-12-m4yy1sb7-basic-memory-on-gcp-tailscale.md), [vm-sizing ADR](decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md), [web-ui-silverbullet ADR](decisions/adr-2026-10-15-f7n75bpv-web-ui-silverbullet.md), [access-modes ADR](decisions/adr-2026-10-15-cz8c26gp-access-modes.md), [web-connector ADR](decisions/adr-2026-10-22-fcvznmdc-web-connector.md), [semantic-search-off ADR](decisions/adr-2026-10-30-bts7gsex-semantic-search-off.md)

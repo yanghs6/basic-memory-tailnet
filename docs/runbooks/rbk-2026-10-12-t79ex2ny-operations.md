@@ -1,7 +1,7 @@
 ---
 status: current
 id: t79ex2ny
-reviewed: 2026-10-27
+reviewed: 2026-11-02
 ---
 
 # 운영
@@ -32,11 +32,11 @@ reviewed: 2026-10-27
 
 - 결과물은 main 체크아웃의 `backups/`에 저장됩니다(git ignore, worktree에서 실행해도 같음). Time Machine 등으로 Mac 밖에도 사본을 두세요.
 - worktree를 지우기 전에 그 안에 `backups/`가 없는지 확인합니다. `git worktree remove`는 git ignore 파일을 경고 없이 지웁니다.
-- 백업 중에는 컨테이너가 몇 초 멈춥니다. SQLite 파일이 쓰는 도중에 복사되지 않게 하기 위해서입니다.
+- 백업 중에는 컨테이너가 멈춥니다. SQLite 파일이 쓰는 도중에 복사되지 않게 하기 위해서입니다. 멈춘 시간은 약 23초(2026-10-13)였고, 정지 신호부터 healthy까지는 약 53초(2026-10-14, 그중 10초는 SIGKILL 대기)였습니다([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Follow-ups). `make backup`은 컨테이너를 다시 시작만 하고 healthy를 기다리지 않으므로, 끝난 직후에는 MCP가 잠깐 응답하지 않을 수 있습니다.
 - 백업마다 `.sha256`(아카이브 무결성)과 `.manifest`(데이터 파일별 체크섬)가 함께 저장됩니다. 둘 중 하나라도 없으면 `make restore`가 거부합니다.
-- 임베딩 모델 캐시(`config/fastembed_cache/`)는 백업에 포함하지 않습니다. 다시 내려받을 수 있고 심볼릭 링크를 담고 있어 복원 검사가 거부하기 때문입니다. 복원 뒤 Basic Memory가 처음 쓸 때 모델을 다시 내려받으므로 첫 검색·인덱싱은 평소보다 오래 걸릴 수 있습니다.
+- 임베딩 모델 캐시(`config/fastembed_cache/`)는 백업에 포함하지 않습니다. 다시 내려받을 수 있고 심볼릭 링크를 담고 있어 복원 검사가 거부하기 때문입니다. 2026-10-30부터 의미 검색이 꺼져 있어(`compose.yaml`의 `BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED: "false"`) Basic Memory는 임베딩 모델을 올리지 않습니다([semantic-search-off ADR](../decisions/adr-2026-10-30-bts7gsex-semantic-search-off.md)). 그래서 복원 뒤 이 캐시가 없어도 됩니다.
 - 복원은 임시 경로에 먼저 풀고 manifest와 대조한 뒤에만 교체합니다. 기존 데이터는 `/srv/basic-memory.prev-<시각>`으로 옮겨지고, 실패하면 자동으로 되돌아갑니다(실패한 복원본은 `.failed-<시각>`에 남음).
-- `.prev-*`와 `.failed-*` 삭제는 **사람만** 합니다. 에이전트는 지우지 않습니다. 결과를 확인한 뒤 직접: `ssh ubuntu@agent-hub sudo rm -r /srv/basic-memory.prev-<시각>`
+- `.prev-*`와 `.failed-*` 삭제는 **사람만** 합니다. 에이전트는 지우지 않습니다. 결과를 확인한 뒤 직접: `ssh ubuntu@<BM_VM_HOST> sudo rm -r /srv/basic-memory.prev-<시각>`(`tailscale` 모드는 `agent-hub`, `ssh` 모드는 SSH 별칭 `agent-hub-iap`)
 
 ## 업그레이드·복구·진단
 
@@ -47,7 +47,7 @@ reviewed: 2026-10-27
 
 ## 웹 UI (SilverBullet)
 
-- 주소는 `https://agent-hub.<tailnet>.ts.net:8443`이고 tailnet 안에서만 열립니다. main 체크아웃 `.env`의 `SB_USER`로 로그인합니다. 트리는 `Cmd-O`, 페이지 검색은 `Cmd-K`, 노트 본문 검색은 `Cmd-Shift-F`, 그래프는 명령 팔레트의 `Graph: Explore`입니다. 에이전트에게 노트를 알려 줄 때는 `Basic Memory: Copy memory:// Link`로 주소를 복사합니다.
+- 주소는 `tailscale` 모드에서 `https://agent-hub.<tailnet>.ts.net:8443`(tailnet 안에서만 열림), `ssh` 모드에서 `make tunnel`을 띄운 뒤 `http://127.0.0.1:13000`입니다. main 체크아웃 `.env`의 `SB_USER`로 로그인합니다. 트리는 `Cmd-O`, 페이지 검색은 `Cmd-K`, 노트 본문 검색은 `Cmd-Shift-F`, 그래프는 명령 팔레트의 `Graph: Explore`입니다. 에이전트에게 노트를 알려 줄 때는 `Basic Memory: Copy memory:// Link`로 주소를 복사합니다.
 - 노트 검색에 본문 문단이 안 나오면 그 브라우저에서 `Space: Reindex`를 한 번 실행합니다. 왼쪽에 트리가 안 보이면 `Cmd-O`를 누릅니다.
 - 새 기기에서 처음 열 때 상단 막대가 빨갛거나(동기화 오류) 글꼴이 기본 글꼴로 보이면 몇 초 뒤 새로고침합니다. 첫 연결이 느려 클라이언트가 서버를 잠깐 오프라인으로 본 것입니다.
 - **관찰 카테고리 경고:** `[fact]`·`[decision]` 같은 카테고리 글자를 누르면 SilverBullet이 카테고리를 지웁니다(`[]`가 되고 Basic Memory는 그 관찰을 `note`로 다시 색인). 실수했으면 바로 `Cmd+Z`로 되돌립니다.
@@ -95,7 +95,8 @@ Claude Code·Codex의 기억 파일을 Basic Memory의 `agent-memory/`로 미러
 - 복원과 재구축 뒤: `make restore`나 VM 재구축 뒤에는 각 Mac에서 `make memory-sync FULL=1`을 한 번 실행합니다. 로컬 상태 파일이 VM의 옛 노트를 알아채지 못하기 때문입니다(스펙 §3.3).
 - `CLAUDE_CONFIG_DIR`나 `CODEX_HOME`을 쓴다면 두 에이전트에 같은 값을 주거나, 둘 다 두지 않습니다. 한 에이전트에만 있으면 두 에이전트의 hook이 서로 다른 원본 폴더를 보고, 턴마다 서로의 노트를 지우고 다시 씁니다.
 - **Verified (2026-10-26):** 시험 노트를 쓰고 검색한 뒤 `make logs | grep -c 'plan24 marker'`가 0이어서, 컨테이너 로그에 시험 노트 본문은 없었습니다. 이때 검색어(`경로`, `경로 <시각>`)는 grep하지 않았습니다. VM의 Basic Memory 앱 로그 파일은 읽는 Make 타깃이 없어 읽지 않았습니다.
-- **Reported (Basic Memory 0.23.2 소스):** 검색어는 DEBUG 수준에서만 기록되고 VM은 INFO로 돕니다. [agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md) Task 6 Step 7에서 고유한 검색어로 `search_notes`를 한 번 부른 뒤 `make logs`에서 그 검색어를 grep해 다시 확인합니다.
+- **Reported (Basic Memory 0.23.2 소스):** 검색어는 DEBUG 수준에서만 기록되고 VM은 INFO로 돕니다.
+- **Verified (2026-10-30, [agent-memory-mirror 계획](../plans/plan-2026-10-22-mk823xbp-agent-memory-mirror.md) Task 6 Step 7):** 고유한 검색어로 `search_notes`(text)를 한 번 부른 뒤 `make logs`에서 그 검색어를 grep한 결과는 0건이었습니다. 검색어는 컨테이너 로그에 남지 않습니다.
 
 ## 접속 방식 바꾸기 (Access mode change)
 
@@ -168,7 +169,11 @@ VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 �
 
 GCP 무료 등급에서 과금이 생기지 않는지 확인합니다.
 
-**Open question:** 외부 IPv4 요금($0.005/h, 약 $3.65/월)이 무료 등급에 포함되는지는 아직 확인하지 못했습니다.
+**Verified (2026-10-13, 가격표):** 외부 IPv4는 무료 등급에 들지 않습니다. VM에 붙은 IPv4는 $0.005/h(월 약 $3.65)이고, 무료는 계정당 월 1시간뿐입니다([GCP 설계](../specs/spec-2026-10-12-p5nmsc4m-basic-memory-gcp-tailscale.md) §3).
+
+**Verified (2026-10-14, 사용자가 내보낸 SKU별 청구 보고서):** 10월 보고서에서 `External IP Charge on a Standard VM` 38.23시간은 정가부터 ₩0이었습니다([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Progress log 2026-10-14).
+
+**Open question:** 가격표와 청구가 다른 이유(무료 등급 적용인지, 집계 지연인지)는 확인하지 못했습니다. 청구 합계는 크레딧이 상쇄할 수 있으므로, 아래 점검은 SKU별 정가(할인 전 금액)로 봅니다. 10월 한 달 치 금액 확인은 [ipv4-egress-decision 계획](../plans/plan-2026-11-02-s1amnk1s-ipv4-egress-decision.md)의 Step 0입니다.
 
 - 배포 **다음 날**과 **매월 초**에 청구 보고서를 SKU별로 봅니다: Cloud Console → Billing → Reports에서 프로젝트로 필터링하고 Group by를 SKU로 둡니다.
   - **Assumption:** 메뉴 이름은 바뀔 수 있고, 보고서에는 하루쯤 지연이 있음.
@@ -184,8 +189,8 @@ GCP 무료 등급에서 과금이 생기지 않는지 확인합니다.
 
 | 날짜 | 원인 | 사용한 백업 | 데이터 손실 구간 | 비고 | 후속 조치 |
 |---|---|---|---|---|---|
-| 2026-10-13 | 콜드 스타트가 약 192초 걸려 healthcheck(`start_period: 60s`)가 `unhealthy`가 됨. `docker compose up --wait`가 즉시 실패하므로 그때의 `make deploy`·`make restore`가 실패할 수 있었음 | 사용 안 함 | 없음 | 재부팅 자체는 `restart: unless-stopped`로 결국 healthy. 출처: [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Progress log `:289`, `:291-292` | `56d3ab4`(`start_period: 300s`, `HEALTH_TIMEOUT_SECONDS` 360초), `tests/repo-config.bats:63`. 늘어나는 콜드 스타트(161 → 192 → 248초)는 [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Follow-ups `:259`에 남아 있다 |
-| 2026-10-13 | 모델 캐시가 생긴 뒤 만든 백업이 모두 복원 거부됨: 모델 캐시(`config/fastembed_cache`)의 상대 심볼릭 링크가 백업 tar에 들어가 restore 안전 검사가 아카이브를 거부함 | `bm-20261013T050026Z.tgz`(거부됨) | 없음(VM에 손대기 전에 거부) | 같은 날 2회차 복원(`bm-20261013T054955Z.tgz`)이 통과. 출처: [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Progress log `:309-311` | `a5781a4`(모델 캐시를 백업과 manifest에서 제외), `tests/restore-notes.bats:48` |
+| 2026-10-13 | 콜드 스타트가 약 192초 걸려 healthcheck(`start_period: 60s`)가 `unhealthy`가 됨. `docker compose up --wait`가 즉시 실패하므로 그때의 `make deploy`·`make restore`가 실패할 수 있었음 | 사용 안 함 | 없음 | 재부팅 자체는 `restart: unless-stopped`로 결국 healthy. 출처: [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Progress log `:289`, `:291-292` | `56d3ab4`(`start_period: 300s`, `HEALTH_TIMEOUT_SECONDS` 360초), `tests/repo-config.bats`의 "basic-memory runs the basicmachines-co image, … has a start_period of at least 240 s that HEALTH_TIMEOUT_SECONDS exceeds, …". 늘어나는 콜드 스타트(161 → 192 → 248초)는 [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Follow-ups `:259`에 남아 있다 |
+| 2026-10-13 | 모델 캐시가 생긴 뒤 만든 백업이 모두 복원 거부됨: 모델 캐시(`config/fastembed_cache`)의 상대 심볼릭 링크가 백업 tar에 들어가 restore 안전 검사가 아카이브를 거부함 | `bm-20261013T050026Z.tgz`(거부됨) | 없음(VM에 손대기 전에 거부) | 같은 날 2회차 복원(`bm-20261013T054955Z.tgz`)이 통과. 출처: [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Progress log `:309-311` | `a5781a4`(모델 캐시를 백업과 manifest에서 제외), `tests/restore-notes.bats`의 "a backup made by backup-notes.sh skips the model cache and restores with restore-notes.sh to match its manifest" |
 | 2026-10-13 | 접속 경로: 사무실 네트워크가 HTTPS `controlplane.tailscale.com`만 막아 이 Mac이 tailnet에 들어가지 못함 | 사용 안 함 | 없음 | 다른 네트워크에서는 접속됨. 출처: [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Progress log `:285-287` | 사용자가 IT에 허용을 요청했고, [access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md)에서 VM을 `ssh` 모드로 옮겼다(코드 PR #8, 결과 기록 `ef67732` PR #12) |
 | 2026-10-15 | 장애 아님: 접속 방식을 `tailscale`에서 `ssh`로 바꿈([access-modes 계획](../plans/plan-2026-10-15-ctv444ep-access-modes.md) Task 8) | 사용 안 함(롤백 지점 `bm-20261015T090644Z.tgz`) | 없음 | VM의 Tailscale은 로그아웃만 함(패키지 유지), admin console의 `agent-hub` 기기 삭제. 2026-10-16 `make verify` 통과 | 해당 없음(장애 아님) |
 | 2026-10-21 | Assumption: 배포 직후 Basic Memory의 재색인으로 1GB VM의 응답이 30초를 넘김. 배포 직후 첫 `make verify`가 `tools/list`에서 `curl: (28)`로 끝남 | 사용 안 함 | 없음 | 2분 뒤 `make probe`·`make verify` 통과. 출처: [script-cleanup 계획](../plans/plan-2026-10-20-c2vxa7kp-script-cleanup.md) Progress log `:498-500` | [recovery-drill 계획](../plans/plan-2026-10-22-zw0shxee-recovery-drill.md) Task 2(`bm-diagnose` 실패 메시지 목록의 `curl: (28)` 행). 원인 확인은 그 계획의 Follow-ups에 남긴다 |

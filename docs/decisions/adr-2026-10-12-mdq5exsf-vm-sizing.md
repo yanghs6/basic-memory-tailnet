@@ -2,6 +2,7 @@
 status: accepted
 id: mdq5exsf
 date: 2026-10-14
+amended-by: docs/decisions/adr-2026-10-30-bts7gsex-semantic-search-off.md
 ---
 
 # ADR mdq5exsf: VM 크기 (e2-micro 1GB + 스왑 1GB)
@@ -41,5 +42,6 @@ GCP 무료 등급의 VM은 `e2-micro`(1GB)뿐이고 크기를 바꿀 수 없습�
 ## 재평가 기준
 
 - 측정 방법([vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md) Step 15와 같음): `make backup`으로 컨테이너를 재시작하고 `search_notes`(semantic)로 임베딩 모델을 올린 뒤 `make status`와 `free -m`을 기록합니다.
+  - **Verified (2026-11-02):** 2026-10-30부터 의미 검색이 꺼져 있어 위의 semantic 단계는 실행할 수 없고, 임베딩 모델도 올라오지 않습니다(`compose.yaml`의 `BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED: "false"`, [semantic-search-off ADR](adr-2026-10-30-bts7gsex-semantic-search-off.md)). 그래서 이 측정은 `make backup`으로 재시작한 뒤 `search_notes(search_type="text")`를 한 번 부르고 잽니다.
 - 컨테이너가 OOM으로 재시작되거나(`make logs`, `make status`), 스왑 사용이 스왑 크기의 절반 이상으로 계속 유지되면 사용자가 결정합니다. 선택지는 현재 크기를 감수하는 것, 유료 소형 인스턴스(비용 발생), 다른 호스트입니다.
 - 스왑 기준값은 절반으로 유지합니다. 2026-10-14에 유휴 스왑이 절반 바로 아래(508/1023 MB)였지만 부족은 아니었습니다. 그러므로 기준을 넘으면 결정하기 전에 `free -m`의 available과 OOM 기록을 함께 봅니다.
