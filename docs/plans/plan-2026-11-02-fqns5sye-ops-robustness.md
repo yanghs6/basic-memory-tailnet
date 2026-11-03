@@ -282,3 +282,4 @@ check_semantic_search_off() {
 | 2026-11-03 | Verified | Task 4 구현 뒤 `make test`: 281개 모두 ok, exit 0. `tests/restore-notes.bats`는 바꾸지 않았고 그 거부 테스트도 통과함. 테스트 이미지는 GNU tar라서, 같은 `archive_entry_problem`을 macOS bsdtar로 만든 아카이브 여섯 개(안전, 심볼릭 링크, 하드 링크, `..`, 절대 경로, tgz 아님)에도 임시 스크립트로 돌려 같은 결과를 봄 |
 | 2026-11-03 | Verified | 계획의 backup 힌트 find 명령(`! -type f ! -type d -print`)은 하드 링크를 찾지 못함(하드 링크는 `-type f`). 테스트가 하드 링크 사례를 요구하므로 힌트에 `! -type d -links +1 -print -o`를 더함 |
 | 2026-11-03 | Verified | Task 4 `make check`: lint 통과, 281개 모두 ok, `scripts/lib/vm.sh` 97.28%, `scripts/backup-notes.sh` 95.16%, `scripts/restore-notes.sh` 96.30%, `scripts/show-backup.sh` 93.48%, `total line coverage: 89.35% (minimum 80%)`, exit 0 |
+| 2026-11-03 | Verified | Task 1~3 읽기 전용 리뷰(별도 서브에이전트, 1d98c96·4b632f1·0268cc9): P0·P1 없음, 승인. P3 한 건(SDD-T3-F1): bm-upgrade Rules가 "끌 수 없으면 멈춤"만 말해 3단계의 not mentioned 중단과 어긋남. Rules에 "릴리스 노트가 스위치를 지킨다고 인용하지 않으면"을 더해 고침 |

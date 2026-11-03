@@ -13,7 +13,7 @@ This changes what runs against real notes. Follow the steps in order.
 - Never edit `compose.yaml` in the main checkout. `make deploy` uploads the working-tree `compose.yaml`, so the file in your worktree is the file that gets deployed.
 - The make targets read `.env` from the main checkout and `make backup` saves into the main checkout's `backups/`, even when you run them in your worktree. Never copy or read `.env` yourself.
 - Deleting `/srv/basic-memory.prev-*` is for the human only; never remove it.
-- Upgrade only to a release that still turns semantic search off with `BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED=false` (`compose.yaml`): the 1 GB VM stalls with it on, and 0.24.0 removed the switch (docs/decisions/adr-2026-10-30-bts7gsex-semantic-search-off.md). If the target release cannot turn it off, stop and tell the user; that ADR must be revisited first.
+- Upgrade only to a release that still turns semantic search off with `BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED=false` (`compose.yaml`): the 1 GB VM stalls with it on, and 0.24.0 removed the switch (docs/decisions/adr-2026-10-30-bts7gsex-semantic-search-off.md). If the target release cannot turn it off, or its release notes do not quote that they keep the switch (step 3), stop and tell the user; that ADR must be revisited first.
 
 ## Checklist
 
