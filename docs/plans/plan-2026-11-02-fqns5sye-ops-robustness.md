@@ -158,18 +158,18 @@ check_semantic_search_off() {
   - `check_archive_entries ARCHIVE HINT` -> 문제가 있으면 `unsafe archive ARCHIVE: <이유>; HINT`로, 못 읽으면 `could not list the entries of ARCHIVE`로 die.
 - `show-backup.sh`는 `common.sh` 대신 `vm.sh`를 source한다. vm.sh는 source할 때 상수만 정의하므로 VM 설정 없이 돈다.
 
-- [ ] **Step 1: 실패하는 테스트 작성.**
+- [x] **Step 1: 실패하는 테스트 작성.**
   - `lib-vm.bats`: `@test "archive_entry_problem accepts regular files and directories, names a symlink, a hard link, an absolute path or a '..' entry without printing entry names, and fails on an unreadable archive"`. 반복문 사례: 안전한 아카이브(빈 출력), 심볼릭 링크, 하드 링크, `-P`로 넣은 절대 경로, `../` 항목, tgz가 아닌 파일(실패). 항목 이름에 `SECRET`을 넣고 출력에 없음을 확인한다.
   - `backup-notes.bats`: `@test "backup stops before it keeps anything when the data root holds a symlink or a hard link, restarts the container and spares earlier backups"`. 데이터 루트(모델 캐시 밖)에 링크를 두고 backup이 실패한다. `unsafe archive`로 멈추고, `$BACKUP_DIR`에 이번 실행의 파일(`.partial` 포함)이 없고, 미리 둔 이전 백업은 그대로이며, `compose start`가 불렸다. 모델 캐시 안의 링크만 있으면 성공한다는 것은 기존 첫 restore 테스트가 이미 보이므로 반복하지 않는다.
   - `show-backup.bats`: `make_backup`이 실제 tgz(항목 이름에 `SECRET`)를 만들게 바꾼다. 기존 "reports a mismatched checksum..." 반복문에 `unsafe-entries` 사례(심볼릭 링크를 담은 아카이브, 체크섬·manifest는 정상)를 더한다: `entries: UNSAFE`와 `not restorable`을 출력하고 `SECRET`은 없다. 첫 테스트에 `entries: safe`와 `restorable: yes`를 더한다.
-- [ ] **Step 2: `make test`로 실패 확인.**
-- [ ] **Step 3: 구현.**
+- [x] **Step 2: `make test`로 실패 확인.**
+- [x] **Step 3: 구현.**
   - `restore-notes.sh`의 `check_archive_entries`를 vm.sh로 옮겨 두 함수로 나눈다. restore는 `check_archive_entries "$archive" "restore only archives made by 'make backup'"`으로 부른다. 메시지 앞부분(`unsafe archive ...: it holds an entry that is not a regular file or directory`, `an absolute path or a '..' component`)은 그대로 둬서 기존 restore 테스트가 바뀌지 않게 한다.
   - `backup-notes.sh`: 스트림을 받은 뒤, 체크섬을 쓰기 전에 `check_archive_entries "$ARCHIVE$PARTIAL_SUFFIX" "<힌트>"`를 부른다. 힌트: 데이터 루트(모델 캐시 제외)에 링크나 장치가 있어 이 백업은 복원되지 않는다, `ssh <user>@<host> sudo find <root> -path <root>/<cache> -prune -o ! -type f ! -type d -print`로 찾아 사용자에게 알린다, 아무것도 남기지 않았다. 실패하면 기존 trap이 이번 실행의 파일을 지우고 컨테이너를 다시 띄운다.
   - `show-backup.sh`: `entries: safe|UNSAFE (<이유>)|unreadable` 줄을 더하고, `restorable: yes`는 체크섬 일치, manifest 있음, 항목 안전일 때만 낸다. 헤더 주석에 "항목 목록을 읽되 이름은 출력하지 않는다"를 적는다.
   - Makefile `backup-latest` 설명에 항목 검사를 더한다.
-- [ ] **Step 4: `make check` 통과.**
-- [ ] **Step 5: 커밋.** `feat: check archive entries in backup and backup-latest, not only in restore` (`Task: 4`).
+- [x] **Step 4: `make check` 통과.**
+- [x] **Step 5: 커밋.** `feat: check archive entries in backup and backup-latest, not only in restore` (`Task: 4`).
 
 ### Task 5: `make status` 보강 (W15, F25, P3-25)
 
@@ -278,3 +278,7 @@ check_semantic_search_off() {
 | 2026-11-02 | Verified | Task 2 구현 뒤 `make test`: 278개 ok, `not ok 268 probe runs every check without writing notes, logging in or needing SB_USER` 하나만 실패, exit 2. verify-mcp, lib-mcp, show-memory-index, sync-agent-memory 테스트는 새 fixture로도 모두 통과 |
 | 2026-11-02 | Verified | 계획이 `tests/verify-vm.bats:105-106`의 단언을 빠뜨렸음. probe 테스트가 `grep -F '"method":"tools/call"'`의 실패로 "tools/call 없음"을 요구했지만, 이제 probe도 읽기 전용 `search_notes` 호출을 보냄. 감독 승인을 받아 두 줄을 `tools/call` 이름 목록이 정확히 `search_notes` 하나인지 보는 `assert_equal` 한 줄로 바꿈. 쓰기·읽기·삭제 도구를 부르지 않는다는 보장은 그대로이고, 파일의 다른 줄은 Task 6 몫이라 고치지 않음 |
 | 2026-11-02 | Verified | Task 2 `make check`: lint 통과, 279개 모두 ok, `scripts/verify-mcp.sh` 97.33%, `total line coverage: 89.33% (minimum 80%)`, exit 0 |
+| 2026-11-03 | Verified | Task 4 RED: 새 lib-vm·backup-notes 테스트와 고친 show-backup 테스트 두 개를 넣고 `make test`를 실행함. 281개 중 `not ok 3`(링크가 있는 데이터 루트에서 backup이 성공함), `not ok 118`(`archive_entry_problem: command not found`, status 127), `not ok 215`(`entries: safe` 없음), `not ok 216`(unsafe-entries 사례에 `entries: UNSAFE` 없음) 네 개만 실패했고 exit 2 |
+| 2026-11-03 | Verified | Task 4 구현 뒤 `make test`: 281개 모두 ok, exit 0. `tests/restore-notes.bats`는 바꾸지 않았고 그 거부 테스트도 통과함. 테스트 이미지는 GNU tar라서, 같은 `archive_entry_problem`을 macOS bsdtar로 만든 아카이브 여섯 개(안전, 심볼릭 링크, 하드 링크, `..`, 절대 경로, tgz 아님)에도 임시 스크립트로 돌려 같은 결과를 봄 |
+| 2026-11-03 | Verified | 계획의 backup 힌트 find 명령(`! -type f ! -type d -print`)은 하드 링크를 찾지 못함(하드 링크는 `-type f`). 테스트가 하드 링크 사례를 요구하므로 힌트에 `! -type d -links +1 -print -o`를 더함 |
+| 2026-11-03 | Verified | Task 4 `make check`: lint 통과, 281개 모두 ok, `scripts/lib/vm.sh` 97.28%, `scripts/backup-notes.sh` 95.16%, `scripts/restore-notes.sh` 96.30%, `scripts/show-backup.sh` 93.48%, `total line coverage: 89.35% (minimum 80%)`, exit 0 |

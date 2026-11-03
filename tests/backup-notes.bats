@@ -75,6 +75,33 @@ fix_backup_stamp() {
   done
 }
 
+@test "backup stops before it keeps anything when the data root holds a symlink or a hard link, restarts the container and spares earlier backups" {
+  local link file note="$BM_REMOTE_DATA_ROOT/knowledge/a.md" linked="$BM_REMOTE_DATA_ROOT/knowledge/linked.md"
+  local earlier=(bm-20261007T000000Z.tgz bm-20261007T000000Z.tgz.manifest bm-20261007T000000Z.tgz.sha256)
+  for link in symlink "hard link"; do
+    (
+      : >"$STUB_LOG" || exit 1
+      rm -rf "$BACKUP_DIR" "$linked" || exit 1
+      fix_backup_stamp 20261008T000000Z || exit 1
+      for file in "${earlier[@]}"; do
+        echo old >"$BACKUP_DIR/$file" || exit 1
+      done
+      case "$link" in
+        symlink) ln -s a.md "$linked" ;;
+        "hard link") ln "$note" "$linked" ;;
+      esac || exit 1
+      run "$BACKUP"
+      assert_failure && assert_output --partial "unsafe archive" && assert_stub_called -F 'docker compose start' || exit 1
+      run ls -A "$BACKUP_DIR"
+      assert_output "$(printf '%s\n' "${earlier[@]}")" || exit 1
+      for file in "${earlier[@]}"; do
+        run cat "$BACKUP_DIR/$file"
+        assert_output old || exit 1
+      done
+    ) || fail "backup with a $link in the data root"
+  done
+}
+
 @test "backup refuses a name that another backup or another run holds, without stopping the container or touching those files" {
   local case message content names file held
   # Each case: the message of the check that refuses | the content of the files that hold the name | those files.

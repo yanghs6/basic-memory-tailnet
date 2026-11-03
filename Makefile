@@ -173,7 +173,7 @@ sb-fonts: ## Convert the D2Koding Nerd Font to WOFF2 and upload it to the VM not
 backup: ## Download a consistent backup of VM data into the main checkout's backups/ (brief container stop)
 	scripts/backup-notes.sh
 
-backup-latest: ## Print the newest main-checkout backup archive and whether its checksum matches and its manifest exists (read-only; never prints contents)
+backup-latest: ## Print the newest main-checkout backup archive, whether its checksum matches, its manifest exists and its entries are safe to restore (read-only; never prints contents or entry names)
 	scripts/show-backup.sh
 
 restore: ## Restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz to the VM (asks for yes), then verify

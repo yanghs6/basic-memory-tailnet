@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# Print the newest bm-*.tgz in the main checkout's backups/ and whether its .sha256 matches and its .manifest exists.
-# Reads only the checksum file's first field and the archive bytes to hash them; never prints archive or manifest
-# content and changes nothing. A sandboxed worktree session runs this instead of listing the main checkout's backups/.
+# Print the newest bm-*.tgz in the main checkout's backups/, whether its .sha256 matches, its .manifest exists and its
+# entries are only regular files and directories with relative paths (archive_entry_problem), and whether
+# 'make restore' would take it. Reads only the checksum file's first field, the archive bytes to hash them and the
+# archive's entry list, but never prints an entry name (they hold note titles) or archive or manifest content, and
+# changes nothing. A sandboxed worktree session runs this instead of listing the main checkout's backups/.
 # Usage: make backup-latest   (BACKUP_DIR=<dir> reads another directory)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$SCRIPT_DIR/lib/common.sh"
+# shellcheck source=lib/vm.sh
+. "$SCRIPT_DIR/lib/vm.sh"
 
 readonly BACKUPS_DIRNAME="backups"
 
@@ -51,21 +53,35 @@ checksum_state() {
   fi
 }
 
+# entries_state ARCHIVE -> safe, UNSAFE (<reason>) or unreadable (archive_entry_problem); never an entry name.
+entries_state() {
+  local problem
+  if ! problem="$(archive_entry_problem "$1")"; then
+    printf 'unreadable\n'
+  elif [[ -z "$problem" ]]; then
+    printf 'safe\n'
+  else
+    printf 'UNSAFE (%s)\n' "$problem"
+  fi
+}
+
 main() {
-  local dir archive checksum manifest
+  local dir archive checksum manifest entries
   dir="$(resolve_backup_dir)" || exit 1
   archive="$(newest_archive "$dir")" \
     || die "no bm-*.tgz in $dir: run 'make backup' (ask the user first) or restore from another copy"
   checksum="$(checksum_state "$archive")" || exit 1
   manifest="missing"
   [[ ! -f "$archive.manifest" ]] || manifest="present"
+  entries="$(entries_state "$archive")" || exit 1
   printf 'archive: %s\n' "$archive"
   printf 'checksum: %s\n' "$checksum"
   printf 'manifest: %s\n' "$manifest"
-  if [[ "$checksum" == "match" && "$manifest" == "present" ]]; then
+  printf 'entries: %s\n' "$entries"
+  if [[ "$checksum" == "match" && "$manifest" == "present" && "$entries" == "safe" ]]; then
     printf 'restorable: yes (make restore BACKUP=%s)\n' "$archive"
   else
-    printf 'not restorable: make restore refuses an archive without a matching checksum and a manifest\n'
+    printf 'not restorable: make restore refuses an archive without a matching checksum and a manifest, or with entries other than regular files and directories with relative paths\n'
   fi
 }
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Download a consistent backup of the VM data root into the main checkout's backups/: archive, .sha256 and a .manifest of every
 # data file. The container is stopped briefly so SQLite files are not copied mid-write; the restart is
-# registered before the stop, so it runs even if the stop's reply is lost.
+# registered before the stop, so it runs even if the stop's reply is lost. An archive holding an entry that
+# 'make restore' refuses (a link or a device outside the skipped model cache) is not kept.
 # Usage: make backup
 set -euo pipefail
 
@@ -104,6 +105,8 @@ main() {
   step "stream $BM_REMOTE_DATA_ROOT from $BM_VM_HOST"
   remote "sudo -n tar -C $parent --exclude=$name/$BM_MODEL_CACHE_REL_PATH -czf - $name" >"$ARCHIVE$PARTIAL_SUFFIX" \
     || die "backup stream failed; no archive was written"
+  step "check that the archive holds only regular files and directories"
+  check_archive_entries "$ARCHIVE$PARTIAL_SUFFIX" "the data root on $BM_VM_HOST holds a link or a device outside the model cache ($BM_MODEL_CACHE_REL_PATH, which backups skip), so 'make restore' would refuse this backup; nothing was kept. Next: list them with 'ssh $BM_VM_USER@$BM_VM_HOST sudo find $BM_REMOTE_DATA_ROOT -path $BM_REMOTE_DATA_ROOT/$BM_MODEL_CACHE_REL_PATH -prune -o ! -type d -links +1 -print -o ! -type f ! -type d -print' and tell the user"
   digest="$(sha256_of "$ARCHIVE$PARTIAL_SUFFIX")" || exit 1
   printf '%s  %s\n' "$digest" "$(basename "$ARCHIVE")" >"$ARCHIVE.sha256$PARTIAL_SUFFIX" \
     || die "could not write the checksum; no backup was kept"

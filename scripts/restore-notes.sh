@@ -48,22 +48,6 @@ verify_checksum() {
     || die "checksum mismatch for $archive (expected $expected, got $actual): the file is corrupt or was modified"
 }
 
-# check_archive_entries ARCHIVE: refuse entries that could write outside the staging dir when tar runs as root
-# on the VM: absolute paths, '..' components, and anything but regular files and directories (symlinks, hard
-# links, devices, fifos). The manifest covers regular files only, so it cannot catch these. `tar -tv` prints
-# the entry type as the first character of the mode column on GNU tar and bsdtar alike.
-check_archive_entries() {
-  local archive="$1" names types
-  names="$(tar -tzf "$archive")" || die "could not list the entries of $archive: the archive is unreadable"
-  types="$(tar -tzvf "$archive" | cut -c1)" || die "could not list the entries of $archive: the archive is unreadable"
-  if grep -qv '^[-d]$' <<<"$types"; then
-    die "unsafe archive $archive: it holds an entry that is not a regular file or directory (symlink, hard link or device); restore only archives made by 'make backup'"
-  fi
-  if grep -qE '^/|(^|/)\.\.(/|$)' <<<"$names"; then
-    die "unsafe archive $archive: it holds an absolute path or a '..' component; restore only archives made by 'make backup'"
-  fi
-}
-
 # The answer is read from the controlling terminal only, so a piped or scripted "yes" on stdin never counts and an agent
 # without a terminal cannot confirm for the user. There is no other way in.
 confirm() {
@@ -157,7 +141,7 @@ main() {
     WAIT_SERVICES="$NOTE_SERVICES"
   fi
   verify_checksum "$archive"
-  check_archive_entries "$archive"
+  check_archive_entries "$archive" "restore only archives made by 'make backup'"
   confirm "Replace $ROOT, $COMPOSE_FILE and $ENV_FILE on $BM_VM_HOST with $(basename "$archive") and this repo's compose.yaml? Current data moves to $PREV. Type 'yes': "
 
   present="$(remote_exists "$ROOT")" \
