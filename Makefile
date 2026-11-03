@@ -152,13 +152,13 @@ vm-bootstrap: ## First-time VM setup (HOST=<public-ip>, or the SSH host alias in
 deploy: ## Copy compose.yaml, the VM .env and the SilverBullet space files to the VM, then start Basic Memory and SilverBullet (waits until healthy)
 	scripts/deploy-stack.sh
 
-verify: ## Full VM check: MCP write/read/delete, SilverBullet login, loopback binding, exposure (Serve in tailscale mode; Tailscale off and sshd key-only in ssh mode), closed public ports
+verify: ## Full VM check: BM_VM_PUBLIC_IP is the VM's current external IP, MCP write/read/delete, SilverBullet login, loopback binding, exposure (Serve in tailscale mode; Tailscale off and sshd key-only in ssh mode), closed public ports
 	scripts/verify-vm.sh
 
 probe: ## Read-only VM check: same as verify but writes no notes and does not log in to SilverBullet
 	scripts/verify-vm.sh --read-only
 
-status: ## Show VM containers, memory and swap use, and tailscale serve (ssh mode: whether Tailscale is off)
+status: ## Show VM containers and note services not running, whether Basic Memory answers HTTP, uptime, disk, memory and swap use (warns at 80%), and tailscale serve (ssh mode: whether Tailscale is off)
 	scripts/show-status.sh
 
 logs: ## Show the last 200 lines of the VM container logs
@@ -173,7 +173,7 @@ sb-fonts: ## Convert the D2Koding Nerd Font to WOFF2 and upload it to the VM not
 backup: ## Download a consistent backup of VM data into the main checkout's backups/ (brief container stop)
 	scripts/backup-notes.sh
 
-backup-latest: ## Print the newest main-checkout backup archive and whether its checksum matches and its manifest exists (read-only; never prints contents)
+backup-latest: ## Print the newest main-checkout backup archive, whether its checksum matches, its manifest exists and its entries are safe to restore (read-only; never prints contents or entry names)
 	scripts/show-backup.sh
 
 restore: ## Restore BACKUP=<main checkout>/backups/bm-<stamp>.tgz to the VM (asks for yes), then verify

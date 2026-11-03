@@ -368,3 +368,37 @@ write_env_file() {
   assert_line --index 0 "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  ./a.md"
   assert_line --index 1 "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad  ./b/z.md"
 }
+
+@test "archive_entry_problem accepts regular files and directories, names a symlink, a hard link, an absolute path or a '..' entry without printing entry names, and fails on an unreadable archive" {
+  local case kind reason src="$BATS_TEST_TMPDIR/src" archive="$BATS_TEST_TMPDIR/backup.tgz"
+  local outside="$BATS_TEST_TMPDIR/SECRET-outside.md"
+  # Each case: what the archive holds next to a notes folder | the reason it must name (empty: none; unreadable: it fails).
+  for case in "only files and directories|" \
+    "symlink|not a regular file or directory" \
+    "hard link|not a regular file or directory" \
+    "absolute path|absolute path or a '..' component" \
+    "../ entry|absolute path or a '..' component" \
+    "no tgz|unreadable"; do
+    IFS='|' read -r kind reason <<<"$case"
+    (
+      rm -rf "$src" "$archive" "$outside" || exit 1
+      mkdir -p "$src/SECRET-notes" && echo note >"$src/SECRET-notes/SECRET-title.md" && echo outside >"$outside" || exit 1
+      case "$kind" in
+        symlink) ln -s SECRET-title.md "$src/SECRET-notes/SECRET-link.md" ;;
+        "hard link") ln "$src/SECRET-notes/SECRET-title.md" "$src/SECRET-notes/SECRET-hard.md" ;;
+      esac || exit 1
+      case "$kind" in
+        "absolute path") tar -C "$src" -czf "$archive" -P SECRET-notes "$outside" ;;
+        "../ entry") tar -C "$src" -czf "$archive" -P SECRET-notes ../SECRET-outside.md ;;
+        "no tgz") echo "SECRET-NOT-AN-ARCHIVE" >"$archive" ;;
+        *) tar -C "$src" -czf "$archive" SECRET-notes ;;
+      esac || exit 1
+      run archive_entry_problem "$archive"
+      case "$reason" in
+        "") assert_success && assert_output "" ;;
+        unreadable) assert_failure ;;
+        *) assert_success && assert_output --partial "$reason" ;;
+      esac && refute_output --partial SECRET || exit 1
+    ) || fail "archive_entry_problem with $kind"
+  done
+}

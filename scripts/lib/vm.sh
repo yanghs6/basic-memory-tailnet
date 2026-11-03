@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# VM helpers for scripts/*.sh: the VM layout, the access mode, SSH and compose on the VM, and the data manifest.
+# VM helpers for scripts/*.sh: the VM layout, the access mode, SSH and compose on the VM, the data manifest and the backup
+# archive checks.
 # Sources common.sh. Must stay compatible with macOS bash 3.2.
 #   access_mode -> tailscale or ssh (BM_ACCESS); dies on any other value
 #   web_mode -> on or off (BM_WEB, the claude.ai web connector); dies on any other value
@@ -23,6 +24,8 @@
 #   backup_gateway_files DIR -> with BM_WEB=on, copy the live gateway files into DIR on the VM and set GATEWAY_BACKUP_DIR (restore)
 #   gateway_rollback_cmd DIR -> a command for `remote` that puts the files backed up in DIR back (restore's rollback)
 #   manifest_cmd DIR -> a command printing "<sha256>  ./<path>" for every data file under DIR
+#   archive_entry_problem ARCHIVE -> nothing when every entry is a regular file or directory with a relative path and no '..'; else one reason line, never an entry name; fails when tar cannot list it
+#   check_archive_entries ARCHIVE HINT -> dies when ARCHIVE is unreadable or archive_entry_problem names a reason (the reason, then HINT)
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
 
 [ -n "${_BM_LIB_VM:-}" ] && return 0
@@ -335,4 +338,31 @@ gateway_rollback_cmd() {
 # manifests cannot drift apart. pipefail makes a failing find fail the command instead of printing a short list.
 manifest_cmd() {
   printf 'set -o pipefail; cd %s && sudo -n find . -path ./%s -prune -o -type f -exec sha256sum {} + | LC_ALL=C sort -k2' "$1" "$BM_MODEL_CACHE_REL_PATH"
+}
+
+# archive_entry_problem ARCHIVE -> prints nothing when every entry of the gzipped tar ARCHIVE is a regular file or a
+# directory with a relative path and no '..' component; otherwise one line with the reason. Such entries could write
+# outside the staging dir when tar extracts as root on the VM, and the manifest covers regular files only, so it cannot
+# catch them. Never prints an entry name (the names hold note titles), nor tar's errors. Fails when tar cannot list
+# ARCHIVE. `tar -tv` prints the entry type as the first character of the mode column on GNU tar and bsdtar alike.
+# Use: problem="$(archive_entry_problem ARCHIVE)" || <handle an unreadable archive>
+archive_entry_problem() {
+  local archive="$1" names listing types
+  names="$(tar -tzf "$archive" 2>/dev/null)" || return 1
+  listing="$(tar -tzvf "$archive" 2>/dev/null)" || return 1
+  types="$(cut -c1 <<<"$listing")" || return 1
+  if grep -qv '^[-d]$' <<<"$types"; then
+    printf '%s\n' "it holds an entry that is not a regular file or directory (symlink, hard link or device)"
+  elif grep -qE '^/|(^|/)\.\.(/|$)' <<<"$names"; then
+    printf '%s\n' "it holds an absolute path or a '..' component"
+  fi
+}
+
+# check_archive_entries ARCHIVE HINT -> dies with "unsafe archive ARCHIVE: <reason>; HINT" when archive_entry_problem
+# names a reason, and with "could not list the entries of ARCHIVE: the archive is unreadable" when tar cannot list it.
+check_archive_entries() {
+  local archive="$1" hint="$2" problem
+  problem="$(archive_entry_problem "$archive")" \
+    || die "could not list the entries of $archive: the archive is unreadable"
+  [[ -z "$problem" ]] || die "unsafe archive $archive: $problem; $hint"
 }

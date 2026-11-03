@@ -26,11 +26,11 @@ Work top-down and stop at the first layer that fails. Look up every error messag
    - `TERMINATED` (stopped): the user starts it and updates `BM_VM_PUBLIC_IP` (same section). Do not rebuild.
    - Deleted or unusable: use `bm-recover`.
 2. SSH (tailscale mode only; in ssh mode Layer 1 already ran the SSH check against the alias): `ssh ubuntu@agent-hub true`. Failing while the tailnet is fine: check the Tailscale policy `ssh` rule for `tag:agent-hub` (docs/runbooks/rbk-2026-10-12-hqxjjqy8-accounts.md).
-3. Container: `make status`. Not `(healthy)`: run `make logs` and quote the first error. For more than the last 200 lines, `make export-logs` writes the lines since `SINCE` (default 24h) to `log-exports/` in the main checkout (in a worktree session set `LOG_EXPORT_DIR=<dir in your worktree>` to keep the file there); query it with `jq` and quote only error lines, never note titles, permalinks or search text.
-4. Memory: `make status` prints the memory and swap use.
+3. Container: `make status`. Not `(healthy)`: run `make logs` and quote the first error. For more than the last 200 lines, `make export-logs` writes the lines since `SINCE` (default 24h) to `log-exports/` in the main checkout (in a worktree session set `LOG_EXPORT_DIR=<dir in your worktree>` to keep the file there); query it with `jq` and quote only error lines, never note titles, permalinks or search text. A note service missing from the `running:` line, or `did not answer HTTP` while the containers are `(healthy)`, means a stopped or stalled server: find its row in the failure messages.
+4. Memory and disk: `make status` prints memory use, swap use with its percentage, disk use and uptime, and warns at 80% swap or disk use. An uptime shorter than expected means the VM rebooted.
 5. Serve: `make status` ends with `tailscale serve status`; it must show `proxy http://127.0.0.1:8737` (`BM_PORT`).
    In ssh mode there is no Serve: `make status` must show `tailscale: not installed or logged out`.
-6. MCP: `make probe` (initialize and tools/list only; writes nothing). Read the failing step.
+6. MCP: `make probe` (the external IP check, initialize, tools/list and a hybrid search that must answer that semantic search is disabled; writes nothing). Read the failing step.
 7. Report the failing layer, the evidence (command and output excerpt), the proposed fix and who runs it. If the incident was real, suggest a row in "Incident log" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md with the cause (prefixed `Assumption:` if unconfirmed) and the follow-up.
 
 ## Gotchas
