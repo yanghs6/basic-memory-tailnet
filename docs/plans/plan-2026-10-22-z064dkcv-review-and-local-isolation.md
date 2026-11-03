@@ -8,6 +8,8 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 
 > 2026-10-22 에이전트 개발 시스템 평가(저장소 밖 기록)의 D6·D7 발견으로 만든 백로그 초안입니다. 실행하려면 사용자 승인과 `## 배경` 끝의 Open question 1~3 결정이 먼저 있어야 합니다. Task 1~3은 스펙 8절이 정한 리뷰 흐름 안에서 리뷰어 입력과 코멘트 머리를 넓히는 일이므로 새 스펙 없이 이 계획으로 진행할 수 있습니다. Task 4에서 (b)안(worktree마다 project name과 포트)을 고르면 brainstorming → 스펙 → 계획 순서를 먼저 거칩니다.
 
+> **Verified (2026-11-02):** 위 전제는 2026-10-27에 채워졌다. 사용자가 계획을 승인했고 Open question 1~3을 정했다(Progress log 첫 네 행). Task 4는 (a)안으로 했다.
+
 > **For agentic workers:** Task를 순서대로 하나씩 구현한다. 도구가 서브에이전트를 지원하면 Task마다 새 서브에이전트와 리뷰를 쓰고, 아니면 한 세션에서 실행한다. VM이나 클라우드를 바꾸는 Step은 메인 세션에서 사용자와 함께, 단계마다 OK를 받고 한다. Step은 체크박스(`- [ ]`)로 추적한다.
 
 **Goal:** 교차 벤더 리뷰가 명시하고 기록한 모델과 추론 강도로 돌고 `make check` 결과를 보게 하며, 두 worktree가 로컬 스택 하나를 조용히 나눠 쓰지 못하게 한다.
@@ -95,8 +97,8 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/z064dkcv-review-and-local-isolation` 브랜치를 만든다(`git-workflow` 스킬의 Start).
-- [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고, Open question 1~3의 결정을 Progress log에 적는다. push한 뒤 초안 PR을 연다.
+- [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/z064dkcv-review-and-local-isolation` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고, Open question 1~3의 결정을 Progress log에 적는다. push한 뒤 초안 PR을 연다.
 
 ### Task 1: Reviewer model and effort
 
@@ -108,15 +110,15 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 **Interfaces:**
 - Produces: `make review`가 넘기는 환경변수 `REVIEW_MODEL`, `REVIEW_EFFORT`. meta 파일의 `base`·`head` 다음에 오는 `model <m>`, `effort <e>` 줄.
 
-- [ ] **Step 0:** Codex config reference(https://learn.chatgpt.com/docs/config-file/config-reference)에서 `model_reasoning_effort`의 허용 값을 확인한다. Claude `--effort` 값과의 공통 집합을 상수 `REVIEW_EFFORTS`로 정하고, 결과를 Progress log에 `Verified`로 적는다. **Assumption:** 공통 집합은 `low medium high xhigh`일 것이다.
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 0:** Codex config reference(https://learn.chatgpt.com/docs/config-file/config-reference)에서 `model_reasoning_effort`의 허용 값을 확인한다. Claude `--effort` 값과의 공통 집합을 상수 `REVIEW_EFFORTS`로 정하고, 결과를 Progress log에 `Verified`로 적는다. **Assumption:** 공통 집합은 `low medium high xhigh`일 것이다.
+- [x] **Step 1: 실패하는 테스트 작성**
   - `:30` 테스트에 두 리뷰어의 기본값을 기대값으로 넣는다. Codex는 `codex exec review -m <기본 모델> -c model_reasoning_effort="<기본 강도>" -c sandbox_mode="read-only" --base main`이 찍히는지, `-o` 호출에도 같은 `-m`·`-c`가 붙는지 본다. Claude는 두 호출 모두에 `--model <기본 모델> --effort <기본 강도>`가 있는지 본다. 두 경우 모두 meta 파일에 `model …`·`effort …` 줄이 있는지 확인한다. `:57`의 기존 기대값이 바뀌는 이유(인자가 늘어남)는 커밋 본문에 적는다.
   - 새 테스트 "passes REVIEW_MODEL and REVIEW_EFFORT to both reviewer calls and records them in the meta file": `REVIEW_MODEL=model-y REVIEW_EFFORT=xhigh`로 두 리뷰어를 돌린다.
   - `:141` 거부 테스트에 case `"unknown effort|REVIEW_EFFORT must be one of"`(`REVIEW_EFFORT=extreme`)를 더한다. 리뷰어 호출이 0번이고 worktree가 하나뿐이어야 한다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 위 세 테스트가 실패한다. `-m`·`--model` 줄과 meta의 `model` 줄이 없고, `extreme`은 거부되지 않고 리뷰가 성공하기 때문이다.
-- [ ] **Step 3: 최소 구현.** 상수와 검증을 추가한다. 검증은 worktree를 만들기 전에 하고, 모델 이름은 `[A-Za-z0-9._-]`만 받는다. 이어서 Codex 두 호출에 `-m`과 `-c "model_reasoning_effort=\"$effort\""`를, `claude_review`에 `--model`·`--effort`를 넣고, meta에 두 줄을 쓴다. 머리 주석과 `Makefile:90` 도움말에 두 변수를 적는다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋.** `git commit -m "feat: pass the reviewer model and reasoning effort explicitly and record them" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: z064dkcv" --trailer "Task: 1"`
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 위 세 테스트가 실패한다. `-m`·`--model` 줄과 meta의 `model` 줄이 없고, `extreme`은 거부되지 않고 리뷰가 성공하기 때문이다.
+- [x] **Step 3: 최소 구현.** 상수와 검증을 추가한다. 검증은 worktree를 만들기 전에 하고, 모델 이름은 `[A-Za-z0-9._-]`만 받는다. 이어서 Codex 두 호출에 `-m`과 `-c "model_reasoning_effort=\"$effort\""`를, `claude_review`에 `--model`·`--effort`를 넣고, meta에 두 줄을 쓴다. 머리 주석과 `Makefile:90` 도움말에 두 변수를 적는다.
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋.** `git commit -m "feat: pass the reviewer model and reasoning effort explicitly and record them" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: z064dkcv" --trailer "Task: 1"`
 
 **Assumption:** `branch-reviewer`에 `model` 키가 없으므로 `--agent`를 쓸 때도 `--model`이 적용될 것이다. Finish의 첫 실제 리뷰에서 확인한다.
 
@@ -132,7 +134,7 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 - Consumes: Task 1의 meta 파일.
 - Produces: out 디렉터리의 `<prefix>-check.log`. meta 파일의 `check passed` 또는 `check failed (exit <n>)` 줄.
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
   - "gives the reviewer the make check result of the reviewed head and keeps the log": case는 `MAKE_STUB_EXIT` 0과 2, 리뷰어는 codex와 claude다. 확인할 것:
     - `make check :: cwd=$REVIEW_WT`가 한 번 호출된다.
     - check가 실패해도 리뷰는 성공한다.
@@ -140,14 +142,14 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
     - meta에 `check passed` 또는 `check failed (exit 2)`가 있다.
     - prompt에 `make check on the reviewed head: <결과>`가 들어 있다. Codex는 `-o` 호출에만, Claude는 두 호출 모두에 들어간다. 실패한 case에서는 stub의 출력 줄도 prompt에 들어 있다.
   - "closes stdin for every reviewer call": `STUB_LOG_STDIN=1 run "$REVIEW" plan/qq4h1djv-git-review-tooling <reviewer> <<<"leaked input"`로 돌린다. 리뷰어 호출마다 `stdin_bytes=0`이 찍히고, 0이 아닌 값은 하나도 없어야 한다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 첫 테스트는 `make check` 호출 줄과 check 로그가 없어서 실패한다. 둘째 테스트는 `stdin_bytes=13`이 찍혀서 실패한다.
-- [ ] **Step 3: 최소 구현**
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 첫 테스트는 `make check` 호출 줄과 check 로그가 없어서 실패한다. 둘째 테스트는 `stdin_bytes=13`이 찍혀서 실패한다.
+- [x] **Step 3: 최소 구현**
   - worktree를 만든 뒤 `(cd "$WT" && make check) >"$check_log" 2>&1 </dev/null`을 돌리고, 종료 코드를 받아 둔다. 실패해도 `die`하지 않고 `WARNING`만 남긴다.
   - `check_summary`는 결과 한 줄을 만든다. 실패하면 로그의 마지막 `CHECK_TAIL_LINES`(상수)줄을 붙인다. 이 요약을 `plan_prompt`와 `change_prompt`에 넣는다.
   - Codex 두 호출과 `claude_review`에 `</dev/null`을 붙인다.
   - check 로그를 `rm -f` 목록과 `Next:` 안내에 더하고, meta에 `check` 줄을 쓴다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋.** `git commit -m "feat: give the reviewer the make check result of the reviewed head and close its stdin" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: z064dkcv" --trailer "Task: 2"`
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋.** `git commit -m "feat: give the reviewer the make check result of the reviewed head and close its stdin" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: z064dkcv" --trailer "Task: 2"`
 
 ### Task 3: Comment header from the meta file
 
@@ -161,14 +163,14 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 - Consumes: Task 1·2의 meta 줄(`model`, `effort`, `check`).
 - Produces: 머리 `## Agent review R<n>: <reviewer> (<model>, effort <effort>)`, 그리고 다음 줄 ``Base `<sha>`, reviewed head `<sha>`. make check on the reviewed head: <check>.``
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
   - `write_reports`가 meta에 `model gpt-6.1-sol`, `effort high`, `check failed (exit 2)`를 쓴다.
   - 머리 테스트(`:21`)는 `REVIEW_MODEL=other-model`을 둔 채 돌린다. 머리가 meta 값(`gpt-6.1-sol, effort high`)과 check 줄을 담는지, 본문에 `$REVIEW_OUT_DIR`가 없는지 본다(`grep -c -F` 결과 0).
   - `:36` 테스트에 case `"old meta|names no model"`을 더한다. meta에 `base`·`head`만 있으면 실패하고 `refute_stub_called '^gh '`가 통과해야 한다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 머리 테스트는 머리가 `other-model`이고 강도가 없어서 실패한다. old meta case는 gh를 불러서 실패한다.
-- [ ] **Step 3: 최소 구현.** `sed -n 's/^model //p'` 같은 방식으로 세 줄을 읽는다. 하나라도 비면 `die "<meta> names no model, effort or check result: rerun make review"`로 멈춘다. 머리를 만들고, 스크립트에서 `REVIEW_MODEL`을 읽는 곳을 모두 지운다. 그다음 안내와 문서 세 곳을 고친다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋.** `git commit -m "feat: head review comments with the recorded model, effort and check result" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: z064dkcv" --trailer "Task: 3"`
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 머리 테스트는 머리가 `other-model`이고 강도가 없어서 실패한다. old meta case는 gh를 불러서 실패한다.
+- [x] **Step 3: 최소 구현.** `sed -n 's/^model //p'` 같은 방식으로 세 줄을 읽는다. 하나라도 비면 `die "<meta> names no model, effort or check result: rerun make review"`로 멈춘다. 머리를 만들고, 스크립트에서 `REVIEW_MODEL`을 읽는 곳을 모두 지운다. 그다음 안내와 문서 세 곳을 고친다.
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋.** `git commit -m "feat: head review comments with the recorded model, effort and check result" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: z064dkcv" --trailer "Task: 3"`
 
 ### Task 4: Local stack owner check
 
@@ -183,8 +185,8 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 - Consumes: `compose.yaml:4`의 `name:`(스크립트가 읽으므로 이름의 출처는 한 곳뿐이다).
 - Produces: `scripts/check-local-stack.sh`(인자 없음). 소유자가 없거나 자기 디렉터리면 exit 0, 다른 디렉터리면 `die`.
 
-- [ ] **Step 0: 라벨 확인.** 다른 로컬 스택이 없을 때 자기 worktree에서 `make local-up`을 한 번 돌린다. 그다음 `docker inspect`로 `basic-memory-server`의 `com.docker.compose.project.working_dir` 라벨이 이 worktree 경로인지 보고 `make local-down`한다. 경로는 적지 않고, 일치했는지만 Progress log에 `Verified`로 적는다. **Assumption:** Docker Compose v2는 이 라벨에 compose 파일이 있는 디렉터리의 절대 경로를 넣는다.
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 0: 라벨 확인.** 다른 로컬 스택이 없을 때 자기 worktree에서 `make local-up`을 한 번 돌린다. 그다음 `docker inspect`로 `basic-memory-server`의 `com.docker.compose.project.working_dir` 라벨이 이 worktree 경로인지 보고 `make local-down`한다. 경로는 적지 않고, 일치했는지만 Progress log에 `Verified`로 적는다. **Assumption:** Docker Compose v2는 이 라벨에 compose 파일이 있는 디렉터리의 절대 경로를 넣는다.
+- [x] **Step 1: 실패하는 테스트 작성**
   - `tests/check-local-stack.bats`에 테스트 하나를 쓰고 case를 반복한다. 확인할 case:
     - 컨테이너 없음: 통과.
     - 이 저장소를 가리키는 심볼릭 링크 경로: 통과.
@@ -192,21 +194,21 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
     - 지워진 디렉터리: `WARNING`을 남기고 통과. 그 worktree는 이미 없으므로 스택을 쓰는 곳이 없다.
   - 모든 case에서 docker 호출은 `ps`뿐이어야 한다(`refute_stub_called '^docker compose'`).
   - `tests/repo-make.bats:55` 테스트는 `compose.yaml`도 `LINKED_WT`에 복사한다. 이어서 `DOCKER_STUB_STACK_DIRS=<존재하는 다른 디렉터리>`로 `make local-up`과 `make local-down`이 실패하고 `docker compose` 호출이 0번인지 본다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 테스트는 스크립트가 빈 템플릿이라 실패한다. make 테스트는 `local-up`이 `docker compose`까지 가서 실패한다.
-- [ ] **Step 3: 최소 구현**
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 테스트는 스크립트가 빈 템플릿이라 실패한다. make 테스트는 `local-up`이 `docker compose`까지 가서 실패한다.
+- [x] **Step 3: 최소 구현**
   - `require_cmd docker`로 시작하고, `compose.yaml`의 `name:`을 읽는다.
   - `docker ps -a --filter label=com.docker.compose.project=<name>`에 working_dir 라벨만 찍는 `--format`을 붙여 디렉터리 목록을 얻는다.
   - 각 디렉터리를 `pwd -P`로 바꾼 값을 `REPO_DIR`의 `pwd -P`와 비교한다.
   - Makefile 두 타깃과 `AGENTS.md:10`을 고친다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋.** `git commit -m "feat: refuse local-up and local-down on a stack another worktree started" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: z064dkcv" --trailer "Task: 4"`
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋.** `git commit -m "feat: refuse local-up and local-down on a stack another worktree started" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: z064dkcv" --trailer "Task: 4"`
 
 ### Finish: review and hand-off
 
-- [ ] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
-- [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
-- [ ] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge). 이 PR의 리뷰는 새 `make review`로 돌린다. 코멘트 머리에 모델·강도·check 결과가 붙었는지, 리뷰에 걸린 시간이 얼마인지 Progress log에 `Verified`로 적는다.
-- [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
+- [x] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
+- [x] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
+- [x] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge). 이 PR의 리뷰는 새 `make review`로 돌린다. 코멘트 머리에 모델·강도·check 결과가 붙었는지, 리뷰에 걸린 시간이 얼마인지 Progress log에 `Verified`로 적는다.
+- [x] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
 
 ## Follow-ups
 
@@ -228,3 +230,4 @@ spec: docs/specs/spec-2026-10-13-pr762r68-github-pr-workflow.md
 | 2026-10-27 | Verified | Task 4 Step 0: 다른 로컬 스택이 없을 때(감독 세션의 슬롯 OK 후) `0f79c08`의 임시 worktree에서 `make local-up`을 돌렸다. `basic-memory-server`·`silverbullet-server`가 healthy였고, 두 컨테이너의 `com.docker.compose.project.working_dir` 라벨과 `docker ps --format`의 같은 라벨이 그 worktree 경로와 일치했다(`pwd -P`로 비교). `make local-down` 후 컨테이너는 0개였다. 서브에이전트가 plan worktree의 `Makefile`을 고치던 중이라 임시 worktree를 썼다. |
 | 2026-10-27 | Verified | Task 1~4 완료 후 `make check`: exit 0, bats `1..213` 중 `not ok` 0개, total line coverage 89.26%(최소 80%). Task 커밋은 `9bbd9b9`(Task 1), `5b3fe47`(Task 2), `0f79c08`(Task 3), `ec9f154`(Task 4)이다. |
 | 2026-10-27 | Verified | 사용자 OK 후 새 `make review BRANCH=plan/z064dkcv-review-and-local-isolation REVIEWER=codex`로 R1을 돌렸다. exit 0, 226초 걸렸다(리뷰 worktree의 `make check` 포함). meta 파일에 `model gpt-6.1-sol`, `effort low`, `check passed`가 기록됐다. 변경 리뷰와 계획 대조 리뷰 모두 지적 0건, `Verdict: mergeable`이었다. `make review-post`가 게시한 PR #29 코멘트 머리는 `## Agent review R1: codex (gpt-6.1-sol, effort low)`이고, 다음 줄에 base·head SHA와 `make check on the reviewed head: passed.`가 붙었다. Review record도 게시했다. |
+| 2026-11-02 | Verified | 체크박스를 실행 결과와 맞췄다(2026-11-02 저장소 재검토 P3-38). 근거: 이 Progress log의 Task 행과 PR #29(2026-10-27 병합, 다른 벤더 리뷰 R1 코멘트, 본문 Verification의 `make check`·CI). |

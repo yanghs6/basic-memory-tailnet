@@ -1,10 +1,12 @@
 ---
-status: active
+status: completed
 id: d3dpb00s
 spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 ---
 
 # d3dpb00s Web Connector Implementation Plan
+
+> Task 1~3은 PR #24(`01eb909`)로 병합됐다. Task 4는 [web-connector-rollout 계획](plan-2026-11-02-bbz2ngk7-web-connector-rollout.md)으로 옮겼다(2026-11-02, 사용자 승인).
 
 > **For agentic workers:** Task를 순서대로 하나씩 구현한다. 도구가 서브에이전트를 지원하면 Task마다 새 서브에이전트와 리뷰를 쓰고, 아니면 한 세션에서 실행한다. VM이나 클라우드를 바꾸는 Step은 메인 세션에서 사용자와 함께, 단계마다 OK를 받고 한다. Step은 체크박스(`- [ ]`)로 추적한다.
 
@@ -75,8 +77,8 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 
 ### Start: branch, worktree, draft PR
 
-- [ ] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/d3dpb00s-web-connector` 브랜치를 만든다(`git-workflow` 스킬의 Start).
-- [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
+- [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/d3dpb00s-web-connector` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: Gateway, compose services and local verification
 
@@ -93,20 +95,20 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 - Produces (Make): `local-up`·`local-down`·`local-logs`·`local-verify`가 `BM_WEB=on`일 때 `COMPOSE_PROFILES=web`과 `BM_WEB_BASE_URL=http://127.0.0.1:$(BM_WEB_PORT)`를 받는다. 새 타깃 `gateway-lock`.
 - Produces (`scripts/lib/vm.sh`): `web_mode -> on|off`. 비었으면 `off`이고, 다른 값이면 `die "BM_WEB must be on or off (got '…')"`. `access_mode`와 같은 모양이다.
 
-- [ ] **Step 1: 실패하는 구조 테스트 작성.** `tests/repo-config.bats`에 다음을 더한다. 18개 이름은 테스트 파일에 상수 `WEB_ALLOWED_TOOLS`로 따로 적는다.
+- [x] **Step 1: 실패하는 구조 테스트 작성.** `tests/repo-config.bats`에 다음을 더한다. 18개 이름은 테스트 파일에 상수 `WEB_ALLOWED_TOOLS`로 따로 적는다.
   - "cloudflared runs a pinned cloudflared image as a remotely managed tunnel in the tunnel profile, publishes no port and joins only the web network": `image: cloudflare/cloudflared:`, 명령에 `tunnel`과 `run`, `--url` 없음, `TUNNEL_TOKEN: ${BM_WEB_TUNNEL_TOKEN:-}`, `ports:` 없음, `networks: [web]`, `profiles: [tunnel]`, `restart: unless-stopped`, 헬스체크.
   - "gateway runs the pinned python slim image in the web profile, joins basic-memory and web and mounts its code read-only": `image: python:…-slim@`, `profiles: [web]`, `networks: [basic-memory, web]`, `./gateway:/app:ro`, `restart: unless-stopped`, 헬스체크 명령에 `oauth-authorization-server`.
   - "web services never use a required-variable default": 두 서비스 블록에 `${` 다음 `:?`가 없다.
   - "nothing starts a quick tunnel": `compose.yaml`, `Makefile`, `scripts/`에 `trycloudflare`가 없다.
   - "gateway requirements pin every package with a hash": `gateway/requirements.txt`의 모든 요구 줄이 `==`로 고정되고 바로 뒤에 `--hash=sha256:` 줄이 하나 이상 있다.
   - "gateway.py strips client headers, opens only the allowed tools, checks the owner by numeric id and culls its store": `forward_incoming_headers=False`, `only=True`, `"sub"`, `cull(`가 있고, `ALLOWED_TOOLS = frozenset(`부터 `)`까지의 따옴표 이름 집합이 `WEB_ALLOWED_TOOLS`와 같다.
-- [ ] **Step 2: 실패하는 스크립트 테스트 작성.** `make new-script NAME=verify-web`으로 `scripts/verify-web.sh`와 `tests/verify-web.bats`를 만든다. curl 스텁 응답은 `tests/fixtures/verify-web/`, `dig` 스텁은 `tests/stubs/dig`에 둔다. 테스트:
+- [x] **Step 2: 실패하는 스크립트 테스트 작성.** `make new-script NAME=verify-web`으로 `scripts/verify-web.sh`와 `tests/verify-web.bats`를 만든다. curl 스텁 응답은 `tests/fixtures/verify-web/`, `dig` 스텁은 `tests/stubs/dig`에 둔다. 테스트:
   - "passes when the gateway answers 401 with resource_metadata, serves both metadata documents and refuses a foreign redirect URI": 각 검사의 `OK:` 줄을 확인한다.
   - 실패 경우 표(`@test` 하나에 case 반복): 토큰 없는 `POST /mcp`가 200, `WWW-Authenticate`에 `resource_metadata` 없음, 보호 리소스 메타데이터의 `resource`가 `BASE_URL/mcp`가 아님, `code_challenge_methods_supported`에 `S256` 없음, `client_id_metadata_document_supported`가 true가 아님, `token_endpoint_auth_methods_supported`에 `none` 없음, `/register`가 2xx. 모두 실패해야 한다.
   - "--public fails when the host resolves to a private, CGNAT or loopback address and never prints the host or the addresses": `dig` 스텁이 RFC 1918 주소, CGNAT(`100.64.0.0/10`) 안의 주소, loopback 주소를 돌려줄 때 실패한다. [public-text-guard 계획](plan-2026-10-22-v9whrbs6-public-text-guard.md)의 공개 텍스트 검사는 RFC 1918, link-local, loopback, `0.0.0.0`, 문서용 대역, IAP 대역의 주소와 CIDR 표기만 허용하고 CGNAT 낱개 주소는 허용하지 않으므로, CGNAT 예시는 파일에 낱개 주소로 쓰지 않고 테스트가 실행 중에 `100.64.0.0/10` 안의 주소를 만든다. 공개 주소일 때는 통과한다. 두 경우 모두 출력에 호스트명과 주소가 없다.
-- [ ] **Step 3: 실패하는 Make·라이브러리 테스트 작성.** `tests/lib-vm.bats`에 `web_mode`가 빈 값·`on`·`off`를 받고 `On`·`yes`를 거절하는 테스트를 더한다. `tests/repo-make.bats`에 새 테스트 하나를 더한다. "make local-up with BM_WEB=on hands COMPOSE_PROFILES=web to compose and runs the same compose command": docker 스텁이 받은 환경을 기록하게 하고, `COMPOSE_PROFILES=web`과 `docker compose -f compose.yaml up -d --wait` 줄을 확인한다. `BM_WEB=yes`면 compose 호출 전에 `BM_WEB must be on or off`로 실패한다. 기존 `:55` 테스트는 그대로 통과해야 한다.
-- [ ] **Step 4: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패한다(서비스·파일·스크립트·Make 처리 없음).
-- [ ] **Step 5: 게이트웨이 동작 테스트 작성(`gateway/test_gateway.py`, `unittest.IsolatedAsyncioTestCase`).** 가짜 백엔드는 21개 도구와 `new_tool`을 가진 FastMCP 서버다. 받은 요청 헤더와 호출된 도구 이름을 기록하며, 같은 프로세스의 uvicorn 스레드에서 빈 포트로 띄운다. 인증은 `StaticTokenVerifier`로 `owner`(sub `"4242"`), `other`(sub `"5151"`), `no-sub`, `login-sub`(sub `"octocat"`) 토큰을 만든다. 게이트웨이는 `build_gateway(settings, auth=verifier)`로 조립한다.
+- [x] **Step 3: 실패하는 Make·라이브러리 테스트 작성.** `tests/lib-vm.bats`에 `web_mode`가 빈 값·`on`·`off`를 받고 `On`·`yes`를 거절하는 테스트를 더한다. `tests/repo-make.bats`에 새 테스트 하나를 더한다. "make local-up with BM_WEB=on hands COMPOSE_PROFILES=web to compose and runs the same compose command": docker 스텁이 받은 환경을 기록하게 하고, `COMPOSE_PROFILES=web`과 `docker compose -f compose.yaml up -d --wait` 줄을 확인한다. `BM_WEB=yes`면 compose 호출 전에 `BM_WEB must be on or off`로 실패한다. 기존 `:55` 테스트는 그대로 통과해야 한다.
+- [x] **Step 4: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패한다(서비스·파일·스크립트·Make 처리 없음).
+- [x] **Step 5: 게이트웨이 동작 테스트 작성(`gateway/test_gateway.py`, `unittest.IsolatedAsyncioTestCase`).** 가짜 백엔드는 21개 도구와 `new_tool`을 가진 FastMCP 서버다. 받은 요청 헤더와 호출된 도구 이름을 기록하며, 같은 프로세스의 uvicorn 스레드에서 빈 포트로 띄운다. 인증은 `StaticTokenVerifier`로 `owner`(sub `"4242"`), `other`(sub `"5151"`), `no-sub`, `login-sub`(sub `"octocat"`) 토큰을 만든다. 게이트웨이는 `build_gateway(settings, auth=verifier)`로 조립한다.
   - `test_owner_lists_exactly_the_allowed_tools`: 목록 이름 집합이 `ALLOWED_TOOLS`와 같다(18개).
   - `test_blocked_and_unknown_tools_are_hidden_and_refused_for_the_owner`: `delete_note`, `create_memory_project`, `delete_project`, `new_tool`이 목록에 없고, 직접 호출하면 오류이며, 백엔드는 그 호출을 받지 않는다.
   - `test_other_user_sees_no_tools_and_cannot_call`: 목록이 비고 `read_note` 호출이 거절된다.
@@ -116,8 +118,8 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
   - `test_audit_line_names_tool_and_note_without_content`: `write_note(title="T", directory="d", content="BODY-7f3a")` 뒤 감사 줄에 `write_note`, `T`, `d`, 소유자 id가 있고 `BODY-7f3a`는 없다.
   - `test_settings_name_the_missing_or_malformed_variable_only`: `BM_WEB_GITHUB_USER_ID="octo"`나 빈 `BM_WEB_JWT_KEY`면 `SystemExit` 메시지에 변수 이름이 있고, 다른 비밀값 문자열은 없다.
   - `test_cull_removes_expired_records`: `make_storage`의 저장소에 TTL 1초 기록을 쓰고 만료 뒤 `cull()`을 부르면 파일이 사라지고, TTL 없는 기록은 남는다.
-- [ ] **Step 6: 의존성 고정.** `gateway/requirements.in`에 `fastmcp==4.1.3` 한 줄을 쓴다. `Makefile`에 `gateway-lock` 타깃을 더한다. 이 타깃은 `compose.yaml`의 `gateway` 이미지 줄을 읽어(이미지 이름을 한 곳에만 둔다) 그 이미지에서 고정 버전의 `pip-tools`로 `pip-compile --generate-hashes --allow-unsafe`를 돌리고, `gateway/requirements.txt`를 쓴다. `make gateway-lock`을 실행하고 결과 파일을 커밋에 넣는다.
-- [ ] **Step 7: 최소 구현.**
+- [x] **Step 6: 의존성 고정.** `gateway/requirements.in`에 `fastmcp==4.1.3` 한 줄을 쓴다. `Makefile`에 `gateway-lock` 타깃을 더한다. 이 타깃은 `compose.yaml`의 `gateway` 이미지 줄을 읽어(이미지 이름을 한 곳에만 둔다) 그 이미지에서 고정 버전의 `pip-tools`로 `pip-compile --generate-hashes --allow-unsafe`를 돌리고, `gateway/requirements.txt`를 쓴다. `make gateway-lock`을 실행하고 결과 파일을 커밋에 넣는다.
+- [x] **Step 7: 최소 구현.**
   - `compose.yaml`: Interfaces의 두 서비스, `networks: web:`, `volumes: gateway-deps:`. 두 서비스 모두 `logging: *bounded-logging`. `gateway`는 `command: ["python", "/app/boot.py"]`, `working_dir: /app`, `depends_on: basic-memory: condition: service_healthy`, 헬스체크는 `python -c` urllib로 `http://127.0.0.1:8080/.well-known/oauth-authorization-server`를 부른다. `start_period`는 첫 `pip install`을 감안해 구현자가 정한다. `cloudflared`는 `depends_on: gateway: condition: service_healthy`이고, 헬스체크는 이미지가 지원하는 방식(예: `--metrics`와 `/ready`)을 릴리스 문서에서 확인해 고른다.
   - `gateway/boot.py`: `requirements.txt`의 sha256이 `/deps/requirements.sha256`과 다를 때만 `pip install --require-hashes --no-deps --target <새 디렉터리>`로 설치한다. 설치가 끝나면 `/deps/site`로 바꿔 넣고 sha256을 기록한다. 이어서 `/data`의 소유자를 1000으로 맞추고, `setgroups([])`, `setgid(1000)`, `setuid(1000)` 뒤 `os.execv`로 `gateway.py`를 실행한다.
   - `gateway/gateway.py`: Interfaces의 이름으로 시제품 구성(스펙 §3.4)을 옮긴다. `make_storage`는 FastMCP 기본값과 같은 키 파생·경로·Fernet 래퍼를 만든다(`oauth_proxy/proxy.py:597-621`). 그 저장소를 `GitHubProvider(client_storage=...)`에 넘기고, 시작할 때와 `CULL_INTERVAL_SECONDS`마다 `cull()`을 부른다. `AuditMiddleware`는 `on_call_tool`에서 한 줄 JSON(`time`, `user`, `tool`, `note`, `ms`)을 표준 출력에 쓴다. `note`는 인자 중 `AUDIT_ARG_KEYS`(`identifier`, `title`, `directory`, `path`, `url`, `id`, `destination_path`, `destination_folder`, `dir_name`, `project`)만 담는다.
@@ -129,12 +131,12 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
     - `local-verify`는 `BM_WEB=on`일 때 두 줄을 더 실행한다. `scripts/verify-web.sh "http://127.0.0.1:$(BM_WEB_PORT)"`와 `$(COMPOSE) exec -T gateway python -m unittest -v test_gateway`다.
   - `scripts/lib/vm.sh`: Interfaces의 `web_mode`.
   - `scripts/verify-web.sh`: `verify-mcp.sh`의 구조와 상수 이름을 따른다. 등록 검사는 `redirect_uris: ["https://example.invalid/callback"]`를 보내고 `400`과 `invalid_redirect_uri`를 기대한다. 그래서 아무것도 저장되지 않는다.
-- [ ] **Step 8: 통과 확인.**
+- [x] **Step 8: 통과 확인.**
   - Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
   - Run: `.env`에 `BM_WEB=on`과 가짜 GitHub 값(`BM_WEB_GITHUB_USER_ID=4242`, client id·secret 아무 값, `BM_WEB_JWT_KEY=$(openssl rand -hex 32)`)을 넣고 `make local-up local-verify local-down`. 사용자가 main checkout `.env`에 직접 넣는다. Expected: `verify-web.sh`의 `OK:` 넷, `unittest`의 `OK`, 기존 MCP·SilverBullet 검사 통과. 결과를 Progress log에 `Verified`로 적는다.
   - Run: `BM_WEB` 줄을 지우고 `make local-up local-verify local-down`. Expected: 출력과 컨테이너가 web-connector 계획 전과 같다(`gateway` 없음).
   - `docker stats --no-stream`의 게이트웨이 메모리를 Progress log에 적는다.
-- [ ] **Step 9: 커밋.** `git commit -m "feat: add the OAuth gateway and tunnel services for the claude.ai web connector" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: d3dpb00s" --trailer "Task: 1"`
+- [x] **Step 9: 커밋.** `git commit -m "feat: add the OAuth gateway and tunnel services for the claude.ai web connector" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: d3dpb00s" --trailer "Task: 1"`
 
 ### Task 2: BM_WEB on the VM: settings, deploy, restore, verify and status
 
@@ -151,8 +153,8 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
   - `upload_gateway_files`. `on`일 때 `$BM_REMOTE_APP_DIR/gateway`를 만들고 `GATEWAY_RUNTIME_FILES`(`boot.py gateway.py requirements.txt`)를 `remote "cat > …" <파일` 방식으로 올린다. 배포와 복원이 함께 쓴다.
 - Produces (상수): `vm.sh`의 `GATEWAY_RUNTIME_FILES`, `deploy-stack.sh`의 `WEB_SERVICES="gateway cloudflared"`.
 
-- [ ] **Step 0: compose 동작 확인.** 로컬에서 `COMPOSE_PROFILES` 없이 `docker compose -f compose.yaml rm --stop --force gateway cloudflared`가 프로필 서비스 컨테이너를 지우는지 본다(Task 1의 `local-up`으로 `gateway`를 띄운 뒤). 결과를 Progress log에 `Verified`로 적는다. 지우지 못하면 `COMPOSE_PROFILES=web,tunnel`을 그 명령에만 붙이는 방식으로 바꾸고, 그것도 적는다.
-- [ ] **Step 1: 실패하는 테스트 작성.**
+- [x] **Step 0: compose 동작 확인.** 로컬에서 `COMPOSE_PROFILES` 없이 `docker compose -f compose.yaml rm --stop --force gateway cloudflared`가 프로필 서비스 컨테이너를 지우는지 본다(Task 1의 `local-up`으로 `gateway`를 띄운 뒤). 결과를 Progress log에 `Verified`로 적는다. 지우지 못하면 `COMPOSE_PROFILES=web,tunnel`을 그 명령에만 붙이는 방식으로 바꾸고, 그것도 적는다.
+- [x] **Step 1: 실패하는 테스트 작성.**
   - `lib-vm.bats`:
     - `require_vm`은 `BM_WEB=yes`일 때 ssh 스텁을 부르기 전에 실패한다.
     - `require_web_settings`의 실패 표: 호스트에 `https://`가 붙은 경우, 숫자가 아닌 사용자 id, 빈 비밀값, `#`·`$`·공백이 든 비밀값. 출력에 값이 없다.
@@ -166,15 +168,15 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
     - "with BM_WEB=on uploads the gateway runtime files before starting the stack": 게이트웨이 코드가 없는 VM(웹으로 배포한 적이 없는 재생성 VM)을 흉내 내고, ssh 스텁 로그에서 세 파일의 업로드가 `up -d --wait`보다 앞에 있는지 본다.
   - `verify-vm.bats`: `BM_WEB=on`이면 `verify-web.sh --public "https://<host>"`를 `verify`와 `probe` 모두에서 부르고, `BM_WEB_PORT`의 loopback 검사와 공인 IP 검사를 한다. `off`면 셋 다 하지 않는다.
   - `show-status.bats`: `BM_WEB=on`이면 `gateway store: <N> KiB, <M> client registrations` 줄이 나온다. 원격 명령은 `du -sk`와, `oauth-proxy/` 아래 모든 키 지문 디렉터리의 `S_mcp_oauth_proxy_clients-<8 hex>/` 안 파일 수다. FastMCP의 컬렉션 이름 `mcp-oauth-proxy-clients`를 py-key-value-aio 0.4.6의 FileTreeV1 전략이 이 디렉터리 이름으로 바꾸고, 옆의 `S_mcp_oauth_proxy_clients-<8 hex>-info.json` 메타데이터 파일은 세지 않는다. `off`면 그 줄이 없다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패하고 기존 테스트는 통과한다.
-- [ ] **Step 3: 최소 구현.**
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 테스트만 실패하고 기존 테스트는 통과한다.
+- [x] **Step 3: 최소 구현.**
   - `deploy-stack.sh`: `require_sb_user` 다음에 `require_web_settings`를 부른다. `compose.yaml`을 올린 뒤 `upload_gateway_files`를 부른다. `up` 뒤 `off`면 `remote_compose "rm --stop --force $WEB_SERVICES"`(Step 0 결과대로)를 부른다.
   - `restore-notes.sh`: `require_sb_user` 다음에 `require_web_settings`를 부르고, `compose.yaml`과 `.env`를 올리는 단계(`:143-145`)에서 `upload_gateway_files`도 부른다. 웹 설정은 `vm_env`가 맡는다.
   - `verify-vm.sh`: `on`이면 `PUBLIC_PROBE_PORTS`에 `BM_WEB_PORT`를 더하고, `check_loopback_binding "$BM_WEB_PORT"`와 `verify-web.sh --public`을 부른다.
   - `show-status.sh`: `on`이면 `gateway_store_summary -> "<KiB> <registrations>"`를 한 번의 `remote`로 읽어 한 줄로 알린다. 컨테이너 목록은 VM `.env`의 프로필로 기존 `ps`에 함께 나온다.
   - `.env.example`: 스펙 §3.3의 표 순서로 변수와 한 줄 설명을 쓴다. 비밀값은 빈 값으로 두고 만드는 명령을 주석으로 단다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋.** `git commit -m "feat: deploy, verify and report the web connector behind BM_WEB" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: d3dpb00s" --trailer "Task: 2"`
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋.** `git commit -m "feat: deploy, verify and report the web connector behind BM_WEB" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: d3dpb00s" --trailer "Task: 2"`
 
 ### Task 3: Rules and documents
 
@@ -185,29 +187,31 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 **Interfaces:**
 - Consumes: Task 1~2의 Make 타깃, 변수, 출력 문구(런북이 그대로 인용한다).
 
-- [ ] **Step 1: 규칙.** `AGENTS.md:13`의 첫 문장을 스펙 §3.6의 영어 문장으로 바꾸고, `:22`에 비밀값 세 개를 더한다. `make check`의 `AGENTS.md` 크기 테스트(`tests/repo-config.bats:135`)가 통과해야 한다.
-- [ ] **Step 2: 런북.** `doc-authoring` 스킬로 만든다. 다음 절을 쓴다.
+- [x] **Step 1: 규칙.** `AGENTS.md:13`의 첫 문장을 스펙 §3.6의 영어 문장으로 바꾸고, `:22`에 비밀값 세 개를 더한다. `make check`의 `AGENTS.md` 크기 테스트(`tests/repo-config.bats:135`)가 통과해야 한다.
+- [x] **Step 2: 런북.** `doc-authoring` 스킬로 만든다. 다음 절을 쓴다.
   - 준비: 도메인을 Cloudflare DNS로, remotely-managed tunnel과 공개 호스트명(`http://gateway:8080`), GitHub OAuth App(callback `https://<BM_WEB_HOST>/auth/callback`), 숫자 id 조회.
   - `.env` 값: 사용자가 main checkout `.env`에 직접 쓴다.
   - 켜기: `make backup`, `make deploy`, `make verify`.
   - Cloudflare rate limit 규칙(`/register`, `/authorize`, `/consent`), Bot Fight Mode 확인, `160.79.104.0/21` 예외.
   - claude.ai 커넥터 등록과 도구별 권한("Always allow" 금지).
   - 비밀값 교체, 게이트웨이 저장소 비우기(스펙 §3.4), 차단 세 겹, 끄기(`BM_WEB=off` 배포).
-- [ ] **Step 3: 나머지 문서.**
+- [x] **Step 3: 나머지 문서.**
   - 운영 런북 Exposure audit: 공개 호스트명 하나, OAuth App 콜백, 커넥터 목록, 저장소 크기·등록 수를 더한다.
   - `bm-upgrade` 스킬(`skill-authoring` 스킬로 편집): 업그레이드 뒤 `tools/list`와 `ALLOWED_TOOLS`를 비교하고, `BM_WEB=on`이면 `make verify`의 웹 검사를 확인한다.
   - ARCHITECTURE·README: 스펙 §3.6.
   - [web-connector ADR](../decisions/adr-2026-10-22-fcvznmdc-web-connector.md): `status: accepted`, `date`를 그날로.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0. 문서 링크·경로 테스트(`tests/repo-docs.bats:100`) 통과.
-- [ ] **Step 5: 커밋.** `git commit -m "docs: document the web connector and redefine the public ingress invariant" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: d3dpb00s" --trailer "Task: 3"`
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0. 문서 링크·경로 테스트(`tests/repo-docs.bats:100`) 통과.
+- [x] **Step 5: 커밋.** `git commit -m "docs: document the web connector and redefine the public ingress invariant" --trailer "Assisted-by: <tool> <model>" --trailer "Plan: d3dpb00s" --trailer "Task: 3"`
 
 ### Code PR: review and merge
 
-- [ ] PR 본문 Verification에 Task 1~3의 `make check`, `make local-up local-verify` 결과(`BM_WEB` 켬과 끔)와 CI(`check`, `pr-rules`)를 적는다.
-- [ ] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge). `AGENTS.md` Invariants와 `compose.yaml`을 바꾸므로 전체 깊이로 리뷰한다.
-- [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
+- [x] PR 본문 Verification에 Task 1~3의 `make check`, `make local-up local-verify` 결과(`BM_WEB` 켬과 끔)와 CI(`check`, `pr-rules`)를 적는다.
+- [x] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge). `AGENTS.md` Invariants와 `compose.yaml`을 바꾸므로 전체 깊이로 리뷰한다.
+- [x] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
 
 ### Task 4: VM rollout and claude.ai check (with the user, OK at every step)
+
+> 이 Task는 [web-connector-rollout 계획](plan-2026-11-02-bbz2ngk7-web-connector-rollout.md)으로 옮겼다(2026-11-02). 아래 Step은 기록으로 남기고 이 계획에서는 하지 않는다.
 
 **Files:**
 - Modify: 이 계획(Progress log, `status`), `docs/decisions/adr-2026-10-22-fcvznmdc-web-connector.md`(이전 결과 절)
@@ -228,9 +232,9 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 
 ## Follow-ups
 
-- ChatGPT 연결은 별도 스펙으로 다룬다(스펙 §1 범위 밖).
-- 읽기 지연 중앙값이 500 ms를 넘으면, 백엔드 연결을 재사용하는 클라이언트로 바꾸는 work 브랜치를 만든다(스펙 §3.4).
-- 개선 백로그의 [invariant-enforcement 계획](plan-2026-10-22-m97w7hqe-invariant-enforcement.md) Task 4와 [agent-sandbox 계획](plan-2026-10-22-k3bd8k47-agent-sandbox.md)은 이 계획이 바꾼 `AGENTS.md:13`과 신뢰 경계를 기준으로 쓴다(그 계획들의 몫).
+- ChatGPT 연결은 별도 스펙으로 다룬다(스펙 §1 범위 밖). → [web-connector-rollout 계획](plan-2026-11-02-bbz2ngk7-web-connector-rollout.md) Follow-ups로 옮김 (2026-11-02)
+- 읽기 지연 중앙값이 500 ms를 넘으면, 백엔드 연결을 재사용하는 클라이언트로 바꾸는 work 브랜치를 만든다(스펙 §3.4). → [web-connector-rollout 계획](plan-2026-11-02-bbz2ngk7-web-connector-rollout.md) Follow-ups로 옮김 (2026-11-02)
+- 개선 백로그의 [invariant-enforcement 계획](plan-2026-10-22-m97w7hqe-invariant-enforcement.md) Task 4와 [agent-sandbox 계획](plan-2026-10-22-k3bd8k47-agent-sandbox.md)은 이 계획이 바꾼 `AGENTS.md:13`과 신뢰 경계를 기준으로 쓴다(그 계획들의 몫). → 끝남: 두 계획 모두 completed (2026-11-02)
 
 ## Progress log
 
@@ -253,3 +257,5 @@ spec: docs/specs/spec-2026-10-22-tn23wwmd-web-connector.md
 | 2026-10-27 | Verified | Docker Compose v5.0.2 `config --hash gateway`가 `BM_WEB_CODE_SHA256`에 따라 바뀌고 basic-memory의 해시는 그대로다. 그래서 게이트웨이 코드만 바꾼 배포는 게이트웨이만 다시 만든다. |
 | 2026-10-27 | Verified | 수정 뒤 `make local-up local-verify local-down BM_WEB=on`(가짜 값, make 명령줄) exit 0: `verify-web.sh` `OK:` 줄, uid 1000으로 `Ran 13 tests … OK`, 출력에 가짜 값 없음. `BM_WEB` 없이도 exit 0이고 basic-memory·silverbullet만 떴다. |
 | 2026-10-27 | Verified | gitleaks v8.30.1(`docker run --rm -v "$PWD:/scan:ro" ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f dir /scan/tests --no-banner --redact -v`, 이력 없이 파일만): 고치기 전 `leaks found: 2`(`tests/helpers.bash:35`, `tests/lib-vm.bats:191`, generic-api-key), 고친 뒤 `no leaks found`. 이력은 다시 쓰지 않으므로 옛 값은 이 PR의 head 이력에 남는다. |
+| 2026-11-02 | Verified | Start, Task 1~3, Code PR 상자를 체크하고 `status`를 `completed`로 바꿨다(2026-11-02 저장소 재검토 F32). 근거: 위 Task 행과 PR #24(2026-10-27 병합, 다른 벤더 리뷰 R1~R3 코멘트, 본문 Verification의 `make check`·CI). |
+| 2026-11-02 | Reported | Task 4는 2026-10-27 Step 1에서 멈췄다. 웹 값과 도메인이 없었고, 사용자는 도메인 구매를 고려하지 않았다(Task 4 작업 기록). 2026-11-02 사용자 승인에 따라 Task 4는 [web-connector-rollout 계획](plan-2026-11-02-bbz2ngk7-web-connector-rollout.md)으로 옮겼다. 시작 조건은 도메인 구매 결정이다. VM은 바꾸지 않았다. |

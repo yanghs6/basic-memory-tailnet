@@ -221,12 +221,12 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 
 ## Follow-ups
 
-- 제3자 스킬·플러그인 고정(marketplace `sha`, `autoUpdate`)은 사용자 설정의 일이라 이 계획에서 뺀다.
-- 옛 공개 커밋의 세션 링크(평가 AP10)는 이 계획 밖이다. 이력 재작성은 `AGENTS.md:33`이 금지한다.
-- 다른 에이전트가 MCP로 쓴 Basic Memory 노트를 신뢰할 수 없는 입력으로 볼지 정한다. MCP 서버는 sandbox 밖에서 돈다.
-- Gemini CLI·Antigravity의 sandbox 설정(지금 `.gemini/settings.json`에는 `context.fileName`만 있다)과 Codex 작성 세션의 다리 점검.
-- mk823xbp memory hook이 새 sandbox 설정에서 도는지 병합 뒤 다시 확인한다(2026-10-30 사용자 결정 (a)).
-- auto mode에서 훅·설정의 ask가 사람 확인 없이 통과될 수 있다는 점을 스펙 6절 위험과 ADR 잔여 위험에 넣을지 사용자가 정한다(2026-10-28 Progress log).
+- 제3자 스킬·플러그인 고정(marketplace `sha`, `autoUpdate`)은 사용자 설정의 일이라 이 계획에서 뺀다. → 하지 않음: 저장소 밖 사용자 설정의 일이다 (2026-11-02)
+- 옛 공개 커밋의 세션 링크(평가 AP10)는 이 계획 밖이다. 이력 재작성은 `AGENTS.md:33`이 금지한다. → 하지 않음: `AGENTS.md` Git 절이 이력 재작성을 금지한다 (2026-11-02)
+- 다른 에이전트가 MCP로 쓴 Basic Memory 노트를 신뢰할 수 없는 입력으로 볼지 정한다. MCP 서버는 sandbox 밖에서 돈다. → 2026-11-02 재검토 2차 후속(리뷰·입력 신뢰 경계), 계획 미작성 (2026-11-02)
+- Gemini CLI·Antigravity의 sandbox 설정(지금 `.gemini/settings.json`에는 `context.fileName`만 있다)과 Codex 작성 세션의 다리 점검. → 계획 미작성: 2026-11-02 재검토에서도 대상이 정해지지 않았다. 사용자가 정한다 (2026-11-02)
+- mk823xbp memory hook이 새 sandbox 설정에서 도는지 병합 뒤 다시 확인한다(2026-10-30 사용자 결정 (a)). → 끝남: [agent-memory-mirror 계획](plan-2026-10-22-mk823xbp-agent-memory-mirror.md) Progress log 2026-11-02 행(PR #32 병합 뒤 hook 동기화 확인) (2026-11-02)
+- auto mode에서 훅·설정의 ask가 사람 확인 없이 통과될 수 있다는 점을 스펙 6절 위험과 ADR 잔여 위험에 넣을지 사용자가 정한다(2026-10-28 Progress log). → 계획 fkcn71m2 Task 6(sandbox-guard-hardening, 2026-11-02 재검토 F35) (2026-11-02)
 
 ## Progress log
 

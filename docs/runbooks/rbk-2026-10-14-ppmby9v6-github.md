@@ -49,7 +49,7 @@ git log -p <ref> | grep -cF '<GCP 프로젝트 ID>'
 - 셋째 명령에 걸린 줄이 테스트용 자리표시자인지 하나씩 확인합니다. 예: `agent@example.com`, `tskey-auth-test123`.
 - 나머지 명령은 모두 `0`이어야 합니다.
 - **실제 값이 걸리면 push하지 않습니다.** 현재 파일만 고쳐도 과거 커밋에는 값이 남습니다. 공개를 허용할지, 이력을 정리할지를 사용자가 정합니다(스펙 11절). 실제 자격증명이면 공개 여부와 관계없이 폐기하고 교체합니다.
-- `plan/qtvzskgx-vm-rollout`은 push하지 않습니다. 커밋 하나에 VM Tailscale IP가 있습니다. [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)은 스펙 11절의 `plan/qtvzskgx-vm-rollout-public` 절차로 공개합니다.
+- `plan/qtvzskgx-vm-rollout`은 push하지 않습니다. 커밋 하나에 VM Tailscale IP가 있습니다. [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)은 스펙 11절의 `plan/qtvzskgx-vm-rollout-public` 절차로 커밋 하나에 담아 공개했습니다(PR #2, `d354732`).
 
 ### 2.1 전체 이력 비밀값 스캔
 

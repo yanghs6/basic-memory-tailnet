@@ -75,10 +75,12 @@ Expected: exit 0, 커버리지 80% 이상
 
 ### Finish: review and hand-off
 
-- [ ] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
-- [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
-- [ ] 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
-- [ ] CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
+- [ ] Progress log에 그날 `make check` 결과를 `Verified`로 적고, 이 상자를 체크한 뒤 `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
+
+`completed` 커밋 뒤의 일은 계획 파일의 체크박스로 추적하지 않는다. 결과는 PR 본문 Verification과 PR 코멘트에 남긴다.
+1. PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
+2. 다른 벤더의 읽기 전용 리뷰와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
+3. CI가 통과하고 열린 P0/P1이 없으면 `gh pr ready <PR>`을 실행하고 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
 
 ## Follow-ups
 

@@ -2,6 +2,7 @@
 status: approved
 id: q3jxc77k
 date: 2026-10-26
+amended-by: docs/decisions/adr-2026-10-30-bts7gsex-semantic-search-off.md
 ---
 
 # 문서 고유 ID와 초안 보드 — 설계
@@ -121,7 +122,7 @@ Basic Memory:
 
 - **Verified (2026-10-26):** Basic Memory는 front matter의 `type`을 자기 노트 종류로 쓰고 `note`로 덮어쓴다(라이브 확인에서 `type: spec`으로 보낸 노트가 `type: note`로 저장됨). 그래서 문서 종류는 `doc_type`에 적는다. 다른 보드 키는 그대로 남았다.
 - **흐름:**
-  1. 스펙·계획·ADR을 쓰거나 기존 문서를 크게 바꾸기 전에, `search_notes(metadata_filters={"project": <키>, "draft": true})`로 보드를 보고 `areas`와 slug가 겹치는 초안이 있으면 사용자에게 알린다.
+  1. 스펙·계획·ADR을 쓰거나 기존 문서를 크게 바꾸기 전에, `search_notes(search_type="text", metadata_filters={"project": <키>, "draft": true})`로 보드를 보고(2026-10-30부터 의미 검색이 꺼져 있어 `search_type`을 적는다, [semantic-search-off ADR](../decisions/adr-2026-10-30-bts7gsex-semantic-search-off.md) 결정 2) `areas`와 slug가 겹치는 초안이 있으면 사용자에게 알린다.
   2. `make new-id`로 ID를 받고, `write_note`(overwrite 없이)로 초안 노트를 만든다. 본문은 그 타입의 템플릿에서 시작한다.
   3. 사용자는 SilverBullet에서 읽는다. 승인은 지금처럼 대화로 한다.
   4. 승인되면 `make new-doc TYPE=… SLUG=… ID=<같은 ID>`로 저장소 문서를 만들고 본문을 옮긴 뒤 `make check`, 커밋, push, draft PR을 연다. 노트에 `status: approved`, `repo_path`, `pr`을 적는다. 이후의 정본은 저장소 문서다.

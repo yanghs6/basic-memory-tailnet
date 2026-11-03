@@ -2,7 +2,7 @@
 status: approved
 id: pr762r68
 date: 2026-10-13
-amended-by: [docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md, docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md, docs/decisions/adr-2026-10-26-vtmqpsyx-public-text-guard.md, docs/decisions/adr-2026-10-27-y9fxhf7x-test-integrity-guard.md]
+amended-by: [docs/specs/spec-2026-10-15-sgpbx1gq-doc-system.md, docs/specs/spec-2026-10-23-q3jxc77k-doc-ids-and-draft-board.md, docs/decisions/adr-2026-10-26-vtmqpsyx-public-text-guard.md, docs/decisions/adr-2026-10-27-y9fxhf7x-test-integrity-guard.md, docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md]
 ---
 
 # GitHub PR 기반 에이전트 Git 워크플로 — 설계
@@ -158,7 +158,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
   - 리뷰는 계획 단위로 하고 최대 2회차까지 한다.
   - 기준은 `AGENTS.md`의 `## Code Review Rules`와 P0~P3다.
   - 지적은 먼저 검증하고, 커밋 하나에 지적 하나씩 고친다.
-- **변경:** `make review`의 `REVIEW_BASE` 기본값을 `origin/main`으로 바꾼다. `scripts/review.sh`의 기본값은 그대로 둔다. 원격 추적 브랜치를 base로 받으면 기존 임시 base 브랜치 로직이 처리한다.
+- **변경:** `make review`의 `REVIEW_BASE` 기본값을 `origin/main`으로 바꾼다. `scripts/review-branch.sh`(당시 이름 `scripts/review.sh`)의 기본값은 그대로 둔다. 원격 추적 브랜치를 base로 받으면 기존 임시 base 브랜치 로직이 처리한다.
 - **게시 ([review-posting 계획](../plans/plan-2026-10-13-znbc3ase-review-posting.md)):** `scripts/post-review.sh`와 `make review-post PR=<번호>`를 만든다.
   - `.review-out/`의 diff 리포트와 plan 리포트를 회차·리뷰어마다 PR 코멘트 두 개(change review, plan review)로 올린다. 코멘트 머리에는 리뷰 도구와 모델, base와 head SHA, 회차를 적는다.
 - **지적 기록:** "Review record" 코멘트 하나에 지적 표를 두고, 머신 계정이 상태가 바뀔 때마다 갱신한다.
@@ -185,6 +185,7 @@ ruleset 내용은 `.github/rulesets/main.json`으로 저장소에 남긴다. PR�
 4. **폐지하는 것:** 병합 트레일러 `Reviewed-by`, `Review-Agent`, `Review-Record`, `Reviewed-Head`와 `.review-out/merge-*.txt`를 쓰지 않는다. 같은 정보는 GitHub 승인 기록, Review record 코멘트, PR head SHA가 담는다.
 5. **정리:** `gh pr view <번호> --json state`가 `MERGED`이면 다음을 한다.
    1. worktree의 `backups/`를 확인한다.
+      - 2026-10-27부터([에이전트 sandbox 설계](spec-2026-10-27-mpgrfpvn-agent-sandbox.md) 결정 9): archive가 있으면 에이전트는 main 체크아웃 `backups/`로 옮기는 `mv` 명령을 사용자에게 알려 주고, 사용자가 옮긴 뒤에 계속한다. 에이전트의 sandbox는 main 체크아웃에 쓰지 못한다.
    2. `git worktree remove`로 worktree를 지운다.
    3. `git branch -D <branch>`로 로컬 브랜치를 지운다. squash로 병합한 브랜치는 `-d`가 거부한다.
 6. **계획 파일 이동:** 기존 규칙과 같다. `completed/`로 옮기는 커밋은 병합 전에 PR 안에서 하고, `active/`로 옮기는 커밋은 다음 계획의 첫 커밋으로 한다.

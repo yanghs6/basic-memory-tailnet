@@ -1,10 +1,12 @@
 ---
-status: backlog
+status: dropped
 id: gaewewkf
 spec: none
 ---
 
 # gaewewkf IPv6 Egress Plan
+
+다시 씀(2026-11-02): `ssh` 모드 기준의 [ipv4-egress-decision 계획](plan-2026-11-02-s1amnk1s-ipv4-egress-decision.md)으로 옮겼다. 아래 조사 결과는 그 계획의 입력으로 남긴다.
 
 > vm-rollout 계획([완료된 계획](plan-2026-10-07-qtvzskgx-vm-rollout.md))이 머지된 뒤에 brainstorming → 스펙 → 계획 순서를 거쳐야 실행할 수 있습니다. 이 문서는 실행 계획이 아니라 조사 결과와 질문 목록입니다.
 
