@@ -3,8 +3,11 @@
 # ranges, tailnet IPv6 addresses, ts.net host names, local home and temp folder paths, Claude Code session links and
 # Generated with lines. Prints only the place and kind of each hit, never the value, and exits 1 on a hit. Without arguments it scans the tracked and new text
 # files of the current repository and applies the exemption list at its root; it fails when git cannot list the files
-# or none is left to scan. Named files and stdin get no exemption.
+# or none is left to scan. Named files and stdin get no exemption. With --diff it reads git log -p output on stdin
+# (scripts/check-git.sh), checks only the added lines, prints '<sha> <path>:<line in the new file>: <kind>' and applies
+# the exemption list FILE by the path of each line.
 # Usage: scripts/check-public-text.sh [--label NAME] [FILE|-]...
+#        git log -p --unified=0 --format='commit %h' ... | scripts/check-public-text.sh --diff [--exemptions FILE] -
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -39,8 +42,9 @@ readonly STATUS_UNREADABLE=4
 readonly XARGS_COMMAND_FAILED=123
 readonly MASK_HINT="replace the host with agent-hub, a tailnet IP with <agent-hub tailnet IP>, other addresses with a documentation-range address (203.0.113.10), write repo-relative paths instead of home and temp folder paths, and delete session links and Generated with lines; then run it again"
 
-# The scan reads LIST (lines '<path><TAB><label>') and prints '<label>:<line>: <kind>' once per line and kind. EXEMPTIONS
-# is the exemption list or empty; the path in LIST is what it matches.
+# The scan reads LIST (lines '<path><TAB><label>'), or with DIFF set that git log -p output, and prints
+# '<label>:<line>: <kind>' once per line and kind. EXEMPTIONS is the exemption list or empty; the path in LIST, or
+# the path of the diff's file, is what it matches.
 # shellcheck disable=SC2016  # the awk program is single-quoted on purpose
 readonly SCAN_PROGRAM='
 function octets(text, o,   i) {
@@ -131,6 +135,78 @@ function report(path, label, line_no, id) {
   print label ":" line_no ": " kind_name[id]
   hits = 1
 }
+function check_line(path, label, line_no, line) {
+  if (has_ipv4(line)) report(path, label, line_no, "ipv4")
+  if (has_tailnet_ipv6(line)) report(path, label, line_no, "tailnet-ipv6")
+  if (has_ts_net(line)) report(path, label, line_no, "ts-net")
+  if (has_session_link(line)) report(path, label, line_no, "session-link")
+  if (has_generated_with(line)) report(path, label, line_no, "generated-with")
+  if (has_local_path(line)) report(path, label, line_no, "local-path")
+}
+# scan_files: every line of each file in LIST.
+function scan_files(   entry, fields, line_number, got, line) {
+  while ((getline entry < list) > 0) {
+    split(entry, fields, "\t")
+    line_number = 0
+    while ((got = (getline line < fields[1])) > 0) {
+      line_number++
+      sub(/\r$/, "", line)
+      check_line(fields[1], fields[2], line_number, line)
+    }
+    # getline returns -1, not 0, on a file it cannot read: fail instead of passing it unread.
+    if (got < 0) {
+      print fields[2] ": unreadable"
+      unreadable = 1
+    }
+    close(fields[1])
+  }
+}
+# hunk_count RANGE -> the line count of a hunk range (-a,b or +c,d); git leaves out a count of 1.
+function hunk_count(range) { return index(range, ",") ? substr(range, index(range, ",") + 1) + 0 : 1 }
+# scan_diff: the added lines of the git log -p output in DIFF, by the path of their file and their line number in the
+# new file. A hunk header (@@ -a,b +c,d @@) counts the removed and added lines after it, and only outside a hunk is a
+# line a header: inside one an added line whose text starts with "++ " reads "+++ ". +++ /dev/null (a deleted file)
+# names no path; a quoted path keeps its quotes, so no exemption matches it.
+function scan_diff(   line, got, mark, sha, path, old_left, new_left, new_line, ranges) {
+  while ((got = (getline line < diff)) > 0) {
+    sub(/\r$/, "", line)
+    mark = substr(line, 1, 1)
+    if (mark == "\\") continue
+    if (old_left > 0 && mark == "-") {
+      old_left--
+    } else if (new_left > 0 && mark == "+") {
+      new_left--
+      new_line++
+      if (path != "") check_line(path, sha " " path, new_line, substr(line, 2))
+    } else if (old_left > 0 && new_left > 0 && mark == " ") {
+      old_left--
+      new_left--
+      new_line++
+    } else {
+      old_left = new_left = 0
+      if (line ~ /^commit /) {
+        sha = substr(line, 8)
+        path = ""
+      } else if (line ~ /^diff --git /) {
+        path = ""
+      } else if (line ~ /^[+][+][+] /) {
+        path = substr(line, 5)
+        sub(/\t$/, "", path)
+        if (path == "/dev/null") path = ""
+        else if (substr(path, 1, 2) == "b/") path = substr(path, 3)
+      } else if (line ~ /^@@ -[0-9]+(,[0-9]+)? [+][0-9]+(,[0-9]+)? @@/) {
+        split(line, ranges, " ")
+        old_left = hunk_count(ranges[2])
+        new_left = hunk_count(ranges[3])
+        new_line = substr(ranges[3], 2) - 1
+      }
+    }
+  }
+  if (got < 0) {
+    print "stdin: unreadable"
+    unreadable = 1
+  }
+}
 BEGIN {
   range_count = split(ranges, range_list, " ")
   for (i = 1; i <= range_count; i++) {
@@ -165,26 +241,8 @@ BEGIN {
     }
     close(exemptions)
   }
-  while ((getline entry < list) > 0) {
-    split(entry, fields, "\t")
-    line_number = 0
-    while ((got = (getline line < fields[1])) > 0) {
-      line_number++
-      sub(/\r$/, "", line)
-      if (has_ipv4(line)) report(fields[1], fields[2], line_number, "ipv4")
-      if (has_tailnet_ipv6(line)) report(fields[1], fields[2], line_number, "tailnet-ipv6")
-      if (has_ts_net(line)) report(fields[1], fields[2], line_number, "ts-net")
-      if (has_session_link(line)) report(fields[1], fields[2], line_number, "session-link")
-      if (has_generated_with(line)) report(fields[1], fields[2], line_number, "generated-with")
-      if (has_local_path(line)) report(fields[1], fields[2], line_number, "local-path")
-    }
-    # getline returns -1, not 0, on a file it cannot read: fail instead of passing it unread.
-    if (got < 0) {
-      print fields[2] ": unreadable"
-      unreadable = 1
-    }
-    close(fields[1])
-  }
+  if (diff != "") scan_diff()
+  else scan_files()
   if (unreadable) exit status_unreadable
   exit hits ? status_hits : 0
 }'
@@ -227,36 +285,11 @@ repo_text_files() {
     || die "no text files to check in this repository: run it in the repo, or name the files to check (- for stdin)"
 }
 
-main() {
-  local label="" list exemptions="" input arg status=0 hits top
-  require_cmd awk git
-  if [[ "${1:-}" == --label ]]; then
-    [[ -n "${2:-}" ]] || die "--label needs a name: --label NAME [FILE|-]..."
-    label="$2"
-    shift 2
-  fi
-  list="$(new_temp check-public-text)" || exit 1
-  input="$(new_temp check-public-text)" || exit 1
-  # shellcheck disable=SC2064  # expand now: the locals are gone when the EXIT trap runs
-  trap "rm -f '$list' '$input'" EXIT
-  if (($# == 0)); then
-    top="$(git rev-parse --show-toplevel 2>/dev/null)" \
-      || die "not inside a git repository: run it in the repo, or name the files to check (- for stdin)"
-    cd "$top"
-    [[ -f "$EXEMPTIONS_FILE" ]] && exemptions="$EXEMPTIONS_FILE"
-    repo_text_files "$list"
-  fi
-  for arg in "$@"; do
-    if [[ "$arg" == - ]]; then
-      cat >"$input"
-      printf '%s\t%s\n' "$input" "${label:-$STDIN_LABEL}" >>"$list"
-    else
-      [[ -f "$arg" ]] || die "no such file: $arg"
-      [[ -r "$arg" ]] || die "cannot read $arg: fix its permissions and run it again"
-      printf '%s\t%s\n' "$arg" "${label:-$arg}" >>"$list"
-    fi
-  done
-  hits="$(LC_ALL=C awk -v list="$list" -v exemptions="$exemptions" -v ranges="$ALLOWED_IPV4_RANGES" \
+# scan LIST DIFF EXEMPTIONS: run the scan program on the files in LIST, or with DIFF set on that git log -p output, and
+# report its result: exit 1 with the hits and the hint on stderr, die on a bad exemption line or an unreadable file.
+scan() {
+  local hits status=0
+  hits="$(LC_ALL=C awk -v list="$1" -v diff="$2" -v exemptions="$3" -v ranges="$ALLOWED_IPV4_RANGES" \
     -v max_prefix="$MAX_NETWORK_PREFIX" -v placeholder_marks="$PLACEHOLDER_TS_MARKS" \
     -v placeholder_label_list="$PLACEHOLDER_TS_LABELS" -v placeholder_label_prefix="$PLACEHOLDER_TS_LABEL_PREFIX" \
     -v container_user_list="$CONTAINER_HOME_USERS" \
@@ -276,6 +309,57 @@ main() {
     exit 1
   fi
   ((status == 0)) || die "the public text scan failed (awk exit $status)"
+}
+
+# scan_diff_input [--exemptions FILE] -: the --diff mode; stdin goes to INPUT first.
+scan_diff_input() {
+  local input="$1" exemptions=""
+  shift
+  if [[ "${1:-}" == --exemptions ]]; then
+    [[ -f "${2:-}" ]] || die "--exemptions needs an exemption list file: --diff [--exemptions FILE] -"
+    exemptions="$2"
+    shift 2
+  fi
+  [[ $# -eq 1 && "$1" == - ]] || die "--diff reads git log -p output on stdin only: --diff [--exemptions FILE] -"
+  cat >"$input"
+  scan "" "$input" "$exemptions"
+}
+
+main() {
+  local label="" list exemptions="" input arg top
+  require_cmd awk git
+  list="$(new_temp check-public-text)" || exit 1
+  input="$(new_temp check-public-text)" || exit 1
+  # shellcheck disable=SC2064  # expand now: the locals are gone when the EXIT trap runs
+  trap "rm -f '$list' '$input'" EXIT
+  if [[ "${1:-}" == --diff ]]; then
+    shift
+    scan_diff_input "$input" "$@"
+    return 0
+  fi
+  if [[ "${1:-}" == --label ]]; then
+    [[ -n "${2:-}" ]] || die "--label needs a name: --label NAME [FILE|-]..."
+    label="$2"
+    shift 2
+  fi
+  if (($# == 0)); then
+    top="$(git rev-parse --show-toplevel 2>/dev/null)" \
+      || die "not inside a git repository: run it in the repo, or name the files to check (- for stdin)"
+    cd "$top"
+    [[ -f "$EXEMPTIONS_FILE" ]] && exemptions="$EXEMPTIONS_FILE"
+    repo_text_files "$list"
+  fi
+  for arg in "$@"; do
+    if [[ "$arg" == - ]]; then
+      cat >"$input"
+      printf '%s\t%s\n' "$input" "${label:-$STDIN_LABEL}" >>"$list"
+    else
+      [[ -f "$arg" ]] || die "no such file: $arg"
+      [[ -r "$arg" ]] || die "cannot read $arg: fix its permissions and run it again"
+      printf '%s\t%s\n' "$arg" "${label:-$arg}" >>"$list"
+    fi
+  done
+  scan "$list" "" "$exemptions"
 }
 
 main "$@"
