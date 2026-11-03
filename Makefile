@@ -158,7 +158,7 @@ verify: ## Full VM check: MCP write/read/delete, SilverBullet login, loopback bi
 probe: ## Read-only VM check: same as verify but writes no notes and does not log in to SilverBullet
 	scripts/verify-vm.sh --read-only
 
-status: ## Show VM containers, memory and swap use, and tailscale serve (ssh mode: whether Tailscale is off)
+status: ## Show VM containers and note services not running, whether Basic Memory answers HTTP, uptime, disk, memory and swap use (warns at 80%), and tailscale serve (ssh mode: whether Tailscale is off)
 	scripts/show-status.sh
 
 logs: ## Show the last 200 lines of the VM container logs

@@ -3,6 +3,8 @@
 # DOCKER_STUB_FAIL_EXACT=<arguments>[<newline><arguments>...] makes the calls whose whole argument list is one of those
 # lines fail (for a call that is a prefix of another, such as "compose up -d").
 # A call that asks for the compose working_dir label prints DOCKER_STUB_STACK_DIRS (default empty, one directory per line).
+# `ps --services --status running` prints DOCKER_STUB_RUNNING_SERVICES (default basic-memory and silverbullet, one per
+# line; empty: none); any other `ps` prints a table with one running basic-memory-server container.
 set -euo pipefail
 printf 'docker %s\n' "$*" >>"$STUB_LOG"
 if [[ -n "${DOCKER_STUB_FAIL_MATCH:-}" && "$*" == *"$DOCKER_STUB_FAIL_MATCH"* ]] \
@@ -12,6 +14,11 @@ if [[ -n "${DOCKER_STUB_FAIL_MATCH:-}" && "$*" == *"$DOCKER_STUB_FAIL_MATCH"* ]]
 fi
 if [[ "$*" == *com.docker.compose.project.working_dir* ]]; then
   [[ -z "${DOCKER_STUB_STACK_DIRS:-}" ]] || printf '%s\n' "$DOCKER_STUB_STACK_DIRS"
+  exit 0
+fi
+if [[ "$*" == *"ps --services --status running"* ]]; then
+  running="${DOCKER_STUB_RUNNING_SERVICES-$'basic-memory\nsilverbullet'}"
+  [[ -z "$running" ]] || printf '%s\n' "$running"
   exit 0
 fi
 if [[ " $* " == *" ps "* ]]; then

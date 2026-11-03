@@ -187,21 +187,21 @@ check_semantic_search_off() {
   - `swap used: <used>/<total> MB (<n>%)`, 80% 이상이면 `WARNING: ...`. 기존 "스왑 없음" 경고는 그대로.
 - 경고는 exit 0이다(사용자 결정 2-A).
 
-- [ ] **Step 1: 실패하는 테스트 작성.**
+- [x] **Step 1: 실패하는 테스트 작성.**
   - stub: `docker`는 `ps --services --status running`에 `DOCKER_STUB_RUNNING_SERVICES`(기본 `basic-memory`와 `silverbullet`, 한 줄에 하나)를 출력한다. `df`는 `DF_STUB_USE_PERCENT`(기본 34), `uptime`은 `-p`에 `up 3 days, 4 hours`를 출력한다. 각 stub은 호출을 `$STUB_LOG`에 남긴다.
   - HTTP 응답은 VM에서 도는 curl이다. ssh stub이 명령을 로컬에서 돌리므로 curl stub의 download 모드(`-o`와 `-w '%{http_code}'`면 `CURL_STUB_HTTP_CODE`)와 `CURL_STUB_FAIL_MATCH`(exit 28)를 쓴다.
   - 기존 첫 테스트 반복문을 넓힌다: `@test "status shows containers, running services, the HTTP answer, uptime, disk and swap use, and warns when a note service is not running, the server does not answer, or disk or swap is at 80% or more"`. 사례: 정상, silverbullet 빠짐, HTTP 시간 초과, 디스크 85%, 스왑 900/1023, 스왑 없음. 각 사례는 정해진 WARNING 하나만 내고 성공한다.
   - HTTP 검사가 `-m 10`을 넘기는지 `assert_stub_called`로 확인한다(시간 제한이 빠지면 status가 멈춘 서버에서 같이 멈춘다).
-- [ ] **Step 2: `make test`로 실패 확인.**
-- [ ] **Step 3: 구현.**
+- [x] **Step 2: `make test`로 실패 확인.**
+- [x] **Step 3: 구현.**
   - 컨테이너 단계: 기존 `remote_compose "ps"`는 그대로 출력한다(런북 이미지 점검이 이 출력을 본다). 그다음 `remote_compose "ps --services --status running"`으로 빠진 서비스를 경고한다. 배포 전 VM에서는 지금처럼 첫 `ps`에서 die한다(Review Focus 4).
   - HTTP 단계: `remote "curl -sS -o /dev/null -m $STATUS_HTTP_TIMEOUT_SECONDS -w '%{http_code}' http://127.0.0.1:$port/mcp"`. 코드가 나오면 answered, curl이 실패하면 경고. 코드는 무엇이든 응답으로 본다(멈춤은 응답이 없는 상태다).
   - uptime·디스크: `remote "uptime -p"`, `remote "df -P $BM_REMOTE_DATA_ROOT"`의 둘째 줄 Use%. 읽지 못하면 die(지금 메모리 단계와 같은 방식, 고칠 명령을 함께).
   - 스왑 사용률: `memory_swap_summary` 결과로 계산한다. 스왑 0이면 사용률 경고 대신 기존 경고만.
   - `compose.yaml` healthcheck 위에 주석 한 줄: TCP로 두는 이유(MCP 수준이면 복원 직후 `up --wait`가 실패해 restore가 롤백됨, HTTP 응답은 `make status`가 봄). 이미지 줄은 바꾸지 않는다.
   - Makefile `status` 설명을 새 항목에 맞춘다.
-- [ ] **Step 4: `make check` 통과.**
-- [ ] **Step 5: 커밋.** `feat: show the HTTP answer, uptime, disk and swap use and missing services in make status` (`Task: 5`).
+- [x] **Step 4: `make check` 통과.**
+- [x] **Step 5: 커밋.** `feat: show the HTTP answer, uptime, disk and swap use and missing services in make status` (`Task: 5`).
 
 ### Task 6: verify의 외부 IP 대조 (W15, F27)
 
@@ -283,3 +283,7 @@ check_semantic_search_off() {
 | 2026-11-03 | Verified | 계획의 backup 힌트 find 명령(`! -type f ! -type d -print`)은 하드 링크를 찾지 못함(하드 링크는 `-type f`). 테스트가 하드 링크 사례를 요구하므로 힌트에 `! -type d -links +1 -print -o`를 더함 |
 | 2026-11-03 | Verified | Task 4 `make check`: lint 통과, 281개 모두 ok, `scripts/lib/vm.sh` 97.28%, `scripts/backup-notes.sh` 95.16%, `scripts/restore-notes.sh` 96.30%, `scripts/show-backup.sh` 93.48%, `total line coverage: 89.35% (minimum 80%)`, exit 0 |
 | 2026-11-03 | Verified | Task 1~3 읽기 전용 리뷰(별도 서브에이전트, 1d98c96·4b632f1·0268cc9): P0·P1 없음, 승인. P3 한 건(SDD-T3-F1): bm-upgrade Rules가 "끌 수 없으면 멈춤"만 말해 3단계의 not mentioned 중단과 어긋남. Rules에 "릴리스 노트가 스위치를 지킨다고 인용하지 않으면"을 더해 고침 |
+| 2026-11-03 | Verified | Task 4 읽기 전용 리뷰(별도 서브에이전트, b396a8b): P0·P1·P2 없음, 승인. P3 한 건(검사 동안 컨테이너가 멈춘 시간이 압축 해제만큼 늘어남)은 노트 아카이브가 작아 고치지 않음 |
+| 2026-11-03 | Verified | Task 5 RED: 새 `df`와 `uptime` stub, `docker` stub의 running 목록, 넓힌 첫 show-status 테스트를 넣고 `make test`를 실행함. 281개 중 `not ok 222`(새 테스트, `running: basic-memory silverbullet` 없음) 하나만 실패했고 exit 2. 바뀐 `docker` stub으로도 다른 테스트는 모두 통과함 |
+| 2026-11-03 | Verified | Task 5 구현 뒤 `make test`: 281개 모두 ok, exit 0 |
+| 2026-11-03 | Verified | Task 5 `make check`: lint 통과. 281개 모두 ok이고 `scripts/show-status.sh` 100.00%. `total line coverage: 89.49% (minimum 80%)`, exit 0 |
