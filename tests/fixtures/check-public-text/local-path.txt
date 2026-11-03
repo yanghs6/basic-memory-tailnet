@@ -1,0 +1,6 @@
+# must-fail input of tests/check-public-text.bats; obviously fake user and temp folder names
+/Users/fake-user0/repo/scripts/x.sh:12
+  /home/fake.user0/notes.md
+see /var/folders/0f/fake0fake/T/x.txt
+/private/var/folders/z9+fake/T/y
+/home/appuser/.basic-memory hides nothing after it: /home/fake_user1/x

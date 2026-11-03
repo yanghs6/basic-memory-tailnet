@@ -128,6 +128,46 @@ setup() {
   done
 }
 
+@test "fails on public text a commit diff added, also when a later commit removed it, and in a merge message, by commit and path only; passes what the head's exemption list names" {
+  local case cgnat first merge
+  cd "$BATS_TEST_TMPDIR" || return
+  # A CGNAT (tailnet range) address never sits in a repo file, so build it here.
+  cgnat="$(printf '%s.%s' 100.101 102.103)"
+  for case in "added then removed" "exempt at the head" "merge message"; do
+    (
+      rm -rf "$WORK" && init_git_repo && git switch -q -c work/public-text || exit 1
+      case "$case" in
+        "added then removed")
+          printf 'reach %s\n' "$cgnat" >notes.md && git add notes.md && agent_commit claude-code "docs: add notes" \
+            && first="$(git log -1 --format=%h)" && git rm -q notes.md && agent_commit claude-code "docs: drop notes" \
+            || exit 1
+          run "$CHECK"
+          assert_failure && assert_output --partial "  - $first notes.md:1: IPv4 address" || exit 1
+          ;;
+        "exempt at the head")
+          # The must-fail fixture comes first, its exemption only in the next commit.
+          mkdir tests && printf 'x %s\n' "$cgnat" >tests/must-fail.txt && git add tests \
+            && agent_commit claude-code "test: add a must-fail fixture" \
+            && printf 'tests/must-fail.txt ipv4\n' >.public-text-exemptions && git add .public-text-exemptions \
+            && agent_commit claude-code "test: exempt the fixture" || exit 1
+          run "$CHECK"
+          assert_success && assert_output --partial "OK: git policy (2 commits since main)" || exit 1
+          ;;
+        "merge message")
+          agent_commit claude-code "feat: on branch" && git switch -q main \
+            && git commit -q --allow-empty -m "chore: on main" && git switch -q work/public-text \
+            && git merge -q --no-ff main -m "Merge main"$'\n\n'"via $cgnat" && merge="$(git log -1 --format=%h)" || exit 1
+          run "$CHECK"
+          # The merge commit carries no trailers and is not asked for them.
+          assert_failure && assert_output --partial "  - $merge:3: IPv4 address" \
+            && refute_output --partial "missing trailer" || exit 1
+          ;;
+      esac
+      refute_output --partial "$cgnat"
+    ) || fail "check-git did not handle the public text case: $case"
+  done
+}
+
 @test "flags extensions.worktreeConfig whatever its value, including false" {
   git switch -q -c work/config
   local value

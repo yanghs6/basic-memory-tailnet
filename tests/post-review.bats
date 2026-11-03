@@ -39,12 +39,15 @@ write_reports() {
 }
 
 @test "posts nothing when a file of the round is missing, too long, carries public text or comes from an older make review" {
-  local case problem message cgnat
-  # A CGNAT (tailnet range) address never sits in a repo file, so build it here; tests/lib-git.bats covers the check.
+  local case problem message cgnat home
+  # A CGNAT (tailnet range) address and a home path never sit in a repo file, so build them here; tests/lib-git.bats
+  # covers the check.
   cgnat="$(printf '%s.%s' 100.101 102.103)"
+  home="$(printf '/%s/%s/' Users someone)"
   # Each case: what is wrong with the plan report | the message of the check that stops before any gh call.
   for case in "missing|missing $PREFIX-plan.md" "too long|over GitHub's 65536 limit" \
-    "public text|$PREFIX-plan.md:2: IPv4 address" "old meta|names no model"; do
+    "public text|$PREFIX-plan.md:2: IPv4 address" "home path|$PREFIX-plan.md:2: local path" \
+    "old meta|names no model"; do
     IFS='|' read -r problem message <<<"$case"
     (
       write_reports && : >"$STUB_LOG" || exit 1
@@ -52,11 +55,12 @@ write_reports() {
         missing) rm "$PREFIX-plan.md" || exit 1 ;;
         "too long") head -c 70000 /dev/zero | tr '\0' x >"$PREFIX-plan.md" || exit 1 ;;
         "public text") printf 'Reach %s.\n' "$cgnat" >>"$PREFIX-plan.md" || exit 1 ;;
+        "home path") printf '[P2] %sx.sh:1 - finding\n' "$home" >>"$PREFIX-plan.md" || exit 1 ;;
         "old meta") printf 'base %s\nhead %s\n' 1111111 2222222 >"$PREFIX-meta.txt" || exit 1 ;;
       esac
       run "$POST" 12 plan/n3q8d5vb-review-posting codex
       assert_failure && assert_output --partial "$message" && refute_stub_called '^gh ' \
-        && refute_output --partial "$cgnat"
+        && refute_output --partial "$cgnat" && refute_output --partial "$home"
     ) || fail "post-review did not stop before gh on a plan report: $problem"
   done
 }

@@ -10,3 +10,4 @@ the tailnet IPv6 range fd7a:115c:a1e0::/48
 placeholders host.example.ts.net, example-vm.ts.net, <host>.ts.net, *.ts.net, {name}.ts.net, agent-hub.tail1234.ts.net and host.tailnet.ts.net
 the rule says that a body never carries a Generated with line
 a link without id: claude.ai/code/session
+container and placeholder paths /home/appuser/.basic-memory, /Users/<you>/x, $HOME/x, ~/x and the bare folders /var/folders/ and /private/var/folders/

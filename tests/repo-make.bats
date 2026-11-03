@@ -98,6 +98,22 @@ make_in() {
   assert_output --partial "[unset] [unset] --read-only"
 }
 
+@test "make check-git checks the branch BRANCH names against origin/main, and the current branch without it" {
+  linked_worktree_with_makefile
+  mkdir -p "$LINKED_WT/scripts"
+  # shellcheck disable=SC2016 # the generated script must keep "$@" literal
+  printf '#!/usr/bin/env bash\nprintf "[%%s]" "$@"\necho\n' >"$LINKED_WT/scripts/check-git.sh"
+  chmod +x "$LINKED_WT/scripts/check-git.sh"
+  cd "$LINKED_WT" || fail "cannot cd into $LINKED_WT"
+  # The kcov xtrace settings are dropped for the reason given at make_host.
+  run env -u SHELLOPTS -u PS4 -u BASH_ENV make --no-print-directory check-git BRANCH=work/x
+  assert_success
+  assert_output --partial "[origin/main][work/x]"
+  run make_in "$LINKED_WT" check-git
+  assert_success
+  assert_output --partial "[origin/main][]"
+}
+
 @test "make local-up with BM_WEB=on hands COMPOSE_PROFILES=web to compose and runs the same compose command" {
   linked_worktree_with_makefile
   setup_stubs docker

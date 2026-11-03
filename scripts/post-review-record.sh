@@ -26,7 +26,7 @@ main() {
   # On a public repo anyone can post a comment that starts with the marker; only the machine account's count.
   me="$(gh api user --jq .login)" || die "could not read the gh login; run gh auth status"
   [[ -n "$me" ]] || die "gh returned no login; run gh auth status"
-  body="$(mktemp "${TMPDIR:-/tmp}/review-record.XXXXXX")" || exit 1
+  body="$(new_temp post-review-record)" || exit 1
   # shellcheck disable=SC2064  # expand $body now: it is local to main
   trap "rm -f '$body'" EXIT
   {

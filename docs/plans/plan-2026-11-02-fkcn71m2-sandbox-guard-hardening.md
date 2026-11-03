@@ -1,0 +1,252 @@
+---
+status: completed
+id: fkcn71m2
+spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
+---
+
+# fkcn71m2 Sandbox, Guard and Public Text Hardening Implementation Plan
+
+> **For agentic workers:** Task를 순서대로 하나씩 구현한다. 도구가 서브에이전트를 지원하면 Task마다 새 서브에이전트와 리뷰를 쓰고, 아니면 한 세션에서 실행한다. VM이나 클라우드를 바꾸는 Step은 메인 세션에서 사용자와 함께, 단계마다 OK를 받고 한다. Step은 체크박스(`- [ ]`)로 추적한다.
+
+**Goal:** 2026-11-02 저장소 재검토의 W1~W3과 W5를 고친다(F01~F04와 F06~F09 일부, F14, F35). sandbox 제외 범위가 가드 패턴보다 넓은 틈과 리뷰 및 공개 경로의 누출 틈을 닫는다.
+
+**Architecture:**
+- 임시 파일을 `$TMPDIR` 템플릿으로 만드는 `new_temp`를 `common.sh`에 두어, 공개 텍스트 검사가 sandbox 안에서 돌게 하고 `scripts/check-public-text.sh *` 제외를 뺀다.
+- 가드(`scripts/guard-agent-bash.sh`)는 gcloud와 gh를 읽기 형태 허용 목록으로, make 호출은 "타깃 + 문서화된 변수 + 평범한 값"만 통과시키는 허용 목록으로 바꾼다. 나머지는 ask다.
+- 공개 텍스트 검사에 `local-path` 종류와 diff 모드를 더해, 리뷰 보고서의 절대 경로, 중간 커밋 diff, 병합 커밋 메시지, 게시 전 `--body-file`을 본다.
+
+**Spec:** `docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md`(3.3 가드 훅), 결정 기록 `docs/decisions/adr-2026-10-28-zaptc3gp-agent-trifecta.md`, `docs/decisions/adr-2026-10-26-vtmqpsyx-public-text-guard.md`. 지적 원문은 main checkout `.review-out/full-review-2026-11-02.md`(추적 안 됨)의 2.1절과 5장이다.
+
+**Sequence:** 다음을 모두 만족한 뒤 시작한다.
+- 이 계획의 사용자 승인과 아래 "User decisions"의 답.
+- 같은 1차에 도는 P-C(운영 견고성), P-E(문서와 계획 정리)와 파일이 겹치면 감독 세션에 먼저 알린다. **Reported (2026-11-02, 감독 세션):** `docs/ARCHITECTURE.md:70`(검사 종류 목록)은 동작을 바꾸는 이 계획이 같은 PR에서 고친다. k3bd8k47 계획 Follow-ups의 F35 대상은 P-E가 이 계획의 Task 6으로 적는다.
+
+## User decisions
+
+**Verified (2026-11-02):** 사용자가 계획을 승인하고 D1-A, D2-A, D3-A를 골랐다. D4는 담당 세션이 Task 3의 sandbox 안 실행 결과로 정한다고 알렸다.
+
+- **D1 (F35, ADR zaptc3gp 잔여 위험 문구): A.** 잔여 위험에 "auto 모드에서는 ask를 분류기가 판단해 사람 확인 없이 통과할 수 있다(2026-10-28 `make deploy` 실제 실행, k3bd8k47 Progress log)"와 "F01과 F03 형태는 이 계획에서 허용 목록으로 막았다"를 더하고, 결과의 "bypass 모드에서도 매번 프롬프트가 뜬다" 줄 뒤에 "default 모드와 bypass 모드 한정, auto 모드는 잔여 위험 참고"를 덧붙인다. 고르지 않은 안: B) 잔여 위험에 한 줄만, C) 넣지 않음.
+- **D2 (F03, make 인자): A, 허용 목록.** make 호출의 인자는 타깃 이름과 문서화된 변수(`BRANCH`, `REVIEWER`, `ROUND`, `PR`, `FILE`, `HOST`, `LOCAL`, `BM_WEB`, `FULL`, `HOOK`, `REMOVE`, `TYPE`, `SLUG`, `ID`, `NAME`, `KIND`, `SINCE`, `BACKUP`, `MEMORY_AGENT`, `REVIEW_*`, `LOG_EXPORT_DIR`)의 평범한 값만 통과한다. 옵션, 따옴표와 백슬래시, 확장(`$`와 백틱)이나 다른 변수가 있으면 ask다. 고르지 않은 안: B) 보고서가 든 형태(따옴표, 백슬래시, `-f/--file/-C/-I/--eval`, `SHELL=`, `MAKEFILES=`)만 ask.
+  - 근거 **Verified (2026-11-02):** make 명령줄 변수는 레시피 환경으로 넘어간다. `make -f x.mk BASH_ENV=<파일> t`에서 레시피 bash가 그 파일을 실행했다. `BASH_ENV`, `PATH`, `DOCKER_RUN`, `COMPOSE`처럼 B 목록에 없는 변수도 같은 부류라 B로는 다 막지 못한다.
+- **D3 (F07, 가드의 `--body-file` 검사에서 공개 텍스트가 나올 때): A, 막음.** exit 2로 막고 위치와 종류만 출력한다. ADR zaptc3gp 결정 4("deny는 두 종류만") 뒤에 세 번째 종류로 추가 사실을 적는다. auto 모드에서는 ask가 사람 확인을 보장하지 않기 때문이다. 고르지 않은 안: B) ask 사유에 위치를 적음.
+- **D4 (`make check-git` 제외):** A) mktemp 수정 뒤 sandbox 안 실행을 확인하면 `make check-git` 제외를 아예 뺀다(신뢰 범위 축소). 확인이 안 되면 B) 정확 문자열을 두고 `make check-git *`를 더한다. 결과는 Progress log에 적는다.
+
+## Global Constraints
+
+- 스크립트 규칙(`AGENTS.md` Invariants): `#!/usr/bin/env bash` + `set -euo pipefail`, `common.sh` 또는 lib를 source, `die`로 조치할 수 있는 메시지, 이름 붙인 상수, macOS bash 3.2(빈 배열 전개 금지, `x="$(fn)" || exit 1`).
+- 테스트를 먼저 쓰고 `make test`로 실패를 본 뒤 구현한다. 테스트를 약하게 만들거나 지우지 않는다.
+- 공개 저장소다. 커밋과 PR, 테스트 입력에는 VM IP와 실제 홈 경로, 세션 링크를 쓰지 않는다. 테스트의 가짜 주소와 경로는 실행 중에 조립하거나 예외 목록에 오른 must-fail fixture에만 둔다. 기존 파일이 새 `local-path` 종류에 걸리면 `.public-text-exemptions` 규칙대로(경로와 종류만, 값은 쓰지 않음) 처리한다.
+- deny는 비밀값과 노트 읽기, 백업 삭제 그리고 D3-A의 공개 텍스트가 든 `--body-file` 게시뿐이다(ADR zaptc3gp 결정 4와 이 계획의 추가).
+- `.claude/settings.json`은 sandbox가 셸 쓰기를 막으므로 메인 세션이 Edit 도구로 고친다.
+- 커밋 트레일러: `Assisted-by: claude-code claude-opus-5-5`, `Plan: fkcn71m2`, `Task: <N|review|none>`.
+
+## Review Focus
+
+1. `TMPDIR`이 비었거나 `/`로 끝날 때 `new_temp`가 `/tmp`나 이중 슬래시 없이 만든다(Task 1 lib 테스트).
+2. gcloud 리소스 이름이 읽기 동사와 같은 경우(`gcloud compute instances start list`)는 ask다(Task 4).
+3. `sh -c '...'` 안의 gcloud와 gh, make도 검사한다. 따옴표를 지운 뒤에만 보면 놓친다(Task 4, 5).
+4. make 인자의 `$(...)`와 백틱은 sandbox 제외에 맞으면 밖에서 돌 수 있으므로 ask다(Task 5).
+5. diff 모드는 지운 줄(`-`)을 보지 않고, 예외 목록 파일에 추가한 줄은 넘긴다. 바이너리 diff는 내용이 없어 검사하지 않고, 따옴표 친 경로는 예외 없이 검사한다(Task 9).
+6. `--body-file -`(stdin)과 변수로 된 경로는 검사할 수 없으니 기존 ask로 둔다(Task 10).
+
+## File Structure
+
+| 파일 | 책임 | Task |
+|---|---|---|
+| `scripts/lib/common.sh` | `new_temp [-d] NAME` | 1 |
+| `scripts/check-public-text.sh`, `scripts/lib/mcp.sh`, `scripts/sync-agent-memory.sh`, `scripts/export-logs.sh`, `scripts/verify-web.sh`, `scripts/verify-sb.sh`, `scripts/upload-sb-fonts.sh`, `scripts/post-review-record.sh` | `mktemp` 호출을 `new_temp`로 | 1 |
+| `tests/lib-common.bats`, `tests/repo-scripts.bats` | 헬퍼 동작, 템플릿 없는 `mktemp` 금지 | 1 |
+| `scripts/check-public-text.sh`, `tests/check-public-text.bats` | ls-files 실패와 0개 처리, `local-path`, diff 모드 | 2, 8, 9 |
+| `Makefile`, `.claude/settings.json`, `tests/repo-config.bats` | `make check-git BRANCH=`, 제외 목록 | 3 |
+| `scripts/guard-agent-bash.sh`, `tests/guard-agent-bash.bats` | 게시 스크립트 ask, gcloud와 gh와 make의 허용 목록 및 감싸기, `--body-file` 검사 | 3, 4, 5, 10 |
+| `scripts/review-branch.sh`, `tests/review-branch.bats` | Codex deny 추가, 보고서 경로 상대화 | 7, 8 |
+| `scripts/check-git.sh`, `tests/check-git.bats` | 중간 커밋 diff, 병합 커밋 메시지 | 9 |
+| `.public-text-exemptions`, `tests/fixtures/check-public-text/` | `local-path` fixture | 8 |
+| `docs/ARCHITECTURE.md`(`:70` 검사 종류) | 새 종류와 diff 검사 | 8, 9 |
+| ADR zaptc3gp, ADR 0svs72hp, `.agents/skills/git-workflow/SKILL.md` | 추가 사실, 상태, Publish 1 문장 | 3, 6, 7, 9, 10 |
+
+---
+
+### Start: branch, worktree, draft PR
+
+- [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/fkcn71m2-sandbox-guard-hardening` 브랜치를 만든다(`git-workflow` 스킬의 Start).
+- [x] 첫 커밋에서 이 계획을 `make new-doc TYPE=plan SLUG=sandbox-guard-hardening ID=fkcn71m2`로 넣고 `status: active`로 커밋하고 push한 뒤 초안 PR을 연다. PR 본문에 "병합 직후 main checkout을 pull하고 세션을 다시 시작"을 적는다.
+
+### Task 1: `new_temp` helper and the mktemp call sites (W1, F08)
+
+**Files:**
+- Modify: `scripts/lib/common.sh`, 위 표의 8개 스크립트(10곳 + `post-review-record.sh`)
+- Test: `tests/lib-common.bats`, `tests/repo-scripts.bats`
+
+**Interfaces:**
+- Produces: `new_temp [-d] NAME` → `${TMPDIR:-/tmp}`(끝 `/` 제거) 아래 `NAME.XXXXXX` 파일(또는 `-d`면 폴더)을 만들고 경로를 출력한다. 실패하면 0이 아닌 값으로 끝나므로 호출자는 `x="$(new_temp n)" || exit 1`.
+
+- [x] **Step 1: 실패하는 테스트 작성:** lib 테스트 하나(파일과 폴더가 `$TMPDIR/NAME.` 아래 생김, `TMPDIR`이 `/`로 끝나도 같음, `TMPDIR`이 없으면 `/tmp`). repo 테스트 하나(`scripts/`와 `scripts/lib/`에서 `common.sh` 밖의 로컬 `$(mktemp` 호출 0건, `scripts/remote/`와 ssh로 넘기는 원격 `mktemp`는 제외).
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 두 테스트만 실패(`new_temp` 없음, 기존 호출 9곳 이상 검출).
+- [x] **Step 3: 최소 구현:** 헬퍼와 함수 색인 줄, 각 호출을 `new_temp <스크립트 이름>`으로.
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0. 이 세션 sandbox에서 `printf hello | scripts/check-public-text.sh --label probe -`가 exit 0(전에는 `mkstemp failed`, exit 1).
+- [x] **Step 5: 커밋:** `fix: create temporary files under TMPDIR so checks run inside the sandbox`, `Task: 1`.
+
+### Task 2: repo file list failures in the public text check (W1, F14)
+
+**Files:** Modify `scripts/check-public-text.sh` / Test `tests/check-public-text.bats`
+
+- [x] **Step 1: 실패하는 테스트 작성:** 인자 없이 돌릴 때 ① index를 깨뜨린 임시 저장소에서 `git ls-files`가 실패하면 exit 1과 조치 메시지 ② 파일이 하나도 없는 저장소에서 exit 1("no text files").
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 두 경우 모두 지금은 성공으로 끝나 실패.
+- [x] **Step 3: 최소 구현:** `git ls-files -z -co --exclude-standard`를 `new_temp` 파일로 받고 `|| die`, 검사할 파일이 0개면 `die`.
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `fix: fail the public text check when git cannot list the repo files`, `Task: 2`.
+
+### Task 3: sandbox exclusions, `make check-git BRANCH=` and posting scripts (W1, F08, F09 일부)
+
+**Files:**
+- Modify: `Makefile`(`check-git`), `.claude/settings.json`, `scripts/guard-agent-bash.sh`, `.agents/skills/git-workflow/SKILL.md`(Publish 1의 "fails inside the Claude Code sandbox" 절), ADR zaptc3gp(결정 2 뒤 추가 사실)
+- Test: `tests/repo-config.bats`(고정 제외 목록), `tests/guard-agent-bash.bats`, `tests/repo-make.bats`
+
+동작:
+- `make check-git BRANCH=<b>`는 `scripts/check-git.sh origin/main "<b>"`를 부른다. 비우면 지금처럼 현재 브랜치다.
+- 제외 목록에서 `scripts/check-public-text.sh *`를 뺀다. D4-A면 `make check-git`도 빼고, D4-B면 `make check-git *`를 더한다. 허용 규칙에 `Bash(make check-git *)`를 더한다.
+- `post-review.sh`와 `post-review-record.sh` 직접 호출(명령 위치, 경로 접두어 허용)은 ask("this script posts to a pull request"). sandbox 안에서도 이제 공개 텍스트 검사를 통과해 `gh`까지 닿을 수 있기 때문이다(F08 수정 제안).
+
+- [x] **Step 1: 실패하는 테스트 작성:** repo-config 고정 목록 갱신, guard ask 사례(`scripts/post-review.sh 1 plan/x codex`, `bash scripts/post-review-record.sh 1 f`, `sh -c './scripts/post-review.sh 1 b codex'`)와 통과 사례(`cat scripts/post-review.sh`, `shellcheck scripts/post-review-record.sh`), repo-make 사례(가짜 `scripts/check-git.sh`로 `make check-git BRANCH=work/x`가 그 브랜치를, `BRANCH` 없이는 빈 인자를 넘기는지 확인).
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례만 실패.
+- [x] **Step 3: 최소 구현.**
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0. 이 세션 sandbox에서 `scripts/check-git.sh origin/main plan/fkcn71m2-sandbox-guard-hardening`과 `make check-git BRANCH=plan/fkcn71m2-sandbox-guard-hardening`이 통과(D4 판단 근거, Progress log에 기록).
+- [x] **Step 5: 커밋:** `feat: run the public text check inside the sandbox and check any branch with make check-git`, `Task: 3`.
+
+### Task 4: gcloud and gh read allow-lists in the guard (W2, F01, F02)
+
+**Files:** Modify `scripts/guard-agent-bash.sh` / Test `tests/guard-agent-bash.bats`
+
+동작:
+- gcloud: 명령 위치(감싸기 포함)의 호출마다, 따옴표 친 문자열을 한 토큰으로 줄이고 `;&|()`와 줄바꿈에서 자른 뒤 플래그와 플래그 값을 뺀다. 남은 토큰이 `(그룹)* 읽기동사 (인자)*`일 때만 통과한다. 그룹은 고정 목록(`config configurations compute instances firewall-rules disks addresses networks zones regions operations images projects services iam service-accounts keys auth billing accounts logging logs components alpha beta` 등), 읽기 동사는 `list describe info version help get-value get-iam-policy get-serial-port-output read`. 토큰이 없으면(`gcloud --version`) 통과. 그 밖은 ask("this cloud CLI call is not a read-only form").
+  - 이유: 지금 패턴은 명령 어디서나 쓰기 동사를 찾는 거부 목록이라 `start`, `ssh`, `scp`, `update-from-file`, `add-iam-policy-binding`, `services enable`, `configurations activate`, `auth print-access-token`을 놓친다. 명령 위치가 아닌 gcloud(`grep gcloud docs`, 파이프 뒤)는 sandbox 제외에 맞지 않아 자격증명 없이 sandbox 안에서 돈다.
+- gh: 명령 위치 호출마다 전역 플래그(`-R`, `--repo`)를 건너뛰고 `<명령> <하위 명령>`을 본다. 통과: `pr view|list|diff|checks|status`, `issue view|list|status`, `run view|list|watch`, `workflow view|list`, `release view|list`, `repo view|list`, `gist view|list`, `label|secret|variable|cache list`, `ruleset view|list|check`, `search *`, `auth status`(`-t`, `--show-token` 없을 때), `status`, `version`, `help`, 인자 없음과 `--version`, 그리고 지금처럼 필드 없는 GET `api`. 나머지는 ask("this gh call is not a read-only form").
+- 한 명령에 gcloud와 gh 호출이 여럿이면 모두 본다.
+
+- [x] **Step 1: 실패하는 테스트 작성:** ask: `gcloud compute instances start x`, `gcloud compute ssh agent-hub --command "sudo docker compose down"`, `gcloud compute scp a agent-hub:b`, `gcloud projects add-iam-policy-binding p --member m --role r`, `gcloud services enable x`, `gcloud compute instances update-from-file x --source f`, `gcloud config configurations activate x`, `gcloud auth print-access-token`, `gcloud compute instances start list`, `gcloud compute instances list && gcloud compute instances start x`, `sh -c 'gcloud compute instances start x'`, `gh run cancel 1`, `gh run rerun 1`, `gh workflow run x`, `gh workflow disable x`, `gh secret set X`, `gh variable set X`, `gh label create x`, `gh alias set co 'pr checkout' --shell`, `gh extension install x`, `gh extension exec x`, `gh auth token`, `gh auth status --show-token`, `gh pr checkout 1`, `gh repo clone x`, `gh pr view 1 && gh pr merge 1`. 통과: `gcloud --configuration=bm-personal compute instances describe agent-hub-01 --zone z --format='value(status)'`, `gcloud config configurations list`, `gcloud config list`, `gcloud auth list`, `gcloud info`, `grep -rn gcloud docs`, `gh pr diff 1`, `gh pr checks 1`, `gh run view 1 --log`, `gh auth status`, `gh search prs x`, `gh -R a/b pr view 3`. 기존 사례는 모두 그대로 둔다.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 ask 사례만 실패.
+- [x] **Step 3: 최소 구현:** 상수(그룹, 읽기 동사, gh 읽기 형태)와 호출 하나를 판정하는 함수 두 개. 기존 `CLOUD_CHANGE_PATTERN`과 `GH_WRITE_PATTERN`은 허용 목록이 대신한다.
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `feat: ask before every cloud CLI and gh call that is not a read-only form`, `Task: 4`.
+
+### Task 5: make argument allow-list, wrappers and the guard header (W2, F03, 3장 헤더 주석)
+
+**Files:** Modify `scripts/guard-agent-bash.sh` / Test `tests/guard-agent-bash.bats`
+
+동작(D2-A):
+- 명령 위치를 넓힌다: `VAR=x` 대입 접두어, `env VAR=x`, `time`, `nohup`, `exec`, `command`, `nice`, `xargs`, `sudo` 뒤도 명령 위치로 본다. 그러면 `BM_WEB=on make deploy`, `env BM_WEB=on make deploy`, `time make restore`, `GH_REPO=a/b gh pr create`, `nohup scripts/deploy-stack.sh`도 ask다(보고서 3장).
+- make 호출마다 `;&|()<>`와 줄바꿈까지 인자를 본다. 끝에 붙은 닫는 따옴표(`sh -c '...'`)는 뺀다. 인자가 타깃 이름(`[a-z0-9][a-z0-9-]*`)이거나 허용 변수의 평범한 값(`[A-Za-z0-9._/:@%+,=-]*`)이 아니면 ask("this make call passes an option, a quoted or expanded argument or an undocumented variable, which can run code outside the repo's Makefile outside the sandbox"). make 앞의 대입 접두어도 같은 허용 목록으로 본다.
+- 헤더 주석을 실제 동작대로 고친다. 적을 것은 잡는 감싸기 목록과 허용 목록 방식, 못 잡는 형태다. 못 잡는 형태는 변수 치환과 인코딩 및 `eval`, 별칭과 함수, 스크립트 파일 안의 명령이다.
+
+- [x] **Step 1: 실패하는 테스트 작성:** ask: `make probe "deploy"`, `make probe 'deploy'`, `make probe dep\loy`, `make probe -f x.mk`, `make probe --file=x.mk`, `make probe -C /tmp/x`, `make probe --eval=x`, `make probe SHELL=./x.sh`, `make probe MAKEFILES=x.mk`, `make probe BASH_ENV=./x.sh`, `make probe DOCKER_RUN=x`, `make check-git BRANCH=$(id)`, ``make probe HOST=`id` ``, `BASH_ENV=./x.sh make probe`, `BM_WEB=on make deploy`, `env BM_WEB=on make deploy`, `time make restore`, `GH_REPO=a/b gh pr create`, `nohup scripts/deploy-stack.sh`. 통과: `make check 2>&1`, `make check-git BRANCH=plan/abcdefgh-x`, `make review BRANCH=plan/abcdefgh-x REVIEWER=codex ROUND=2`, `make new-doc TYPE=plan SLUG=a-b ID=abcdefgh`, `make export-logs SINCE=24h`, `make memory-sync FULL=1`, `cd x && make backup`, 기존 통과 사례 전부.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 ask 사례만 실패.
+- [x] **Step 3: 최소 구현.**
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `feat: ask before make calls with options, expansions or undocumented variables`, `Task: 5`.
+
+### Task 6: trifecta ADR residual risks (W2, F35)
+
+**Files:** Modify `docs/decisions/adr-2026-10-28-zaptc3gp-agent-trifecta.md`
+
+- [x] **Step 1:** D1-A 문구를 결과와 잔여 위험에 더한다. 결정 문장은 고치지 않고 뒤에 "(2026-11-0x 추가, 계획 fkcn71m2)"로 사실을 덧붙인다: 결정 5 뒤에 허용 목록 방식, 잔여 위험의 "make와 gh 패턴도 같다" 문장 뒤에 이제 잡는 형태.
+- [x] **Step 2: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 3: 커밋:** `docs: record the guard allow-lists and the auto mode limit in the trifecta ADR`, `Task: 6`.
+
+### Task 7: Codex reviewer denies the main backups and notes (W3, F04)
+
+**Files:** Modify `scripts/review-branch.sh`(`codex_isolation_args`), ADR zaptc3gp 결정 8 뒤 추가 사실 / Test `tests/review-branch.bats`
+
+- [x] **Step 1: 실패하는 테스트 작성:** "both codex calls … deny profile" 사례에 main `backups`, `.local-data` 절대 경로가 deny에 있는지 더한다. TOML 따옴표 사례도 세 경로 모두.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 단언만 실패.
+- [x] **Step 3: 최소 구현:** `.env`와 같은 TOML 이스케이프로 두 경로를 더한다.
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `fix: deny the Codex reviewer the main checkout backups and local data`, `Task: 7`.
+
+### Task 8: `local-path` kind and repo-relative review reports (W5, F06)
+
+**Files:**
+- Modify: `scripts/check-public-text.sh`(`KIND_IDS`에 `local-path`, 이름 `local path`, `MASK_HINT`), `scripts/review-branch.sh`(보고서를 옮기기 전에 리뷰 worktree 접두어를 지움), `.public-text-exemptions`(머리 주석의 종류 목록, fixture 줄), `docs/ARCHITECTURE.md:70`(검사 종류)
+- Create: `tests/fixtures/check-public-text/local-path.txt`(must-fail)
+- Test: `tests/check-public-text.bats`, `tests/review-branch.bats`, `tests/post-review.bats`
+
+동작:
+- `local-path`: `/Users/<이름>/`, `/home/<이름>/`(이름은 `[A-Za-z0-9._-]+`), `/var/folders/<폴더>/`, `/private/var/folders/<폴더>/`(폴더는 `[A-Za-z0-9_+-]+`). `<you>`, `$HOME`, `~` 같은 자리표시는 맞지 않는다. 컨테이너 사용자 `/home/appuser/`(compose.yaml)는 허용 이름 상수로 둔다. **Verified (2026-11-02):** 지금 저장소에서 이 모양에 맞는 줄은 `/home/appuser/`뿐이다.
+- `review-branch.sh`: 두 보고서에서 리뷰 worktree 경로 접두어(`$WT/`)를 문자 그대로 지워 저장소 상대 경로로 만든다. 남은 절대 경로는 `make review-post`의 공개 텍스트 검사가 거부한다.
+
+- [x] **Step 1: 실패하는 테스트 작성:** check-public-text 종류 사례에 `local-path` 줄들, pass fixture에 `/home/appuser/.basic-memory`, `/Users/<you>/`, `$HOME/x`. review-branch: codex 스텁이 `$PWD/scripts/x.sh:12`를 쓰면 최종 보고서에는 `scripts/x.sh:12`만 있다. post-review: 실행 중 조립한 홈 경로가 든 보고서는 게시하지 않는다.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례만 실패.
+- [x] **Step 3: 최소 구현.**
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0(트리 검사가 새 종류로도 통과).
+- [x] **Step 5: 커밋:** `feat: flag local home and temp paths and strip the review worktree from reports`, `Task: 8`.
+
+### Task 9: history diffs and merge messages in check-git (W5, F07)
+
+**Files:** Modify `scripts/check-public-text.sh`(`--diff` 모드), `scripts/check-git.sh`, ADR 0svs72hp `:29` 행, `docs/ARCHITECTURE.md:70`(diff 검사 한 구절) / Test `tests/check-public-text.bats`, `tests/check-git.bats`
+
+**Interfaces:**
+- Produces: `check-public-text.sh --diff [--exemptions FILE] -`: stdin의 `git log -p --unified=0 --format='commit %h'` 출력에서 추가된 줄만 보고, 그 줄이 들어간 파일 경로로 예외를 맞추며, `<sha> <path>:<새 줄 번호>: <kind>`를 값 없이 출력한다.
+
+동작:
+- `check-git.sh`는 `base..head`의 병합 아닌 커밋 diff를 `--no-ext-diff --no-textconv --no-color`로 뽑아 diff 모드로 검사한다. 예외 목록은 검사하는 head의 `.public-text-exemptions`(`git show <head>:…`)다. 최종 트리에 남은 예외만 PR diff에 보여 리뷰가 볼 수 있기 때문이다.
+- 병합 커밋은 트레일러 검사 없이 메시지만 공개 텍스트 검사를 한다.
+- 걸린 커밋은 short SHA와 경로, 줄만 알린다. 해결은 이력 재작성이라 "ask the human"(`POLICY_HINT`)이다. CI `pr-rules`도 같은 스크립트를 돌린다.
+- ADR 0svs72hp `:29` 행 상태를 "일부"로 바꾼다. 검사 지점은 트리와 모든 커밋의 diff 및 메시지, 병합 메시지, CI의 PR 본문과 가드의 `--body-file`이다. 남는 틈은 `--body` 직접 입력과 GitHub 화면 편집, 다른 도구 세션이 CI 전에 하는 게시다.
+
+- [x] **Step 1: 실패하는 테스트 작성:** check-public-text: diff 입력에서 추가 줄만 걸림, 지운 줄은 통과, 예외 경로의 추가 줄은 통과, 줄 번호가 새 파일 기준. check-git: 커밋 1이 가짜 주소(실행 중 조립)를 넣고 커밋 2가 지우면 실패하고 커밋 1의 SHA와 경로를 알리되 값은 출력하지 않음, head 예외 목록에 오른 fixture 추가는 통과, 메시지에 공개 텍스트가 든 병합 커밋은 실패.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례만 실패.
+- [x] **Step 3: 최소 구현:** awk 검사 함수는 그대로 쓰고 파일 모드와 diff 모드의 main 블록만 나눈다.
+- [x] **Step 4: 통과 확인:** Run: `make check`, `make check-git` / Expected: 둘 다 exit 0(이 브랜치의 must-fail fixture는 head 예외로 통과).
+- [x] **Step 5: 커밋:** `feat: check every commit diff and merge message of a branch for public text`, `Task: 9`.
+
+### Task 10: guard checks the body file before posting (W5, F07)
+
+**Files:** Modify `scripts/guard-agent-bash.sh`, ADR zaptc3gp 결정 4 뒤 추가 사실(D3-A) / Test `tests/guard-agent-bash.bats`
+
+동작:
+- `gh pr create|edit|comment`에 `--body-file <p>`, `--body-file=<p>`, `-F <p>`가 있으면 hook 입력의 `.cwd` 기준으로 파일을 찾아 `scripts/check-public-text.sh`로 검사한다. 걸리면 exit 2와 위치와 종류(값 없음)로 막는다. 깨끗하면 지금처럼 ask.
+- `-`(stdin)와 `$`나 백틱이 든 경로, 없는 파일은 검사하지 않고 지금처럼 ask.
+
+- [x] **Step 1: 실패하는 테스트 작성:** 실행 중 조립한 가짜 주소가 든 본문 파일로 세 플래그 형태가 exit 2로 끝남, 깨끗한 파일은 ask, `--body-file -`는 ask, 출력에 값이 없음.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례만 실패.
+- [x] **Step 3: 최소 구현.**
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `feat: check the PR body file for public text before gh posts it`, `Task: 10`.
+
+### Finish: review and hand-off
+
+- [x] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋하고 push한다(`Task: none`).
+- [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다. 본문에 "병합 직후 main checkout을 pull하고 세션을 다시 시작(`.claude/settings.json`과 가드가 바뀜)"을 적는다.
+- [ ] 다른 벤더의 읽기 전용 리뷰(`make review BRANCH=plan/fkcn71m2-sandbox-guard-hardening REVIEWER=codex`)와 PR 코멘트 게시는 사용자 승인 후 한다(`git-workflow` 스킬의 Review and merge).
+- [ ] CI가 통과하고 열린 P0/P1이 없으면 사용자 OK를 받아 `gh pr ready <PR>`을 실행하고 감독 세션과 사용자에게 알린다. 승인과 squash 병합은 사람만 한다.
+
+## Follow-ups
+
+- 가드가 hook 입력의 `permission_mode`로 auto 모드를 알아보고 VM 변경과 게시 ask를 거부로 바꾸는 방안(F35의 근본 대책). **Assumption:** PreToolUse 입력에 `permission_mode`가 있다(문서 확인 전). 별도 계획 후보.
+- F05와 W4(리뷰어 설정과 훅을 base에서 주입), F09의 리뷰 규칙 3 문구와 `review-branch.sh`가 `check-git` 결과를 넣는 일(W6), F10 체크리스트는 이 계획 밖이다.
+- W1 후속: **Verified (2026-11-03):** 이 worktree 세션의 `git merge origin/main`(PR #38 병합분)이 sandbox 쓰기 제한에 걸려 실패했다. main이 `.claude/agents/release-notes-reader.md`를 바꿨기 때문이다. sandbox가 쓰기를 막는 `.claude/` 아래 경로를 main이 바꾸면 사용자가 `!`로 병합해야 한다. `git-workflow` 스킬에 이 경우를 적거나 병합을 sandbox 밖에서 돌리는 방안이 후보다.
+- 가드의 `--body-file` 검사는 리터럴 경로만 본다. `--body-file "$TMPDIR/..."`처럼 변수가 든 경로와 `cd x && gh ... -F <상대 경로>`, 합친 플래그(`-Fx`)는 ask만 남는다. `gh pr review`와 `gh issue create|comment|edit`의 본문 파일도 검사하지 않는다.
+- `post-review.sh`와 `post-review-record.sh`의 거부 안내에는 저장소 상대 경로로 쓰라는 말이 없다. 리뷰 worktree 경로에 심볼릭 링크가 끼어 리뷰어가 실제 경로로 적으면 그 경로는 지워지지 않는다(게시는 공개 텍스트 검사가 막는다).
+
+## Progress log
+
+| 날짜 | 표기 | 내용 |
+|---|---|---|
+| 2026-11-02 | Verified | `make new-id`가 `fkcn71m2`를 냈고 `origin/plan/fkcn71m2-*` 브랜치는 없다. 브랜치를 `plan/fkcn71m2-sandbox-guard-hardening`으로 바꿨다(`.git/config` 갱신은 sandbox가 막았지만 옛 브랜치에 설정 항목이 없어 영향 없음). |
+| 2026-11-02 | Verified | scratchpad의 makefile로 `make -s -f x.mk FOO=1 BASH_ENV=<파일> t`를 돌리자 레시피에 `FOO=1`이 보였고 `BASH_ENV` 파일이 실행됐다(D2 근거). |
+| 2026-11-02 | Verified | `git grep`으로 `local-path` 모양을 찾으니 `/home/appuser/`(컨테이너 경로) 10개 파일뿐이었다. |
+| 2026-11-02 | Verified | 사용자가 Basic Memory 초안 보드의 초안을 승인하고 D1-A, D2-A, D3-A를 골랐다. |
+| 2026-11-02 | Verified | Task 1: 테스트를 먼저 쓰자 `make test`(테스트 279개)에서 새 테스트 둘만 실패했다. lib 테스트는 `new_temp: command not found`로, repo 테스트는 로컬 `$(mktemp` 호출 11곳을 찾아 실패했다(`scripts/remote/`와 `bootstrap-vm.sh`가 ssh로 넘기는 원격 `mktemp`는 걸리지 않음). 구현 뒤 `make check`는 exit 0, total line coverage 89.32%(최소 80%)였다. 이 세션 sandbox에서 stdin `hello`로 돌린 `scripts/check-public-text.sh --label probe -`는 바꾸기 전 `mkstemp failed ... Operation not permitted`로 exit 1, 바꾼 뒤 출력 없이 exit 0이었다. |
+| 2026-11-02 | Verified | Task 2: 테스트를 먼저 쓰자 `make test`(테스트 280개)에서 새 테스트 하나만 실패했다. 빈 저장소에서 인자 없이 돌린 검사가 exit 0으로 끝났기 때문이다. 임시 저장소의 `.git/index`를 깨뜨리자 `git ls-files`는 exit 128, `git rev-parse --show-toplevel`은 exit 0이었고, 바꾸기 전 스크립트는 git 오류만 남긴 채 exit 0이었다. 구현 뒤 `make check`는 exit 0, total line coverage 89.34%(최소 80%)였다. |
+| 2026-11-02 | Verified | D4 근거: Task 1 뒤 이 세션 sandbox에서 `scripts/check-git.sh origin/main plan/fkcn71m2-sandbox-guard-hardening`과 파이프를 붙여 sandbox 안에서 돈 `make check-git`이 모두 `OK: git policy (2 commits since origin/main)`였다(make는 main `.env`를 stat하지 못한다는 경고만 냈다). 그래서 D4는 A로 정했다. |
+| 2026-11-03 | Verified | Task 3: 테스트 세 개(repo-config 고정 제외 목록, guard의 게시 스크립트 ask, repo-make의 `check-git BRANCH=`)를 먼저 바꾸자 `make test`가 exit 2로 실패했다. 출력이 도구에서 중간이 잘려 실패 줄은 보지 못했지만, 직전 커밋 418ecd4의 `make check`가 통과했고 이 단계는 테스트 파일만 바꿨다. 구현 뒤 `make check`는 테스트 281개 exit 0, total line coverage 89.36%(최소 80%)였다. 설정을 고친 뒤 이 세션 sandbox에서 `make check-git BRANCH=plan/fkcn71m2-sandbox-guard-hardening`이 `OK: git policy (3 commits since origin/main)`, 파이프로 이은 `scripts/check-public-text.sh --label probe -`와 인자 없는 저장소 검사가 exit 0이었다. `git-workflow` 스킬은 Publish 1의 한 구절만 지워 트리거 시험(skill-authoring "Test the skill")은 하지 않았다. |
+| 2026-11-03 | Verified | Task 4: guard 테스트 두 개(읽기 형태가 아닌 클라우드 CLI 호출 ask, 읽기 형태가 아닌 gh 호출 ask)와 통과 사례를 먼저 더하자 `make test`(테스트 283개)에서 새 테스트 둘만 실패했다. 첫 실패 사례는 `gcloud compute instances start x`와 `gh run cancel 1`이었고 둘 다 ask 없이 통과했다. 계획의 사례 외에 플래그가 뒤 단어를 삼키는 형태(`--quiet start list`), 큰따옴표 안의 이스케이프, 동사 앞의 `$(...)`와 `${...}`도 ask 사례로 넣었다. 구현 뒤 `make check`는 exit 0, total line coverage 89.64%(최소 80%)였다. macOS bash 3.2(`/bin/bash`)로 가드를 직접 돌린 사례 82개도 기대와 같았다. |
+| 2026-11-03 | Verified | Task 5: guard 테스트 두 개(make 인자 허용 목록, 대입과 감싸기(`env` 포함) 및 키워드나 백틱 뒤의 호출)와 통과 사례를 먼저 더하자 `make test`(테스트 285개)에서 새 테스트 둘만 실패했다. 첫 실패 사례는 `make probe "deploy"`와 `BM_WEB=on make deploy`였고 둘 다 ask 없이 통과했다. 계획의 사례 외에 셸 키워드(`if`, `{` 등), 백틱 구분자, `bash -lc`, 리다이렉션 안의 `<(...)`와 백틱, 호출 끝에서 잘린 여는 따옴표(`make probe ';x:=$(shell id)'`)도 ask 사례로 넣었다. 마지막 형태는 "끝의 닫는 따옴표를 뺀다"는 규칙만으로는 통과했으므로, 뺀 따옴표가 호출 뒤에 다시 나오면 ask로 정했다. 구현 뒤 첫 `make check`는 lint에서 실패했다(`# shellcheck`로 시작하는 주석 줄, 테스트의 작은따옴표 안 `$`와 백틱 SC2016). 고친 뒤 `make check`는 exit 0, total line coverage 89.70%(최소 80%)였다. macOS bash 3.2로 돌린 사례 162개(Task 4 사례 포함)도 기대와 같았다. |
+| 2026-11-03 | Verified | Task 4 후속(담당 세션 검토): 런북의 읽기 명령 `compute project-info describe`와 `images describe-from-family`가 ask되고, 원래 있던 `gh api -X GET -X POST`(첫 `-X`만 봄)가 통과했다. 통과 사례 둘과 ask 사례 둘을 먼저 더하자 `make check`가 exit 2로 실패했고(직전 커밋 1e2525b는 통과), 그룹 `project-info`, 읽기 동사 `describe-from-family`를 더하고 `-X`와 `--method`를 모두 보게 고쳤다. |
+| 2026-11-03 | Verified | Task 6: ADR zaptc3gp에 D1-A대로 더했다. 결정 5 뒤에 허용 목록 방식을, 결과 첫 항목 뒤에 "default 모드와 bypass 모드에서만 맞다"는 단서를 적었다. 잔여 위험에는 이제 잡는 감싸기와 F01, F03 형태, 남는 우회, auto 모드 한계(2026-10-28 `make deploy`)를 더했다. 결정 문장은 고치지 않았다. |
+| 2026-11-03 | Verified | Task 7: review-branch 테스트 두 개에 main `backups`와 `.local-data` 경로 단언을 먼저 더하자 `make check`(테스트 285개)에서 그 두 테스트만 실패했다. TOML 따옴표 테스트는 이제 세 경로를 모두 보므로 이름을 "the deny paths of the main .env, backups and .local-data are quoted for TOML …"로 바꿨다. 구현 뒤 `make check`는 exit 0이었고 total line coverage는 89.71%(최소 80%)였다. ADR zaptc3gp 역할 표에 적힌 옛 테스트 이름은 기록이라 그대로 두었다. |
+| 2026-11-03 | Verified | Task 8: 테스트를 먼저 바꾸자 `make check`(테스트 286개)에서 새로 쓰거나 바꾼 테스트 셋만 실패했다. check-public-text의 종류 반복문은 첫 `local-path` 사례에서 hit이 없어 실패했고 post-review는 홈 경로가 든 보고서를 게시했으며 review-branch 새 테스트는 diff 보고서에 리뷰 worktree 경로가 남아 실패했다. review-branch 테스트는 worktree 상위 폴더 이름에 `[t]`를 넣어 정규식이 아닌 문자 그대로 지우는지 본다. 예외 목록의 `local-path` 줄은 구현 단계에서 더했다(그 종류가 없는 동안에는 트리 검사가 예외 줄 오류로 멈추기 때문이다). 구현 뒤 `make check`는 exit 0이었고 total line coverage는 89.40%(최소 80%)였다. 인자 없이 돌린 `scripts/check-public-text.sh`도 새 종류로 exit 0이었다. |
+| 2026-11-03 | Verified | Task 9: 테스트 두 개를 먼저 더하자 `make test`(테스트 288개)에서 그 둘만 실패했다. check-git 새 테스트는 첫 사례(커밋 1이 넣고 커밋 2가 지운 주소)에서 `OK: git policy`로 통과해 실패했고 check-public-text 새 테스트는 `--diff`를 파일 이름으로 읽어 `no such file: --diff`로 실패했다. 구현 뒤 `make check`는 테스트 288개 exit 0이었고 total line coverage는 88.28%(최소 80%)였다. `make check-git`은 `OK: git policy (10 commits since origin/main)`였고 must-fail fixture는 head 예외 목록으로 통과했다. 예외 목록 없이 이 브랜치의 diff를 macOS awk로 검사하면 d1a130f의 `tests/fixtures/check-public-text/local-path.txt` 줄만 걸렸다. |
+| 2026-11-03 | Verified | Task 10: guard 테스트 하나를 먼저 더하자 `make test`(테스트 289개)에서 그 테스트만 실패했다. 첫 사례 `gh pr create --draft --title t --body-file <tmp>/public.md`가 exit 2 대신 ask로 끝났다. 구현 뒤 `make test`와 `make check`는 테스트 289개 exit 0이었고 total line coverage는 88.52%(최소 80%)였다. macOS bash 3.2(`/bin/bash`)로 가드를 직접 돌린 사례 14개도 기대와 같았고 deny 출력에는 주소 값이 없었다. 본문 파일 검사는 `main`에서 모든 ask보다 먼저 돈다. Task 9가 옮긴 worktreeConfig 테스트의 줄 번호를 ADR 0svs72hp에서 `tests/check-git.bats:171`로 고쳤다. |
+| 2026-11-03 | Verified | Task 8 동반 문서 갱신: GitHub 런북 :47. Task 8이 더한 종류(로컬 홈 경로와 macOS 임시 경로)가 그 종류 목록에 없어 더했고, 그 문장만 하위 불릿으로 나눴다(감독 세션 승인). 첫 문안의 불릿 "세션 링크와 Generated with 줄"은 앞에 한글만 있어 `scripts/check-public-text.sh`에 Generated with 줄로 걸렸다. 그래서 "Claude Code 세션 링크와 Generated with 줄"로 고쳤고 두 파일을 다시 검사하자 출력 없이 exit 0이었다. |
+| 2026-11-03 | Verified | Finish: 감독 세션의 안내대로 origin/main(7817ef3, PR #38)을 병합했다. 이 세션의 `git merge`는 main이 바꾼 `.claude/agents/release-notes-reader.md`를 sandbox 쓰기 제한 때문에 쓰지 못해 실패했고(Follow-ups), 사용자가 `!`로 병합했다. 병합 메시지는 기본값이라 경로가 없다. 병합과 런북 커밋 뒤 `make check`는 테스트 294개 exit 0, total line coverage 88.75%(최소 80%)였고 `make check-git`은 `OK: git policy (13 commits since origin/main)`였다. |

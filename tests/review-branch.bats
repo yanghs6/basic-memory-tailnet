@@ -74,25 +74,27 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
 }
 
 @test "both codex calls strip token-like env vars and run under a deny profile instead of --sandbox or sandbox_mode" {
-  local arg main_env
+  local arg main_root
   cd "$BATS_TEST_TMPDIR" || return
   review_repo claude-code || return 1
   run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
   assert_success
-  main_env="$(git rev-parse --path-format=absolute --git-common-dir)" || return 1
-  main_env="$(dirname "$main_env")/.env"
-  # Both calls (the change review and the plan review) carry every argument.
+  main_root="$(git rev-parse --path-format=absolute --git-common-dir)" || return 1
+  main_root="$(dirname "$main_root")"
+  # Both calls (the change review and the plan review) carry every argument; the main checkout's .env, backups and
+  # .local-data (note contents) are denied by absolute path.
   for arg in 'shell_environment_policy.inherit="core"' 'shell_environment_policy.ignore_default_excludes=false' \
     'default_permissions="reviewer"' 'permissions.reviewer.extends=":read-only"' 'permissions.reviewer.filesystem={' \
-    '"~/.ssh"="deny"' '"~/.config"="deny"' "\"$main_env\"=\"deny\""; do
+    '"~/.ssh"="deny"' '"~/.config"="deny"' "\"$main_root/.env\"=\"deny\"" "\"$main_root/backups\"=\"deny\"" \
+    "\"$main_root/.local-data\"=\"deny\""; do
     run grep -c -F -- "$arg" "$STUB_LOG"
     assert_output 2 || fail "argument $arg is not on both codex calls"
   done
   refute_stub_called -F -e '--sandbox' -e 'sandbox_mode'
 }
 
-@test "the deny path of the main .env is quoted for TOML: a space stays, a quote and a backslash are escaped, a newline is refused" {
-  local case root expected
+@test "the deny paths of the main .env, backups and .local-data are quoted for TOML: a space stays, a quote and a backslash are escaped, a newline is refused" {
+  local case root expected denied
   cd "$BATS_TEST_TMPDIR" || return
   # Each case: the main checkout directory name | the path as it must appear inside the TOML string.
   for case in 'my repo|my repo' 'q"uote|q\"uote' 'back\slash|back\\slash'; do
@@ -102,9 +104,11 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
       mv "$WORK" "$BATS_TEST_TMPDIR/$root" && cd "$BATS_TEST_TMPDIR/$root" || exit 1
       run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
       assert_success || exit 1
-      run grep -c -F -- "\"$BATS_TEST_TMPDIR/$expected/.env\"=\"deny\"" "$STUB_LOG"
-      assert_output 2
-    ) || fail "deny path for a main checkout named $root"
+      for denied in .env backups .local-data; do
+        run grep -c -F -- "\"$BATS_TEST_TMPDIR/$expected/$denied\"=\"deny\"" "$STUB_LOG"
+        assert_output 2 || exit 1
+      done
+    ) || fail "deny paths for a main checkout named $root"
   done
   (
     review_repo claude-code || exit 1
@@ -115,6 +119,20 @@ line" || exit 1
     assert_failure && assert_output --partial "control character or newline" || exit 1
     refute_stub_called -F 'codex '
   ) || fail "a newline in the main checkout path is not refused"
+}
+
+@test "removes the review worktree path from both reports, as a literal string, so findings name repo-relative paths" {
+  local report parent="$BATS_TEST_TMPDIR/w[t]"
+  cd "$BATS_TEST_TMPDIR" || return
+  review_repo claude-code || return 1
+  # The brackets would be a character class to a regex replacement, which would leave the path in the reports.
+  CODEX_STUB_FINDING=1 REVIEW_WORKTREE_PARENT="$parent" run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+  assert_success
+  for report in diff plan; do
+    run cat "$OUT-r1-codex-$report.md"
+    assert_line "[P2] scripts/x.sh:12 - finding" && refute_output --partial "$parent" \
+      || fail "the $report report still names the review worktree"
+  done
 }
 
 @test "passes REVIEW_MODEL and REVIEW_EFFORT to both reviewer calls and records them in the meta file" {

@@ -44,7 +44,13 @@ git log -p <ref> | grep -cF '<실제 VM Tailscale IP>'
 git log -p <ref> | grep -cF '<GCP 프로젝트 ID>'
 ```
 
-- 첫 명령은 이력 전체에서 허용 집합 밖의 IPv4, tailnet IPv6, ts.net 이름, 세션 링크, Generated with 줄을 찾습니다. 값은 출력하지 않고 `stdin:<줄>: <종류>`만 알립니다. stdin에는 예외 목록이 적용되지 않으므로 [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)의 증거처럼 `.public-text-exemptions`에 오른 기록도 걸립니다. 걸린 줄이 그런 기록인지 확인합니다. 규칙은 [public-text-guard ADR](../decisions/adr-2026-10-26-vtmqpsyx-public-text-guard.md)에 있습니다.
+- 첫 명령은 이력 전체에서 아래 종류를 찾습니다. 값은 출력하지 않고 `stdin:<줄>: <종류>`만 알립니다.
+  - 허용 집합 밖의 IPv4와 tailnet IPv6
+  - ts.net 이름
+  - Claude Code 세션 링크와 Generated with 줄
+  - 로컬 홈 경로(`/Users/<이름>/`, `/home/<이름>/`)와 macOS 임시 경로(`/var/folders/<폴더>/`)
+
+  stdin에는 예외 목록이 적용되지 않으므로 [vm-rollout 계획](../plans/plan-2026-10-07-qtvzskgx-vm-rollout.md)의 증거처럼 `.public-text-exemptions`에 오른 기록도 걸립니다. 걸린 줄이 그런 기록인지 확인합니다. 규칙은 [public-text-guard ADR](../decisions/adr-2026-10-26-vtmqpsyx-public-text-guard.md)에 있습니다.
 - 둘째 명령은 지금 작업 트리의 tracked 파일과 새 파일을 같은 규칙으로 검사하고 예외 목록을 적용합니다(`make check`와 같은 검사). exit 0이어야 합니다.
 - 셋째 명령에 걸린 줄이 테스트용 자리표시자인지 하나씩 확인합니다. 예: `agent@example.com`, `tskey-auth-test123`.
 - 나머지 명령은 모두 `0`이어야 합니다.

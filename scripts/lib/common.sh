@@ -12,6 +12,7 @@
 #   utc_stamp -> the current UTC time as YYYYMMDDTHHMMSSZ
 #   main_checkout_root [DIR] -> the main checkout that DIR belongs to
 #   sha256_of FILE -> hex digest of a local file
+#   new_temp [-d] NAME -> path of a new temporary file (or directory) NAME.XXXXXX under TMPDIR
 # shellcheck disable=SC2034  # constants below are used by the scripts that source this file
 
 [ -n "${_BM_LIB_COMMON:-}" ] && return 0
@@ -85,5 +86,21 @@ sha256_of() {
     sha256sum "$1" | awk '{ print $1 }'
   else
     shasum -a 256 "$1" | awk '{ print $1 }'
+  fi
+}
+
+# new_temp [-d] NAME -> path of a new file, or with -d a new directory, NAME.XXXXXX under $TMPDIR (/tmp when it is
+# unset or empty; trailing slashes dropped). The template keeps mktemp in TMPDIR: without one, macOS mktemp ignores
+# TMPDIR and uses a per-user /var/folders directory that the Claude Code sandbox refuses. Fails when mktemp fails, so
+# write x="$(new_temp NAME)" || exit 1.
+new_temp() {
+  local dir="${TMPDIR:-/tmp}"
+  while [[ "$dir" == */ ]]; do
+    dir="${dir%/}"
+  done
+  if [[ "${1:-}" == -d ]]; then
+    mktemp -d "$dir/$2.XXXXXX"
+  else
+    mktemp "$dir/$1.XXXXXX"
   fi
 }

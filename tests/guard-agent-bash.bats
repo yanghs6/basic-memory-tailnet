@@ -5,26 +5,27 @@ setup() {
   GUARD="$REPO_DIR/scripts/guard-agent-bash.sh"
 }
 
-# payload COMMAND: the PreToolUse hook input Claude Code sends for a Bash call.
+# payload COMMAND [CWD]: the PreToolUse hook input Claude Code sends for a Bash call, with .cwd when CWD is given.
 payload() {
-  jq -cn --arg c "$1" '{hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: {command: $c}}'
+  jq -cn --arg c "$1" --arg d "${2:-}" \
+    '{hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: {command: $c}} + (if $d == "" then {} else {cwd: $d} end)'
 }
 
-# guard COMMAND: run the guard on the hook input for COMMAND.
+# guard COMMAND [CWD]: run the guard on the hook input for COMMAND.
 guard() {
-  "$GUARD" <<<"$(payload "$1")"
+  "$GUARD" <<<"$(payload "$1" "${2:-}")"
 }
 
-# assert_denied COMMAND: the guard blocks COMMAND with exit 2 and an actionable message.
+# assert_denied COMMAND [CWD]: the guard blocks COMMAND with exit 2 and an actionable message.
 assert_denied() {
-  run guard "$1"
+  run guard "$1" "${2:-}"
   [[ "$status" -eq 2 ]] || fail "expected exit 2 (deny) for: $1; got $status: $output"
   [[ "$output" == *"blocked by the agent Bash guard"* ]] || fail "no reason given for: $1; got: $output"
 }
 
-# assert_asks COMMAND: the guard answers COMMAND with exit 0 and an ask decision.
+# assert_asks COMMAND [CWD]: the guard answers COMMAND with exit 0 and an ask decision.
 assert_asks() {
-  run guard "$1"
+  run guard "$1" "${2:-}"
   [[ "$status" -eq 0 ]] || fail "expected exit 0 for: $1; got $status: $output"
   # The test image's jq -e passes on empty input, so an empty answer must fail here first.
   [[ -n "$output" ]] || fail "expected an ask decision for: $1; got no output"
@@ -45,6 +46,37 @@ assert_asks() {
   )
   for cmd in "${commands[@]}"; do
     assert_denied "$cmd"
+  done
+}
+
+@test "denies a gh pr create, edit or comment call whose body file holds public text in every flag form, quoted, inside sh -c and before an ask, without the value; asks for a clean file, stdin, an expanded path and a missing file" {
+  local cgnat cmd dir="$BATS_TEST_TMPDIR"
+  # A CGNAT (tailnet range) address never sits in a repo file, so build it here.
+  cgnat="$(printf '%s.%s' 100.101 102.103)"
+  printf 'summary\nreach %s\n' "$cgnat" >"$dir/public.md"
+  printf 'summary\n' >"$dir/clean.md"
+  # A relative path is resolved against the hook input's cwd.
+  for cmd in \
+    "gh pr create --draft --title t --body-file $dir/public.md" \
+    "gh pr edit 1 --body-file=$dir/public.md" \
+    "gh pr comment 1 -F $dir/public.md" \
+    "gh pr comment 1 -F public.md" \
+    "gh -R a/b pr create --title 'fix: a (b); c' --body-file \"public.md\"" \
+    "sh -c 'gh pr edit 1 --body-file public.md'" \
+    "git push --force && gh pr comment 1 -F public.md"; do
+    (
+      assert_denied "$cmd" "$dir" && assert_output --partial "public.md:2: IPv4 address" \
+        && refute_output --partial "$cgnat" || exit 1
+    ) || fail "the body file check did not deny: $cmd"
+  done
+  for cmd in \
+    "gh pr create --title t --body-file $dir/clean.md" \
+    "gh pr edit 1 --body-file -" \
+    "gh pr comment 1 -F \$DIR/public.md" \
+    "gh pr comment 1 -F \"\$DIR/public.md\"" \
+    "gh pr comment 1 -F \`echo public.md\`" \
+    "gh pr create --body-file missing.md"; do
+    assert_asks "$cmd" "$dir"
   done
 }
 
@@ -71,7 +103,7 @@ assert_asks() {
   done
 }
 
-@test "asks before a direct call of a VM-changing script, script or expect around restore, and gcloud create or delete" {
+@test "asks before a direct call of a VM-changing or posting script, script or expect around restore, and gcloud create or delete" {
   local cmd commands
   commands=(
     "scripts/restore-notes.sh backups/x"
@@ -80,6 +112,10 @@ assert_asks() {
     "sh -c 'scripts/upload-sb-fonts.sh'"
     "scripts/restore-notes.sh x"
     "cd scripts && ./restore-notes.sh"
+    "scripts/post-review.sh 1 plan/x codex"
+    "bash scripts/post-review-record.sh 1 f"
+    "sh -c './scripts/post-review.sh 1 b codex'"
+    "cd scripts && ./post-review-record.sh 1 f"
     "script -q /dev/null make restore"
     "expect -c 'spawn make restore'"
     "gcloud compute instances create x"
@@ -113,6 +149,59 @@ assert_asks() {
   done
 }
 
+@test "asks when a make call passes an option, a quoted, escaped or expanded argument, an undocumented variable or a command in a redirection, also as an assignment in front of make, inside sh -c or in a later call" {
+  local cmd commands
+  commands=(
+    "make probe \"deploy\""
+    "make probe 'deploy'"
+    'make probe dep\loy'
+    "make probe -f x.mk"
+    "make probe --file=x.mk"
+    "make probe -C /tmp/x"
+    "make probe --eval=x"
+    "make probe SHELL=./x.sh"
+    "make probe MAKEFILES=x.mk"
+    "make probe BASH_ENV=./x.sh"
+    "make probe DOCKER_RUN=x"
+    "make check-git BRANCH=\$(id)"
+    "make probe HOST=\`id\`"
+    "BASH_ENV=./x.sh make probe"
+    "make probe ';x:=\$(shell id)'"
+    "make probe <(id)"
+    "make probe >\`id\`"
+    "sh -c 'make probe BASH_ENV=./x.sh'"
+    "make check && make probe SHELL=./x.sh"
+  )
+  for cmd in "${commands[@]}"; do
+    assert_asks "$cmd"
+  done
+}
+
+@test "asks when an assignment, env, a wrapper with its options, a shell keyword or a backtick stands before a VM-changing, posting or gh or cloud CLI write call" {
+  local cmd commands
+  commands=(
+    "BM_WEB=on make deploy"
+    "env BM_WEB=on make deploy"
+    "time make restore"
+    "GH_REPO=a/b gh pr create"
+    "nohup scripts/deploy-stack.sh"
+    "nice -n 5 make deploy"
+    "sudo -E make restore"
+    "xargs -0 make deploy"
+    "exec scripts/bootstrap-vm.sh"
+    "command make deploy"
+    "bash -lc 'make deploy'"
+    "if make deploy; then echo ok; fi"
+    "{ make deploy; }"
+    "echo \`gh pr merge 1\`"
+    "echo \`make deploy\`"
+    "X=1 gcloud compute instances start x"
+  )
+  for cmd in "${commands[@]}"; do
+    assert_asks "$cmd"
+  done
+}
+
 @test "asks before gh writes: api with a non-GET method or fields, gist, issue, release, repo and pr create, edit, comment, ready, close, merge, review, reopen" {
   local cmd commands
   commands=(
@@ -120,6 +209,8 @@ assert_asks() {
     "gh api --method PATCH repos/x/y"
     "gh api -XDELETE repos/x/y"
     "gh api --method=PUT repos/x/y"
+    "gh api -X GET -X POST repos/x/y"
+    "gh api --method GET --method=DELETE repos/x/y"
     "gh api repos/x/y/issues -f title=t"
     "gh api repos/x/y/issues -F title=t"
     "gh api repos/x/y --field a=b"
@@ -187,6 +278,54 @@ assert_asks() {
   done
 }
 
+@test "asks before every cloud CLI call that is not a read-only form: other verbs, ssh, scp, IAM, services, configuration switches, tokens, a read verb as a resource name or after a flag, quoted or expanded words before the verb, a later call and sh -c" {
+  local cmd commands
+  commands=(
+    "gcloud compute instances start x"
+    "gcloud compute ssh agent-hub --command \"sudo docker compose down\""
+    "gcloud compute scp a agent-hub:b"
+    "gcloud projects add-iam-policy-binding p --member m --role r"
+    "gcloud services enable x"
+    "gcloud compute instances update-from-file x --source f"
+    "gcloud config configurations activate x"
+    "gcloud auth print-access-token"
+    "gcloud compute instances start list"
+    "gcloud compute instances --quiet start list"
+    'gcloud compute instances --f="a\" list" start x'
+    "gcloud --project=\$(echo p) compute instances start x"
+    "gcloud compute instances list && gcloud compute instances start x"
+    "sh -c 'gcloud compute instances start x'"
+  )
+  for cmd in "${commands[@]}"; do
+    assert_asks "$cmd"
+  done
+}
+
+@test "asks before every gh call that is not a read-only form: run, workflow, secret, variable, label, alias, extension, auth token, checkout, clone, an expanded repo flag and a later call" {
+  local cmd commands
+  commands=(
+    "gh run cancel 1"
+    "gh run rerun 1"
+    "gh workflow run x"
+    "gh workflow disable x"
+    "gh secret set X"
+    "gh variable set X"
+    "gh label create x"
+    "gh alias set co 'pr checkout' --shell"
+    "gh extension install x"
+    "gh extension exec x"
+    "gh auth token"
+    "gh auth status --show-token"
+    "gh pr checkout 1"
+    "gh repo clone x"
+    "gh -R \${R:-a;b} pr merge 1"
+    "gh pr view 1 && gh pr merge 1"
+  )
+  for cmd in "${commands[@]}"; do
+    assert_asks "$cmd"
+  done
+}
+
 @test "passes ordinary commands with exit 0 and no output" {
   local cmd commands
   commands=(
@@ -207,6 +346,9 @@ assert_asks() {
     "git add scripts/restore-notes.sh"
     "shellcheck scripts/bootstrap-vm.sh"
     "grep -n confirm scripts/restore-notes.sh"
+    "cat scripts/post-review.sh"
+    "shellcheck scripts/post-review-record.sh"
+    "git add scripts/post-review.sh"
     "git push origin fix-f"
     "git push origin feat/-f"
     "git commit -m \"add +x flag\""
@@ -235,6 +377,33 @@ assert_asks() {
     "gcloud compute instances describe x"
     "gcloud --version"
     "gh --version"
+    "gcloud --configuration=bm-personal compute instances describe agent-hub-01 --zone z --format='value(status)'"
+    "gcloud config configurations list"
+    "gcloud config list"
+    "gcloud auth list"
+    "gcloud info"
+    "gcloud --configuration=bm-personal compute project-info describe"
+    "gcloud compute images describe-from-family family-x --project=project-x"
+    "grep -rn gcloud docs"
+    "sh -c 'gcloud compute instances list'"
+    "gh pr diff 1"
+    "gh pr checks 1"
+    "gh run view 1 --log"
+    "gh auth status"
+    "gh search prs x"
+    "gh api --paginate repos/x/y/issues/1/comments --jq '.[] | .body'"
+    "make check 2>&1"
+    "make check-git BRANCH=plan/abcdefgh-x"
+    "make review BRANCH=plan/abcdefgh-x REVIEWER=codex ROUND=2"
+    "make new-doc TYPE=plan SLUG=a-b ID=abcdefgh"
+    "make export-logs SINCE=24h"
+    "make memory-sync FULL=1"
+    "cd x && make backup"
+    "sh -c 'make probe'"
+    "nice -n 5 make check"
+    "x=\`make help\`"
+    "time gcloud compute instances list"
+    "echo time make restore"
   )
   for cmd in "${commands[@]}"; do
     run guard "$cmd"

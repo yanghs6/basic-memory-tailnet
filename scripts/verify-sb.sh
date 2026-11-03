@@ -86,7 +86,7 @@ main() {
   step "check SilverBullet at $URL"
   check_open_endpoints
   [[ -z "$read_only" ]] || return 0
-  WORK="$(mktemp -d)" || exit 1
+  WORK="$(new_temp -d verify-sb)" || exit 1
   trap cleanup EXIT
   login
   check_signed_in_limits

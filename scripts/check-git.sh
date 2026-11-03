@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Check the git policy for a branch (docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md):
-# branch name, trailers on every non-merge commit in BASE..BRANCH, forbidden trailers, public text in the commit
-# messages (scripts/check-public-text.sh), worktree config.
-# Usage: make check-git, or check-git.sh [BASE] [BRANCH]   (defaults: main, the current branch)
+# branch name, trailers on every non-merge commit in BASE..BRANCH, forbidden trailers, public text
+# (scripts/check-public-text.sh) in every commit message, also of merge commits, and in the lines every non-merge
+# commit added, worktree config.
+# Usage: make check-git [BRANCH=<branch>], or check-git.sh [BASE] [BRANCH]   (defaults: main, the current branch)
 # Pass BRANCH to check a branch from anywhere, e.g. from a reviewer's detached worktree.
 set -euo pipefail
 
@@ -12,6 +13,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 readonly GIT_CONFIG_KEY_MISSING=1
 readonly POLICY_HINT="see AGENTS.md, Git; ask the human before rewriting history"
+# The public text exemption list at the repo root, and a hit of check-public-text.sh --diff ('<sha> <path>:<line>: <kind>').
+readonly EXEMPTIONS_FILE=".public-text-exemptions"
+readonly DIFF_HIT_PATTERN='^[0-9a-f]+ .+:[0-9]+: '
 
 # trailer COMMIT KEY -> the trailer's values joined by commas; empty when absent.
 trailer() {
@@ -75,6 +79,39 @@ check_commit() {
   done
 }
 
+# check_merge COMMIT: a merge commit carries no trailers, so only its message is checked for public text.
+check_merge() {
+  local where message
+  where="$(git log -1 --format=%h "$1")" || exit 1
+  message="$(git log -1 --format=%B "$1")" || exit 1
+  add_public_text_problems "$where" "$POLICY_HINT" "$message" || return 0
+}
+
+# check_diffs BASE HEAD: the lines every non-merge commit in BASE..HEAD added, with the exemption list of HEAD, the one
+# the pull request diff shows. A line a later commit removed still counts: the branch history keeps it. A hit names
+# the short SHA, the path and the line only. The git log options keep diff drivers, textconv, colors and other path
+# prefixes from the user's git config out of the output.
+check_diffs() {
+  local base="$1" head="$2" exemptions output line status=0 found=0
+  exemptions="$(new_temp check-git)" || exit 1
+  # shellcheck disable=SC2064  # expand now: the local is gone when the EXIT trap runs
+  trap "rm -f '$exemptions'" EXIT
+  if git cat-file -e "$head:$EXEMPTIONS_FILE" 2>/dev/null; then
+    git show "$head:$EXEMPTIONS_FILE" >"$exemptions" \
+      || die "git cannot read $EXEMPTIONS_FILE of $head (its error is above): repair the repository and run it again"
+  fi
+  output="$(git log -p --unified=0 --format='commit %h' --no-ext-diff --no-textconv --no-color --src-prefix=a/ \
+    --dst-prefix=b/ --no-merges "$base..$head" | "$PUBLIC_TEXT_CHECK" --diff --exemptions "$exemptions" - 2>&1)" \
+    || status=$?
+  ((status != 0)) || return 0
+  while IFS= read -r line; do
+    [[ "$line" =~ $DIFF_HIT_PATTERN ]] || continue
+    add_problem "$line ($POLICY_HINT)"
+    found=1
+  done <<<"$output"
+  ((found == 1)) || die "the public text check of the commit diffs failed: $output"
+}
+
 main() {
   local base="${1:-main}" branch="${2:-}" head=HEAD sha count=0
   require_cmd git
@@ -91,6 +128,10 @@ main() {
     check_commit "$sha"
     count=$((count + 1))
   done
+  for sha in $(git rev-list --reverse --merges "$base..$head"); do
+    check_merge "$sha"
+  done
+  check_diffs "$base" "$head"
   report_problems "git policy violations"
   log "OK: git policy ($count commits since $base)"
 }

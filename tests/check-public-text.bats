@@ -12,6 +12,12 @@ to_crlf() {
   awk '{ printf "%s\r\n", $0 }' "$1" >"$2"
 }
 
+# commit_log RANGE OUT: the git log -p output of RANGE that check-git.sh feeds to --diff.
+commit_log() {
+  git log -p --unified=0 --format='commit %h' --no-ext-diff --no-textconv --no-color \
+    --src-prefix=a/ --dst-prefix=b/ --no-merges "$1" >"$2"
+}
+
 @test "flags every kind and prints no matched value" {
   local case name line kind value crlf cgnat near_host
   for case in \
@@ -28,7 +34,12 @@ to_crlf() {
     "generated-with|2|Generated with line" \
     "generated-with|3|Generated with line" \
     "generated-with|4|Generated with line" \
-    "generated-with|5|Generated with line"; do
+    "generated-with|5|Generated with line" \
+    "local-path|2|local path" \
+    "local-path|3|local path" \
+    "local-path|4|local path" \
+    "local-path|5|local path" \
+    "local-path|6|local path"; do
     (
       IFS='|' read -r name line kind <<<"$case" \
         && crlf="$BATS_TEST_TMPDIR/$name-crlf.txt" \
@@ -108,6 +119,46 @@ to_crlf() {
   refute_output --partial "$(sed -n 2p "$FIXTURES/ipv4.txt")"
 }
 
+@test "diff mode flags only added lines by commit, path and new line number and applies the exemption list by path" {
+  local cgnat first second log="$BATS_TEST_TMPDIR/log" exemptions="$BATS_TEST_TMPDIR/exemptions"
+  init_git_repo
+  git switch -q -c work/x
+  # A CGNAT (tailnet range) address never sits in a repo file, so build it here.
+  cgnat="$(printf '%s.%s' 100.101 102.103)"
+  mkdir tests
+  printf 'one\ntwo\nreach %s\n' "$cgnat" >notes.md
+  printf 'x %s\n' "$cgnat" >tests/fixture.txt
+  git add notes.md tests/fixture.txt
+  git commit -q -m "test: add notes"
+  first="$(git log -1 --format=%h)"
+  # The second commit removes the hit, adds a line above it and adds one whose text starts with "++ " (it reads
+  # "+++ " in the diff) as the last line of a file without a final newline.
+  printf 'zero\none\ntwo\nthree\n++ %s' "$cgnat" >notes.md
+  git commit -q -am "test: move the address"
+  second="$(git log -1 --format=%h)"
+  printf 'tests/fixture.txt ipv4\n' >"$exemptions"
+
+  commit_log main..HEAD "$log"
+  run "$SCRIPT" --diff --exemptions "$exemptions" - <"$log"
+  assert_failure
+  assert_output --partial "$first notes.md:3: IPv4 address"
+  assert_output --partial "$second notes.md:5: IPv4 address"
+  refute_output --partial "fixture.txt"
+  refute_output --partial "$cgnat"
+
+  run "$SCRIPT" --diff - <"$log"
+  assert_failure
+  assert_output --partial "$first tests/fixture.txt:1: IPv4 address"
+
+  # A commit that only removes the hit passes.
+  printf 'zero\none\ntwo\nthree\n' >notes.md
+  git commit -q -am "test: drop the address"
+  commit_log "$second..HEAD" "$log"
+  run "$SCRIPT" --diff - <"$log"
+  assert_success
+  assert_output ""
+}
+
 @test "fails on an unreadable file instead of passing it" {
   [ "$(id -u)" -eq 0 ] && skip "root reads files of mode 000"
   init_git_repo
@@ -121,4 +172,18 @@ to_crlf() {
   run "$SCRIPT"
   assert_failure
   assert_output --partial "locked.txt: unreadable"
+}
+
+@test "fails instead of passing when git cannot list the repo files or none is left to check" {
+  init_git_repo
+  run "$SCRIPT"
+  assert_failure
+  assert_output --partial "no text files to check"
+
+  # A corrupt index stops git ls-files, while git rev-parse still finds the repo.
+  printf 'notes\n' >notes.txt
+  printf 'not an index\n' >.git/index
+  run "$SCRIPT"
+  assert_failure
+  assert_output --partial "git cannot list the repo files"
 }

@@ -26,7 +26,7 @@ readonly MCP_PREVIEW_BYTES=300
 MCP_WORK_DIR=""
 
 mcp_open() {
-  MCP_WORK_DIR="$(mktemp -d)" || exit 1
+  MCP_WORK_DIR="$(new_temp -d mcp)" || exit 1
 }
 
 mcp_close() {

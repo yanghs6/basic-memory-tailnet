@@ -68,7 +68,7 @@ main() {
   require_vm jq
   umask "$EXPORT_UMASK"
   dir="$(resolve_export_dir)" || exit 1
-  WORK_DIR="$(mktemp -d)" || die "could not create a temporary directory"
+  WORK_DIR="$(new_temp -d export-logs)" || die "could not create a temporary directory"
   trap cleanup EXIT
   services="$(remote_compose "ps --services --status running")" \
     || die "could not list the running services on $BM_VM_HOST: $(access_hint)"

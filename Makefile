@@ -121,8 +121,8 @@ memory-index: ## Print the Basic Memory index of this project and global notes f
 memory-hooks: ## Add the memory-sync and memory-index hooks to Claude Code and Codex (REMOVE=1 removes them; ask the user first)
 	scripts/install-memory-hooks.sh $(if $(REMOVE),--remove)
 
-check-git: ## Check the git policy for the current branch against origin/main (name, commit trailers, worktree config)
-	scripts/check-git.sh origin/main
+check-git: ## Check the git policy of BRANCH=<branch> (default: the current branch) against origin/main (name, commit trailers, worktree config)
+	scripts/check-git.sh origin/main "$(BRANCH)"
 
 # git log reads every ref through the read-only common dir mount, which also resolves a linked worktree's .git file.
 secret-scan: ## Scan every commit of every local ref for secrets with gitleaks (values redacted; run git fetch origin first)

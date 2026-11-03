@@ -3,6 +3,7 @@
 # (docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md, section 5). Writes two reports:
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-diff.md   bugs introduced since the base
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-plan.md   plan conformance per AGENTS.md Code Review Rules
+# Both reports name files relative to the repo: the review worktree path is removed from them.
 # Before the review it runs make check on the reviewed head in the review worktree, keeps its output in
 # <out>/<branch-slug>-r<ROUND>-<reviewer>-check.log and tells the reviewer the result; a failed check does not stop the review.
 # It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs, the model, the
@@ -26,7 +27,7 @@ readonly DEFAULT_REVIEW_EFFORT=low
 readonly REVIEW_EFFORTS="low medium high xhigh max"
 # How many lines from the end of a failed make check's log the reviewer gets.
 readonly CHECK_TAIL_LINES=20
-# The codex permission profile that denies the reviewer its credential paths.
+# The codex permission profile that denies the reviewer its credential paths and the main checkout's notes.
 readonly CODEX_PROFILE=reviewer
 
 BRANCH=""
@@ -181,19 +182,20 @@ EOF
 }
 
 # codex_isolation_args -> the codex arguments, one per line, that keep the reviewer's shell free of token-like
-# environment variables and deny it the credential paths. A permission profile is ignored while --sandbox or
+# environment variables and deny it the credential paths and the notes. A permission profile is ignored while --sandbox or
 # sandbox_mode is set, so neither is passed; the profile extends :read-only, which also leaves the network off.
-# The main checkout's .env is an absolute path found at run time. ~/.config holds the cloud CLI and gh credentials;
-# it is denied as a whole because the cloud-neutral rule keeps provider names out of scripts.
+# The main checkout's .env, backups/ and .local-data/ (note contents) are absolute paths found at run time, so a
+# prompt in the reviewed branch cannot copy notes into a report that make review-post publishes. ~/.config holds the
+# cloud CLI and gh credentials; it is denied as a whole because the cloud-neutral rule keeps provider names out of scripts.
 codex_isolation_args() {
-  local root env_path deny
+  local root toml_root deny
   root="$(main_checkout_root "$PWD")" || die "cannot find the main checkout from $PWD"
   [[ "$root" != *[[:cntrl:]]* ]] \
     || die "the main checkout path contains a control character or newline; move the checkout to a plain path"
   # Escape the path for a TOML basic string: backslash first, then the double quote.
-  env_path="${root//\\/\\\\}/.env"
-  env_path="${env_path//\"/\\\"}"
-  deny="{\"$env_path\"=\"deny\", \"~/.ssh\"=\"deny\", \"~/.config\"=\"deny\"}"
+  toml_root="${root//\\/\\\\}"
+  toml_root="${toml_root//\"/\\\"}"
+  deny="{\"$toml_root/.env\"=\"deny\", \"$toml_root/backups\"=\"deny\", \"$toml_root/.local-data\"=\"deny\", \"~/.ssh\"=\"deny\", \"~/.config\"=\"deny\"}"
   printf '%s\n' -c 'shell_environment_policy.inherit="core"' -c 'shell_environment_policy.ignore_default_excludes=false' \
     -c "default_permissions=\"$CODEX_PROFILE\"" -c "permissions.$CODEX_PROFILE.extends=\":read-only\"" \
     -c "permissions.$CODEX_PROFILE.filesystem=$deny"
@@ -227,6 +229,29 @@ run_claude() {
   local diff_out="$1" plan_out="$2"
   claude_review "$(change_prompt)" >"$diff_out" || die "claude change review failed; see $diff_out"
   claude_review "$(plan_prompt)" >"$plan_out" || die "claude plan review failed; see $plan_out"
+}
+
+# strip_worktree_prefix REPORT: removes every "$WT/" from REPORT as a literal string (index(), not a regex: the path
+# may hold regex characters), so the findings name repo-relative paths instead of the user's home directory.
+strip_worktree_prefix() {
+  local stripped
+  stripped="$(new_temp review-branch)" || exit 1
+  # shellcheck disable=SC2016  # the awk program is single-quoted on purpose
+  LC_ALL=C REVIEW_WT_PREFIX="$WT/" awk '
+    BEGIN { prefix = ENVIRON["REVIEW_WT_PREFIX"]; size = length(prefix) }
+    {
+      rest = $0
+      out = ""
+      while ((at = index(rest, prefix)) > 0) {
+        out = out substr(rest, 1, at - 1)
+        rest = substr(rest, at + size)
+      }
+      print out rest
+    }' "$1" >"$stripped" || {
+    rm -f "$stripped"
+    die "could not remove the review worktree path from $1"
+  }
+  mv "$stripped" "$1"
 }
 
 main() {
@@ -275,6 +300,8 @@ main() {
   else
     run_claude "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
   fi
+  strip_worktree_prefix "$diff_out$PARTIAL_SUFFIX"
+  strip_worktree_prefix "$plan_out$PARTIAL_SUFFIX"
   mv "$diff_out$PARTIAL_SUFFIX" "$diff_out"
   mv "$plan_out$PARTIAL_SUFFIX" "$plan_out"
   printf 'base %s\nhead %s\nmodel %s\neffort %s\ncheck %s\n' "$base_sha" "$head_sha" "$MODEL" "$EFFORT" "$CHECK_RESULT" >"$meta_out"
