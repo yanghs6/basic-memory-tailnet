@@ -3,6 +3,8 @@
 # otherwise it prints a diff review. CODEX_STUB_EXIT=<n> makes every call fail;
 # CODEX_STUB_PLAN_EXIT=<n> makes only the plan review (the call with -o) fail.
 # STUB_LOG_STDIN=1 also logs "codex stdin_bytes=<n>", the bytes it read from stdin.
+# CODEX_STUB_FINDING=1 adds the line "[P2] <cwd>/scripts/x.sh:12 - finding" to either review, as codex names files by
+# absolute path.
 set -euo pipefail
 printf 'codex %s :: cwd=%s\n' "$*" "$PWD" >>"$STUB_LOG"
 if [[ "${STUB_LOG_STDIN:-}" == 1 ]]; then
@@ -26,8 +28,16 @@ if [[ -n "$out" && -n "${CODEX_STUB_PLAN_EXIT:-}" ]]; then
   echo "codex stub: simulated plan review failure" >&2
   exit "$CODEX_STUB_PLAN_EXIT"
 fi
+report="codex diff review"
 if [[ -n "$out" ]]; then
-  echo "codex plan review" >"$out"
+  report="codex plan review"
+fi
+if [[ "${CODEX_STUB_FINDING:-}" == 1 ]]; then
+  report="$report
+[P2] $PWD/scripts/x.sh:12 - finding"
+fi
+if [[ -n "$out" ]]; then
+  printf '%s\n' "$report" >"$out"
 else
-  echo "codex diff review"
+  printf '%s\n' "$report"
 fi

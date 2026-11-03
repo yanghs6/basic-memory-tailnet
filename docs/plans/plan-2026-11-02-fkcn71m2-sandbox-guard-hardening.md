@@ -171,14 +171,14 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 - Test: `tests/check-public-text.bats`, `tests/review-branch.bats`, `tests/post-review.bats`
 
 동작:
-- `local-path`: `/Users/<이름>/`, `/home/<이름>/`(이름은 `[A-Za-z0-9._-]+`), `/private/var/folders/`, `/var/folders/`. `<you>`·`$HOME`·`~` 같은 자리표시는 맞지 않는다. 컨테이너 사용자 `/home/appuser/`(compose.yaml)는 허용 이름 상수로 둔다. **Verified (2026-11-02):** 지금 저장소에서 이 모양에 맞는 줄은 `/home/appuser/`뿐이다.
+- `local-path`: `/Users/<이름>/`, `/home/<이름>/`(이름은 `[A-Za-z0-9._-]+`), `/var/folders/<폴더>/`, `/private/var/folders/<폴더>/`(폴더는 `[A-Za-z0-9_+-]+`). `<you>`·`$HOME`·`~` 같은 자리표시는 맞지 않는다. 컨테이너 사용자 `/home/appuser/`(compose.yaml)는 허용 이름 상수로 둔다. **Verified (2026-11-02):** 지금 저장소에서 이 모양에 맞는 줄은 `/home/appuser/`뿐이다.
 - `review-branch.sh`: 두 보고서에서 리뷰 worktree 경로 접두어(`$WT/`)를 문자 그대로 지워 저장소 상대 경로로 만든다. 남은 절대 경로는 `make review-post`의 공개 텍스트 검사가 거부한다.
 
-- [ ] **Step 1: 실패하는 테스트 작성:** check-public-text 종류 사례에 `local-path` 줄들, pass fixture에 `/home/appuser/.basic-memory`, `/Users/<you>/`, `$HOME/x`. review-branch: codex 스텁이 `$PWD/scripts/x.sh:12`를 쓰면 최종 보고서에는 `scripts/x.sh:12`만 있다. post-review: 실행 중 조립한 홈 경로가 든 보고서는 게시하지 않는다.
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례만 실패.
-- [ ] **Step 3: 최소 구현.**
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0(트리 검사가 새 종류로도 통과).
-- [ ] **Step 5: 커밋:** `feat: flag local home and temp paths and strip the review worktree from reports`, `Task: 8`.
+- [x] **Step 1: 실패하는 테스트 작성:** check-public-text 종류 사례에 `local-path` 줄들, pass fixture에 `/home/appuser/.basic-memory`, `/Users/<you>/`, `$HOME/x`. review-branch: codex 스텁이 `$PWD/scripts/x.sh:12`를 쓰면 최종 보고서에는 `scripts/x.sh:12`만 있다. post-review: 실행 중 조립한 홈 경로가 든 보고서는 게시하지 않는다.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례만 실패.
+- [x] **Step 3: 최소 구현.**
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0(트리 검사가 새 종류로도 통과).
+- [x] **Step 5: 커밋:** `feat: flag local home and temp paths and strip the review worktree from reports`, `Task: 8`.
 
 ### Task 9: history diffs and merge messages in check-git (W5, F07)
 
@@ -242,3 +242,4 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 | 2026-11-03 | Verified | Task 4 후속(담당 세션 검토): 런북의 읽기 명령 `compute project-info describe`와 `images describe-from-family`가 ask되고, 원래 있던 `gh api -X GET -X POST`(첫 `-X`만 봄)가 통과했다. 통과 사례 둘과 ask 사례 둘을 먼저 더하자 `make check`가 exit 2로 실패했고(직전 커밋 1e2525b는 통과), 그룹 `project-info`, 읽기 동사 `describe-from-family`를 더하고 `-X`와 `--method`를 모두 보게 고쳤다. |
 | 2026-11-03 | Verified | Task 6: ADR zaptc3gp에 D1-A대로 더했다. 결정 5 뒤에 허용 목록 방식을, 결과 첫 항목 뒤에 "default 모드와 bypass 모드에서만 맞다"는 단서를 적었다. 잔여 위험에는 이제 잡는 감싸기와 F01, F03 형태, 남는 우회, auto 모드 한계(2026-10-28 `make deploy`)를 더했다. 결정 문장은 고치지 않았다. |
 | 2026-11-03 | Verified | Task 7: review-branch 테스트 두 개에 main `backups`와 `.local-data` 경로 단언을 먼저 더하자 `make check`(테스트 285개)에서 그 두 테스트만 실패했다. TOML 따옴표 테스트는 이제 세 경로를 모두 보므로 이름을 "the deny paths of the main .env, backups and .local-data are quoted for TOML …"로 바꿨다. 구현 뒤 `make check`는 exit 0이었고 total line coverage는 89.71%(최소 80%)였다. ADR zaptc3gp 역할 표에 적힌 옛 테스트 이름은 기록이라 그대로 두었다. |
+| 2026-11-03 | Verified | Task 8: 테스트를 먼저 바꾸자 `make check`(테스트 286개)에서 새로 쓰거나 바꾼 테스트 셋만 실패했다. check-public-text의 종류 반복문은 첫 `local-path` 사례에서 hit이 없어 실패했고 post-review는 홈 경로가 든 보고서를 게시했으며 review-branch 새 테스트는 diff 보고서에 리뷰 worktree 경로가 남아 실패했다. review-branch 테스트는 worktree 상위 폴더 이름에 `[t]`를 넣어 정규식이 아닌 문자 그대로 지우는지 본다. 예외 목록의 `local-path` 줄은 구현 단계에서 더했다(그 종류가 없는 동안에는 트리 검사가 예외 줄 오류로 멈추기 때문이다). 구현 뒤 `make check`는 exit 0이었고 total line coverage는 89.40%(최소 80%)였다. 인자 없이 돌린 `scripts/check-public-text.sh`도 새 종류로 exit 0이었다. |

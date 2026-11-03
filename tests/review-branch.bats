@@ -121,6 +121,20 @@ line" || exit 1
   ) || fail "a newline in the main checkout path is not refused"
 }
 
+@test "removes the review worktree path from both reports, as a literal string, so findings name repo-relative paths" {
+  local report parent="$BATS_TEST_TMPDIR/w[t]"
+  cd "$BATS_TEST_TMPDIR" || return
+  review_repo claude-code || return 1
+  # The brackets would be a character class to a regex replacement, which would leave the path in the reports.
+  CODEX_STUB_FINDING=1 REVIEW_WORKTREE_PARENT="$parent" run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+  assert_success
+  for report in diff plan; do
+    run cat "$OUT-r1-codex-$report.md"
+    assert_line "[P2] scripts/x.sh:12 - finding" && refute_output --partial "$parent" \
+      || fail "the $report report still names the review worktree"
+  done
+}
+
 @test "passes REVIEW_MODEL and REVIEW_EFFORT to both reviewer calls and records them in the meta file" {
   local reviewer author
   cd "$BATS_TEST_TMPDIR" || return

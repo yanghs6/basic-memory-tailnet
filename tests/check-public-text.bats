@@ -28,7 +28,12 @@ to_crlf() {
     "generated-with|2|Generated with line" \
     "generated-with|3|Generated with line" \
     "generated-with|4|Generated with line" \
-    "generated-with|5|Generated with line"; do
+    "generated-with|5|Generated with line" \
+    "local-path|2|local path" \
+    "local-path|3|local path" \
+    "local-path|4|local path" \
+    "local-path|5|local path" \
+    "local-path|6|local path"; do
     (
       IFS='|' read -r name line kind <<<"$case" \
         && crlf="$BATS_TEST_TMPDIR/$name-crlf.txt" \

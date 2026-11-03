@@ -3,6 +3,7 @@
 # (docs/specs/spec-2026-10-07-restd5vd-git-review-policy.md, section 5). Writes two reports:
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-diff.md   bugs introduced since the base
 #   <out>/<branch-slug>-r<ROUND>-<reviewer>-plan.md   plan conformance per AGENTS.md Code Review Rules
+# Both reports name files relative to the repo: the review worktree path is removed from them.
 # Before the review it runs make check on the reviewed head in the review worktree, keeps its output in
 # <out>/<branch-slug>-r<ROUND>-<reviewer>-check.log and tells the reviewer the result; a failed check does not stop the review.
 # It also writes <out>/<branch-slug>-r<ROUND>-<reviewer>-meta.txt with the base and head SHAs, the model, the
@@ -230,6 +231,29 @@ run_claude() {
   claude_review "$(plan_prompt)" >"$plan_out" || die "claude plan review failed; see $plan_out"
 }
 
+# strip_worktree_prefix REPORT: removes every "$WT/" from REPORT as a literal string (index(), not a regex: the path
+# may hold regex characters), so the findings name repo-relative paths instead of the user's home directory.
+strip_worktree_prefix() {
+  local stripped
+  stripped="$(new_temp review-branch)" || exit 1
+  # shellcheck disable=SC2016  # the awk program is single-quoted on purpose
+  LC_ALL=C REVIEW_WT_PREFIX="$WT/" awk '
+    BEGIN { prefix = ENVIRON["REVIEW_WT_PREFIX"]; size = length(prefix) }
+    {
+      rest = $0
+      out = ""
+      while ((at = index(rest, prefix)) > 0) {
+        out = out substr(rest, 1, at - 1)
+        rest = substr(rest, at + size)
+      }
+      print out rest
+    }' "$1" >"$stripped" || {
+    rm -f "$stripped"
+    die "could not remove the review worktree path from $1"
+  }
+  mv "$stripped" "$1"
+}
+
 main() {
   local round slug wt_path diff_out plan_out base_sha head_sha meta_out check_log out_dir wt_parent prefix
   [[ $# -ge 2 ]] || usage
@@ -276,6 +300,8 @@ main() {
   else
     run_claude "$diff_out$PARTIAL_SUFFIX" "$plan_out$PARTIAL_SUFFIX"
   fi
+  strip_worktree_prefix "$diff_out$PARTIAL_SUFFIX"
+  strip_worktree_prefix "$plan_out$PARTIAL_SUFFIX"
   mv "$diff_out$PARTIAL_SUFFIX" "$diff_out"
   mv "$plan_out$PARTIAL_SUFFIX" "$plan_out"
   printf 'base %s\nhead %s\nmodel %s\neffort %s\ncheck %s\n' "$base_sha" "$head_sha" "$MODEL" "$EFFORT" "$CHECK_RESULT" >"$meta_out"

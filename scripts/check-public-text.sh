@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Check text that leaves the repo (files, commit messages, PR text, review reports) for IPv4 addresses outside the allowed
-# ranges, tailnet IPv6 addresses, ts.net host names, Claude Code session links and Generated with lines. Prints only the
-# place and kind of each hit, never the value, and exits 1 on a hit. Without arguments it scans the tracked and new text
+# ranges, tailnet IPv6 addresses, ts.net host names, local home and temp folder paths, Claude Code session links and
+# Generated with lines. Prints only the place and kind of each hit, never the value, and exits 1 on a hit. Without arguments it scans the tracked and new text
 # files of the current repository and applies the exemption list at its root; it fails when git cannot list the files
 # or none is left to scan. Named files and stdin get no exemption.
 # Usage: scripts/check-public-text.sh [--label NAME] [FILE|-]...
@@ -22,11 +22,13 @@ readonly MAX_NETWORK_PREFIX=24
 readonly PLACEHOLDER_TS_MARKS="< * {"
 readonly PLACEHOLDER_TS_LABELS="example tail1234 tailnet"
 readonly PLACEHOLDER_TS_LABEL_PREFIX="example-"
+# Folder names under /home/ that are no local account: the Basic Memory container user (compose.yaml).
+readonly CONTAINER_HOME_USERS="appuser"
 # Exemption list at the repo root: lines '<repo-relative path> <kind id>', used only without arguments.
 readonly EXEMPTIONS_FILE=".public-text-exemptions"
 # Kind ids (exemption list) and the kind names printed for them, in the same order.
-readonly KIND_IDS="ipv4 tailnet-ipv6 ts-net session-link generated-with"
-readonly KIND_NAMES="IPv4 address|tailnet IPv6 address|ts.net host name|session link|Generated with line"
+readonly KIND_IDS="ipv4 tailnet-ipv6 ts-net session-link generated-with local-path"
+readonly KIND_NAMES="IPv4 address|tailnet IPv6 address|ts.net host name|session link|Generated with line|local path"
 readonly STDIN_LABEL="stdin"
 # Exit status of the scan: hits found, a bad exemption line, or a file it could not read (awk itself exits 2 on its
 # own errors).
@@ -35,7 +37,7 @@ readonly STATUS_BAD_EXEMPTION=3
 readonly STATUS_UNREADABLE=4
 # xargs exits 123 when the command it runs exits 1 to 125 (for grep: no file listed, or an error).
 readonly XARGS_COMMAND_FAILED=123
-readonly MASK_HINT="replace the host with agent-hub, a tailnet IP with <agent-hub tailnet IP>, other addresses with a documentation-range address (203.0.113.10), and delete session links and Generated with lines; then run it again"
+readonly MASK_HINT="replace the host with agent-hub, a tailnet IP with <agent-hub tailnet IP>, other addresses with a documentation-range address (203.0.113.10), write repo-relative paths instead of home and temp folder paths, and delete session links and Generated with lines; then run it again"
 
 # The scan reads LIST (lines '<path><TAB><label>') and prints '<label>:<line>: <kind>' once per line and kind. EXEMPTIONS
 # is the exemption list or empty; the path in LIST is what it matches.
@@ -113,6 +115,17 @@ function has_session_link(line) {
 }
 # Only a diff mark (git log -p), whitespace, list and quote marks and non-ASCII symbols (emoji) may come before it.
 function has_generated_with(line) { return line ~ /^[+-]?([ \t>*-]|[0-9]+[.]|[^ -~])*Generated with/ }
+# A home folder with a real name (/Users/<name>/, or /home/<name>/ unless it is a container user) or a macOS temp
+# folder (/var/folders/<dir>/, also under /private). Placeholders such as /Users/<you>/ and a bare /var/folders/ pass.
+function has_local_path(line,   rest, parts) {
+  rest = line
+  while (match(rest, /\/(Users|home)\/[A-Za-z0-9._-]+\//)) {
+    split(substr(rest, RSTART + 1, RLENGTH - 2), parts, "/")
+    rest = substr(rest, RSTART + RLENGTH - 1)
+    if (!(parts[1] == "home" && (parts[2] in container_users))) return 1
+  }
+  return line ~ /\/var\/folders\/[A-Za-z0-9_+-]+\//
+}
 function report(path, label, line_no, id) {
   if ((path, id) in exempt) return
   print label ":" line_no ": " kind_name[id]
@@ -129,6 +142,8 @@ BEGIN {
   mark_count = split(placeholder_marks, marks, " ")
   n = split(placeholder_label_list, label_list, " ")
   for (i = 1; i <= n; i++) placeholder_labels[label_list[i]] = 1
+  n = split(container_user_list, user_list, " ")
+  for (i = 1; i <= n; i++) container_users[user_list[i]] = 1
   n = split(kind_ids, ids, " ")
   split(kind_names, names, "|")
   for (i = 1; i <= n; i++) kind_name[ids[i]] = names[i]
@@ -161,6 +176,7 @@ BEGIN {
       if (has_ts_net(line)) report(fields[1], fields[2], line_number, "ts-net")
       if (has_session_link(line)) report(fields[1], fields[2], line_number, "session-link")
       if (has_generated_with(line)) report(fields[1], fields[2], line_number, "generated-with")
+      if (has_local_path(line)) report(fields[1], fields[2], line_number, "local-path")
     }
     # getline returns -1, not 0, on a file it cannot read: fail instead of passing it unread.
     if (got < 0) {
@@ -243,6 +259,7 @@ main() {
   hits="$(LC_ALL=C awk -v list="$list" -v exemptions="$exemptions" -v ranges="$ALLOWED_IPV4_RANGES" \
     -v max_prefix="$MAX_NETWORK_PREFIX" -v placeholder_marks="$PLACEHOLDER_TS_MARKS" \
     -v placeholder_label_list="$PLACEHOLDER_TS_LABELS" -v placeholder_label_prefix="$PLACEHOLDER_TS_LABEL_PREFIX" \
+    -v container_user_list="$CONTAINER_HOME_USERS" \
     -v kind_ids="$KIND_IDS" -v kind_names="$KIND_NAMES" -v status_hits="$STATUS_HITS" \
     -v bad_exemption="$STATUS_BAD_EXEMPTION" -v status_unreadable="$STATUS_UNREADABLE" "$SCAN_PROGRAM" </dev/null)" \
     || status=$?
