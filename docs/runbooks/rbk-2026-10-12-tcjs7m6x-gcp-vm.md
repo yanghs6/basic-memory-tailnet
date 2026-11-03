@@ -73,11 +73,16 @@ Expected: 인스턴스가 `RUNNING`으로 만들어지고 `EXTERNAL_IP`가 한 �
 접속 방식에 따라 22번 규칙이 다릅니다(`.env`의 `BM_ACCESS`, [부트스트랩 런북](rbk-2026-10-12-ha5w72pm-bootstrap.md)).
 
 - `tailscale`: 아래처럼 `default-allow-ssh`를 내 IP/32로 좁혀 부트스트랩에 쓰고, Tailscale SSH를 확인한 뒤 지웁니다.
-- `ssh`: 공인 SSH가 필요 없습니다. rdp·icmp와 함께 `default-allow-ssh`도 지우고(`ssh` 모드 단계, 사용자 OK 후), 8단계의 `allow-iap-ssh`를 만듭니다.
+- `ssh`: 공인 SSH가 필요 없습니다. rdp·icmp와 함께 `default-allow-ssh`도 지우고(`ssh` 모드 단계, 사용자 OK 후), 8단계의 `allow-iap-ssh`를 만듭니다. 아래 "`tailscale` 모드만" 블록은 실행하지 않습니다. 그 블록의 `update`와 `create`는 22번을 공인 IP에 엽니다.
 
   ```bash
   gcloud compute firewall-rules delete default-allow-ssh --configuration=bm-personal
+  gcloud compute firewall-rules delete default-allow-rdp default-allow-icmp --configuration=bm-personal
   ```
+
+  재구축처럼 규칙이 이미 지워진 프로젝트에서는 `delete`가 "not found"로 실패합니다. 그 규칙은 건너뛰고, 22번 규칙은 새로 만들지 않습니다.
+
+`tailscale` 모드만:
 
 ```bash
 gcloud compute firewall-rules delete default-allow-rdp default-allow-icmp --configuration=bm-personal
@@ -85,15 +90,15 @@ MY_IP="$(curl -4 -s https://ifconfig.me)"
 gcloud compute firewall-rules update default-allow-ssh --source-ranges="$MY_IP/32" --configuration=bm-personal
 ```
 
-재구축처럼 규칙이 이미 지워진 프로젝트에서는 `delete`가 "not found"로 실패하고 `update`도 실패합니다. 이때 rdp·icmp 삭제는 건너뛰고, 22번 규칙은 새로 만듭니다.
+`tailscale` 모드에서 재구축처럼 규칙이 이미 지워진 프로젝트에서는 `delete`가 "not found"로 실패하고 `update`도 실패합니다. 이때 rdp·icmp 삭제는 건너뛰고, 22번 규칙은 새로 만듭니다.
 
 ```bash
 gcloud compute firewall-rules create default-allow-ssh --configuration=bm-personal --network=default --direction=INGRESS --allow=tcp:22 --source-ranges="$MY_IP/32"
 ```
 
 - `default-allow-internal`은 VPC 내부 전용이라 둡니다. 8737과 443은 열지 않습니다.
-- `default-allow-ssh`는 [부트스트랩](rbk-2026-10-12-ha5w72pm-bootstrap.md)에서 Tailscale SSH를 확인한 **뒤에** 지웁니다.
-- 다른 네트워크에서 부트스트랩하면 내 IP가 바뀌므로 위 `update` 명령을 다시 실행합니다.
+- `tailscale` 모드에서 `default-allow-ssh`는 [부트스트랩](rbk-2026-10-12-ha5w72pm-bootstrap.md)에서 Tailscale SSH를 확인한 **뒤에** 지웁니다.
+- `tailscale` 모드에서 다른 네트워크로 옮겨 부트스트랩하면 내 IP가 바뀌므로 위 `update` 명령을 다시 실행합니다.
 - 이 명령들은 [운영 런북](rbk-2026-10-12-t79ex2ny-operations.md)의 Exposure audit 기준(VPC 밖 소스를 허용하는 인바운드 규칙 0개)을 만족시키기 위한 것입니다. 마지막 확인은 거기서 합니다.
 
 ## 4. 생성 결과 확인

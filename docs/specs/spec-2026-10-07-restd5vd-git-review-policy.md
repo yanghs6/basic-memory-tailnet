@@ -185,7 +185,7 @@ Reviewed-Head: <sha>
   - 브랜치 이름이 `^(plan/[0-9]{2}-[a-z0-9-]+|work/[a-z0-9-]+)$`를 따르는지
   - `extensions.worktreeConfig`가 꺼져 있는지
   - 위반마다 고치는 방법을 출력한다.
-- `scripts/review.sh` + `make review BRANCH=… REVIEWER=codex|claude`
+- `scripts/review-branch.sh`(당시 이름 `scripts/review.sh`) + `make review BRANCH=… REVIEWER=codex|claude`
   - 리뷰용 detached worktree를 만들고, 변경 리뷰와 계획 대조 리뷰를 실행해 원문을 `.review-out/<브랜치>-r<회차>-<도구>.md`에 저장한 뒤 worktree를 지운다.
   - 테스트는 `codex`·`claude`·`git worktree` 호출을 stub으로 검증한다.
 - `.claude/agents/branch-reviewer.md`

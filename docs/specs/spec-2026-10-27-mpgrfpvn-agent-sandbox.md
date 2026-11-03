@@ -7,6 +7,7 @@ date: 2026-10-27
 # 에이전트 sandbox와 권한 — 설계
 
 - 구현 계획: [agent-sandbox 계획](../plans/plan-2026-10-22-k3bd8k47-agent-sandbox.md). 계획 하나와 PR 하나로 이 스펙 전체를 구현한다(7절).
+- 대체 범위: [GitHub PR 워크플로](spec-2026-10-13-pr762r68-github-pr-workflow.md) 9절 5단계(정리)에서 worktree의 archive를 main 체크아웃 `backups/`로 옮기는 일을 사용자에게 넘긴다(결정 9). 에이전트는 명령을 알려 주고, worktree와 로컬 브랜치 삭제는 그대로 에이전트가 한다.
 
 ## 1. 목적과 범위
 
