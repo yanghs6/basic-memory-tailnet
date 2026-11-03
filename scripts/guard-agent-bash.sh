@@ -88,8 +88,8 @@ readonly PLAIN_WORD='^[A-Za-z0-9._/:@%+,=-]+$'
 # A call passes when its words, without flags, are (group)* read-verb (argument)*, or when it has no words besides
 # flags. A group word never names a command, so the first word that is no group decides.
 readonly CLOUD_CLI_NAME='[g]cloud'
-readonly CLOUD_GROUPS='config configurations compute instances firewall-rules disks addresses networks zones regions operations images projects services iam service-accounts keys auth billing accounts logging logs components alpha beta'
-readonly CLOUD_READ_VERBS='list describe info version help get-value get-iam-policy get-serial-port-output read'
+readonly CLOUD_GROUPS='config configurations compute instances firewall-rules disks addresses networks zones regions operations images project-info projects services iam service-accounts keys auth billing accounts logging logs components alpha beta'
+readonly CLOUD_READ_VERBS='list describe describe-from-family info version help get-value get-iam-policy get-serial-port-output read'
 # A flag with an optional =value. A value after a blank stays a word: before the verb it is no group, so the call asks
 # (a flag must not swallow the word after it, as in compute instances --quiet start list).
 readonly CLOUD_FLAG='^-[A-Za-z0-9._/:@%+,=-]*$'
@@ -302,15 +302,17 @@ make_word_plain() {
 }
 
 # gh_api_writes WORDS: succeed when a gh api call with WORDS sends fields or input, or uses a method other than GET.
+# Every method flag counts: gh uses the last one, so -X GET -X POST posts.
 gh_api_writes() {
-  local method
-  if [[ "$1" =~ $GH_API_FIELD_PATTERN ]]; then
+  local rest="$1" method
+  if [[ "$rest" =~ $GH_API_FIELD_PATTERN ]]; then
     return 0
   fi
-  if [[ "$1" =~ $GH_API_METHOD_PATTERN ]]; then
+  while [[ "$rest" =~ $GH_API_METHOD_PATTERN ]]; do
     method="$(printf '%s' "${BASH_REMATCH[2]}" | tr '[:upper:]' '[:lower:]')"
     [[ "$method" == get ]] || return 0
-  fi
+    rest="${rest#*"${BASH_REMATCH[0]}"}"
+  done
   return 1
 }
 
