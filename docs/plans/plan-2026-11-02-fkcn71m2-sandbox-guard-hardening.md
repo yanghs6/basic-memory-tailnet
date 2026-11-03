@@ -108,11 +108,11 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 - 제외 목록에서 `scripts/check-public-text.sh *`를 뺀다. D4-A면 `make check-git`도 빼고, D4-B면 `make check-git *`를 더한다. 허용 규칙에 `Bash(make check-git *)`를 더한다.
 - `post-review.sh`·`post-review-record.sh` 직접 호출(명령 위치, 경로 접두어 허용)은 ask("this script posts to a pull request"). sandbox 안에서도 이제 공개 텍스트 검사를 통과해 `gh`까지 닿을 수 있기 때문이다(F08 수정 제안).
 
-- [ ] **Step 1: 실패하는 테스트 작성:** repo-config 고정 목록 갱신, guard ask 사례(`scripts/post-review.sh 1 plan/x codex`, `bash scripts/post-review-record.sh 1 f`, `sh -c './scripts/post-review.sh 1 b codex'`)와 통과 사례(`cat scripts/post-review.sh`, `shellcheck scripts/post-review-record.sh`), repo-make 사례(`make -n check-git BRANCH=work/x`가 그 브랜치를 넘김).
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례만 실패.
-- [ ] **Step 3: 최소 구현.**
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0. 이 세션 sandbox에서 `scripts/check-git.sh origin/main plan/fkcn71m2-sandbox-guard-hardening`과 `make check-git BRANCH=plan/fkcn71m2-sandbox-guard-hardening`이 통과(D4 판단 근거, Progress log에 기록).
-- [ ] **Step 5: 커밋:** `feat: run the public text check inside the sandbox and check any branch with make check-git`, `Task: 3`.
+- [x] **Step 1: 실패하는 테스트 작성:** repo-config 고정 목록 갱신, guard ask 사례(`scripts/post-review.sh 1 plan/x codex`, `bash scripts/post-review-record.sh 1 f`, `sh -c './scripts/post-review.sh 1 b codex'`)와 통과 사례(`cat scripts/post-review.sh`, `shellcheck scripts/post-review-record.sh`), repo-make 사례(가짜 `scripts/check-git.sh`로 `make check-git BRANCH=work/x`가 그 브랜치를, `BRANCH` 없이는 빈 인자를 넘기는지 확인).
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례만 실패.
+- [x] **Step 3: 최소 구현.**
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0. 이 세션 sandbox에서 `scripts/check-git.sh origin/main plan/fkcn71m2-sandbox-guard-hardening`과 `make check-git BRANCH=plan/fkcn71m2-sandbox-guard-hardening`이 통과(D4 판단 근거, Progress log에 기록).
+- [x] **Step 5: 커밋:** `feat: run the public text check inside the sandbox and check any branch with make check-git`, `Task: 3`.
 
 ### Task 4: gcloud and gh read allow-lists in the guard (W2, F01, F02)
 
@@ -235,3 +235,5 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 | 2026-11-02 | Verified | 사용자가 Basic Memory 초안 보드의 초안을 승인하고 D1-A, D2-A, D3-A를 골랐다. |
 | 2026-11-02 | Verified | Task 1: 테스트를 먼저 쓰자 `make test`(테스트 279개)에서 새 테스트 둘만 실패했다. lib 테스트는 `new_temp: command not found`로, repo 테스트는 로컬 `$(mktemp` 호출 11곳을 찾아 실패했다(`scripts/remote/`와 `bootstrap-vm.sh`가 ssh로 넘기는 원격 `mktemp`는 걸리지 않음). 구현 뒤 `make check`는 exit 0, total line coverage 89.32%(최소 80%)였다. 이 세션 sandbox에서 stdin `hello`로 돌린 `scripts/check-public-text.sh --label probe -`는 바꾸기 전 `mkstemp failed ... Operation not permitted`로 exit 1, 바꾼 뒤 출력 없이 exit 0이었다. |
 | 2026-11-02 | Verified | Task 2: 테스트를 먼저 쓰자 `make test`(테스트 280개)에서 새 테스트 하나만 실패했다. 빈 저장소에서 인자 없이 돌린 검사가 exit 0으로 끝났기 때문이다. 임시 저장소의 `.git/index`를 깨뜨리자 `git ls-files`는 exit 128, `git rev-parse --show-toplevel`은 exit 0이었고, 바꾸기 전 스크립트는 git 오류만 남긴 채 exit 0이었다. 구현 뒤 `make check`는 exit 0, total line coverage 89.34%(최소 80%)였다. |
+| 2026-11-02 | Verified | D4 근거: Task 1 뒤 이 세션 sandbox에서 `scripts/check-git.sh origin/main plan/fkcn71m2-sandbox-guard-hardening`과 파이프를 붙여 sandbox 안에서 돈 `make check-git`이 모두 `OK: git policy (2 commits since origin/main)`였다(make는 main `.env`를 stat하지 못한다는 경고만 냈다). 그래서 D4는 A로 정했다. |
+| 2026-11-03 | Verified | Task 3: 테스트 세 개(repo-config 고정 제외 목록, guard의 게시 스크립트 ask, repo-make의 `check-git BRANCH=`)를 먼저 바꾸자 `make test`가 exit 2로 실패했다. 출력이 도구에서 중간이 잘려 실패 줄은 보지 못했지만, 직전 커밋 418ecd4의 `make check`가 통과했고 이 단계는 테스트 파일만 바꿨다. 구현 뒤 `make check`는 테스트 281개 exit 0, total line coverage 89.36%(최소 80%)였다. 설정을 고친 뒤 이 세션 sandbox에서 `make check-git BRANCH=plan/fkcn71m2-sandbox-guard-hardening`이 `OK: git policy (3 commits since origin/main)`, 파이프로 이은 `scripts/check-public-text.sh --label probe -`와 인자 없는 저장소 검사가 exit 0이었다. `git-workflow` 스킬은 Publish 1의 한 구절만 지워 트리거 시험(skill-authoring "Test the skill")은 하지 않았다. |

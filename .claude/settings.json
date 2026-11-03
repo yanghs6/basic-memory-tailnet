@@ -28,7 +28,6 @@
       "make lint",
       "make coverage",
       "make fmt",
-      "make check-git",
       "make secret-scan",
       "make tools-image",
       "make gateway-lock",
@@ -58,8 +57,7 @@
       "make sb-fonts *",
       "gh *",
       "gcloud *",
-      "git push *",
-      "scripts/check-public-text.sh *"
+      "git push *"
     ]
   },
   "hooks": {
@@ -84,6 +82,7 @@
       "Bash(make coverage)",
       "Bash(make check)",
       "Bash(make check-git)",
+      "Bash(make check-git *)",
       "Bash(make local-verify)"
     ],
     "deny": [

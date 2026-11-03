@@ -2,7 +2,7 @@
 # PreToolUse hook for the Bash tool of the main agent (.claude/settings.json hooks.PreToolUse, spec
 # docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md, section 3.3). It reads the command from the hook input and
 #   - denies (exit 2, stderr shown to the agent) deleting backups/ or /srv/basic-memory.prev-* directories,
-#   - asks the user (permissionDecision "ask") before a force-push, a direct call of a VM-changing script,
+#   - asks the user (permissionDecision "ask") before a force-push, a direct call of a VM-changing or posting script,
 #     script or expect around restore, a make call naming a VM-changing or posting target, gh write forms (api with
 #     fields or a non-GET method, gist, issue, release, repo, pr create, edit, comment, ready, close or merge) and
 #     cloud CLI changes (create, delete, metadata, update, stop, reset, resize),
@@ -47,6 +47,9 @@ readonly FORCE_PATTERN="(^|[[:space:]'\"])(--force|-[A-Za-z]*f[A-Za-z]*${WORD_EN
 # or env, also inside sh -c '...'), with an optional directory prefix. cat, git add or shellcheck on it pass.
 readonly COMMAND_LEAD=$'(^|[;&|(\n]|(^|[[:space:];&|(])(sh|bash|env)[[:space:]]+(-c[[:space:]]+)?)[[:space:]\'"]*'
 readonly VM_SCRIPT_PATTERN="${COMMAND_LEAD}([^[:space:];&|()'\"]*/)?(restore-notes|deploy-stack|bootstrap-vm|upload-sb-fonts)\\.sh([[:space:];&|)'\"]|\$)"
+# The posting scripts behind make review-post and make review-record: their public text check now runs inside the
+# sandbox too, so a direct call could reach gh from there.
+readonly POST_SCRIPT_PATTERN="${COMMAND_LEAD}([^[:space:];&|()'\"]*/)?(post-review|post-review-record)\\.sh([[:space:];&|)'\"]|\$)"
 
 readonly PTY_WRAPPER_PATTERN="${BOUNDARY_START}(script|expect)${WORD_END}"
 readonly RESTORE_PATTERN="${BOUNDARY_START}restore${WORD_END}"
@@ -74,6 +77,7 @@ readonly ASK_MAKE_TARGET='this make target changes the VM or posts to a pull req
 readonly ASK_GH_WRITE='this gh call writes to GitHub from outside the sandbox'
 readonly ASK_FORCE_PUSH='force-push rewrites the remote branch history'
 readonly ASK_VM_SCRIPT='this script changes the VM'
+readonly ASK_POST_SCRIPT='this script posts to a pull request'
 readonly ASK_RESTORE='restore overwrites the notes on the VM'
 readonly ASK_CLOUD='cloud CLI create or delete changes cloud resources'
 
@@ -117,6 +121,9 @@ main() {
   fi
   if [[ "$command" =~ $VM_SCRIPT_PATTERN ]]; then
     ask "$ASK_VM_SCRIPT"
+  fi
+  if [[ "$command" =~ $POST_SCRIPT_PATTERN ]]; then
+    ask "$ASK_POST_SCRIPT"
   fi
   if [[ "$command" =~ $PTY_WRAPPER_PATTERN && "$command" =~ $RESTORE_PATTERN ]]; then
     ask "$ASK_RESTORE"

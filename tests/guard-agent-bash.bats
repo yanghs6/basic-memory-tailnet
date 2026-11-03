@@ -71,7 +71,7 @@ assert_asks() {
   done
 }
 
-@test "asks before a direct call of a VM-changing script, script or expect around restore, and gcloud create or delete" {
+@test "asks before a direct call of a VM-changing or posting script, script or expect around restore, and gcloud create or delete" {
   local cmd commands
   commands=(
     "scripts/restore-notes.sh backups/x"
@@ -80,6 +80,10 @@ assert_asks() {
     "sh -c 'scripts/upload-sb-fonts.sh'"
     "scripts/restore-notes.sh x"
     "cd scripts && ./restore-notes.sh"
+    "scripts/post-review.sh 1 plan/x codex"
+    "bash scripts/post-review-record.sh 1 f"
+    "sh -c './scripts/post-review.sh 1 b codex'"
+    "cd scripts && ./post-review-record.sh 1 f"
     "script -q /dev/null make restore"
     "expect -c 'spawn make restore'"
     "gcloud compute instances create x"
@@ -207,6 +211,9 @@ assert_asks() {
     "git add scripts/restore-notes.sh"
     "shellcheck scripts/bootstrap-vm.sh"
     "grep -n confirm scripts/restore-notes.sh"
+    "cat scripts/post-review.sh"
+    "shellcheck scripts/post-review-record.sh"
+    "git add scripts/post-review.sh"
     "git push origin fix-f"
     "git push origin feat/-f"
     "git commit -m \"add +x flag\""
