@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 id: fqns5sye
 spec: none
 ---
@@ -68,7 +68,7 @@ spec: none
 ### Start: branch, worktree, draft PR
 
 - [x] `git fetch origin` 뒤 `origin/main`(89e9ef6)에서 만든 worktree `ops-robustness`의 브랜치를 `plan/fqns5sye-ops-robustness`로 바꿨다. `origin/plan/fqns5sye-*`는 없었다.
-- [ ] 첫 커밋에서 이 계획을 `status: active`로 넣고 push한 뒤 초안 PR을 연다. 감독에 알린다.
+- [x] 첫 커밋에서 이 계획을 `status: active`로 넣고 push한 뒤 초안 PR을 연다. 감독에 알린다(733a3f1, PR #38).
 
 ### Task 1: compose의 의미 검색 끄기 고정 (W9, F23)
 
@@ -254,7 +254,7 @@ check_semantic_search_off() {
 
 ### Finish: review and hand-off
 
-- [ ] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
+- [x] Progress log에 그날 `make check` 결과를 `Verified`로 적고, `status`를 `completed`로 바꿔 커밋·push한다(`Task: none`).
 - [ ] PR 본문 Verification에 `make check`와 CI(`check`, `pr-rules`) 결과를 적는다.
 - [ ] `make review`로 Codex 읽기 전용 리뷰를 돌린다. 리뷰 게시와 `gh pr ready`는 사용자 OK를 받는다. 리뷰가 끝나면, 그리고 ready 전(최종 head, CI, 게시 내용)에 감독에 알린다.
 - [ ] CI가 통과하고 열린 P0/P1이 없으면 사용자 OK 뒤 `gh pr ready <PR>`을 실행한다. 승인과 squash 병합은 사람만 한다.
@@ -307,3 +307,4 @@ check_semantic_search_off() {
 | 2026-11-03 | Verified | `local-verify`의 글꼴 404 경고는 로컬 스택에 글꼴을 올리지 않아서 나오는 기존 경고임(이번 변경과 무관) |
 | 2026-11-03 | Verified | Task 7: 운영 런북에 "재개 점검" 절을 더함. ARCHITECTURE는 감독이 정한 여섯 줄만 고침. 대상은 backup-latest 표 행과 자동 검증 범위와 자원 절 두 줄, 그리고 검증 흐름과 백업 흐름임 |
 | 2026-11-03 | Verified | Task 7 스킬: bm-diagnose 3단계와 4단계와 6단계, 실패 메시지 표(새 행 6개와 스왑 행 하나)를 고침. bm-recover 2단계와 script-authoring의 vm.sh 설명도 고침 |
+| 2026-11-03 | Verified | Task 7 커밋(c9d6041) 전 `make check`: `total line coverage: 89.53% (minimum 80%)`와 exit 0. Task 1~9가 모두 끝나 `status`를 `completed`로 바꿈 |
