@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Verify the VM end to end: MCP round trip over the tailnet URL, the SilverBullet login on https port 8443,
+# Verify the VM end to end. First it checks that BM_VM_PUBLIC_IP is still the VM's external IP (read on the VM from the
+# cloud's metadata server; neither address is printed), so the public probe below never tests an old address. Then the
+# MCP round trip over the tailnet URL, the SilverBullet login on https port 8443,
 # loopback-only binding of both ports, tailnet-only Serve that sends 443 to Basic Memory and 8443 to SilverBullet
 # (no Funnel on either), and that the public IP refuses common ports. With --read-only it writes no notes and does
 # not log in. Firewall rules and the tailnet policy cannot be read from here; audit them by hand
@@ -18,6 +20,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly PUBLIC_PROBE_TIMEOUT_SECONDS=5
 readonly SB_HTTPS_PORT=8443
 readonly PUBLIC_PROBE_PORTS="22 80 443 $SB_HTTPS_PORT"
+# The metadata server's key for the external IP of the VM's first network interface (its one access config); the VM
+# runbook (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md, section 5) shows how that IP changes.
+readonly METADATA_EXTERNAL_IP_URL=http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip
+readonly METADATA_TIMEOUT_SECONDS=5
 
 # ssh access mode: local ends of the verify tunnel, apart from make tunnel's DEFAULT_TUNNEL_MCP_PORT and
 # DEFAULT_TUNNEL_WEB_PORT (scripts/lib/common.sh) so both can run at once.
@@ -145,6 +151,21 @@ validate_public_ip() {
   fi
 }
 
+# check_public_ip_current -> dies unless the VM's external IP, read on the VM from the metadata server, equals
+# BM_VM_PUBLIC_IP. A VM that was stopped and started has a new ephemeral IP, and the public probe would then test an
+# address that is no longer the VM's. -f turns a metadata error answer (such as no external IP) into a failure, so it is
+# never compared as an address. Prints neither address.
+check_public_ip_current() {
+  local current
+  step "check BM_VM_PUBLIC_IP is the VM's current external IP"
+  current="$(remote "curl -fsS -m $METADATA_TIMEOUT_SECONDS -H 'Metadata-Flavor: Google' $METADATA_EXTERNAL_IP_URL")" || current=""
+  [[ -n "$current" ]] \
+    || die "could not read the VM's external IP from the metadata server: check that the VM has an external IP (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md, section 5); if SSH fails, $(access_hint)"
+  [[ "$current" == "$BM_VM_PUBLIC_IP" ]] \
+    || die "BM_VM_PUBLIC_IP in .env is not the VM's current external IP (stopped and started?): look up the new IP (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md, section 5) and update .env"
+  log "OK: BM_VM_PUBLIC_IP is the VM's current external IP"
+}
+
 # probe_is_open PLATFORM HOST PORT -> succeeds when the port accepts a connection, fails when it is closed;
 # dies on any other nc failure (bad option, bad host) so a broken probe can never read as "closed".
 probe_is_open() {
@@ -183,6 +204,7 @@ main() {
   require_web_host
   require_env BM_VM_PUBLIC_IP
   validate_public_ip "$BM_VM_PUBLIC_IP"
+  check_public_ip_current
   if [[ "$mode" == ssh ]]; then
     open_verify_tunnel
     url="http://127.0.0.1:$VERIFY_TUNNEL_MCP_PORT/mcp"

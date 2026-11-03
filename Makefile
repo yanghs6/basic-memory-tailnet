@@ -152,7 +152,7 @@ vm-bootstrap: ## First-time VM setup (HOST=<public-ip>, or the SSH host alias in
 deploy: ## Copy compose.yaml, the VM .env and the SilverBullet space files to the VM, then start Basic Memory and SilverBullet (waits until healthy)
 	scripts/deploy-stack.sh
 
-verify: ## Full VM check: MCP write/read/delete, SilverBullet login, loopback binding, exposure (Serve in tailscale mode; Tailscale off and sshd key-only in ssh mode), closed public ports
+verify: ## Full VM check: BM_VM_PUBLIC_IP is the VM's current external IP, MCP write/read/delete, SilverBullet login, loopback binding, exposure (Serve in tailscale mode; Tailscale off and sshd key-only in ssh mode), closed public ports
 	scripts/verify-vm.sh
 
 probe: ## Read-only VM check: same as verify but writes no notes and does not log in to SilverBullet

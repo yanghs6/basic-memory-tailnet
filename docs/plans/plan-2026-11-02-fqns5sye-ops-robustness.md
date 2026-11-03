@@ -215,14 +215,14 @@ check_semantic_search_off() {
 
 **Assumption:** 메타데이터 경로는 GCP 문서의 predefined 키(`instance/network-interfaces/0/access-configs/0/external-ip`)다. Task 9의 실제 `make probe`로 확인한다.
 
-- [ ] **Step 1: 실패하는 테스트 작성.**
+- [x] **Step 1: 실패하는 테스트 작성.**
   - curl stub에 Metadata 모드: URL이 `metadata.google.internal`이면 `${CURL_STUB_EXTERNAL_IP-$BM_VM_PUBLIC_IP}`를 출력한다(빈 값이면 아무것도 출력하지 않는다). 헤더 주석에 모드를 적는다.
   - 새 `@test "verify and probe stop before any MCP request when the VM's external IP differs from BM_VM_PUBLIC_IP or cannot be read, and print neither address"`: 다른 IP, 빈 응답, 메타데이터 시간 초과(`CURL_STUB_FAIL_MATCH=metadata.google.internal`). 각각 실패하고, `$STUB_LOG.requests`에 MCP 요청이 없고, 출력에 VM 쪽 IP(`198.51.100.7`)가 없다. 같은 IP면 기존 테스트가 통과하는 것으로 성공 경로를 본다.
   - ssh 모드 테스트(`:110`)에서도 IP 검사가 터널을 열기 전에 도는지 `assert_log_order`로 확인한다.
-- [ ] **Step 2: `make test`로 실패 확인.**
-- [ ] **Step 3: 구현.** `remote "curl -sS -m $METADATA_TIMEOUT_SECONDS -H 'Metadata-Flavor: Google' $METADATA_EXTERNAL_IP_URL"`. 결과를 변수에만 두고 비교한다. 헤더 주석과 Makefile 설명에 IP 대조를 더한다.
-- [ ] **Step 4: `make check` 통과.**
-- [ ] **Step 5: 커밋.** `feat: compare the VM's external IP with BM_VM_PUBLIC_IP in verify and probe` (`Task: 6`).
+- [x] **Step 2: `make test`로 실패 확인.**
+- [x] **Step 3: 구현.** `remote "curl -sS -m $METADATA_TIMEOUT_SECONDS -H 'Metadata-Flavor: Google' $METADATA_EXTERNAL_IP_URL"`. 결과를 변수에만 두고 비교한다. 헤더 주석과 Makefile 설명에 IP 대조를 더한다.
+- [x] **Step 4: `make check` 통과.**
+- [x] **Step 5: 커밋.** `feat: compare the VM's external IP with BM_VM_PUBLIC_IP in verify and probe` (`Task: 6`).
 
 ### Task 7: 문서 동반 갱신 (W15 런북, W16)
 
@@ -287,3 +287,8 @@ check_semantic_search_off() {
 | 2026-11-03 | Verified | Task 5 RED: 새 `df`와 `uptime` stub, `docker` stub의 running 목록, 넓힌 첫 show-status 테스트를 넣고 `make test`를 실행함. 281개 중 `not ok 222`(새 테스트, `running: basic-memory silverbullet` 없음) 하나만 실패했고 exit 2. 바뀐 `docker` stub으로도 다른 테스트는 모두 통과함 |
 | 2026-11-03 | Verified | Task 5 구현 뒤 `make test`: 281개 모두 ok, exit 0 |
 | 2026-11-03 | Verified | Task 5 `make check`: lint 통과. 281개 모두 ok이고 `scripts/show-status.sh` 100.00%. `total line coverage: 89.49% (minimum 80%)`, exit 0 |
+| 2026-11-03 | Verified | Task 6 RED: curl stub의 Metadata 모드와 새 verify-vm 테스트, ssh 모드 테스트의 `assert_log_order`를 넣고 `make test`를 실행함. 282개 중 `not ok 269`(새 테스트, verify가 성공함)와 `not ok 272`(ssh 모드, 메타데이터 호출 없음) 두 개만 실패했고 exit 2 |
+| 2026-11-03 | Verified | Task 6 구현 뒤 첫 `make test`는 `not ok 133`(scripts에 클라우드 이름이 없는지 보는 테스트) 하나만 실패함. 새 주석 두 줄에서 클라우드 이름을 지움. 메타데이터 호스트와 헤더는 그 테스트의 단어 목록에 없어 그대로 둠. 다시 `make test`: 282개 모두 ok, exit 0 |
+| 2026-11-03 | Verified | Task 6 `make check`: lint 통과. 282개 모두 ok이고 `scripts/verify-vm.sh` 97.67%. `total line coverage: 89.53% (minimum 80%)`, exit 0 |
+| 2026-11-03 | Reported | 메타데이터 문서(predefined-metadata-keys, 2026-11-03 조회)는 `access-configs/0/external-ip`를 인터페이스의 외부 IP로 설명함. 필요한 헤더와 오류 상태 코드는 그 페이지에 없음(서브에이전트가 읽음) |
+| 2026-11-03 | Assumption | 외부 IP가 없는 VM에서는 그 키가 오류 상태로 답한다고 봄. 그래서 계획의 메타데이터 명령에 curl `-f`를 더해 오류 본문을 주소로 비교하지 않고 "could not read"로 멈추게 함. 런북 안내는 저장소 관례대로 "step 5" 대신 "section 5"로 씀 |

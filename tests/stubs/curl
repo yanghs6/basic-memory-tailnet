@@ -10,6 +10,8 @@
 #   directory, where <name> is the URL path without its leading / and . and with each / turned into _ (for example
 #   /.well-known/oauth-authorization-server -> well-known_oauth-authorization-server). -d payloads are appended to
 #   $STUB_LOG.requests. With CURL_WEB_HOST set, only URLs containing it are answered this way (MCP mode can run beside it).
+# Metadata mode (URL on metadata.google.internal, checked before MCP mode): prints CURL_STUB_EXTERNAL_IP, default
+#   $BM_VM_PUBLIC_IP (empty: prints nothing), like the GCP metadata server's external-ip key.
 # Download mode: writes "stub" to the -o file, or prints $CURL_STUB_SCRIPT (default "true") for `curl | sh`; with
 #   -w '%{http_code}' it also prints CURL_STUB_HTTP_CODE (default 200), like a reachability probe.
 # CURL_STUB_FAIL_MATCH=<substring>: calls whose arguments contain it fail with CURL_STUB_FAIL_EXIT (default 28 =
@@ -104,6 +106,12 @@ while (($#)); do
     *) shift ;;
   esac
 done
+
+if [[ "$url" == *metadata.google.internal* ]]; then
+  external_ip="${CURL_STUB_EXTERNAL_IP-${BM_VM_PUBLIC_IP:-}}"
+  [[ -z "$external_ip" ]] || printf '%s' "$external_ip"
+  exit 0
+fi
 
 case "$url" in
   */.ping | */.fs/* | */.auth | */.shell | */.logout)
