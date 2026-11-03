@@ -191,6 +191,54 @@ assert_asks() {
   done
 }
 
+@test "asks before every cloud CLI call that is not a read-only form: other verbs, ssh, scp, IAM, services, configuration switches, tokens, a read verb as a resource name or after a flag, quoted or expanded words before the verb, a later call and sh -c" {
+  local cmd commands
+  commands=(
+    "gcloud compute instances start x"
+    "gcloud compute ssh agent-hub --command \"sudo docker compose down\""
+    "gcloud compute scp a agent-hub:b"
+    "gcloud projects add-iam-policy-binding p --member m --role r"
+    "gcloud services enable x"
+    "gcloud compute instances update-from-file x --source f"
+    "gcloud config configurations activate x"
+    "gcloud auth print-access-token"
+    "gcloud compute instances start list"
+    "gcloud compute instances --quiet start list"
+    'gcloud compute instances --f="a\" list" start x'
+    "gcloud --project=\$(echo p) compute instances start x"
+    "gcloud compute instances list && gcloud compute instances start x"
+    "sh -c 'gcloud compute instances start x'"
+  )
+  for cmd in "${commands[@]}"; do
+    assert_asks "$cmd"
+  done
+}
+
+@test "asks before every gh call that is not a read-only form: run, workflow, secret, variable, label, alias, extension, auth token, checkout, clone, an expanded repo flag and a later call" {
+  local cmd commands
+  commands=(
+    "gh run cancel 1"
+    "gh run rerun 1"
+    "gh workflow run x"
+    "gh workflow disable x"
+    "gh secret set X"
+    "gh variable set X"
+    "gh label create x"
+    "gh alias set co 'pr checkout' --shell"
+    "gh extension install x"
+    "gh extension exec x"
+    "gh auth token"
+    "gh auth status --show-token"
+    "gh pr checkout 1"
+    "gh repo clone x"
+    "gh -R \${R:-a;b} pr merge 1"
+    "gh pr view 1 && gh pr merge 1"
+  )
+  for cmd in "${commands[@]}"; do
+    assert_asks "$cmd"
+  done
+}
+
 @test "passes ordinary commands with exit 0 and no output" {
   local cmd commands
   commands=(
@@ -242,6 +290,19 @@ assert_asks() {
     "gcloud compute instances describe x"
     "gcloud --version"
     "gh --version"
+    "gcloud --configuration=bm-personal compute instances describe agent-hub-01 --zone z --format='value(status)'"
+    "gcloud config configurations list"
+    "gcloud config list"
+    "gcloud auth list"
+    "gcloud info"
+    "grep -rn gcloud docs"
+    "sh -c 'gcloud compute instances list'"
+    "gh pr diff 1"
+    "gh pr checks 1"
+    "gh run view 1 --log"
+    "gh auth status"
+    "gh search prs x"
+    "gh api --paginate repos/x/y/issues/1/comments --jq '.[] | .body'"
   )
   for cmd in "${commands[@]}"; do
     run guard "$cmd"
