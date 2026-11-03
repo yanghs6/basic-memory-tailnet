@@ -229,16 +229,16 @@ check_semantic_search_off() {
 **Files:**
 - Modify: `docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md`(새 절만), `docs/ARCHITECTURE.md`(`:63`, `:100`, `:109`, `:117`), `.agents/skills/bm-diagnose/SKILL.md`, `.agents/skills/bm-diagnose/references/failure-messages.md`, `.agents/skills/bm-recover/SKILL.md`, `.agents/skills/script-authoring/SKILL.md`(vm.sh 설명)
 
-- [ ] **Step 1: 운영 런북 "재개 점검" 절.** "정지된 VM" 절 뒤에 둔다. 하루 넘게 쓰지 않은 뒤, 첫 작업 전에 쓴다.
+- [x] **Step 1: 운영 런북 "재개 점검" 절.** "정지된 VM" 절 뒤에 둔다. 하루 넘게 쓰지 않은 뒤, 첫 작업 전에 쓴다.
   1. `make access-check`: 지금 네트워크에서 되는 경로를 본다.
   2. `ssh` 모드면 `make tunnel`을 다시 띄운다(Mac이 잠들면 터널이 끊긴다).
   3. `make status`: 두 서비스가 running, `basic-memory http: answered`, uptime(예상 밖 재부팅인지), 디스크·스왑 80% 미만.
   4. `make probe`: MCP, 의미 검색 꺼짐, 외부 IP가 `.env`와 같음. IP가 다르면 "정지된 VM" 2단계처럼 `.env`를 고친다.
   5. `make backup-latest`: 최신 백업이 `restorable: yes`인지, 날짜가 1주보다 오래됐으면 사용자에게 `make backup`을 제안한다.
   6. 하나라도 실패하면 bm-diagnose를 쓰고, VM이 `TERMINATED`면 "정지된 VM"을 따른다. 실제 장애였을 때만 Incident log에 행을 더한다.
-- [ ] **Step 2: ARCHITECTURE.** `:63` backup-latest 설명에 항목 검사 결과를 더한다. `:100`·`:117`에 의미 검색 확인과 외부 IP 대조를, `:109`에 status의 스왑 사용률 경고를 더한다. front matter `reviewed`는 건드리지 않는다.
-- [ ] **Step 3: 스킬.** bm-diagnose 3·4단계에 새 status 줄(not running, HTTP 무응답, 디스크)과 probe의 의미 검색·IP 실패를 더한다. 실패 메시지 표(`references/failure-messages.md`)에 새 메시지 세 줄(hybrid 확인 실패, IP 불일치, 메타데이터 읽기 실패)을 더한다. bm-recover 2단계의 backup-latest 설명에 `entries` 줄을 더한다. script-authoring의 vm.sh 설명에 "the backup archive checks"를 더한다.
-- [ ] **Step 4:** `make check` 통과 후 커밋. `docs: add the resume check and describe the new status, probe and backup checks` (`Task: 7`).
+- [x] **Step 2: ARCHITECTURE.** `:63` backup-latest 설명에 항목 검사 결과를 더한다. `:100`·`:117`에 의미 검색 확인과 외부 IP 대조를, `:109`에 status의 스왑 사용률 경고를 더한다. front matter `reviewed`는 건드리지 않는다.
+- [x] **Step 3: 스킬.** bm-diagnose 3·4단계에 새 status 줄(not running, HTTP 무응답, 디스크)과 probe의 의미 검색·IP 실패를 더한다. 실패 메시지 표(`references/failure-messages.md`)에 새 메시지 세 줄(hybrid 확인 실패, IP 불일치, 메타데이터 읽기 실패)을 더한다. bm-recover 2단계의 backup-latest 설명에 `entries` 줄을 더한다. script-authoring의 vm.sh 설명에 "the backup archive checks"를 더한다.
+- [x] **Step 4:** `make check` 통과 후 커밋. `docs: add the resume check and describe the new status, probe and backup checks` (`Task: 7`).
 
 ### Task 8: 로컬 스택 확인 (W9)
 
@@ -305,3 +305,5 @@ check_semantic_search_off() {
 | 2026-11-03 | Verified | Task 9 `make backup` 1회(감독이 정한 시간): 항목 검사 단계를 통과해 저장했고 컨테이너는 healthy로 재시작함. 이어서 `make backup-latest`가 새 백업을 `entries: safe`와 `restorable: yes`로 보임 |
 | 2026-11-03 | Verified | Task 8 `make local-up`과 `make local-verify` 통과. 두 경로(plain과 `*.ts.net` Host) 모두 `semantic search off ok`라서 실제 응답 모양이 fixture와 맞음. `make local-down` 완료 |
 | 2026-11-03 | Verified | `local-verify`의 글꼴 404 경고는 로컬 스택에 글꼴을 올리지 않아서 나오는 기존 경고임(이번 변경과 무관) |
+| 2026-11-03 | Verified | Task 7: 운영 런북에 "재개 점검" 절을 더함. ARCHITECTURE는 감독이 정한 여섯 줄만 고침. 대상은 backup-latest 표 행과 자동 검증 범위와 자원 절 두 줄, 그리고 검증 흐름과 백업 흐름임 |
+| 2026-11-03 | Verified | Task 7 스킬: bm-diagnose 3단계와 4단계와 6단계, 실패 메시지 표(새 행 6개와 스왑 행 하나)를 고침. bm-recover 2단계와 script-authoring의 vm.sh 설명도 고침 |
