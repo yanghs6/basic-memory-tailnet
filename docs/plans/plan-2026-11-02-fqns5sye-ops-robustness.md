@@ -242,15 +242,15 @@ check_semantic_search_off() {
 
 ### Task 8: 로컬 스택 확인 (W9)
 
-- [ ] `make local-up`이 다른 worktree의 스택이라며 거부하면 감독에 묻는다.
-- [ ] `make check`, `make local-up`, `make local-verify`, `make local-down`을 각각 단독 명령으로 실행한다. `local-verify` 출력에 `semantic search off ok`가 두 번(plain, `*.ts.net` Host) 나와야 한다. 결과를 Progress log에 적는다.
+- [x] `make local-up`이 다른 worktree의 스택이라며 거부하면 감독에 묻는다.
+- [x] `make check`, `make local-up`, `make local-verify`, `make local-down`을 각각 단독 명령으로 실행한다. `local-verify` 출력에 `semantic search off ok`가 두 번(plain, `*.ts.net` Host) 나와야 한다. 결과를 Progress log에 적는다.
 
 ### Task 9: VM 읽기 전용 실행 (W15, W16)
 
-- [ ] 실행 전에 감독에 한 줄 알린다(다른 세션 VM 작업과 겹치지 않게).
-- [ ] `make status`, `make probe`, `make verify`, `make backup-latest`를 각각 실행한다. 새 줄(HTTP 응답, uptime, 디스크, 스왑 사용률, running, 의미 검색 꺼짐, IP 대조, entries)을 Progress log에 `Verified`로 적는다. IP·노트 제목은 적지 않는다.
-- [ ] `make backup`은 컨테이너를 잠깐 멈추므로 감독이 정한 시간에 한 번 실행하고, 이어서 `make backup-latest`가 `entries: safe`, `restorable: yes`인지 본다. 감독이 시간을 주지 않으면 건너뛰고 Follow-ups에 남긴다.
-- [ ] 실패하면 고치지 말고 bm-diagnose로 원인을 본 뒤 사용자에게 알린다.
+- [x] 실행 전에 감독에 한 줄 알린다(다른 세션 VM 작업과 겹치지 않게).
+- [x] `make status`, `make probe`, `make verify`, `make backup-latest`를 각각 실행한다. 새 줄(HTTP 응답, uptime, 디스크, 스왑 사용률, running, 의미 검색 꺼짐, IP 대조, entries)을 Progress log에 `Verified`로 적는다. IP·노트 제목은 적지 않는다.
+- [x] `make backup`은 컨테이너를 잠깐 멈추므로 감독이 정한 시간에 한 번 실행하고, 이어서 `make backup-latest`가 `entries: safe`, `restorable: yes`인지 본다. 감독이 시간을 주지 않으면 건너뛰고 Follow-ups에 남긴다.
+- [x] 실패하면 고치지 말고 bm-diagnose로 원인을 본 뒤 사용자에게 알린다(실패 없음).
 
 ### Finish: review and hand-off
 
@@ -262,6 +262,7 @@ check_semantic_search_off() {
 ## Follow-ups
 
 - `BM_WEB=on`일 때 `make status`가 gateway·cloudflared의 running도 확인하기. 지금은 웹 커넥터가 보류 중(d3dpb00s Task 4)이라 노트 서비스 두 개만 본다.
+- `remote()`(`scripts/lib/vm.sh`)에 ssh keepalive(`ServerAliveInterval`)를 둘지 검토하기. sshd가 멈춘 VM에서는 curl 시간 제한과 상관없이 `make status`가 ssh에서 오래 걸릴 수 있다. 옵션을 넣으면 deploy와 restore의 긴 `up --wait`가 스왑 압박 중에 끊겨 롤백될 수 있어 따로 판단한다(Task 5와 6 리뷰 P3, 이번 변경 전부터 있던 문제).
 
 ## Progress log
 
@@ -292,3 +293,15 @@ check_semantic_search_off() {
 | 2026-11-03 | Verified | Task 6 `make check`: lint 통과. 282개 모두 ok이고 `scripts/verify-vm.sh` 97.67%. `total line coverage: 89.53% (minimum 80%)`, exit 0 |
 | 2026-11-03 | Reported | 메타데이터 문서(predefined-metadata-keys, 2026-11-03 조회)는 `access-configs/0/external-ip`를 인터페이스의 외부 IP로 설명함. 필요한 헤더와 오류 상태 코드는 그 페이지에 없음(서브에이전트가 읽음) |
 | 2026-11-03 | Assumption | 외부 IP가 없는 VM에서는 그 키가 오류 상태로 답한다고 봄. 그래서 계획의 메타데이터 명령에 curl `-f`를 더해 오류 본문을 주소로 비교하지 않고 "could not read"로 멈추게 함. 런북 안내는 저장소 관례대로 "step 5" 대신 "section 5"로 씀 |
+| 2026-11-03 | Verified | Task 5와 6 읽기 전용 리뷰(별도 서브에이전트가 49c9945와 b532e66을 읽음): P2 이상 지적 없이 승인 |
+| 2026-11-03 | Verified | 리뷰 P3 두 건 가운데 SDD-T6-F1을 고침: IP 대조 테스트가 메타데이터 curl의 시간 제한과 `Metadata-Flavor` 헤더를 확인함 |
+| 2026-11-03 | Verified | 리뷰 P3 다른 한 건(`remote()`에 ssh keepalive 없음)은 이번 변경 전부터 있던 문제라 Follow-ups로 넘김 |
+| 2026-11-03 | Verified | `origin/main` 6587f71(PR #39)을 병합함. 충돌은 없었고 병합 뒤 `make check`는 `total line coverage: 89.53% (minimum 80%)`와 exit 0 |
+| 2026-11-03 | Verified | Task 9 `make status` 통과(경고 없음): running 2개와 HTTP 응답 400, uptime 약 3주 |
+| 2026-11-03 | Verified | Task 9 `make status` 사용률: 디스크 34%, 메모리 48%, 스왑 40% |
+| 2026-11-03 | Verified | Task 9 `make probe` 통과: 외부 IP 대조 OK와 `semantic search off ok`. 메타데이터 키 경로가 실제 VM에서 동작해 위의 Assumption 가운데 경로 부분을 확인함 |
+| 2026-11-03 | Verified | Task 9 `make verify` 통과: 의미 검색 꺼짐과 노트 쓰기, 읽기, 삭제 OK |
+| 2026-11-03 | Verified | Task 9 `make backup-latest`: 기존 최신 백업이 checksum match와 manifest present, entries safe로 `restorable: yes` |
+| 2026-11-03 | Verified | Task 9 `make backup` 1회(감독이 정한 시간): 항목 검사 단계를 통과해 저장했고 컨테이너는 healthy로 재시작함. 이어서 `make backup-latest`가 새 백업을 `entries: safe`와 `restorable: yes`로 보임 |
+| 2026-11-03 | Verified | Task 8 `make local-up`과 `make local-verify` 통과. 두 경로(plain과 `*.ts.net` Host) 모두 `semantic search off ok`라서 실제 응답 모양이 fixture와 맞음. `make local-down` 완료 |
+| 2026-11-03 | Verified | `local-verify`의 글꼴 404 경고는 로컬 스택에 글꼴을 올리지 않아서 나오는 기존 경고임(이번 변경과 무관) |

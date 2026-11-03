@@ -78,7 +78,7 @@ teardown() {
   done
 }
 
-@test "verify and probe stop before any MCP request when the VM's external IP differs from BM_VM_PUBLIC_IP or cannot be read, and print neither address" {
+@test "verify and probe read the VM's external IP with a time limit and stop before any MCP request when it differs from BM_VM_PUBLIC_IP or cannot be read, and print neither address" {
   local case setting expected args
   # Each case: the curl stub setting on the VM | the check that stops verify. The same IP passes in the other tests.
   for case in "CURL_STUB_EXTERNAL_IP=198.51.100.7|is not the VM's current external IP" \
@@ -94,6 +94,8 @@ teardown() {
       ) || fail "verify ${args:-(full)} with $setting went on to MCP or printed an address"
     done
   done
+  # Without a time limit a stalled metadata server hangs verify; without the header the server refuses the request.
+  assert_stub_called -E '^curl .*-m [0-9]+ .*-H Metadata-Flavor: Google .*metadata\.google\.internal/'
 }
 
 @test "verify fails unless Serve sends 443 to Basic Memory and 8443 to SilverBullet with Funnel off on both" {
