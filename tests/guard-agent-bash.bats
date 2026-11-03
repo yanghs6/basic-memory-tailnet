@@ -117,6 +117,59 @@ assert_asks() {
   done
 }
 
+@test "asks when a make call passes an option, a quoted, escaped or expanded argument, an undocumented variable or a command in a redirection, also as an assignment in front of make, inside sh -c or in a later call" {
+  local cmd commands
+  commands=(
+    "make probe \"deploy\""
+    "make probe 'deploy'"
+    'make probe dep\loy'
+    "make probe -f x.mk"
+    "make probe --file=x.mk"
+    "make probe -C /tmp/x"
+    "make probe --eval=x"
+    "make probe SHELL=./x.sh"
+    "make probe MAKEFILES=x.mk"
+    "make probe BASH_ENV=./x.sh"
+    "make probe DOCKER_RUN=x"
+    "make check-git BRANCH=\$(id)"
+    "make probe HOST=\`id\`"
+    "BASH_ENV=./x.sh make probe"
+    "make probe ';x:=\$(shell id)'"
+    "make probe <(id)"
+    "make probe >\`id\`"
+    "sh -c 'make probe BASH_ENV=./x.sh'"
+    "make check && make probe SHELL=./x.sh"
+  )
+  for cmd in "${commands[@]}"; do
+    assert_asks "$cmd"
+  done
+}
+
+@test "asks when an assignment, env, a wrapper with its options, a shell keyword or a backtick stands before a VM-changing, posting or gh or cloud CLI write call" {
+  local cmd commands
+  commands=(
+    "BM_WEB=on make deploy"
+    "env BM_WEB=on make deploy"
+    "time make restore"
+    "GH_REPO=a/b gh pr create"
+    "nohup scripts/deploy-stack.sh"
+    "nice -n 5 make deploy"
+    "sudo -E make restore"
+    "xargs -0 make deploy"
+    "exec scripts/bootstrap-vm.sh"
+    "command make deploy"
+    "bash -lc 'make deploy'"
+    "if make deploy; then echo ok; fi"
+    "{ make deploy; }"
+    "echo \`gh pr merge 1\`"
+    "echo \`make deploy\`"
+    "X=1 gcloud compute instances start x"
+  )
+  for cmd in "${commands[@]}"; do
+    assert_asks "$cmd"
+  done
+}
+
 @test "asks before gh writes: api with a non-GET method or fields, gist, issue, release, repo and pr create, edit, comment, ready, close, merge, review, reopen" {
   local cmd commands
   commands=(
@@ -303,6 +356,18 @@ assert_asks() {
     "gh auth status"
     "gh search prs x"
     "gh api --paginate repos/x/y/issues/1/comments --jq '.[] | .body'"
+    "make check 2>&1"
+    "make check-git BRANCH=plan/abcdefgh-x"
+    "make review BRANCH=plan/abcdefgh-x REVIEWER=codex ROUND=2"
+    "make new-doc TYPE=plan SLUG=a-b ID=abcdefgh"
+    "make export-logs SINCE=24h"
+    "make memory-sync FULL=1"
+    "cd x && make backup"
+    "sh -c 'make probe'"
+    "nice -n 5 make check"
+    "x=\`make help\`"
+    "time gcloud compute instances list"
+    "echo time make restore"
   )
   for cmd in "${commands[@]}"; do
     run guard "$cmd"

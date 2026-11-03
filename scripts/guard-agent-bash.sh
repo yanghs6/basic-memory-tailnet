@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 # PreToolUse hook for the Bash tool of the main agent (.claude/settings.json hooks.PreToolUse, spec
-# docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md, section 3.3). It reads the command from the hook input and
+# docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md, section 3.3). gh, the cloud CLI and make <target> run outside
+# the sandbox with the user's credentials (sandbox.excludedCommands), so this guard is the only check on what those
+# calls do. It reads the command from the hook input and
 #   - denies (exit 2, stderr shown to the agent) deleting backups/ or /srv/basic-memory.prev-* directories,
 #   - asks the user (permissionDecision "ask") before a force-push, a direct call of a VM-changing or posting script,
-#     script or expect around restore, a make call naming a VM-changing or posting target, and every gh or cloud CLI
-#     call in command position that is not a read-only form of its allow-list (gh pr view, gh api GET, compute
-#     instances list or describe, ...),
+#     script or expect around restore, a make call naming a VM-changing or posting target, and every gh, cloud CLI or
+#     make call outside its allow-list: gh and the cloud CLI pass only read-only forms (gh pr view, gh api GET,
+#     compute instances list or describe, ...), make only target names and documented variables with plain values,
 #   - passes everything else (exit 0, no output) on to the normal permission rules.
 # Contract (code.claude.com/docs/en/hooks): hook input JSON on stdin, the command is .tool_input.command; exit 2 blocks.
 # Any other failing exit code does NOT block, so every failure below is turned into exit 2 (fail closed).
-# The patterns match the text of the command, so they also catch sh -c, env and git -C wrappers; a command hidden
-# by variable substitution or encoding is not caught (see the ADR for the sandbox).
-# Accepted false positives, on the safe side: rm together with backups anywhere in the command denies, and a +word
-# token after push asks.
+# The checks read the text of the command. The rm, force-push and script or expect checks match anywhere in it (also
+# behind git -C). The other checks look at calls in command position (COMMAND_LEAD): at the start, after ; & | ( `
+# or a newline, inside sh -c '...', and after VAR=value assignments, the wrappers env, time, nohup, exec, command,
+# nice, xargs and sudo with their options, and the keywords if, then, else, elif, do, while, until, ! and {.
+# Not caught (see the ADR for the sandbox): a command built by variable substitution, encoding or eval, an alias or
+# a shell function, a command inside a script file, the arguments xargs reads from stdin, and a $(...) or backtick
+# in the arguments of a gh or cloud CLI read form, which runs with it unless it is itself a call this guard asks about.
+# Accepted false positives, on the safe side: rm together with backups anywhere in the command denies, a +word token
+# after push asks, and a command name after a separator inside a quoted string (echo "a; make deploy") counts as a call.
 # Usage: the Bash PreToolUse hook in .claude/settings.json (hook input JSON on stdin)
 set -euo pipefail
 
@@ -43,28 +50,37 @@ readonly PUSH_PATTERN="${BOUNDARY_START}push${WORD_END}"
 # --force and --force-with-lease, a standalone -f, or a refspec token that starts with +.
 readonly FORCE_PATTERN="(^|[[:space:]'\"])(--force|-[A-Za-z]*f[A-Za-z]*${WORD_END}|\\+[A-Za-z0-9._/])"
 
-# Only a direct call: the script name in command position (start, after ; & | ( or a newline, or after sh, bash
-# or env, also inside sh -c '...'), with an optional directory prefix. cat, git add or shellcheck on it pass.
-readonly COMMAND_LEAD=$'(^|[;&|(\n]|(^|[[:space:];&|(])(sh|bash|env)[[:space:]]+(-c[[:space:]]+)?)[[:space:]\'"]*'
-readonly VM_SCRIPT_PATTERN="${COMMAND_LEAD}([^[:space:];&|()'\"]*/)?(restore-notes|deploy-stack|bootstrap-vm|upload-sb-fonts)\\.sh([[:space:];&|)'\"]|\$)"
+# Command position: the start, a separator (; & | ( ` or a newline) or a blank before sh, bash or env, then blanks and
+# quotes, then lead words, each followed by blanks and quotes: VAR=value assignments (also with quoted values), the
+# wrappers with their own options and an optional value each (env -i, nice -n 5, sudo -E, xargs -0, sh -c, bash -lc),
+# and the shell keywords that start a command.
+readonly NEWLINE=$'\n'
+readonly LEAD_OPTION="-[^[:space:];&|()]*([[:space:]]+[^-[:space:];&|()'\"][^[:space:];&|()]*)?"
+readonly LEAD_ASSIGNMENT="[A-Za-z_][A-Za-z0-9_]*=([^[:space:];&|()'\"]|'[^']*'|\"[^\"]*\")*"
+readonly LEAD_WRAPPER="(sh|bash|env|time|nohup|exec|command|nice|xargs|sudo)([[:space:]]+${LEAD_OPTION})*"
+readonly LEAD_KEYWORD='(if|then|else|elif|do|while|until|[!{])'
+readonly COMMAND_LEAD="(^|[;&|(\`${NEWLINE}]|[[:space:]](sh|bash|env)([[:space:]]+${LEAD_OPTION})*[[:space:]])[[:space:]'\"]*((${LEAD_ASSIGNMENT}|${LEAD_WRAPPER}|${LEAD_KEYWORD})[[:space:]]+['\"]*)*"
+# Only a direct call: the script name in command position, with an optional directory prefix; cat, git add or
+# a shellcheck run on it pass.
+readonly VM_SCRIPT_PATTERN="${COMMAND_LEAD}([^[:space:];&|()'\"]*/)?(restore-notes|deploy-stack|bootstrap-vm|upload-sb-fonts)\\.sh([[:space:];&|)'\"\`]|\$)"
 # The posting scripts behind make review-post and make review-record: their public text check now runs inside the
 # sandbox too, so a direct call could reach gh from there.
-readonly POST_SCRIPT_PATTERN="${COMMAND_LEAD}([^[:space:];&|()'\"]*/)?(post-review|post-review-record)\\.sh([[:space:];&|)'\"]|\$)"
+readonly POST_SCRIPT_PATTERN="${COMMAND_LEAD}([^[:space:];&|()'\"]*/)?(post-review|post-review-record)\\.sh([[:space:];&|)'\"\`]|\$)"
 
 readonly PTY_WRAPPER_PATTERN="${BOUNDARY_START}(script|expect)${WORD_END}"
 readonly RESTORE_PATTERN="${BOUNDARY_START}restore${WORD_END}"
 
 # A call of a command NAME: NAME in command position with an optional directory prefix, followed by the end, a blank,
 # a call end, a redirection or a quote; the rest of the command after NAME holds its arguments.
-readonly NEWLINE=$'\n'
 readonly CALL_PATH_PREFIX="([^[:space:];&|()'\"]*/)?"
-readonly NAME_END="^(\$|[[:space:];&|()<>'\"])"
-# The words of a call: its arguments up to the first ; & | ( ) or newline outside quotes. A quoted string (with
-# backslash escapes inside double quotes) becomes the word QUOTED, so a quoted read verb or group is no plain word.
-readonly BEFORE_QUOTE="^(([^'\"\\\\;&|()${NEWLINE}]|\\\\.)*)(['\"])(.*)\$"
+readonly NAME_END="^(\$|[[:space:];&|()<>'\"\`])"
+# The words of a gh or cloud CLI call: its arguments up to the first ; & | ( ) ` or newline outside quotes. A quoted
+# string (with backslash escapes inside double quotes) becomes the word QUOTED, so a quoted read verb or group is no
+# plain word.
+readonly BEFORE_QUOTE="^(([^'\"\\\\;&|()\`${NEWLINE}]|\\\\.)*)(['\"])(.*)\$"
 readonly SINGLE_QUOTED_REST="^[^']*'(.*)\$"
 readonly DOUBLE_QUOTED_REST='^([^"\\]|\\.)*"(.*)$'
-readonly CALL_WORDS_END="^([^;&|()${NEWLINE}]*)(.?)"
+readonly CALL_WORDS_END="^([^;&|()\`${NEWLINE}]*)(.?)"
 readonly QUOTED_WORD='QUOTED'
 readonly PLAIN_WORD='^[A-Za-z0-9._/:@%+,=-]+$'
 
@@ -82,7 +98,21 @@ readonly CLOUD_FLAG='^-[A-Za-z0-9._/:@%+,=-]*$'
 # make -C . deploy): the permission rules see only the first target, so `make status deploy` would run unasked.
 readonly MAKE_LEAD="${COMMAND_LEAD}([^[:space:];&|()'\"]*/)?make[[:space:]]+([^;&|()]*[[:space:]])?"
 readonly MAKE_ASK_TARGETS='(deploy|restore|vm-bootstrap|sb-fonts|review-post|review-record|memory-hooks)'
-readonly MAKE_ASK_PATTERN="${MAKE_LEAD}${MAKE_ASK_TARGETS}([[:space:];&|)'\"]|\$)"
+readonly MAKE_ASK_PATTERN="${MAKE_LEAD}${MAKE_ASK_TARGETS}([[:space:];&|)'\"\`]|\$)"
+# Every make call may pass only target names and the documented variables with plain values, also as assignments in
+# front of make: make hands command line variables (BASH_ENV, SHELL, MAKEFILES, ...) to its recipes, and options
+# (-f, -C, --eval) or expansions could run code from outside the repo's Makefile outside the sandbox. Its arguments
+# end at ; & | ( ) < > or a newline; a redirection after them must start no command (<(...), $(...), a backtick).
+readonly MAKE_VARIABLES='BRANCH REVIEWER ROUND PR FILE HOST LOCAL BM_WEB FULL HOOK REMOVE TYPE SLUG ID NAME KIND SINCE BACKUP MEMORY_AGENT REVIEW_BASE REVIEW_MODEL REVIEW_EFFORT REVIEW_ALLOW_SAME_VENDOR REVIEW_OUT_DIR REVIEW_WORKTREE_PARENT LOG_EXPORT_DIR'
+readonly MAKE_TARGET_WORD='^[a-z0-9][a-z0-9-]*$'
+readonly MAKE_ASSIGNMENT_WORD='^([A-Za-z_][A-Za-z0-9_]*)=[A-Za-z0-9._/:@%+,=-]*$'
+# An assignment among the lead words, after the separator or quote characters in front of it.
+readonly LEAD_ASSIGNMENT_WORD='^[^A-Za-z0-9_-]*([A-Za-z_][A-Za-z0-9_]*=.*)$'
+readonly MAKE_ARGS_END="^([^;&|()<>${NEWLINE}]*)(.*)\$"
+# The quotes and backticks (and blanks) at the end of the arguments, such as the end of sh -c '...'.
+readonly TRAILING_QUOTES="^(.*[^[:space:]'\"\`])?([[:space:]'\"\`]*)\$"
+readonly MAKE_REDIRECTION='^&?[<>]'
+readonly REDIRECTION_RUN="^(([<>]&?|[^;&|()\`${NEWLINE}])*)(.?)"
 
 # gh read-only forms after the -R and --repo flags (their value must be plain): COMMAND:SUBCOMMAND pairs, commands that
 # read whatever follows them, auth status without the token, and api without fields and with GET. Everything else asks.
@@ -93,6 +123,7 @@ readonly GH_API_FIELD_PATTERN='[[:space:]](-f|-F|--field|--raw-field|--input)([[
 readonly GH_API_METHOD_PATTERN='[[:space:]](-X|--method)[[:space:]=]*([^[:space:]]+)'
 
 readonly ASK_MAKE_TARGET='this make target changes the VM or posts to a pull request'
+readonly ASK_MAKE_ARGS="this make call passes an option, a quoted or expanded argument or an undocumented variable, which can run code outside the repo's Makefile outside the sandbox"
 readonly ASK_GH='this gh call is not a read-only form'
 readonly ASK_FORCE_PUSH='force-push rewrites the remote branch history'
 readonly ASK_VM_SCRIPT='this script changes the VM'
@@ -136,7 +167,7 @@ each_call() {
 
 # call_words ARGS: print the words of the call whose arguments start ARGS, on one line (see BEFORE_QUOTE). An
 # unmatched quote, such as the end of sh -c '...', adds the word QUOTED and ends the words; an opening parenthesis
-# ($(...) or a subshell) stays a word, so it cannot end the words before the verb unseen.
+# ($(...) or a subshell) or a backtick stays a word, so it cannot end the words before the verb unseen.
 call_words() {
   local text="$1" words="" rest_pattern
   while [[ "$text" =~ $BEFORE_QUOTE ]]; do
@@ -153,8 +184,8 @@ call_words() {
   done
   [[ "$words$text" =~ $CALL_WORDS_END ]] || return 1
   printf '%s' "${BASH_REMATCH[1]}"
-  if [[ "${BASH_REMATCH[2]}" == "(" ]]; then
-    printf ' ('
+  if [[ "${BASH_REMATCH[2]}" == "(" || "${BASH_REMATCH[2]}" == '`' ]]; then
+    printf ' %s' "${BASH_REMATCH[2]}"
   fi
 }
 
@@ -214,6 +245,62 @@ gh_form_reads() {
   esac
 }
 
+# make_call_plain LEAD ARGS: succeed when every assignment in LEAD and every argument of the make call is a target name
+# or a documented variable with a plain value (MAKE_VARIABLES), and no redirection of it starts a command.
+make_call_plain() {
+  local word args rest
+  local -a words=()
+  read -r -a words <<<"${1//${NEWLINE}/ }"
+  if ((${#words[@]} > 0)); then
+    for word in "${words[@]}"; do
+      if [[ "$word" =~ $LEAD_ASSIGNMENT_WORD ]]; then
+        make_word_plain "${BASH_REMATCH[1]}" || return 1
+      fi
+    done
+  fi
+  [[ "$2" =~ $MAKE_ARGS_END ]] || return 1
+  args="${BASH_REMATCH[1]}"
+  rest="${BASH_REMATCH[2]}"
+  make_rest_plain "$rest" && make_args_plain "$args" "$rest"
+}
+
+# make_rest_plain REST: fail when the make call ends at ( or a redirection of it holds ( or a backtick.
+make_rest_plain() {
+  [[ "$1" != "("* ]] || return 1
+  [[ "$1" =~ $MAKE_REDIRECTION ]] || return 0
+  [[ "${1#&}" =~ $REDIRECTION_RUN ]] || return 1
+  [[ "${BASH_REMATCH[3]}" != "(" && "${BASH_REMATCH[3]}" != '`' ]]
+}
+
+# make_args_plain ARGS REST: succeed when every word of ARGS is plain (make_word_plain). The quotes and backticks at
+# the end of ARGS are the end of an outer sh -c '...' and drop out, unless the same character comes again in REST:
+# then it opens a quoted argument that the end of ARGS cut through (make probe ';x:=$(shell id)'), and the call asks.
+make_args_plain() {
+  local args trailing quote word
+  local -a words=()
+  [[ "$1" =~ $TRAILING_QUOTES ]] || return 1
+  args="${BASH_REMATCH[1]}"
+  trailing="${BASH_REMATCH[2]}"
+  for quote in "'" '"' '`'; do
+    if [[ "$trailing" == *"$quote"* && "$2" == *"$quote"* ]]; then
+      return 1
+    fi
+  done
+  read -r -a words <<<"$args"
+  ((${#words[@]} > 0)) || return 0
+  for word in "${words[@]}"; do
+    make_word_plain "$word" || return 1
+  done
+}
+
+# make_word_plain WORD: succeed when WORD is a target name or a documented variable with a plain value.
+make_word_plain() {
+  if [[ "$1" =~ $MAKE_TARGET_WORD ]]; then
+    return 0
+  fi
+  [[ "$1" =~ $MAKE_ASSIGNMENT_WORD ]] && word_in "${BASH_REMATCH[1]}" "$MAKE_VARIABLES"
+}
+
 # gh_api_writes WORDS: succeed when a gh api call with WORDS sends fields or input, or uses a method other than GET.
 gh_api_writes() {
   local method
@@ -254,6 +341,7 @@ main() {
   if [[ "$command" =~ $MAKE_ASK_PATTERN ]]; then
     ask "$ASK_MAKE_TARGET"
   fi
+  each_call make make_call_plain "$command" || ask "$ASK_MAKE_ARGS"
   each_call gh gh_call_reads "$command" || ask "$ASK_GH"
 }
 
