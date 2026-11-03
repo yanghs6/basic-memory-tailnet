@@ -3,7 +3,8 @@
 # docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md, section 3.3). gh, the cloud CLI and make <target> run outside
 # the sandbox with the user's credentials (sandbox.excludedCommands), so this guard is the only check on what those
 # calls do. It reads the command from the hook input and
-#   - denies (exit 2, stderr shown to the agent) deleting backups/ or /srv/basic-memory.prev-* directories,
+#   - denies (exit 2, stderr shown to the agent) deleting backups/ or /srv/basic-memory.prev-* directories, and a
+#     gh pr create, edit or comment call whose body file (--body-file, -F) fails scripts/check-public-text.sh,
 #   - asks the user (permissionDecision "ask") before a force-push, a direct call of a VM-changing or posting script,
 #     script or expect around restore, a make call naming a VM-changing or posting target, and every gh, cloud CLI or
 #     make call outside its allow-list: gh and the cloud CLI pass only read-only forms (gh pr view, gh api GET,
@@ -122,6 +123,23 @@ readonly GH_SHOW_TOKEN='[[:space:]](--show-token([=[:space:]]|$)|-[A-Za-z0-9]*t)
 readonly GH_API_FIELD_PATTERN='[[:space:]](-f|-F|--field|--raw-field|--input)([[:space:]=]|$)|[[:space:]]-[fF][^[:space:]-]'
 readonly GH_API_METHOD_PATTERN='[[:space:]](-X|--method)[[:space:]=]*([^[:space:]]+)'
 
+# The body file of a gh pr create, edit or comment call (--body-file <p>, --body-file=<p>, -F <p>) goes through the
+# public text check before it posts. Only a literal path naming a file is checked, relative to the hook input's cwd:
+# - (stdin), a path with an expansion or an escape and a missing file keep the gh ask.
+readonly PUBLIC_TEXT_CHECK="$SCRIPT_DIR/check-public-text.sh"
+readonly GH_POST_FORMS='pr:create pr:edit pr:comment'
+readonly BODY_FILE_LONG='--body-file'
+readonly BODY_FILE_SHORT='-F'
+readonly STDIN_PATH='-'
+# The pieces of a word as written: a literal piece (plain characters, or a quoted string without an expansion or an
+# escape), else any other piece (a double-quoted string with one, an escaped character, or one character).
+readonly LITERAL_PIECE="^([^[:space:]'\"\\\\\$\`]+|'[^']*'|\"[^\"\\\\\$\`]*\")(.*)\$"
+readonly OTHER_PIECE='^("([^"\\]|\\.)*"|\\.|.)(.*)$'
+readonly LEADING_BLANKS='^[[:space:]]+(.*)$'
+readonly BODY_FILE_HINT="replace or delete what it lists in the body file (scripts/check-public-text.sh <file> shows the same), then run the gh call again"
+# The hook input's .cwd, set in main.
+HOOK_CWD=""
+
 readonly ASK_MAKE_TARGET='this make target changes the VM or posts to a pull request'
 readonly ASK_MAKE_ARGS="this make call passes an option, a quoted or expanded argument or an undocumented variable, which can run code outside the repo's Makefile outside the sandbox"
 readonly ASK_GH='this gh call is not a read-only form'
@@ -165,23 +183,37 @@ each_call() {
   return 0
 }
 
-# call_words ARGS: print the words of the call whose arguments start ARGS, on one line (see BEFORE_QUOTE). An
+# call_words ARGS [RAW]: print the words of the call whose arguments start ARGS, on one line (see BEFORE_QUOTE). An
 # unmatched quote, such as the end of sh -c '...', adds the word QUOTED and ends the words; an opening parenthesis
-# ($(...) or a subshell) or a backtick stays a word, so it cannot end the words before the verb unseen.
+# ($(...) or a subshell) or a backtick stays a word, so it cannot end the words before the verb unseen. With RAW set
+# it prints the arguments as written: quoted strings stay, and an unmatched quote, a ( or a backtick ends them.
 call_words() {
-  local text="$1" words="" rest_pattern
+  local text="$1" raw="${2:-}" words="" quote rest_pattern rest
   while [[ "$text" =~ $BEFORE_QUOTE ]]; do
     words+="${BASH_REMATCH[1]}"
+    quote="${BASH_REMATCH[3]}"
     rest_pattern="$DOUBLE_QUOTED_REST"
-    [[ "${BASH_REMATCH[3]}" == '"' ]] || rest_pattern="$SINGLE_QUOTED_REST"
+    [[ "$quote" == '"' ]] || rest_pattern="$SINGLE_QUOTED_REST"
     text="${BASH_REMATCH[4]}"
     if ! [[ "$text" =~ $rest_pattern ]]; then
-      printf '%s %s' "$words" "$QUOTED_WORD"
+      [[ -n "$raw" ]] || words+=" $QUOTED_WORD"
+      printf '%s' "$words"
       return 0
     fi
-    words+="$QUOTED_WORD"
-    text="${BASH_REMATCH[${#BASH_REMATCH[@]} - 1]}"
+    rest="${BASH_REMATCH[${#BASH_REMATCH[@]} - 1]}"
+    if [[ -n "$raw" ]]; then
+      words+="$quote${text%"$rest"}"
+    else
+      words+="$QUOTED_WORD"
+    fi
+    text="$rest"
   done
+  if [[ -n "$raw" ]]; then
+    # A quoted string may hold ; ( or |, so only the text after the last one can end the call.
+    [[ "$text" =~ $CALL_WORDS_END ]] || return 1
+    printf '%s%s' "$words" "${BASH_REMATCH[1]}"
+    return 0
+  fi
   [[ "$words$text" =~ $CALL_WORDS_END ]] || return 1
   printf '%s' "${BASH_REMATCH[1]}"
   if [[ "${BASH_REMATCH[2]}" == "(" || "${BASH_REMATCH[2]}" == '`' ]]; then
@@ -316,6 +348,89 @@ gh_api_writes() {
   return 1
 }
 
+# literal_words TEXT: print the words of TEXT, arguments as written (call_words RAW), one per line with their quotes
+# removed. A word with an expansion or an escape prints as an empty line, so no path is read from it.
+literal_words() {
+  local text="$1" word piece known
+  while [[ -n "$text" ]]; do
+    if [[ "$text" =~ $LEADING_BLANKS ]]; then
+      text="${BASH_REMATCH[1]}"
+      continue
+    fi
+    word=""
+    known=1
+    while [[ -n "$text" && ! "$text" =~ $LEADING_BLANKS ]]; do
+      if [[ "$text" =~ $LITERAL_PIECE ]]; then
+        piece="${BASH_REMATCH[1]}"
+        text="${BASH_REMATCH[2]}"
+        [[ "$piece" != [\'\"]* ]] || piece="${piece:1:${#piece}-2}"
+        word+="$piece"
+      else
+        [[ "$text" =~ $OTHER_PIECE ]] || return 1
+        text="${BASH_REMATCH[3]}"
+        known=""
+      fi
+    done
+    [[ -n "$known" ]] || word=""
+    printf '%s\n' "$word"
+  done
+}
+
+# gh_body_files_clean LEAD ARGS: for a gh pr create, edit or comment call, check every body file it names
+# (check_body_file); any other gh call is left to gh_call_reads.
+gh_body_files_clean() {
+  local text word command="" subcommand="" i=0 count
+  local -a words=()
+  text="$(call_words "$2" raw)" || exit 1
+  while IFS= read -r word; do
+    words+=("$word")
+  done <<<"$(literal_words "$text")"
+  count=${#words[@]}
+  while ((i < count)) && [[ -z "$subcommand" ]]; do
+    word="${words[i]}"
+    i=$((i + 1))
+    if [[ "$word" == -R || "$word" == --repo ]]; then
+      i=$((i + 1))
+    elif [[ "$word" == --repo=* ]]; then
+      continue
+    elif [[ -z "$command" ]]; then
+      command="$word"
+    else
+      subcommand="$word"
+    fi
+  done
+  word_in "$command:$subcommand" "$GH_POST_FORMS" || return 0
+  while ((i < count)); do
+    word="${words[i]}"
+    i=$((i + 1))
+    if [[ "$word" == "$BODY_FILE_LONG" || "$word" == "$BODY_FILE_SHORT" ]] && ((i < count)); then
+      check_body_file "${words[i]}"
+      i=$((i + 1))
+    elif [[ "$word" == "$BODY_FILE_LONG="* ]]; then
+      check_body_file "${word#"$BODY_FILE_LONG="}"
+    fi
+  done
+  return 0
+}
+
+# check_body_file PATH: deny the gh call (exit 2 through fail_closed) when the public text check finds anything in the
+# body file PATH or fails on it; its output holds places and kinds, never values. An empty PATH (not literal), - (stdin),
+# a relative PATH without a cwd and a missing file are not checked.
+check_body_file() {
+  local path="$1" output
+  [[ -n "$path" && "$path" != "$STDIN_PATH" ]] || return 0
+  if [[ "$path" != /* ]]; then
+    [[ -n "$HOOK_CWD" ]] || return 0
+    path="$HOOK_CWD/$path"
+  fi
+  [[ -f "$path" ]] || return 0
+  if ! output="$("$PUBLIC_TEXT_CHECK" --label "$1" "$path" 2>&1)"; then
+    die "blocked by the agent Bash guard: the public text check stopped the body file $1 of this gh call:
+$output
+fix: $BODY_FILE_HINT."
+  fi
+}
+
 main() {
   local input command
   require_cmd jq
@@ -327,6 +442,9 @@ main() {
   if [[ "$command" =~ $RM_PATTERN && "$command" =~ $PROTECTED_PATTERN ]]; then
     block "rm together with backups or basic-memory.prev"
   fi
+  # A deny comes before every ask: in auto mode an ask may pass without the user (ADR zaptc3gp, decision 4).
+  HOOK_CWD="$(jq -r '.cwd | strings' <<<"$input")"
+  each_call gh gh_body_files_clean "$command"
   if [[ "$command" =~ $PUSH_PATTERN && "$command" =~ $FORCE_PATTERN ]]; then
     ask "$ASK_FORCE_PUSH"
   fi

@@ -207,11 +207,11 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 - `gh pr create|edit|comment`에 `--body-file <p>`, `--body-file=<p>`, `-F <p>`가 있으면 hook 입력의 `.cwd` 기준으로 파일을 찾아 `scripts/check-public-text.sh`로 검사한다. 걸리면 exit 2와 위치·종류(값 없음)로 막는다. 깨끗하면 지금처럼 ask.
 - `-`(stdin), `$`·백틱이 든 경로, 없는 파일은 검사하지 않고 지금처럼 ask.
 
-- [ ] **Step 1: 실패하는 테스트 작성:** 실행 중 조립한 가짜 주소가 든 본문 파일로 세 플래그 형태가 exit 2로 끝남, 깨끗한 파일은 ask, `--body-file -`는 ask, 출력에 값이 없음.
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례만 실패.
-- [ ] **Step 3: 최소 구현.**
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
-- [ ] **Step 5: 커밋:** `feat: check the PR body file for public text before gh posts it`, `Task: 10`.
+- [x] **Step 1: 실패하는 테스트 작성:** 실행 중 조립한 가짜 주소가 든 본문 파일로 세 플래그 형태가 exit 2로 끝남, 깨끗한 파일은 ask, `--body-file -`는 ask, 출력에 값이 없음.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 사례만 실패.
+- [x] **Step 3: 최소 구현.**
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `feat: check the PR body file for public text before gh posts it`, `Task: 10`.
 
 ### Finish: review and hand-off
 
@@ -244,3 +244,4 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 | 2026-11-03 | Verified | Task 7: review-branch 테스트 두 개에 main `backups`와 `.local-data` 경로 단언을 먼저 더하자 `make check`(테스트 285개)에서 그 두 테스트만 실패했다. TOML 따옴표 테스트는 이제 세 경로를 모두 보므로 이름을 "the deny paths of the main .env, backups and .local-data are quoted for TOML …"로 바꿨다. 구현 뒤 `make check`는 exit 0이었고 total line coverage는 89.71%(최소 80%)였다. ADR zaptc3gp 역할 표에 적힌 옛 테스트 이름은 기록이라 그대로 두었다. |
 | 2026-11-03 | Verified | Task 8: 테스트를 먼저 바꾸자 `make check`(테스트 286개)에서 새로 쓰거나 바꾼 테스트 셋만 실패했다. check-public-text의 종류 반복문은 첫 `local-path` 사례에서 hit이 없어 실패했고 post-review는 홈 경로가 든 보고서를 게시했으며 review-branch 새 테스트는 diff 보고서에 리뷰 worktree 경로가 남아 실패했다. review-branch 테스트는 worktree 상위 폴더 이름에 `[t]`를 넣어 정규식이 아닌 문자 그대로 지우는지 본다. 예외 목록의 `local-path` 줄은 구현 단계에서 더했다(그 종류가 없는 동안에는 트리 검사가 예외 줄 오류로 멈추기 때문이다). 구현 뒤 `make check`는 exit 0이었고 total line coverage는 89.40%(최소 80%)였다. 인자 없이 돌린 `scripts/check-public-text.sh`도 새 종류로 exit 0이었다. |
 | 2026-11-03 | Verified | Task 9: 테스트 두 개를 먼저 더하자 `make test`(테스트 288개)에서 그 둘만 실패했다. check-git 새 테스트는 첫 사례(커밋 1이 넣고 커밋 2가 지운 주소)에서 `OK: git policy`로 통과해 실패했고 check-public-text 새 테스트는 `--diff`를 파일 이름으로 읽어 `no such file: --diff`로 실패했다. 구현 뒤 `make check`는 테스트 288개 exit 0이었고 total line coverage는 88.28%(최소 80%)였다. `make check-git`은 `OK: git policy (10 commits since origin/main)`였고 must-fail fixture는 head 예외 목록으로 통과했다. 예외 목록 없이 이 브랜치의 diff를 macOS awk로 검사하면 d1a130f의 `tests/fixtures/check-public-text/local-path.txt` 줄만 걸렸다. |
+| 2026-11-03 | Verified | Task 10: guard 테스트 하나를 먼저 더하자 `make test`(테스트 289개)에서 그 테스트만 실패했다. 첫 사례 `gh pr create --draft --title t --body-file <tmp>/public.md`가 exit 2 대신 ask로 끝났다. 구현 뒤 `make test`와 `make check`는 테스트 289개 exit 0이었고 total line coverage는 88.52%(최소 80%)였다. macOS bash 3.2(`/bin/bash`)로 가드를 직접 돌린 사례 14개도 기대와 같았고 deny 출력에는 주소 값이 없었다. 본문 파일 검사는 `main`에서 모든 ask보다 먼저 돈다. Task 9가 옮긴 worktreeConfig 테스트의 줄 번호를 ADR 0svs72hp에서 `tests/check-git.bats:171`로 고쳤다. |

@@ -5,26 +5,27 @@ setup() {
   GUARD="$REPO_DIR/scripts/guard-agent-bash.sh"
 }
 
-# payload COMMAND: the PreToolUse hook input Claude Code sends for a Bash call.
+# payload COMMAND [CWD]: the PreToolUse hook input Claude Code sends for a Bash call, with .cwd when CWD is given.
 payload() {
-  jq -cn --arg c "$1" '{hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: {command: $c}}'
+  jq -cn --arg c "$1" --arg d "${2:-}" \
+    '{hook_event_name: "PreToolUse", tool_name: "Bash", tool_input: {command: $c}} + (if $d == "" then {} else {cwd: $d} end)'
 }
 
-# guard COMMAND: run the guard on the hook input for COMMAND.
+# guard COMMAND [CWD]: run the guard on the hook input for COMMAND.
 guard() {
-  "$GUARD" <<<"$(payload "$1")"
+  "$GUARD" <<<"$(payload "$1" "${2:-}")"
 }
 
-# assert_denied COMMAND: the guard blocks COMMAND with exit 2 and an actionable message.
+# assert_denied COMMAND [CWD]: the guard blocks COMMAND with exit 2 and an actionable message.
 assert_denied() {
-  run guard "$1"
+  run guard "$1" "${2:-}"
   [[ "$status" -eq 2 ]] || fail "expected exit 2 (deny) for: $1; got $status: $output"
   [[ "$output" == *"blocked by the agent Bash guard"* ]] || fail "no reason given for: $1; got: $output"
 }
 
-# assert_asks COMMAND: the guard answers COMMAND with exit 0 and an ask decision.
+# assert_asks COMMAND [CWD]: the guard answers COMMAND with exit 0 and an ask decision.
 assert_asks() {
-  run guard "$1"
+  run guard "$1" "${2:-}"
   [[ "$status" -eq 0 ]] || fail "expected exit 0 for: $1; got $status: $output"
   # The test image's jq -e passes on empty input, so an empty answer must fail here first.
   [[ -n "$output" ]] || fail "expected an ask decision for: $1; got no output"
@@ -45,6 +46,37 @@ assert_asks() {
   )
   for cmd in "${commands[@]}"; do
     assert_denied "$cmd"
+  done
+}
+
+@test "denies a gh pr create, edit or comment call whose body file holds public text in every flag form, quoted, inside sh -c and before an ask, without the value; asks for a clean file, stdin, an expanded path and a missing file" {
+  local cgnat cmd dir="$BATS_TEST_TMPDIR"
+  # A CGNAT (tailnet range) address never sits in a repo file, so build it here.
+  cgnat="$(printf '%s.%s' 100.101 102.103)"
+  printf 'summary\nreach %s\n' "$cgnat" >"$dir/public.md"
+  printf 'summary\n' >"$dir/clean.md"
+  # A relative path is resolved against the hook input's cwd.
+  for cmd in \
+    "gh pr create --draft --title t --body-file $dir/public.md" \
+    "gh pr edit 1 --body-file=$dir/public.md" \
+    "gh pr comment 1 -F $dir/public.md" \
+    "gh pr comment 1 -F public.md" \
+    "gh -R a/b pr create --title 'fix: a (b); c' --body-file \"public.md\"" \
+    "sh -c 'gh pr edit 1 --body-file public.md'" \
+    "git push --force && gh pr comment 1 -F public.md"; do
+    (
+      assert_denied "$cmd" "$dir" && assert_output --partial "public.md:2: IPv4 address" \
+        && refute_output --partial "$cgnat" || exit 1
+    ) || fail "the body file check did not deny: $cmd"
+  done
+  for cmd in \
+    "gh pr create --title t --body-file $dir/clean.md" \
+    "gh pr edit 1 --body-file -" \
+    "gh pr comment 1 -F \$DIR/public.md" \
+    "gh pr comment 1 -F \"\$DIR/public.md\"" \
+    "gh pr comment 1 -F \`echo public.md\`" \
+    "gh pr create --body-file missing.md"; do
+    assert_asks "$cmd" "$dir"
   done
 }
 
