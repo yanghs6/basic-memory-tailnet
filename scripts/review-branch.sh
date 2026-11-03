@@ -26,7 +26,7 @@ readonly DEFAULT_REVIEW_EFFORT=low
 readonly REVIEW_EFFORTS="low medium high xhigh max"
 # How many lines from the end of a failed make check's log the reviewer gets.
 readonly CHECK_TAIL_LINES=20
-# The codex permission profile that denies the reviewer its credential paths.
+# The codex permission profile that denies the reviewer its credential paths and the main checkout's notes.
 readonly CODEX_PROFILE=reviewer
 
 BRANCH=""
@@ -181,19 +181,20 @@ EOF
 }
 
 # codex_isolation_args -> the codex arguments, one per line, that keep the reviewer's shell free of token-like
-# environment variables and deny it the credential paths. A permission profile is ignored while --sandbox or
+# environment variables and deny it the credential paths and the notes. A permission profile is ignored while --sandbox or
 # sandbox_mode is set, so neither is passed; the profile extends :read-only, which also leaves the network off.
-# The main checkout's .env is an absolute path found at run time. ~/.config holds the cloud CLI and gh credentials;
-# it is denied as a whole because the cloud-neutral rule keeps provider names out of scripts.
+# The main checkout's .env, backups/ and .local-data/ (note contents) are absolute paths found at run time, so a
+# prompt in the reviewed branch cannot copy notes into a report that make review-post publishes. ~/.config holds the
+# cloud CLI and gh credentials; it is denied as a whole because the cloud-neutral rule keeps provider names out of scripts.
 codex_isolation_args() {
-  local root env_path deny
+  local root toml_root deny
   root="$(main_checkout_root "$PWD")" || die "cannot find the main checkout from $PWD"
   [[ "$root" != *[[:cntrl:]]* ]] \
     || die "the main checkout path contains a control character or newline; move the checkout to a plain path"
   # Escape the path for a TOML basic string: backslash first, then the double quote.
-  env_path="${root//\\/\\\\}/.env"
-  env_path="${env_path//\"/\\\"}"
-  deny="{\"$env_path\"=\"deny\", \"~/.ssh\"=\"deny\", \"~/.config\"=\"deny\"}"
+  toml_root="${root//\\/\\\\}"
+  toml_root="${toml_root//\"/\\\"}"
+  deny="{\"$toml_root/.env\"=\"deny\", \"$toml_root/backups\"=\"deny\", \"$toml_root/.local-data\"=\"deny\", \"~/.ssh\"=\"deny\", \"~/.config\"=\"deny\"}"
   printf '%s\n' -c 'shell_environment_policy.inherit="core"' -c 'shell_environment_policy.ignore_default_excludes=false' \
     -c "default_permissions=\"$CODEX_PROFILE\"" -c "permissions.$CODEX_PROFILE.extends=\":read-only\"" \
     -c "permissions.$CODEX_PROFILE.filesystem=$deny"

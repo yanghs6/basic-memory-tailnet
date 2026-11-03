@@ -34,6 +34,7 @@ date: 2026-10-28
 6. 릴리스 노트는 WebFetch만 가진 서브에이전트 `release-notes-reader`가 읽고 고정 형식으로 요약한다. PR 댓글은 머신 계정과 사용자 계정이 쓴 것만 작성 세션이 읽는다.
 7. `restore-notes.sh`의 `confirm`은 `/dev/tty`에서만 읽는다. Docker 테스트 컨테이너는 `--network none`이다.
 8. Codex 리뷰어는 `-c`로 토큰 환경 변수를 빼고(`shell_environment_policy`) permission profile로 `~/.ssh`, `~/.config`, main `.env` 읽기를 deny한다. `~/.config` 전체를 막는 것은 `scripts/`에 클라우드 CLI 디렉터리 이름을 쓰지 못하게 하는 `tests/repo-cloud-neutral.bats` 때문이고, git은 이것 없이 동작함을 확인했다.
+   (2026-11-03 추가, [계획 fkcn71m2](../plans/plan-2026-11-02-fkcn71m2-sandbox-guard-hardening.md)) 리뷰 대상 브랜치가 심은 프롬프트가 노트 내용을 `make review-post`로 게시될 보고서에 옮기지 못하도록 이제 main `backups/`와 `.local-data/` 읽기도 deny한다.
 9. worktree 세션은 main checkout을 읽지 않는다. 최신 backup은 읽기 전용 `make backup-latest`(`scripts/show-backup.sh`)가 경로와 체크섬 결과만 알려 주고, 리뷰 보고서와 로그 내보내기는 worktree 안 `REVIEW_OUT_DIR`, `LOG_EXPORT_DIR`에 둔다. main `backups/`로 옮기는 일은 사용자가 한다.
 10. main checkout에서 여는 세션은 셸로 `.env`를 읽을 수 있다(결정 10-B). 감독 세션은 worktree 코드를 실행하지 않는다는 운영 규칙에 기댄다.
 

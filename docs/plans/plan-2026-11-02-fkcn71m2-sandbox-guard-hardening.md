@@ -157,11 +157,11 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 
 **Files:** Modify `scripts/review-branch.sh`(`codex_isolation_args`), ADR zaptc3gp 결정 8 뒤 추가 사실 / Test `tests/review-branch.bats`
 
-- [ ] **Step 1: 실패하는 테스트 작성:** "both codex calls … deny profile" 사례에 main `backups`, `.local-data` 절대 경로가 deny에 있는지 더한다. TOML 따옴표 사례도 세 경로 모두.
-- [ ] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 단언만 실패.
-- [ ] **Step 3: 최소 구현:** `.env`와 같은 TOML 이스케이프로 두 경로를 더한다.
-- [ ] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
-- [ ] **Step 5: 커밋:** `fix: deny the Codex reviewer the main checkout backups and local data`, `Task: 7`.
+- [x] **Step 1: 실패하는 테스트 작성:** "both codex calls … deny profile" 사례에 main `backups`, `.local-data` 절대 경로가 deny에 있는지 더한다. TOML 따옴표 사례도 세 경로 모두.
+- [x] **Step 2: 실패 확인:** Run: `make test` / Expected: 새 단언만 실패.
+- [x] **Step 3: 최소 구현:** `.env`와 같은 TOML 이스케이프로 두 경로를 더한다.
+- [x] **Step 4: 통과 확인:** Run: `make check` / Expected: exit 0.
+- [x] **Step 5: 커밋:** `fix: deny the Codex reviewer the main checkout backups and local data`, `Task: 7`.
 
 ### Task 8: `local-path` kind and repo-relative review reports (W5, F06)
 
@@ -241,3 +241,4 @@ spec: docs/specs/spec-2026-10-27-mpgrfpvn-agent-sandbox.md
 | 2026-11-03 | Verified | Task 5: guard 테스트 두 개(make 인자 허용 목록, 대입·`env`·감싸기·키워드·백틱 뒤의 호출)와 통과 사례를 먼저 더하자 `make test`(테스트 285개)에서 새 테스트 둘만 실패했다. 첫 실패 사례는 `make probe "deploy"`와 `BM_WEB=on make deploy`였고 둘 다 ask 없이 통과했다. 계획의 사례 외에 셸 키워드(`if`, `{` 등), 백틱 구분자, `bash -lc`, 리다이렉션 안의 `<(...)`·백틱, 호출 끝에서 잘린 여는 따옴표(`make probe ';x:=$(shell id)'`)도 ask 사례로 넣었다. 마지막 형태는 "끝의 닫는 따옴표를 뺀다"는 규칙만으로는 통과했으므로, 뺀 따옴표가 호출 뒤에 다시 나오면 ask로 정했다. 구현 뒤 첫 `make check`는 lint에서 실패했다(`# shellcheck`로 시작하는 주석 줄, 테스트의 작은따옴표 안 `$`·백틱 SC2016). 고친 뒤 `make check`는 exit 0, total line coverage 89.70%(최소 80%)였다. macOS bash 3.2로 돌린 사례 162개(Task 4 사례 포함)도 기대와 같았다. |
 | 2026-11-03 | Verified | Task 4 후속(담당 세션 검토): 런북의 읽기 명령 `compute project-info describe`와 `images describe-from-family`가 ask되고, 원래 있던 `gh api -X GET -X POST`(첫 `-X`만 봄)가 통과했다. 통과 사례 둘과 ask 사례 둘을 먼저 더하자 `make check`가 exit 2로 실패했고(직전 커밋 1e2525b는 통과), 그룹 `project-info`, 읽기 동사 `describe-from-family`를 더하고 `-X`와 `--method`를 모두 보게 고쳤다. |
 | 2026-11-03 | Verified | Task 6: ADR zaptc3gp에 D1-A대로 더했다. 결정 5 뒤에 허용 목록 방식을, 결과 첫 항목 뒤에 "default 모드와 bypass 모드에서만 맞다"는 단서를 적었다. 잔여 위험에는 이제 잡는 감싸기와 F01, F03 형태, 남는 우회, auto 모드 한계(2026-10-28 `make deploy`)를 더했다. 결정 문장은 고치지 않았다. |
+| 2026-11-03 | Verified | Task 7: review-branch 테스트 두 개에 main `backups`와 `.local-data` 경로 단언을 먼저 더하자 `make check`(테스트 285개)에서 그 두 테스트만 실패했다. TOML 따옴표 테스트는 이제 세 경로를 모두 보므로 이름을 "the deny paths of the main .env, backups and .local-data are quoted for TOML …"로 바꿨다. 구현 뒤 `make check`는 exit 0이었고 total line coverage는 89.71%(최소 80%)였다. ADR zaptc3gp 역할 표에 적힌 옛 테스트 이름은 기록이라 그대로 두었다. |
