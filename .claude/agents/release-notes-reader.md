@@ -13,3 +13,4 @@ Answer only in this format and write nothing else:
 - Migration needed: yes or no, with the quote that says so
 - Changed flags, environment variables, paths and ports: verbatim quotes, one per line, or "none"
 - MCP tools added, removed or renamed: a list, or "none"
+- Semantic search switch (BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED): verbatim quotes that keep, rename, remove or change it, or "not mentioned"

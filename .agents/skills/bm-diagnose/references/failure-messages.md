@@ -14,7 +14,10 @@ Find the first error you saw. "The user" runs or approves the step; you only pro
 | Message or symptom | Meaning | Next step |
 |---|---|---|
 | A warning containing `no active swap` | The swap file is missing. | The user reruns `make vm-bootstrap` (docs/runbooks/rbk-2026-10-12-ha5w72pm-bootstrap.md). tailscale mode: after the deploy, port 22 is closed, so the rerun is `make vm-bootstrap HOST=agent-hub` over Tailscale SSH (Assumption, confirmed in the vm-rollout plan item 29). ssh mode: the rerun is `make vm-bootstrap HOST=<the SSH alias in BM_VM_HOST>`, for example `agent-hub-iap`, without an auth key. |
-| Sustained swap use, or container restarts in `make logs` | Memory pressure on the 1 GB VM. | Report the numbers and point to docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md. Do not change anything. |
+| `WARNING: swap is N% used`, sustained swap use, or container restarts in `make logs` | Memory pressure on the 1 GB VM. | Report the numbers and point to docs/decisions/adr-2026-10-12-mdq5exsf-vm-sizing.md. Do not change anything. |
+| `WARNING: <service> is not running` | The container of that note service exited or was removed. | Run `make logs` and quote the first error. A restart needs the user's OK (`make deploy`). |
+| `WARNING: Basic Memory did not answer HTTP` | The server took the connection but gave no answer within 10 seconds; the healthcheck can still say `(healthy)`. | Same as the "server hangs" row under MCP: run `make probe`, report the memory and swap numbers, and suggest a restart for the user's OK. |
+| `WARNING: the data root's filesystem is N% full` | The VM disk is filling up; note writes and backups fail when it is full. | Report the number. The user decides what to free; never delete `backups/` or `/srv/basic-memory.prev-*` yourself. |
 | `tailscale serve is not configured` | Serve is missing. | The user reruns bootstrap (`bm-recover` explains the Serve reset). |
 
 ## MCP (`make probe`)
@@ -28,6 +31,9 @@ Find the first error you saw. "The user" runs or approves the step; you only pro
 | `tools/list: missing tool` | The image changed. | See `bm-upgrade`. |
 | `Funnel is on for this node` or `accepts connections on port N` | Exposure problem. | Point the user to "Exposure audit" in docs/runbooks/rbk-2026-10-12-t79ex2ny-operations.md. Do not try to fix it yourself. |
 | `BM_VM_PUBLIC_IP must be ...` | `.env` holds a wrong or stale value; the IP changes after a stop and start. | The user corrects `.env`. |
+| `BM_VM_PUBLIC_IP in .env is not the VM's current external IP` | The VM was stopped and started and got a new external IP. | The user looks up the new IP (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md, section 5) and updates `.env`. |
+| `could not read the VM's external IP from the metadata server` | The VM has no external IP, or curl or the metadata server failed on the VM. | Check SSH first (`make access-check`); the user checks the instance's external IP (docs/runbooks/rbk-2026-10-12-tcjs7m6x-gcp-vm.md, section 5). |
+| `search_notes: a hybrid search did not answer that semantic search is disabled` | Semantic search is on: the compose line is missing, or the image ignores the switch. With it on, writes stall the 1 GB VM. | Compare the `BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED` and `image:` lines of `compose.yaml` with main and report; do not deploy (docs/decisions/adr-2026-10-30-bts7gsex-semantic-search-off.md, `bm-upgrade`). |
 | Probe passes but agents cannot write | Data permissions or disk space. | Check `ssh ubuntu@<BM_VM_HOST> ls -ln /srv/basic-memory` (owner must be 1000) and `ssh ubuntu@<BM_VM_HOST> df -h /srv` (`BM_VM_HOST` is `agent-hub` in tailscale mode and the SSH alias, for example `agent-hub-iap`, in ssh mode), then propose `make verify`, which writes and deletes a test note, for the user to approve. |
 | Log line `initialized (no session id)` | The server sent no session header. | Report it as evidence. `initialized (session abcd****)` is a masked real id; never print a full one. |
 

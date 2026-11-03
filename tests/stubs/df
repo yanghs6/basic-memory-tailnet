@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Test stub for df -P: a header and one filesystem line, mounted on /, whose Capacity is DF_STUB_USE_PERCENT (default 34).
+set -euo pipefail
+printf 'df %s\n' "$*" >>"$STUB_LOG"
+printf 'Filesystem     1024-blocks    Used Available Capacity Mounted on\n'
+printf '/dev/root         10213044 3472435   6740609      %s%% /\n' "${DF_STUB_USE_PERCENT:-34}"

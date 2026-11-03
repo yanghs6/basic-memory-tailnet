@@ -28,6 +28,7 @@ services:
       # On the 1 GB VM the post-write vector sync and the embedding model keep the server busy for minutes. Off, a write
       # only indexes text and search_type defaults to text. 0.24.0 removed this switch, so the image stays on 0.23.2.
       BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED: "false"
+    # TCP on purpose: an MCP-level check fails restore's `up --wait` and rolls it back. `make status` checks HTTP.
     healthcheck:
       # Upstream checks `basic-memory --version`, which passes even when the server is down.
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), timeout=5).close()"]

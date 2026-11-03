@@ -128,6 +128,21 @@ VM이 정지돼 있으면(`TERMINATED`) 다시 만들지 않고 시작합니다.
 2. 정지 후 시작하면 외부 IP가 바뀝니다([rbk-2026-10-12-tcjs7m6x-gcp-vm.md](rbk-2026-10-12-tcjs7m6x-gcp-vm.md) 5단계의 조회 명령). 새 IP를 `.env`의 `BM_VM_PUBLIC_IP`에 적습니다.
 3. `make status`와 `make probe`로 확인합니다. 실제 장애였다면 Incident log에 행을 추가합니다.
 
+## 재개 점검
+
+VM을 하루 넘게 쓰지 않았다면 첫 작업 전에 아래 순서로 확인합니다. 그사이 Mac이 잠들어 터널이 끊겼거나 VM이 재부팅 또는 정지됐을 수 있습니다.
+
+1. `make access-check`로 지금 네트워크에서 되는 접속 경로를 봅니다.
+2. `ssh` 모드면 `make tunnel`을 다시 띄웁니다. 에이전트의 `basic-memory` MCP 연결은 이 터널을 씁니다.
+3. `make status`를 실행합니다. 경고가 있어도 exit 0으로 끝나므로 출력에서 아래 줄을 직접 봅니다.
+   - `running:` 줄에 `basic-memory`와 `silverbullet`이 모두 있어야 합니다.
+   - `basic-memory http: answered`가 나와야 합니다. 컨테이너가 `(healthy)`여도 서버가 멈췄을 수 있습니다(Incident log의 2026-10-28 행).
+   - `uptime:`이 마지막으로 쓴 때보다 짧으면 VM이 재부팅된 것입니다. 원인을 모르면 사용자에게 알립니다.
+   - 디스크와 스왑 사용률은 80% 미만이어야 합니다. 넘으면 `WARNING` 줄이 나옵니다.
+4. `make probe`를 실행합니다. MCP 응답과 의미 검색 꺼짐을 보고, `.env`의 `BM_VM_PUBLIC_IP`가 VM의 지금 외부 IP와 같은지도 봅니다. IP가 다르다고 나오면 위 "정지된 VM" 2단계대로 `.env`를 고칩니다.
+5. `make backup-latest`로 최신 백업이 `restorable: yes`인지 봅니다. 파일 이름의 날짜가 1주보다 오래됐으면 사용자에게 `make backup`을 제안합니다.
+6. 하나라도 실패하면 `bm-diagnose` 스킬을 씁니다. VM이 `TERMINATED`면 위 "정지된 VM"을 따릅니다. 실제 장애였을 때만 Incident log에 행을 추가합니다.
+
 ## VM 재구축 순서
 
 VM이 삭제됐거나 시작되지 않거나 데이터가 손상됐을 때만 합니다(에이전트의 `bm-recover` 스킬이 같은 순서를 따릅니다).

@@ -78,6 +78,26 @@ teardown() {
   done
 }
 
+@test "verify and probe read the VM's external IP with a time limit and stop before any MCP request when it differs from BM_VM_PUBLIC_IP or cannot be read, and print neither address" {
+  local case setting expected args
+  # Each case: the curl stub setting on the VM | the check that stops verify. The same IP passes in the other tests.
+  for case in "CURL_STUB_EXTERNAL_IP=198.51.100.7|is not the VM's current external IP" \
+    "CURL_STUB_EXTERNAL_IP=|could not read the VM's external IP from the metadata server" \
+    "CURL_STUB_FAIL_MATCH=metadata.google.internal|could not read the VM's external IP from the metadata server"; do
+    IFS='|' read -r setting expected <<<"$case"
+    for args in "" --read-only; do
+      (
+        rm -f "$STUB_LOG.requests" || exit 1
+        run env "$setting" "$REPO_DIR/scripts/verify-vm.sh" ${args:+"$args"}
+        assert_failure && assert_output --partial "$expected" && [[ ! -e "$STUB_LOG.requests" ]] \
+          && refute_output --partial 198.51.100.7 && refute_output --partial "$BM_VM_PUBLIC_IP" || exit 1
+      ) || fail "verify ${args:-(full)} with $setting went on to MCP or printed an address"
+    done
+  done
+  # Without a time limit a stalled metadata server hangs verify; without the header the server refuses the request.
+  assert_stub_called -E '^curl .*-m [0-9]+ .*-H Metadata-Flavor: Google .*metadata\.google\.internal/'
+}
+
 @test "verify fails unless Serve sends 443 to Basic Memory and 8443 to SilverBullet with Funnel off on both" {
   local case settings expected words
   for case in "TS_STUB_SERVE_8443=|tailscale serve must proxy https port 8443" \
@@ -102,8 +122,7 @@ teardown() {
   assert_output --partial "OK: SilverBullet answers and refuses requests without a login"
   assert_output --partial "tailscale serve is tailnet only"
   assert_output --partial "public IP 203.0.113.10 refuses"
-  run grep -F '"method":"tools/call"' "$STUB_LOG.requests"
-  assert_failure
+  assert_equal "$(jq -r 'select(.method == "tools/call") | .params.name' "$STUB_LOG.requests")" search_notes
   refute_stub_called -F '/.auth'
 }
 
@@ -117,6 +136,8 @@ teardown() {
   assert_output --partial "public IP 203.0.113.10 refuses ports 22 80 443 8443 8737 3000"
   assert_output --partial "OK: automated VM checks passed (access: ssh)"
   assert_stub_called -Fx 'ssh -N -o ExitOnForwardFailure=yes -o BatchMode=yes -o ConnectTimeout=10 -L 127.0.0.1:28737:127.0.0.1:8737 -L 127.0.0.1:23000:127.0.0.1:3000 ubuntu@agent-hub-iap'
+  # The external IP check runs over plain SSH before the tunnel opens.
+  assert_log_order 'metadata.google.internal' 'ssh -N '
   refute_stub_called -F 'tailscale serve'
   run kill -0 "$(cat "$STUB_LOG.tunnel-pids")"
   assert_failure

@@ -2,28 +2,37 @@
 load helpers
 
 setup() {
-  setup_stubs ssh docker free sudo tailscale
+  setup_stubs ssh docker free sudo tailscale curl df uptime
   use_vm_env
 }
 
-@test "status shows containers, memory and swap use, and warns only when no swap is active" {
-  local case setting swap warning
-  # Each case: the free stub setting | the swap line | the warning status must print (empty: none).
-  for case in "FREE_STUB_SWAP_USED_MB=0|0/1023|" "FREE_STUB_SWAP_USED_MB=200|200/1023|" \
-    "FREE_STUB_SWAP_TOTAL_MB=0|0/0|WARNING: no active swap on this 1GB VM"; do
-    IFS='|' read -r setting swap warning <<<"$case"
+@test "status shows containers, running services, the HTTP answer, uptime, disk and swap use, and warns when a note service is not running, the server does not answer, or disk or swap is at 80% or more" {
+  local case setting line warning
+  run "$REPO_DIR/scripts/show-status.sh"
+  assert_success
+  assert_output --partial "basic-memory-server"
+  assert_output --partial "running: basic-memory silverbullet"
+  assert_output --partial "basic-memory http: answered (HTTP 200)"
+  assert_output --partial "uptime: up 3 days, 4 hours"
+  assert_output --partial "disk used: 34% of the data root's filesystem"
+  assert_output --partial "memory used: 23%"
+  assert_output --partial "swap used: 0/1023 MB (0%)"
+  assert_output --partial "proxy http://127.0.0.1:8737"
+  refute_output --partial "WARNING"
+  # Without a time limit, status hangs together with a server that takes the connection but never answers.
+  assert_stub_called -E '^curl .*-m 10 .*http://127\.0\.0\.1:8737/mcp$'
+
+  # Each case: the stub setting | the line it changes (empty: none) | the one warning status must print.
+  for case in "DOCKER_STUB_RUNNING_SERVICES=basic-memory|running: basic-memory|WARNING: silverbullet is not running" \
+    "CURL_STUB_FAIL_MATCH=127.0.0.1:8737/mcp||WARNING: Basic Memory did not answer HTTP on the VM's 127.0.0.1:8737 within 10s" \
+    "DF_STUB_USE_PERCENT=85|disk used: 85% of the data root's filesystem|WARNING: the data root's filesystem is 85% full" \
+    "FREE_STUB_SWAP_USED_MB=900|swap used: 900/1023 MB (87%)|WARNING: swap is 87% used" \
+    "FREE_STUB_SWAP_TOTAL_MB=0|swap used: 0/0 MB|WARNING: no active swap on this 1GB VM"; do
+    IFS='|' read -r setting line warning <<<"$case"
     (
       run env "$setting" "$REPO_DIR/scripts/show-status.sh"
-      assert_success \
-        && assert_output --partial "basic-memory-server" \
-        && assert_output --partial "memory used: 23%" \
-        && assert_output --partial "swap used: $swap MB" \
-        && assert_output --partial "proxy http://127.0.0.1:8737" || exit 1
-      if [[ -z "$warning" ]]; then
-        refute_output --partial "WARNING"
-      else
-        assert_output --partial "$warning"
-      fi
+      assert_success && assert_output --partial "${line:-$warning}" && assert_output --partial "$warning" \
+        && assert_equal "$(grep -c WARNING <<<"$output")" 1 || exit 1
     ) || fail "status with $setting"
   done
 }
