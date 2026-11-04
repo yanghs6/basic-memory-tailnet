@@ -13,6 +13,10 @@
 #   REVIEW_ALLOW_SAME_VENDOR=1   allow a reviewer from the author's vendor (prints a warning)
 #   REVIEW_MODEL=<model>         reviewer model (default DEFAULT_CODEX_MODEL or DEFAULT_CLAUDE_MODEL)
 #   REVIEW_EFFORT=<effort>       reasoning effort, one of REVIEW_EFFORTS (default DEFAULT_REVIEW_EFFORT)
+# The reviewed branch must not change its own review tools (ADR yyn265p7, decision 1): unless REVIEW_TRUSTED_DIR is set,
+# the script unpacks TRUSTED_PATHS of REVIEW_TRUST_REF into a temporary directory, runs that copy of itself with the same
+# arguments and REVIEW_TRUSTED_DIR set to the copy, passes on its exit status and removes the copy.
+#   REVIEW_TRUST_REF=<ref>       where the review tools come from (default DEFAULT_TRUST_REF; tests only); never REVIEW_BASE
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,6 +33,10 @@ readonly REVIEW_EFFORTS="low medium high xhigh max"
 readonly CHECK_TAIL_LINES=20
 # The codex permission profile that denies the reviewer its credential paths and the main checkout's notes.
 readonly CODEX_PROFILE=reviewer
+# The trusted source of the review tools and the paths of it that the snapshot holds.
+readonly DEFAULT_TRUST_REF=origin/main
+readonly TRUST_REF="${REVIEW_TRUST_REF:-$DEFAULT_TRUST_REF}"
+readonly TRUSTED_PATHS="scripts Makefile tools .claude/agents/branch-reviewer.md .agents/skills/branch-review"
 
 BRANCH=""
 REVIEWER=""
@@ -40,6 +48,7 @@ MODEL=""
 EFFORT=""
 CHECK_RESULT=""
 CHECK_SUMMARY=""
+SNAPSHOT_DIR=""
 
 usage() {
   die "usage: make review BRANCH=<plan/<ID>-<slug>|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]"
@@ -54,7 +63,36 @@ cleanup() {
   if [[ -n "$TEMP_BASE" ]] && ! git branch -D "$TEMP_BASE" >/dev/null 2>&1; then
     log "WARNING: could not delete the temporary branch $TEMP_BASE"
   fi
+  if [[ -n "$SNAPSHOT_DIR" ]] && ! rm -rf "$SNAPSHOT_DIR"; then
+    log "WARNING: could not remove the review tool snapshot; run: rm -rf $SNAPSHOT_DIR"
+  fi
   exit "$exit_code"
+}
+
+# prepare_trusted_tools: sets SNAPSHOT_DIR to a new temporary directory holding TRUSTED_PATHS of TRUST_REF, removed on
+# exit. Dies, before any review worktree exists, when TRUST_REF does not resolve or holds no scripts/review-branch.sh.
+prepare_trusted_tools() {
+  local fetch_hint="run git fetch origin (or check REVIEW_TRUST_REF) and run make review again"
+  local paths=()
+  read -r -a paths <<<"$TRUSTED_PATHS"
+  git rev-parse --verify --quiet "$TRUST_REF^{commit}" >/dev/null \
+    || die "the trusted review tools ref '$TRUST_REF' does not resolve: $fetch_hint"
+  SNAPSHOT_DIR="$(new_temp -d review-tools)" || exit 1
+  trap cleanup EXIT
+  git archive "$TRUST_REF" -- "${paths[@]}" | tar -x -C "$SNAPSHOT_DIR" \
+    || die "could not unpack the review tools from '$TRUST_REF': $fetch_hint"
+  [[ -x "$SNAPSHOT_DIR/scripts/review-branch.sh" ]] \
+    || die "'$TRUST_REF' holds no scripts/review-branch.sh: $fetch_hint"
+}
+
+# run_trusted_copy ARG...: runs the snapshot's review-branch.sh with ARG... as a child, so the trap above still removes
+# the snapshot, and exits with its status.
+run_trusted_copy() {
+  local status=0
+  prepare_trusted_tools
+  step "run the review tools of $TRUST_REF"
+  REVIEW_TRUSTED_DIR="$SNAPSHOT_DIR" "$SNAPSHOT_DIR/scripts/review-branch.sh" "$@" || status=$?
+  exit "$status"
 }
 
 # worktree_parent -> REVIEW_WORKTREE_PARENT, else <main checkout>-wt next to the main checkout of the current repo.
@@ -256,6 +294,7 @@ strip_worktree_prefix() {
 
 main() {
   local round slug wt_path diff_out plan_out base_sha head_sha meta_out check_log out_dir wt_parent prefix
+  [[ -n "${REVIEW_TRUSTED_DIR:-}" ]] || run_trusted_copy "$@"
   [[ $# -ge 2 ]] || usage
   out_dir="$(review_out_dir)" || exit 1
   # Codex writes its plan report after cd into the review worktree, so a relative path would land there and be deleted.

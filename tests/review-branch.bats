@@ -9,10 +9,130 @@ setup() {
   REVIEW="$REPO_DIR/scripts/review-branch.sh"
   OUT="$REVIEW_OUT_DIR/plan-k7m2x9qa-git-review-tooling"
   REVIEW_WT="$REVIEW_WORKTREE_PARENT/review-plan-k7m2x9qa-git-review-tooling-r1"
+  # The script runs as the trusted copy, so it does not re-run itself from a snapshot: kcov cannot count a re-run copy.
+  # The snapshot tests unset it.
+  export REVIEW_TRUSTED_DIR="$REPO_DIR"
 }
 
 worktree_count() {
   git worktree list | wc -l | tr -d ' '
+}
+
+# The review tool paths the snapshot holds, one file in each, as the fake trusted script lists them.
+TOOL_FILES="Makefile tools/coverage.sh scripts/lib/common.sh .claude/agents/branch-reviewer.md .agents/skills/branch-review/SKILL.md"
+
+# write_tools DIR [SCRIPT_BODY]: the review tool paths under DIR plus AGENTS.md, which the snapshot must leave out, with an
+# executable scripts/review-branch.sh running SCRIPT_BODY; no review-branch.sh when SCRIPT_BODY is empty.
+write_tools() {
+  local dir="$1" body="${2:-}" file
+  for file in $TOOL_FILES AGENTS.md; do
+    mkdir -p "$dir/$(dirname "$file")" && echo "$file" >"$dir/$file" || return 1
+  done
+  [[ -n "$body" ]] || return 0
+  printf '#!/usr/bin/env bash\n%s\n' "$body" >"$dir/scripts/review-branch.sh" && chmod +x "$dir/scripts/review-branch.sh"
+}
+
+# trusted_body: a fake trusted review-branch.sh that logs its arguments, REVIEW_TRUSTED_DIR, its own path and which tool
+# files sit next to it, then exits with TRUSTED_STUB_EXIT (default 0).
+trusted_body() {
+  # shellcheck disable=SC2016  # expanded by the fake script
+  printf '%s\n' 'printf "trusted review-branch %s :: trusted_dir=%s self=%s\n" "$*" "$REVIEW_TRUSTED_DIR" "$0" >>"$STUB_LOG"' \
+    "for f in $TOOL_FILES AGENTS.md; do" \
+    '  if [[ -f "$REVIEW_TRUSTED_DIR/$f" ]]; then echo "trusted has $f" >>"$STUB_LOG"; fi' \
+    'done' \
+    'exit "${TRUSTED_STUB_EXIT:-0}"'
+}
+
+# make_trust_ref REF [SCRIPT_BODY]: a commit with write_tools DIR SCRIPT_BODY at REF (a full ref name), made without
+# touching the checkout or its index.
+make_trust_ref() {
+  local ref="$1" src="$BATS_TEST_TMPDIR/trusted-src" index="$BATS_TEST_TMPDIR/trusted-index" tree commit
+  rm -rf "$src" "$index"
+  write_tools "$src" "${2:-}" || return 1
+  GIT_INDEX_FILE="$index" git --work-tree="$src" add -A . || return 1
+  tree="$(GIT_INDEX_FILE="$index" git write-tree)" || return 1
+  commit="$(git commit-tree -m "chore: trusted tools" "$tree")" || return 1
+  git update-ref "$ref" "$commit"
+}
+
+# commit_branch_copy: an agent commit on the current branch whose review tools carry a review-branch.sh that only logs
+# "branch copy ran", the marker no snapshot may run.
+commit_branch_copy() {
+  write_tools "$WORK" "echo \"branch copy ran\" >>\"\$STUB_LOG\"" && git add -A && agent_commit codex "feat: change the review tools"
+}
+
+# assert_trusted_run ARGS: the fake trusted script ran once from a snapshot with ARGS, saw every tool file but not AGENTS.md,
+# and neither the branch copy nor any reviewer, make check or review worktree ran.
+assert_trusted_run() {
+  local file dir
+  run grep -c "^trusted review-branch " "$STUB_LOG"
+  assert_output 1 || return 1
+  dir="$(sed -n 's/^trusted review-branch .* :: trusted_dir=\(.*\) self=.*$/\1/p' "$STUB_LOG")"
+  [[ -n "$dir" && "$dir" != "$REPO_DIR" ]] || fail "REVIEW_TRUSTED_DIR is not a snapshot: '$dir'" || return 1
+  assert_stub_called -x -F "trusted review-branch $1 :: trusted_dir=$dir self=$dir/scripts/review-branch.sh" || return 1
+  for file in $TOOL_FILES; do
+    assert_stub_called -x -F "trusted has $file" || return 1
+  done
+  refute_stub_called -F "trusted has AGENTS.md" && refute_stub_called -F "branch copy ran" \
+    && refute_stub_called -E '^(codex|claude|make) ' || return 1
+  run test -e "$dir"
+  assert_failure || fail "the snapshot directory $dir is still there" || return 1
+  run worktree_count
+  assert_output 1
+}
+
+@test "without REVIEW_TRUSTED_DIR it runs review-branch.sh with the same arguments from an origin/main snapshot, never the branch copy" {
+  unset REVIEW_TRUSTED_DIR
+  commit_branch_copy
+  make_trust_ref refs/remotes/origin/main "$(trusted_body)"
+  run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex 3
+  assert_success
+  assert_trusted_run "plan/k7m2x9qa-git-review-tooling codex 3"
+}
+
+@test "a REVIEW_BASE on the branch is only the diff base: the snapshot still comes from REVIEW_TRUST_REF" {
+  unset REVIEW_TRUSTED_DIR
+  commit_branch_copy
+  make_trust_ref refs/heads/trusted "$(trusted_body)"
+  REVIEW_TRUST_REF=trusted REVIEW_BASE="$(git rev-parse HEAD)" run "$REVIEW" plan/k7m2x9qa-git-review-tooling claude 2
+  assert_success
+  assert_trusted_run "plan/k7m2x9qa-git-review-tooling claude 2"
+}
+
+@test "stops before any review worktree and tells the user to git fetch origin when the trust ref is missing or has no review-branch.sh" {
+  local case snapshot_tmp
+  cd "$BATS_TEST_TMPDIR" || return
+  unset REVIEW_TRUSTED_DIR
+  for case in "no origin/main" "no review-branch.sh"; do
+    snapshot_tmp="$BATS_TEST_TMPDIR/tmp-${case// /-}"
+    (
+      review_repo claude-code && commit_branch_copy && mkdir -p "$snapshot_tmp" || exit 1
+      if [[ "$case" == "no review-branch.sh" ]]; then
+        make_trust_ref refs/remotes/origin/main || exit 1
+      fi
+      TMPDIR="$snapshot_tmp" run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+      assert_failure && assert_output --partial "git fetch origin" || exit 1
+      refute_stub_called -F "branch copy ran" && refute_stub_called -E '^(codex|claude|make) ' || exit 1
+      run worktree_count
+      assert_output 1 || exit 1
+      run git branch --list 'review-base/*'
+      assert_output "" || exit 1
+      run ls -A "$snapshot_tmp"
+      assert_output ""
+    ) || fail "the review did not stop cleanly with $case"
+  done
+}
+
+@test "removes the snapshot directory and passes on the exit status when the re-run review fails" {
+  local snapshot_tmp="$BATS_TEST_TMPDIR/tmp"
+  unset REVIEW_TRUSTED_DIR
+  mkdir -p "$snapshot_tmp"
+  make_trust_ref refs/remotes/origin/main "$(trusted_body)"
+  TMPDIR="$snapshot_tmp" TRUSTED_STUB_EXIT=3 run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+  assert_failure 3
+  assert_stub_called -F "trusted review-branch plan/k7m2x9qa-git-review-tooling codex :: trusted_dir=$snapshot_tmp/review-tools."
+  run ls -A "$snapshot_tmp"
+  assert_output ""
 }
 
 # review_repo [TOOL...]: a new repo in place of the one setup made, on plan/k7m2x9qa-git-review-tooling with one commit per TOOL

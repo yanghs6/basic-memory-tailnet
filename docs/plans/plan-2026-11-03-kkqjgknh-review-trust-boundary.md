@@ -81,16 +81,16 @@ spec: none
 **Interfaces:**
 - Produces: `REVIEW_TRUSTED_DIR`(스냅샷 루트, 재실행된 프로세스에서 설정됨), `REVIEW_TRUST_REF`(기본 `origin/main`, 테스트용으로만 덮어씀), 함수 `prepare_trusted_tools`.
 
-- [ ] **Step 1: 실패하는 테스트 작성.**
+- [x] **Step 1: 실패하는 테스트 작성.**
   - `REVIEW_TRUSTED_DIR`이 없으면 `REVIEW_TRUST_REF`의 `scripts/`, `Makefile`, `tools/`, `.claude/agents/branch-reviewer.md`, `.agents/skills/branch-review/`를 임시 디렉터리에 풀고 그 안의 `scripts/review-branch.sh`를 같은 인자로 실행한다. 테스트는 브랜치의 `review-branch.sh`에 표지 줄을 넣어 그 줄이 실행되지 않음을 확인한다.
   - `REVIEW_BASE`가 브랜치 커밋이어도 스냅샷은 `REVIEW_TRUST_REF`에서 온다.
   - `REVIEW_TRUST_REF`가 없거나 스냅샷에 `scripts/review-branch.sh`가 없으면 `git fetch origin`을 안내하며 실패하고, 리뷰 worktree를 만들지 않는다.
   - 재실행된 리뷰가 실패해도 스냅샷 디렉터리가 지워진다.
   - 나머지 기존 테스트는 `REVIEW_TRUSTED_DIR=$REPO_DIR`로 재실행을 건너뛴다(커버리지가 재실행된 사본을 세지 못하므로).
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 위 테스트가 재실행이 없어 실패.
-- [ ] **Step 3: 최소 구현.** `git archive "$REVIEW_TRUST_REF" -- <경로들> | tar -x -C <임시 디렉터리>`, 그 뒤 `REVIEW_TRUSTED_DIR=<임시> "<임시>/scripts/review-branch.sh" "$@"`. 정리는 부모 프로세스의 trap이 맡는다(`exec`를 쓰지 않는다).
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋.** `feat: run the review tools from an origin/main snapshot`, `Task: 2`.
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 위 테스트가 재실행이 없어 실패.
+- [x] **Step 3: 최소 구현.** `git archive "$REVIEW_TRUST_REF" -- <경로들> | tar -x -C <임시 디렉터리>`, 그 뒤 `REVIEW_TRUSTED_DIR=<임시> "<임시>/scripts/review-branch.sh" "$@"`. 정리는 부모 프로세스의 trap이 맡는다(`exec`를 쓰지 않는다).
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋.** `feat: run the review tools from an origin/main snapshot`, `Task: 2`.
 
 ### Task 3: Reviewer invocation from the snapshot
 
@@ -187,3 +187,4 @@ push하지 않는 로컬 브랜치로만 한다.
 | 2026-11-04 | Verified | S2a: 모델이 `git status`를 스스로 거부해 훅을 확인하지 못했고, worktree 밖 파일 Read가 성공했다. 버린다. S2b: 절대 경로 가드가 `git status`를 막고 `git log`는 통과했다. worktree 밖 Read는 "`--restricted` confines the file tools to the working directory"로 거부됐고 MCP 도구는 0개였다. Claude 리뷰어 조합은 S2b로 정한다. |
 | 2026-11-04 | Verified | Codex(`codex exec -s read-only -m gpt-6.1-sol`, effort low, MCP 도구 목록 프롬프트): 사용자 설정 그대로면 basic-memory MCP 연결 시도와 사용자 hooks가 돌았다. `--ignore-user-config`를 붙이면 둘 다 사라지고 로그인은 유지됐다. 그러나 두 실행 모두 계정 앱 커넥터 `mcp__codex_apps__*`(GitHub merge와 댓글, Google Drive, Notion, Atlassian 등)가 남았다. `--ignore-user-config --disable apps --disable plugins`로는 MCP 도구가 0개(NONE)였다. ADR 결정 7과 다르므로 사용자에게 묻는다. |
 | 2026-11-04 | Verified | 사용자가 Codex 리뷰어에 `--disable apps --disable plugins`를 더하는 안(A)을 승인했다. ADR yyn265p7에 날짜를 붙인 보완 문장 두 개(맥락의 Assumption 정정, 결정 7 보완)를 넣고 Task 3의 테스트 기대값을 바꿨다. |
+| 2026-11-04 | Verified | Task 2: 새 테스트 4개가 재실행이 없어 실패하는 것을 확인한 뒤 구현했다. `make check` 통과(1..298, not ok 0, 커버리지 88.79%, `scripts/review-branch.sh` 93.62%). |
