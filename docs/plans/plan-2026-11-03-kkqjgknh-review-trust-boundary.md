@@ -63,16 +63,16 @@ spec: none
 - [x] `git fetch origin` 뒤 `origin/main`에서 worktree와 `plan/kkqjgknh-review-trust-boundary` 브랜치를 만든다(`git-workflow` 스킬의 Start).
 - [x] `make new-doc TYPE=plan SLUG=review-trust-boundary ID=kkqjgknh`와 `make new-doc TYPE=adr SLUG=review-trust-boundary ID=yyn265p7`로 두 문서를 만들고 승인된 초안 본문을 옮긴다.
 - [x] k3bd8k47 Follow-ups의 MCP 노트 줄을 이 계획 링크로, Gemini CLI와 Antigravity 줄을 "보류: 그 도구로 파일을 고치는 세션을 쓰기 시작할 때 다시 연다(사용자 결정 2026-11-03)"로 바꾼다. 560fxtyb의 "2026-11-02 재검토 2차 후속(리뷰·입력 신뢰 경계), 계획 미작성" 문구를 이 계획 링크로 바꾼다. 560fxtyb Task 4는 건드리지 않는다.
-- [ ] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
+- [x] 첫 커밋에서 front matter의 `status`를 `active`로 바꾸고 push한 뒤 초안 PR을 연다.
 
 ### Task 1: Reviewer CLI behavior check
 
 코드를 바꾸지 않는다. 결정 2와 7의 플래그 조합을 실제 실행으로 정한다. `claude`와 `codex`는 네트워크가 필요하므로 사용자가 `!` 명령으로 실행하고, 명령과 결과를 Progress log에 적는다.
 
-- [ ] **Step 1: 지금 동작 확인.** 리뷰 worktree와 같은 조건(detached worktree, `claude -p --agent branch-reviewer --permission-mode plan`)에서 `git status` 실행을 요청하는 프롬프트를 주고 `--debug hooks` 출력에서 가드 훅이 돌았는지 본다. 돌지 않았다면 기존 결함으로 기록한다(Assumption이었던 ADR 맥락 문장의 검증).
-- [ ] **Step 2: 후보 조합 확인.** 스냅샷 경로의 가드를 훅으로 둔 `--agents` 정의, `--agent branch-reviewer`, `--strict-mcp-config`, 그리고 프로젝트 설정을 끊는 옵션(`--restricted --tools Read,Grep,Glob,Bash` 또는 `--setting-sources user`)으로 같은 프롬프트를 준다. 다음 네 가지를 확인한다. 가드가 `git status`를 막는다. `git diff`는 통과한다. worktree 밖 파일 Read가 거부된다(P3-05). MCP 도구 목록이 비어 있다.
-- [ ] **Step 3: Codex 확인.** `codex exec --ignore-user-config`에 지금의 `-c` 격리 인자를 붙여 MCP 도구가 없는지와 로그인이 유지되는지 확인한다.
-- [ ] **Step 4: 기록.** 고른 조합과 버린 조합의 이유를 Progress log에 `Verified`로 적는다. 조합이 ADR 결정 2, 7과 다르게 나오면 멈추고 사용자에게 묻는다.
+- [x] **Step 1: 지금 동작 확인.** 리뷰 worktree와 같은 조건(detached worktree, `claude -p --agent branch-reviewer --permission-mode plan`)에서 `git status` 실행을 요청하는 프롬프트를 주고 `--debug hooks` 출력에서 가드 훅이 돌았는지 본다. 돌지 않았다면 기존 결함으로 기록한다(Assumption이었던 ADR 맥락 문장의 검증).
+- [x] **Step 2: 후보 조합 확인.** 스냅샷 경로의 가드를 훅으로 둔 `--agents` 정의, `--agent branch-reviewer`, `--strict-mcp-config`, 그리고 프로젝트 설정을 끊는 옵션(`--restricted --tools Read,Grep,Glob,Bash` 또는 `--setting-sources user`)으로 같은 프롬프트를 준다. 다음 네 가지를 확인한다. 가드가 `git status`를 막는다. `git diff`는 통과한다. worktree 밖 파일 Read가 거부된다(P3-05). MCP 도구 목록이 비어 있다.
+- [x] **Step 3: Codex 확인.** `codex exec --ignore-user-config`에 지금의 `-c` 격리 인자를 붙여 MCP 도구가 없는지와 로그인이 유지되는지 확인한다.
+- [x] **Step 4: 기록.** 고른 조합과 버린 조합의 이유를 Progress log에 `Verified`로 적는다. 조합이 ADR 결정 2, 7과 다르게 나오면 멈추고 사용자에게 묻는다.
 
 ### Task 2: Trusted snapshot and re-exec
 
@@ -101,10 +101,10 @@ spec: none
 - Produces: 함수 `claude_agents_json`(스냅샷의 `branch-reviewer.md`에서 description, tools, disallowedTools, permissionMode, 본문을 읽고 훅 명령을 `"<스냅샷>/scripts/guard-reviewer-bash.sh" || exit 2`로 바꾼 JSON 파일 경로를 출력).
 
 - [ ] **Step 1: 실패하는 테스트 작성.**
-  - claude 호출 인자에 `--agents <파일>`, `--agent branch-reviewer`, `--strict-mcp-config`, Task 1의 설정 차단 옵션이 있다. `<파일>`의 JSON에서 `.["branch-reviewer"].hooks`의 명령이 스냅샷 경로의 가드를 가리키고 리뷰 worktree 경로를 포함하지 않는다(`jq`로 확인).
+  - claude 호출 인자에 `--restricted`, `--tools Read,Grep,Glob,Bash`, `--agents <파일>`, `--agent branch-reviewer`, `--strict-mcp-config`가 있다(Task 1에서 고른 조합 S2b). `<파일>`의 JSON에서 `.["branch-reviewer"].hooks`의 명령이 스냅샷 경로의 가드를 가리키고 리뷰 worktree 경로를 포함하지 않는다(`jq`로 확인).
   - 리뷰 대상 브랜치의 `branch-reviewer.md`와 가드 훅을 `exit 0`으로 바꿔도 JSON은 스냅샷 쪽 정의를 담는다.
   - 공백과 따옴표가 든 스냅샷 경로로도 JSON이 유효하다.
-  - 두 codex 호출 인자에 `--ignore-user-config`가 있다.
+  - 두 codex 호출 인자에 `--ignore-user-config`, `--disable apps`, `--disable plugins`가 있다(Task 1, 2026-11-04 사용자 승인).
   - `tests/repo-config.bats`의 리뷰어 정의 테스트는 frontmatter 필드가 `claude_agents_json`이 읽는 형태임을 확인하도록 갱신한다.
 - [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 인자가 없어 실패.
 - [ ] **Step 3: 최소 구현.** `jq -n`으로 JSON을 만들어 임시 파일에 쓴다. `branch-reviewer.md` 머리에 "make review는 이 파일을 origin/main 스냅샷에서 읽는다"를 적는다.
@@ -182,3 +182,8 @@ push하지 않는 로컬 브랜치로만 한다.
 | 날짜 | 표기 | 내용 |
 |---|---|---|
 | 2026-11-03 | Verified | 사용자가 계획 초안과 ADR yyn265p7 초안을 승인했다. 설계 질문 셋은 추천안(신뢰 기준 origin/main 스냅샷, 스냅샷 Makefile과 컨테이너 check, 산문 규칙과 리뷰어 MCP 차단)으로 정했다. |
+| 2026-11-04 | Command | Task 1: 사용자가 `!`로 확인 스크립트를 실행했다. 임시 detached worktree에서 `claude -p --no-session-persistence --model claude-haiku-5-5 --effort low`에 조합 S1(지금 방식 `--agent branch-reviewer --permission-mode plan --debug hooks`), S2a(`--agents <json> --agent branch-reviewer --permission-mode plan --setting-sources user --strict-mcp-config`), S2b(`--restricted --tools Read,Grep,Glob,Bash --agents <json> --agent branch-reviewer --permission-mode plan --strict-mcp-config`)를 주고 프롬프트 넷(`git status --short`, `git log --oneline -1`, worktree 밖 파일 Read, MCP 도구 목록)을 보냈다. `<json>`의 가드 훅은 절대 경로다. |
+| 2026-11-04 | Verified | S1: 가드 훅이 돌아 `git status`를 막았다. ADR 맥락의 Assumption("`-p`에서 훅이 돌지 않는다")은 틀렸다. 다만 훅 명령이 `$CLAUDE_PROJECT_DIR`, 곧 리뷰 대상 브랜치의 가드를 가리키고, main checkout의 `settings.local.json`도 읽혔다. MCP 서버 설정도 읽혔다(터널이 꺼져 있어 도구는 0개). |
+| 2026-11-04 | Verified | S2a: 모델이 `git status`를 스스로 거부해 훅을 확인하지 못했고, worktree 밖 파일 Read가 성공했다. 버린다. S2b: 절대 경로 가드가 `git status`를 막고 `git log`는 통과했다. worktree 밖 Read는 "`--restricted` confines the file tools to the working directory"로 거부됐고 MCP 도구는 0개였다. Claude 리뷰어 조합은 S2b로 정한다. |
+| 2026-11-04 | Verified | Codex(`codex exec -s read-only -m gpt-6.1-sol`, effort low, MCP 도구 목록 프롬프트): 사용자 설정 그대로면 basic-memory MCP 연결 시도와 사용자 hooks가 돌았다. `--ignore-user-config`를 붙이면 둘 다 사라지고 로그인은 유지됐다. 그러나 두 실행 모두 계정 앱 커넥터 `mcp__codex_apps__*`(GitHub merge와 댓글, Google Drive, Notion, Atlassian 등)가 남았다. `--ignore-user-config --disable apps --disable plugins`로는 MCP 도구가 0개(NONE)였다. ADR 결정 7과 다르므로 사용자에게 묻는다. |
+| 2026-11-04 | Verified | 사용자가 Codex 리뷰어에 `--disable apps --disable plugins`를 더하는 안(A)을 승인했다. ADR yyn265p7에 날짜를 붙인 보완 문장 두 개(맥락의 Assumption 정정, 결정 7 보완)를 넣고 Task 3의 테스트 기대값을 바꿨다. |
