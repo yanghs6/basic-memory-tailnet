@@ -9,10 +9,130 @@ setup() {
   REVIEW="$REPO_DIR/scripts/review-branch.sh"
   OUT="$REVIEW_OUT_DIR/plan-k7m2x9qa-git-review-tooling"
   REVIEW_WT="$REVIEW_WORKTREE_PARENT/review-plan-k7m2x9qa-git-review-tooling-r1"
+  # The script runs as the trusted copy, so it does not re-run itself from a snapshot: kcov cannot count a re-run copy.
+  # The snapshot tests unset it.
+  export REVIEW_TRUSTED_DIR="$REPO_DIR"
 }
 
 worktree_count() {
   git worktree list | wc -l | tr -d ' '
+}
+
+# The review tool paths the snapshot holds, one file in each, as the fake trusted script lists them.
+TOOL_FILES="Makefile tools/coverage.sh scripts/lib/common.sh .claude/agents/branch-reviewer.md .agents/skills/branch-review/SKILL.md"
+
+# write_tools DIR [SCRIPT_BODY]: the review tool paths under DIR plus AGENTS.md, which the snapshot must leave out, with an
+# executable scripts/review-branch.sh running SCRIPT_BODY; no review-branch.sh when SCRIPT_BODY is empty.
+write_tools() {
+  local dir="$1" body="${2:-}" file
+  for file in $TOOL_FILES AGENTS.md; do
+    mkdir -p "$dir/$(dirname "$file")" && echo "$file" >"$dir/$file" || return 1
+  done
+  [[ -n "$body" ]] || return 0
+  printf '#!/usr/bin/env bash\n%s\n' "$body" >"$dir/scripts/review-branch.sh" && chmod +x "$dir/scripts/review-branch.sh"
+}
+
+# trusted_body: a fake trusted review-branch.sh that logs its arguments, REVIEW_TRUSTED_DIR, its own path and which tool
+# files sit next to it, then exits with TRUSTED_STUB_EXIT (default 0).
+trusted_body() {
+  # shellcheck disable=SC2016  # expanded by the fake script
+  printf '%s\n' 'printf "trusted review-branch %s :: trusted_dir=%s self=%s\n" "$*" "$REVIEW_TRUSTED_DIR" "$0" >>"$STUB_LOG"' \
+    "for f in $TOOL_FILES AGENTS.md; do" \
+    '  if [[ -f "$REVIEW_TRUSTED_DIR/$f" ]]; then echo "trusted has $f" >>"$STUB_LOG"; fi' \
+    'done' \
+    'exit "${TRUSTED_STUB_EXIT:-0}"'
+}
+
+# make_trust_ref REF [SCRIPT_BODY]: a commit with write_tools DIR SCRIPT_BODY at REF (a full ref name), made without
+# touching the checkout or its index.
+make_trust_ref() {
+  local ref="$1" src="$BATS_TEST_TMPDIR/trusted-src" index="$BATS_TEST_TMPDIR/trusted-index" tree commit
+  rm -rf "$src" "$index"
+  write_tools "$src" "${2:-}" || return 1
+  GIT_INDEX_FILE="$index" git --work-tree="$src" add -A . || return 1
+  tree="$(GIT_INDEX_FILE="$index" git write-tree)" || return 1
+  commit="$(git commit-tree -m "chore: trusted tools" "$tree")" || return 1
+  git update-ref "$ref" "$commit"
+}
+
+# commit_branch_copy: an agent commit on the current branch whose review tools carry a review-branch.sh that only logs
+# "branch copy ran", the marker no snapshot may run.
+commit_branch_copy() {
+  write_tools "$WORK" "echo \"branch copy ran\" >>\"\$STUB_LOG\"" && git add -A && agent_commit codex "feat: change the review tools"
+}
+
+# assert_trusted_run ARGS: the fake trusted script ran once from a snapshot with ARGS, saw every tool file but not AGENTS.md,
+# and neither the branch copy nor any reviewer, make check or review worktree ran.
+assert_trusted_run() {
+  local file dir
+  run grep -c "^trusted review-branch " "$STUB_LOG"
+  assert_output 1 || return 1
+  dir="$(sed -n 's/^trusted review-branch .* :: trusted_dir=\(.*\) self=.*$/\1/p' "$STUB_LOG")"
+  [[ -n "$dir" && "$dir" != "$REPO_DIR" ]] || fail "REVIEW_TRUSTED_DIR is not a snapshot: '$dir'" || return 1
+  assert_stub_called -x -F "trusted review-branch $1 :: trusted_dir=$dir self=$dir/scripts/review-branch.sh" || return 1
+  for file in $TOOL_FILES; do
+    assert_stub_called -x -F "trusted has $file" || return 1
+  done
+  refute_stub_called -F "trusted has AGENTS.md" && refute_stub_called -F "branch copy ran" \
+    && refute_stub_called -E '^(codex|claude|make) ' || return 1
+  run test -e "$dir"
+  assert_failure || fail "the snapshot directory $dir is still there" || return 1
+  run worktree_count
+  assert_output 1
+}
+
+@test "without REVIEW_TRUSTED_DIR it runs review-branch.sh with the same arguments from an origin/main snapshot, never the branch copy" {
+  unset REVIEW_TRUSTED_DIR
+  commit_branch_copy
+  make_trust_ref refs/remotes/origin/main "$(trusted_body)"
+  run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex 3
+  assert_success
+  assert_trusted_run "plan/k7m2x9qa-git-review-tooling codex 3"
+}
+
+@test "a REVIEW_BASE on the branch is only the diff base: the snapshot still comes from REVIEW_TRUST_REF" {
+  unset REVIEW_TRUSTED_DIR
+  commit_branch_copy
+  make_trust_ref refs/heads/trusted "$(trusted_body)"
+  REVIEW_TRUST_REF=trusted REVIEW_BASE="$(git rev-parse HEAD)" run "$REVIEW" plan/k7m2x9qa-git-review-tooling claude 2
+  assert_success
+  assert_trusted_run "plan/k7m2x9qa-git-review-tooling claude 2"
+}
+
+@test "stops before any review worktree and tells the user to git fetch origin when the trust ref is missing or has no review-branch.sh" {
+  local case snapshot_tmp
+  cd "$BATS_TEST_TMPDIR" || return
+  unset REVIEW_TRUSTED_DIR
+  for case in "no origin/main" "no review-branch.sh"; do
+    snapshot_tmp="$BATS_TEST_TMPDIR/tmp-${case// /-}"
+    (
+      review_repo claude-code && commit_branch_copy && mkdir -p "$snapshot_tmp" || exit 1
+      if [[ "$case" == "no review-branch.sh" ]]; then
+        make_trust_ref refs/remotes/origin/main || exit 1
+      fi
+      TMPDIR="$snapshot_tmp" run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+      assert_failure && assert_output --partial "git fetch origin" || exit 1
+      refute_stub_called -F "branch copy ran" && refute_stub_called -E '^(codex|claude|make) ' || exit 1
+      run worktree_count
+      assert_output 1 || exit 1
+      run git branch --list 'review-base/*'
+      assert_output "" || exit 1
+      run ls -A "$snapshot_tmp"
+      assert_output ""
+    ) || fail "the review did not stop cleanly with $case"
+  done
+}
+
+@test "removes the snapshot directory and passes on the exit status when the re-run review fails" {
+  local snapshot_tmp="$BATS_TEST_TMPDIR/tmp"
+  unset REVIEW_TRUSTED_DIR
+  mkdir -p "$snapshot_tmp"
+  make_trust_ref refs/remotes/origin/main "$(trusted_body)"
+  TMPDIR="$snapshot_tmp" TRUSTED_STUB_EXIT=3 run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+  assert_failure 3
+  assert_stub_called -F "trusted review-branch plan/k7m2x9qa-git-review-tooling codex :: trusted_dir=$snapshot_tmp/review-tools."
+  run ls -A "$snapshot_tmp"
+  assert_output ""
 }
 
 # review_repo [TOOL...]: a new repo in place of the one setup made, on plan/k7m2x9qa-git-review-tooling with one commit per TOOL
@@ -63,7 +183,7 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
         assert_line "model claude-opus-5-5" || exit 1
         run grep -c "^claude " "$STUB_LOG"
         assert_output 2 || exit 1
-        run grep -c "^claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence --model claude-opus-5-5 --effort low " "$STUB_LOG"
+        run grep -c -E "^claude -p --restricted --tools Read,Grep,Glob,Bash --agents [^ ]+ --agent branch-reviewer --permission-mode plan --strict-mcp-config --no-session-persistence --model claude-opus-5-5 --effort low " "$STUB_LOG"
         assert_output 2 || exit 1
         # No user or system git config, so no external diff or textconv helper loads.
         run grep -c " git_config_global=/dev/null git_config_nosystem=1$" "$STUB_LOG"
@@ -91,6 +211,100 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
     assert_output 2 || fail "argument $arg is not on both codex calls"
   done
   refute_stub_called -F -e '--sandbox' -e 'sandbox_mode'
+}
+
+@test "both codex calls ignore the user config and disable apps and plugins, so no user MCP server, hook or account connector loads" {
+  local arg
+  cd "$BATS_TEST_TMPDIR" || return
+  review_repo claude-code || return 1
+  run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+  assert_success
+  for arg in ' --ignore-user-config ' ' --disable apps ' ' --disable plugins '; do
+    run grep -c -F -- "$arg" "$STUB_LOG"
+    assert_output 2 || fail "argument$arg is not on both codex calls"
+  done
+}
+
+# agent_json FILE FILTER: jq -r FILTER on the branch-reviewer entry of the --agents FILE.
+agent_json() {
+  jq -r ".[\"branch-reviewer\"] | $2" "$1"
+}
+
+# fake_snapshot DIR: DIR holding a copy of the reviewer definition and an executable guard that exits 0.
+fake_snapshot() {
+  mkdir -p "$1/.claude/agents" "$1/scripts" && cp "$REPO_DIR/.claude/agents/branch-reviewer.md" "$1/.claude/agents/" \
+    && printf '#!/usr/bin/env bash\nexit 0\n' >"$1/scripts/guard-reviewer-bash.sh" && chmod +x "$1/scripts/guard-reviewer-bash.sh"
+}
+
+@test "claude gets the branch-reviewer definition and guard from the snapshot in a --agents file, even when the branch changed both, and the file is removed" {
+  local file agents_file expected_hook="\"$REPO_DIR/scripts/guard-reviewer-bash.sh\" || exit 2"
+  cd "$BATS_TEST_TMPDIR" || return
+  review_repo codex || return 1
+  # The reviewed branch turns its own reviewer definition and guard into ones that allow everything.
+  mkdir -p .claude/agents scripts
+  printf -- '---\nname: branch-reviewer\ndescription: tampered\ntools: Read, Write\ndisallowedTools: NotebookEdit\npermissionMode: default\n---\n\ntampered prompt\n' \
+    >.claude/agents/branch-reviewer.md
+  printf '#!/usr/bin/env bash\nexit 0\n' >scripts/guard-reviewer-bash.sh
+  chmod +x scripts/guard-reviewer-bash.sh
+  git add -A && agent_commit codex "feat: loosen the reviewer" || return 1
+  CLAUDE_STUB_AGENTS_DIR="$BATS_TEST_TMPDIR/agents" run "$REVIEW" plan/k7m2x9qa-git-review-tooling claude
+  assert_success
+  for file in "$BATS_TEST_TMPDIR/agents/agents-1.json" "$BATS_TEST_TMPDIR/agents/agents-2.json"; do
+    run jq -r 'keys | join(",")' "$file"
+    assert_output branch-reviewer || return 1
+    run agent_json "$file" '.hooks.PreToolUse[0].matcher + " " + .hooks.PreToolUse[0].hooks[0].type'
+    assert_output "Bash command" || return 1
+    run agent_json "$file" '.hooks.PreToolUse[0].hooks[0].command'
+    assert_output "$expected_hook" && refute_output --partial "$REVIEW_WT" || return 1
+    run agent_json "$file" '(.tools | join(",")) + " | " + (.disallowedTools | join(",")) + " | " + .permissionMode'
+    assert_output "Read,Grep,Glob,Bash | Write,Edit,NotebookEdit | plan" || return 1
+    run agent_json "$file" '.description'
+    assert_output --partial "Independent read-only reviewer" || return 1
+    run agent_json "$file" '.prompt'
+    assert_line --index 0 --partial "Follow the \`branch-review\` skill" && assert_output --partial "Never edit, create or delete files" \
+      && refute_output --partial tampered && refute_output --partial "type: command" || return 1
+  done
+  # Both calls name the same file, which is gone after the review.
+  agents_file="$(sed -n 's/^claude .* --agents \([^ ]*\) .*$/\1/p' "$STUB_LOG" | sort -u)"
+  [[ -n "$agents_file" && "$agents_file" != *$'\n'* ]] || fail "the claude calls do not name one --agents file: '$agents_file'"
+  run test -e "$agents_file"
+  assert_failure
+}
+
+@test "a snapshot path with a space, double quotes, a dollar sign and a backtick still gives valid JSON whose hook command runs the snapshot guard" {
+  local snapshot="$BATS_TEST_TMPDIR/snap \"shot\" \$HOME \`x\`" hook
+  cd "$BATS_TEST_TMPDIR" || return
+  review_repo codex && fake_snapshot "$snapshot" || return 1
+  printf '#!/usr/bin/env bash\necho "snapshot guard ran" >>"%s"\n' "$BATS_TEST_TMPDIR/guard.log" >"$snapshot/scripts/guard-reviewer-bash.sh"
+  REVIEW_TRUSTED_DIR="$snapshot" CLAUDE_STUB_AGENTS_DIR="$BATS_TEST_TMPDIR/agents" run "$REVIEW" plan/k7m2x9qa-git-review-tooling claude
+  assert_success
+  hook="$(agent_json "$BATS_TEST_TMPDIR/agents/agents-1.json" '.hooks.PreToolUse[0].hooks[0].command')" || return 1
+  # Claude Code runs the hook command in a shell; the quoting must hand it the whole path as one word.
+  run sh -c "$hook" </dev/null
+  assert_success
+  run cat "$BATS_TEST_TMPDIR/guard.log"
+  assert_output "snapshot guard ran"
+}
+
+@test "stops before make check and any reviewer call when REVIEW_TRUSTED_DIR lacks the reviewer definition, a front matter field or the guard" {
+  local case snapshot
+  cd "$BATS_TEST_TMPDIR" || return
+  for case in "no definition" "no permissionMode" "no guard"; do
+    snapshot="$BATS_TEST_TMPDIR/snap-${case// /-}"
+    (
+      review_repo codex && fake_snapshot "$snapshot" || exit 1
+      case "$case" in
+        "no definition") rm "$snapshot/.claude/agents/branch-reviewer.md" ;;
+        "no permissionMode") sed -i.bak '/^permissionMode:/d' "$snapshot/.claude/agents/branch-reviewer.md" ;;
+        "no guard") rm "$snapshot/scripts/guard-reviewer-bash.sh" ;;
+      esac
+      REVIEW_TRUSTED_DIR="$snapshot" run "$REVIEW" plan/k7m2x9qa-git-review-tooling claude
+      assert_failure && assert_output --partial "REVIEW_TRUSTED_DIR" && assert_output --partial "make review" || exit 1
+      refute_stub_called -E '^(claude|make) ' || exit 1
+      run worktree_count
+      assert_output 1
+    ) || fail "the review did not stop with $case in the snapshot"
+  done
 }
 
 @test "the deny paths of the main .env, backups and .local-data are quoted for TOML: a space stays, a quote and a backslash are escaped, a newline is refused" {

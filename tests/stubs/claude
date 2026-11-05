@@ -1,11 +1,24 @@
 #!/usr/bin/env bash
 # Test stub for claude: logs "claude <args> :: cwd=<dir> git_config_global=<v> git_config_nosystem=<v>"
 # (v is "unset" when the variable is not set) and prints a review. STUB_LOG_STDIN=1 also logs
-# "claude stdin_bytes=<n>", the bytes it read from stdin.
+# "claude stdin_bytes=<n>", the bytes it read from stdin. CLAUDE_STUB_AGENTS_DIR=<dir> copies the file after --agents to
+# <dir>/agents-<n>.json (n counts the calls from 1), since the script removes it on exit; the call fails when that file
+# is missing.
 set -euo pipefail
 printf 'claude %s :: cwd=%s git_config_global=%s git_config_nosystem=%s\n' \
   "$*" "$PWD" "${GIT_CONFIG_GLOBAL-unset}" "${GIT_CONFIG_NOSYSTEM-unset}" >>"$STUB_LOG"
 if [[ "${STUB_LOG_STDIN:-}" == 1 ]]; then
   printf 'claude stdin_bytes=%s\n' "$(wc -c | tr -d ' ')" >>"$STUB_LOG"
+fi
+if [[ -n "${CLAUDE_STUB_AGENTS_DIR:-}" ]]; then
+  while (($#)); do
+    if [[ "$1" == --agents ]]; then
+      mkdir -p "$CLAUDE_STUB_AGENTS_DIR"
+      n="$(find "$CLAUDE_STUB_AGENTS_DIR" -name 'agents-*.json' | wc -l | tr -d ' ')"
+      cp "$2" "$CLAUDE_STUB_AGENTS_DIR/agents-$((n + 1)).json"
+      break
+    fi
+    shift
+  done
 fi
 echo "claude review"

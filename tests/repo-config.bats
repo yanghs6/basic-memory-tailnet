@@ -253,6 +253,26 @@ reviewer_hook_command() {
   assert_success
 }
 
+@test "make review can read the Claude reviewer definition: one plain one-line value per field claude_agents_json reads, a prompt body and a note that it comes from the snapshot" {
+  local agent="$REPO_DIR/.claude/agents/branch-reviewer.md" key
+  # claude_agents_json in scripts/review-branch.sh takes "<key>: <value>" lines as they are: no quotes, block
+  # scalars or YAML lists; tools and disallowedTools are comma-separated.
+  for key in description tools disallowedTools permissionMode; do
+    run grep -c "^$key: " "$agent"
+    assert_output 1 || fail "the front matter needs exactly one '$key: ' line"
+    run front_value "$agent" "$key"
+    assert_output --regexp '^[^|>"'"'"'[ ].*[^ ]$' || fail "the $key value is not a plain one-line value"
+  done
+  run front_value "$agent" tools
+  assert_output --regexp '^[A-Za-z]+(, [A-Za-z]+)*$'
+  run front_value "$agent" disallowedTools
+  assert_output --regexp '^[A-Za-z]+(, [A-Za-z]+)*$'
+  run awk 'NR == 1 && $0 == "---" { front = 1; next } front && $0 == "---" { front = 0; body = 1; next } body && NF { n++ } END { print n + 0 }' "$agent"
+  refute_output 0
+  run frontmatter "$agent"
+  assert_line --regexp '^# make review reads this file from the origin/main snapshot'
+}
+
 # sandbox.excludedCommands must hold exactly these entries (the exact strings and the `*` ones): a target that takes arguments needs
 # `make <t> *`, and any other entry (make *, docker *, bash, make) would take the sandbox off for everything it matches.
 # make check-git and scripts/check-public-text.sh only read git and files, so they run inside the sandbox.

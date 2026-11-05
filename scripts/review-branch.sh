@@ -13,6 +13,12 @@
 #   REVIEW_ALLOW_SAME_VENDOR=1   allow a reviewer from the author's vendor (prints a warning)
 #   REVIEW_MODEL=<model>         reviewer model (default DEFAULT_CODEX_MODEL or DEFAULT_CLAUDE_MODEL)
 #   REVIEW_EFFORT=<effort>       reasoning effort, one of REVIEW_EFFORTS (default DEFAULT_REVIEW_EFFORT)
+# The reviewed branch must not change its own review tools (ADR yyn265p7, decision 1): unless REVIEW_TRUSTED_DIR is set,
+# the script unpacks TRUSTED_PATHS of REVIEW_TRUST_REF into a temporary directory, runs that copy of itself with the same
+# arguments and REVIEW_TRUSTED_DIR set to the copy, passes on its exit status and removes the copy.
+#   REVIEW_TRUST_REF=<ref>       where the review tools come from (default DEFAULT_TRUST_REF; tests only); never REVIEW_BASE
+# The claude reviewer takes its agent definition and Bash guard from that copy (--agents), and neither reviewer loads
+# the reviewed branch's project settings, the user's config or any MCP server (ADR yyn265p7, decisions 2 and 7).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,6 +35,17 @@ readonly REVIEW_EFFORTS="low medium high xhigh max"
 readonly CHECK_TAIL_LINES=20
 # The codex permission profile that denies the reviewer its credential paths and the main checkout's notes.
 readonly CODEX_PROFILE=reviewer
+# The trusted source of the review tools and the paths of it that the snapshot holds.
+readonly DEFAULT_TRUST_REF=origin/main
+readonly TRUST_REF="${REVIEW_TRUST_REF:-$DEFAULT_TRUST_REF}"
+readonly TRUSTED_PATHS="scripts Makefile tools .claude/agents/branch-reviewer.md .agents/skills/branch-review"
+# The Claude reviewer agent, its definition and Bash guard inside the snapshot, and the only tools its session gets.
+readonly REVIEWER_AGENT=branch-reviewer
+readonly REVIEWER_DEFINITION=.claude/agents/branch-reviewer.md
+readonly REVIEWER_GUARD=scripts/guard-reviewer-bash.sh
+readonly REVIEWER_TOOLS=Read,Grep,Glob,Bash
+# Only exit 2 from a hook blocks a Claude Code tool call.
+readonly HOOK_BLOCK_EXIT=2
 
 BRANCH=""
 REVIEWER=""
@@ -40,6 +57,8 @@ MODEL=""
 EFFORT=""
 CHECK_RESULT=""
 CHECK_SUMMARY=""
+SNAPSHOT_DIR=""
+AGENTS_FILE=""
 
 usage() {
   die "usage: make review BRANCH=<plan/<ID>-<slug>|work/slug> REVIEWER=codex|claude [ROUND=1] [REVIEW_BASE=<reviewed head>]"
@@ -54,7 +73,39 @@ cleanup() {
   if [[ -n "$TEMP_BASE" ]] && ! git branch -D "$TEMP_BASE" >/dev/null 2>&1; then
     log "WARNING: could not delete the temporary branch $TEMP_BASE"
   fi
+  if [[ -n "$SNAPSHOT_DIR" ]] && ! rm -rf "$SNAPSHOT_DIR"; then
+    log "WARNING: could not remove the review tool snapshot; run: rm -rf $SNAPSHOT_DIR"
+  fi
+  if [[ -n "$AGENTS_FILE" ]] && ! rm -f "$AGENTS_FILE"; then
+    log "WARNING: could not remove the reviewer definition file; run: rm -f $AGENTS_FILE"
+  fi
   exit "$exit_code"
+}
+
+# prepare_trusted_tools: sets SNAPSHOT_DIR to a new temporary directory holding TRUSTED_PATHS of TRUST_REF, removed on
+# exit. Dies, before any review worktree exists, when TRUST_REF does not resolve or holds no scripts/review-branch.sh.
+prepare_trusted_tools() {
+  local fetch_hint="run git fetch origin (or check REVIEW_TRUST_REF) and run make review again"
+  local paths=()
+  read -r -a paths <<<"$TRUSTED_PATHS"
+  git rev-parse --verify --quiet "$TRUST_REF^{commit}" >/dev/null \
+    || die "the trusted review tools ref '$TRUST_REF' does not resolve: $fetch_hint"
+  SNAPSHOT_DIR="$(new_temp -d review-tools)" || exit 1
+  trap cleanup EXIT
+  git archive "$TRUST_REF" -- "${paths[@]}" | tar -x -C "$SNAPSHOT_DIR" \
+    || die "could not unpack the review tools from '$TRUST_REF': $fetch_hint"
+  [[ -x "$SNAPSHOT_DIR/scripts/review-branch.sh" ]] \
+    || die "'$TRUST_REF' holds no scripts/review-branch.sh: $fetch_hint"
+}
+
+# run_trusted_copy ARG...: runs the snapshot's review-branch.sh with ARG... as a child, so the trap above still removes
+# the snapshot, and exits with its status.
+run_trusted_copy() {
+  local status=0
+  prepare_trusted_tools
+  step "run the review tools of $TRUST_REF"
+  REVIEW_TRUSTED_DIR="$SNAPSHOT_DIR" "$SNAPSHOT_DIR/scripts/review-branch.sh" "$@" || status=$?
+  exit "$status"
 }
 
 # worktree_parent -> REVIEW_WORKTREE_PARENT, else <main checkout>-wt next to the main checkout of the current repo.
@@ -206,6 +257,9 @@ run_codex() {
   local isolation=()
   isolation_lines="$(codex_isolation_args)" || exit 1
   while IFS= read -r line; do isolation+=("$line"); done <<<"$isolation_lines"
+  # The user's config.toml would add its MCP servers and hooks; apps and plugins would add the account's connectors.
+  # Login still comes from CODEX_HOME, and the -c arguments above define the reviewer profile without that file.
+  isolation+=(--ignore-user-config --disable apps --disable plugins)
   # codex exec review defaults to a workspace-write sandbox; the profile makes both calls read-only.
   (cd "$WT" && codex exec review -m "$MODEL" -c "model_reasoning_effort=\"$EFFORT\"" "${isolation[@]}" \
     --base "$BASE_BRANCH") >"$diff_out" </dev/null \
@@ -215,13 +269,85 @@ run_codex() {
     || die "codex plan review failed"
 }
 
-# claude_review PROMPT: one claude review as the branch-reviewer agent, whose Bash guard hook and
-# disallowedTools apply only under --agent; plan mode stays as defence in depth.
+# definition_field FILE KEY -> the value of the "KEY: value" line in the front matter of FILE; empty when there is none.
+definition_field() {
+  awk -v key="$2" '
+    NR == 1 && $0 == "---" { inside = 1; next }
+    inside && $0 == "---" { exit }
+    inside && index($0, key ": ") == 1 { print substr($0, length(key) + 3); exit }' "$1"
+}
+
+# required_field FILE KEY -> the value of KEY in the front matter of FILE; dies when it is empty or missing.
+required_field() {
+  local value
+  value="$(definition_field "$1" "$2")" || exit 1
+  [[ -n "$value" ]] \
+    || die "REVIEW_TRUSTED_DIR: $1 has no '$2: <value>' line in its front matter; fix it on main, git fetch origin and run make review again"
+  printf '%s\n' "$value"
+}
+
+# definition_body FILE -> the lines of FILE after its front matter, from the first non-blank one.
+definition_body() {
+  awk '
+    NR == 1 && $0 == "---" { front = 1; next }
+    front && $0 == "---" { front = 0; body = 1; next }
+    body && (started || NF) { started = 1; print }' "$1"
+}
+
+# shell_double_quote TEXT -> TEXT escaped for the inside of a double-quoted sh word (\, ", $ and `).
+shell_double_quote() {
+  local text="${1//\\/\\\\}"
+  text="${text//\"/\\\"}"
+  text="${text//\$/\\\$}"
+  printf '%s\n' "${text//\`/\\\`}"
+}
+
+# claude_agents_json -> the path of a new temporary file with the --agents JSON of REVIEWER_AGENT: the description,
+# tools, disallowedTools, permissionMode and body of REVIEWER_DEFINITION in REVIEW_TRUSTED_DIR (the snapshot), and a
+# Bash hook that runs the snapshot's REVIEWER_GUARD by absolute path, never the reviewed branch's copy. The caller removes
+# the file. Dies when REVIEW_TRUSTED_DIR lacks the definition, one of its fields or the guard.
+claude_agents_json() {
+  local dir definition guard quoted description tools disallowed mode prompt file
+  local hint="run make review without REVIEW_TRUSTED_DIR so it unpacks the review tools from $DEFAULT_TRUST_REF"
+  dir="$(cd "${REVIEW_TRUSTED_DIR:-}" 2>/dev/null && pwd)" \
+    || die "REVIEW_TRUSTED_DIR '${REVIEW_TRUSTED_DIR:-}' is not a directory: $hint"
+  definition="$dir/$REVIEWER_DEFINITION"
+  guard="$dir/$REVIEWER_GUARD"
+  [[ -f "$definition" ]] || die "REVIEW_TRUSTED_DIR '$dir' holds no $REVIEWER_DEFINITION: $hint"
+  [[ -x "$guard" ]] || die "REVIEW_TRUSTED_DIR '$dir' holds no executable $REVIEWER_GUARD: $hint"
+  [[ "$guard" != *[[:cntrl:]]* ]] \
+    || die "REVIEW_TRUSTED_DIR '$dir' contains a control character or newline: set TMPDIR to a plain path and run make review again"
+  require_cmd jq
+  description="$(required_field "$definition" description)" || exit 1
+  tools="$(required_field "$definition" tools)" || exit 1
+  disallowed="$(required_field "$definition" disallowedTools)" || exit 1
+  mode="$(required_field "$definition" permissionMode)" || exit 1
+  prompt="$(definition_body "$definition")" || exit 1
+  quoted="$(shell_double_quote "$guard")" || exit 1
+  file="$(new_temp review-agents)" || exit 1
+  # shellcheck disable=SC2016  # the jq program is single-quoted on purpose
+  jq -n --arg name "$REVIEWER_AGENT" --arg description "$description" --arg prompt "$prompt" --arg tools "$tools" \
+    --arg disallowed "$disallowed" --arg mode "$mode" --arg hook "\"$quoted\" || exit $HOOK_BLOCK_EXIT" '
+    def list: split(",") | map(gsub("^ +| +$"; "")) | map(select(length > 0));
+    {($name): {description: $description, prompt: $prompt, tools: ($tools | list),
+      disallowedTools: ($disallowed | list), permissionMode: $mode,
+      hooks: {PreToolUse: [{matcher: "Bash", hooks: [{type: "command", command: $hook}]}]}}}' >"$file" || {
+    rm -f "$file"
+    die "could not write the --agents JSON of $REVIEWER_AGENT from $definition"
+  }
+  printf '%s\n' "$file"
+}
+
+# claude_review PROMPT: one claude review as REVIEWER_AGENT, defined by AGENTS_FILE (claude_agents_json), whose
+# Bash guard hook and disallowedTools apply only under --agent; plan mode stays as defence in depth. --restricted keeps
+# the file tools inside the review worktree and drops the project's settings and agents, --tools lists the only tools
+# and --strict-mcp-config loads no MCP server (combination S2b, plan kkqjgknh Task 1).
 # git diff runs diff.external and textconv drivers from config by default, so the reviewer's git sees no
 # user or system config. A helper in the repository's own .git/config still runs; that config is the human's.
 claude_review() {
   (cd "$WT" && GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 \
-    claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence \
+    claude -p --restricted --tools "$REVIEWER_TOOLS" --agents "$AGENTS_FILE" --agent "$REVIEWER_AGENT" \
+    --permission-mode plan --strict-mcp-config --no-session-persistence \
     --model "$MODEL" --effort "$EFFORT" "$1") </dev/null
 }
 
@@ -256,6 +382,7 @@ strip_worktree_prefix() {
 
 main() {
   local round slug wt_path diff_out plan_out base_sha head_sha meta_out check_log out_dir wt_parent prefix
+  [[ -n "${REVIEW_TRUSTED_DIR:-}" ]] || run_trusted_copy "$@"
   [[ $# -ge 2 ]] || usage
   out_dir="$(review_out_dir)" || exit 1
   # Codex writes its plan report after cd into the review worktree, so a relative path would land there and be deleted.
@@ -277,6 +404,9 @@ main() {
     || die "a review worktree already exists at $wt_path; if no review is running, remove it: git worktree remove --force $wt_path"
   mkdir -p "$out_dir" "$wt_parent"
   trap cleanup EXIT
+  if [[ "$REVIEWER" == claude ]]; then
+    AGENTS_FILE="$(claude_agents_json)" || exit 1
+  fi
   prepare_base "$slug" "$round"
 
   step "create a read-only review worktree for $BRANCH"

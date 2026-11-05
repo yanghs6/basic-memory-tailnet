@@ -22,7 +22,7 @@ spec: none
 **Sequence:** 다음을 모두 만족한 뒤 시작한다.
 - 이 계획을 담은 docs PR(`work/docs-plan-cleanup`)이 병합됐다. 그 PR이 계획 템플릿의 Finish 절을 바꾸고, agent-sandbox·script-cleanup 계획의 Follow-ups에 대상을 붙인다.
 - Task 3은 계획 fkcn71m2(sandbox-guard-hardening)가 병합된 뒤 한다. 그 계획이 `git-workflow` 스킬의 `references/review-and-merge.md`를 고친다.
-- Task 4는 2026-11-02 재검토 2차 후속(리뷰·입력 신뢰 경계, 계획 미작성)이 병합된 뒤 한다. 그 작업이 리뷰 체크리스트에 "sandbox 밖에서 도는 코드와 검사 스크립트의 변경" 항목(재검토 F10)을 넣는다.
+- Task 4는 [review-trust-boundary 계획](plan-2026-11-03-kkqjgknh-review-trust-boundary.md)이 병합된 뒤 한다. 그 작업이 리뷰 체크리스트에 "sandbox 밖에서 도는 코드와 검사 스크립트의 변경" 항목(재검토 F10)을 넣는다.
 - `AGENTS.md`를 함께 고치는 다른 계획이 먼저 병합되면 `git merge origin/main`으로 맞추고, 크기 예산을 그때의 `wc -c AGENTS.md`로 다시 잰다.
 
 ## 배경
