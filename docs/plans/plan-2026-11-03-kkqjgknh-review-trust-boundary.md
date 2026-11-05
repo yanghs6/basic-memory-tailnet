@@ -100,16 +100,16 @@ spec: none
 - Consumes: `REVIEW_TRUSTED_DIR`(Task 2), Task 1에서 고른 플래그 조합.
 - Produces: 함수 `claude_agents_json`(스냅샷의 `branch-reviewer.md`에서 description, tools, disallowedTools, permissionMode, 본문을 읽고 훅 명령을 `"<스냅샷>/scripts/guard-reviewer-bash.sh" || exit 2`로 바꾼 JSON 파일 경로를 출력).
 
-- [ ] **Step 1: 실패하는 테스트 작성.**
+- [x] **Step 1: 실패하는 테스트 작성.**
   - claude 호출 인자에 `--restricted`, `--tools Read,Grep,Glob,Bash`, `--agents <파일>`, `--agent branch-reviewer`, `--strict-mcp-config`가 있다(Task 1에서 고른 조합 S2b). `<파일>`의 JSON에서 `.["branch-reviewer"].hooks`의 명령이 스냅샷 경로의 가드를 가리키고 리뷰 worktree 경로를 포함하지 않는다(`jq`로 확인).
   - 리뷰 대상 브랜치의 `branch-reviewer.md`와 가드 훅을 `exit 0`으로 바꿔도 JSON은 스냅샷 쪽 정의를 담는다.
   - 공백과 따옴표가 든 스냅샷 경로로도 JSON이 유효하다.
   - 두 codex 호출 인자에 `--ignore-user-config`, `--disable apps`, `--disable plugins`가 있다(Task 1, 2026-11-04 사용자 승인).
   - `tests/repo-config.bats`의 리뷰어 정의 테스트는 frontmatter 필드가 `claude_agents_json`이 읽는 형태임을 확인하도록 갱신한다.
-- [ ] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 인자가 없어 실패.
-- [ ] **Step 3: 최소 구현.** `jq -n`으로 JSON을 만들어 임시 파일에 쓴다. `branch-reviewer.md` 머리에 "make review는 이 파일을 origin/main 스냅샷에서 읽는다"를 적는다.
-- [ ] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
-- [ ] **Step 5: 커밋.** `feat: inject the reviewer definition and guard from the snapshot`, `Task: 3`.
+- [x] **Step 2: 실패 확인.** Run: `make test`. Expected: 새 인자가 없어 실패.
+- [x] **Step 3: 최소 구현.** `jq -n`으로 JSON을 만들어 임시 파일에 쓴다. `branch-reviewer.md` 머리에 "make review는 이 파일을 origin/main 스냅샷에서 읽는다"를 적는다.
+- [x] **Step 4: 통과 확인.** Run: `make check`. Expected: exit 0, 커버리지 80% 이상.
+- [x] **Step 5: 커밋.** `feat: inject the reviewer definition and guard from the snapshot`, `Task: 3`.
 
 ### Task 4: Pre-review check in containers only
 
@@ -188,3 +188,4 @@ push하지 않는 로컬 브랜치로만 한다.
 | 2026-11-04 | Verified | Codex(`codex exec -s read-only -m gpt-6.1-sol`, effort low, MCP 도구 목록 프롬프트): 사용자 설정 그대로면 basic-memory MCP 연결 시도와 사용자 hooks가 돌았다. `--ignore-user-config`를 붙이면 둘 다 사라지고 로그인은 유지됐다. 그러나 두 실행 모두 계정 앱 커넥터 `mcp__codex_apps__*`(GitHub merge와 댓글, Google Drive, Notion, Atlassian 등)가 남았다. `--ignore-user-config --disable apps --disable plugins`로는 MCP 도구가 0개(NONE)였다. ADR 결정 7과 다르므로 사용자에게 묻는다. |
 | 2026-11-04 | Verified | 사용자가 Codex 리뷰어에 `--disable apps --disable plugins`를 더하는 안(A)을 승인했다. ADR yyn265p7에 날짜를 붙인 보완 문장 두 개(맥락의 Assumption 정정, 결정 7 보완)를 넣고 Task 3의 테스트 기대값을 바꿨다. |
 | 2026-11-04 | Verified | Task 2: 새 테스트 4개가 재실행이 없어 실패하는 것을 확인한 뒤 구현했다. `make check` 통과(1..298, not ok 0, 커버리지 88.79%, `scripts/review-branch.sh` 93.62%). |
+| 2026-11-04 | Verified | Task 3: 새 테스트와 바뀐 기대값 6개가 실패하는 것을 확인한 뒤 구현했다. `make check` 통과(1..303, not ok 0, 커버리지 88.79%). `codex exec review`에 새 플래그를 붙인 실제 실행과 frontmatter 주석이 든 정의를 Claude Code가 직접 읽는지는 아직 확인하지 않았다(Task 7에서 확인). |

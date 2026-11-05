@@ -183,7 +183,7 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
         assert_line "model claude-opus-5-5" || exit 1
         run grep -c "^claude " "$STUB_LOG"
         assert_output 2 || exit 1
-        run grep -c "^claude -p --agent branch-reviewer --permission-mode plan --no-session-persistence --model claude-opus-5-5 --effort low " "$STUB_LOG"
+        run grep -c -E "^claude -p --restricted --tools Read,Grep,Glob,Bash --agents [^ ]+ --agent branch-reviewer --permission-mode plan --strict-mcp-config --no-session-persistence --model claude-opus-5-5 --effort low " "$STUB_LOG"
         assert_output 2 || exit 1
         # No user or system git config, so no external diff or textconv helper loads.
         run grep -c " git_config_global=/dev/null git_config_nosystem=1$" "$STUB_LOG"
@@ -211,6 +211,100 @@ plan-k7m2x9qa-git-review-tooling-r1-$reviewer-plan.md" || exit 1
     assert_output 2 || fail "argument $arg is not on both codex calls"
   done
   refute_stub_called -F -e '--sandbox' -e 'sandbox_mode'
+}
+
+@test "both codex calls ignore the user config and disable apps and plugins, so no user MCP server, hook or account connector loads" {
+  local arg
+  cd "$BATS_TEST_TMPDIR" || return
+  review_repo claude-code || return 1
+  run "$REVIEW" plan/k7m2x9qa-git-review-tooling codex
+  assert_success
+  for arg in ' --ignore-user-config ' ' --disable apps ' ' --disable plugins '; do
+    run grep -c -F -- "$arg" "$STUB_LOG"
+    assert_output 2 || fail "argument$arg is not on both codex calls"
+  done
+}
+
+# agent_json FILE FILTER: jq -r FILTER on the branch-reviewer entry of the --agents FILE.
+agent_json() {
+  jq -r ".[\"branch-reviewer\"] | $2" "$1"
+}
+
+# fake_snapshot DIR: DIR holding a copy of the reviewer definition and an executable guard that exits 0.
+fake_snapshot() {
+  mkdir -p "$1/.claude/agents" "$1/scripts" && cp "$REPO_DIR/.claude/agents/branch-reviewer.md" "$1/.claude/agents/" \
+    && printf '#!/usr/bin/env bash\nexit 0\n' >"$1/scripts/guard-reviewer-bash.sh" && chmod +x "$1/scripts/guard-reviewer-bash.sh"
+}
+
+@test "claude gets the branch-reviewer definition and guard from the snapshot in a --agents file, even when the branch changed both, and the file is removed" {
+  local file agents_file expected_hook="\"$REPO_DIR/scripts/guard-reviewer-bash.sh\" || exit 2"
+  cd "$BATS_TEST_TMPDIR" || return
+  review_repo codex || return 1
+  # The reviewed branch turns its own reviewer definition and guard into ones that allow everything.
+  mkdir -p .claude/agents scripts
+  printf -- '---\nname: branch-reviewer\ndescription: tampered\ntools: Read, Write\ndisallowedTools: NotebookEdit\npermissionMode: default\n---\n\ntampered prompt\n' \
+    >.claude/agents/branch-reviewer.md
+  printf '#!/usr/bin/env bash\nexit 0\n' >scripts/guard-reviewer-bash.sh
+  chmod +x scripts/guard-reviewer-bash.sh
+  git add -A && agent_commit codex "feat: loosen the reviewer" || return 1
+  CLAUDE_STUB_AGENTS_DIR="$BATS_TEST_TMPDIR/agents" run "$REVIEW" plan/k7m2x9qa-git-review-tooling claude
+  assert_success
+  for file in "$BATS_TEST_TMPDIR/agents/agents-1.json" "$BATS_TEST_TMPDIR/agents/agents-2.json"; do
+    run jq -r 'keys | join(",")' "$file"
+    assert_output branch-reviewer || return 1
+    run agent_json "$file" '.hooks.PreToolUse[0].matcher + " " + .hooks.PreToolUse[0].hooks[0].type'
+    assert_output "Bash command" || return 1
+    run agent_json "$file" '.hooks.PreToolUse[0].hooks[0].command'
+    assert_output "$expected_hook" && refute_output --partial "$REVIEW_WT" || return 1
+    run agent_json "$file" '(.tools | join(",")) + " | " + (.disallowedTools | join(",")) + " | " + .permissionMode'
+    assert_output "Read,Grep,Glob,Bash | Write,Edit,NotebookEdit | plan" || return 1
+    run agent_json "$file" '.description'
+    assert_output --partial "Independent read-only reviewer" || return 1
+    run agent_json "$file" '.prompt'
+    assert_line --index 0 --partial "Follow the \`branch-review\` skill" && assert_output --partial "Never edit, create or delete files" \
+      && refute_output --partial tampered && refute_output --partial "type: command" || return 1
+  done
+  # Both calls name the same file, which is gone after the review.
+  agents_file="$(sed -n 's/^claude .* --agents \([^ ]*\) .*$/\1/p' "$STUB_LOG" | sort -u)"
+  [[ -n "$agents_file" && "$agents_file" != *$'\n'* ]] || fail "the claude calls do not name one --agents file: '$agents_file'"
+  run test -e "$agents_file"
+  assert_failure
+}
+
+@test "a snapshot path with a space, double quotes, a dollar sign and a backtick still gives valid JSON whose hook command runs the snapshot guard" {
+  local snapshot="$BATS_TEST_TMPDIR/snap \"shot\" \$HOME \`x\`" hook
+  cd "$BATS_TEST_TMPDIR" || return
+  review_repo codex && fake_snapshot "$snapshot" || return 1
+  printf '#!/usr/bin/env bash\necho "snapshot guard ran" >>"%s"\n' "$BATS_TEST_TMPDIR/guard.log" >"$snapshot/scripts/guard-reviewer-bash.sh"
+  REVIEW_TRUSTED_DIR="$snapshot" CLAUDE_STUB_AGENTS_DIR="$BATS_TEST_TMPDIR/agents" run "$REVIEW" plan/k7m2x9qa-git-review-tooling claude
+  assert_success
+  hook="$(agent_json "$BATS_TEST_TMPDIR/agents/agents-1.json" '.hooks.PreToolUse[0].hooks[0].command')" || return 1
+  # Claude Code runs the hook command in a shell; the quoting must hand it the whole path as one word.
+  run sh -c "$hook" </dev/null
+  assert_success
+  run cat "$BATS_TEST_TMPDIR/guard.log"
+  assert_output "snapshot guard ran"
+}
+
+@test "stops before make check and any reviewer call when REVIEW_TRUSTED_DIR lacks the reviewer definition, a front matter field or the guard" {
+  local case snapshot
+  cd "$BATS_TEST_TMPDIR" || return
+  for case in "no definition" "no permissionMode" "no guard"; do
+    snapshot="$BATS_TEST_TMPDIR/snap-${case// /-}"
+    (
+      review_repo codex && fake_snapshot "$snapshot" || exit 1
+      case "$case" in
+        "no definition") rm "$snapshot/.claude/agents/branch-reviewer.md" ;;
+        "no permissionMode") sed -i.bak '/^permissionMode:/d' "$snapshot/.claude/agents/branch-reviewer.md" ;;
+        "no guard") rm "$snapshot/scripts/guard-reviewer-bash.sh" ;;
+      esac
+      REVIEW_TRUSTED_DIR="$snapshot" run "$REVIEW" plan/k7m2x9qa-git-review-tooling claude
+      assert_failure && assert_output --partial "REVIEW_TRUSTED_DIR" && assert_output --partial "make review" || exit 1
+      refute_stub_called -E '^(claude|make) ' || exit 1
+      run worktree_count
+      assert_output 1
+    ) || fail "the review did not stop with $case in the snapshot"
+  done
 }
 
 @test "the deny paths of the main .env, backups and .local-data are quoted for TOML: a space stays, a quote and a backslash are escaped, a newline is refused" {

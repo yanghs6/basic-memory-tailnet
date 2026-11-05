@@ -1,4 +1,8 @@
 ---
+# make review reads this file from the origin/main snapshot, never from the reviewed branch: claude_agents_json in
+# scripts/review-branch.sh passes description, tools, disallowedTools, permissionMode and the body to claude --agents,
+# with the snapshot's guard as the Bash hook. Keep those four fields plain one-line values.
+# The hooks block below applies only when Claude Code loads this file itself (claude --agent branch-reviewer).
 name: branch-reviewer
 description: Independent read-only reviewer for plan/ and work/ branches in this repo. Use for change and plan-conformance reviews of branches written by Codex, Antigravity or Gemini, never for branches you wrote.
 tools: Read, Grep, Glob, Bash
